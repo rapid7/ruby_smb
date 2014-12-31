@@ -10,6 +10,10 @@ class Smb2::Packet < BitStruct
   autoload :SessionSetupRequest,  "smb2/packet/session_setup_request"
   autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
 
+  autoload :TreeConnectRequest,  "smb2/packet/tree_connect_request"
+  #autoload :TreeConnectResponse,  "smb2/packet/tree_connect_response"
+
+
   # A data buffer consisting of a 16-bit offset, a 16-bit length, and a value
   # of `length` bytes at the end of the packet.
   #
@@ -19,7 +23,8 @@ class Smb2::Packet < BitStruct
   #       beginning of the SMB2 header
   #   @!attribute [rw] $1_length
   #     @return [Fixnum] 16-bit, little-endian length of {#$1}
-  #   @!attribute [rw] $1
+  #   @!attribute [r] $1
+  #     @note Copy semantics, not reference
   #     @return [String]
   def self.data_buffer(name)
     (@data_buffers ||= []) << name
@@ -32,7 +37,7 @@ class Smb2::Packet < BitStruct
 
     class_eval do
       define_method(name) do
-        self[self.send("#{name}_offset"), self.send("#{name}_length")]
+        to_s.slice(self.send("#{name}_offset"), self.send("#{name}_length"))
       end
       # TODO add setter
       #define_method(name + "=") do |other|

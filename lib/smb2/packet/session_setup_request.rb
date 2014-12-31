@@ -4,11 +4,8 @@ class Smb2::Packet
 
   class SessionSetupRequest < Smb2::Packet
     nest :header, RequestHeader
-    # @macro unsigned
     unsigned :struct_size,          16, endian: 'little'
-    # @macro unsigned
     unsigned :flags,                 8, default: 0x00
-    # @macro unsigned
     unsigned :security_mode,         8
     unsigned :capabilities,         32, endian: 'little'
     unsigned :channel,              32, endian: 'little', default: 0
