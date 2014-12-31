@@ -108,6 +108,15 @@ describe Smb2::Packet::SessionSetupRequest do
       end
     end
 
+    describe '#has_flag?' do
+      specify do
+        expect{ packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
+      end
+      specify do
+        expect(packet.has_flag?(:SESSION_BINDING_REQUEST)).to be_falsey
+      end
+    end
+
   end
 end
 
