@@ -45,7 +45,7 @@ class Smb2::Packet
     unsigned :header_len,    16, default: 64, endian: 'little'
     unsigned :credit_charge, 16, default: 1, endian: 'little'
 
-    # Here the response would have a 32-bit nt_response. Instead we have 2
+    # Here the response would have a 32-bit `nt_response`. Instead we have 2
     # 16-bit values.
     unsigned :channel_seq,   16, endian: 'little'
     unsigned :reserved,      16, default: 0, endian: 'little'

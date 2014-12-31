@@ -11,7 +11,7 @@ class Smb2::Packet < BitStruct
   autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
 
   autoload :TreeConnectRequest,  "smb2/packet/tree_connect_request"
-  #autoload :TreeConnectResponse,  "smb2/packet/tree_connect_response"
+  autoload :TreeConnectResponse,  "smb2/packet/tree_connect_response"
 
 
   # A data buffer consisting of a 16-bit offset, a 16-bit length, and a value
