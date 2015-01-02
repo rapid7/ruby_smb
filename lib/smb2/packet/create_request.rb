@@ -1,8 +1,9 @@
 require 'smb2/packet'
 
 class Smb2::Packet
-  # @see http://msdn.microsoft.com/en-us/library/cc246794.aspx
-  # @see http://msdn.microsoft.com/en-us/library/cc246502.aspx
+  # [Section 2.2.13 SMB2 CREATE Request](http://msdn.microsoft.com/en-us/library/cc246502.aspx)
+  #
+  # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class CreateRequest < Smb2::Packet
     nest :header, RequestHeader
     # "The client MUST set this field to 57, indicating the size of the
