@@ -19,6 +19,8 @@ class Smb2::Packet < BitStruct
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
 
+  default_options endian: 'little'
+
   # List of all {.data_buffer} field names
   # @return [Array<String>]
   def self.data_buffer_fields

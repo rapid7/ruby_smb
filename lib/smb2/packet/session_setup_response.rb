@@ -4,8 +4,8 @@ class Smb2::Packet
 
   class SessionSetupResponse < Smb2::Packet
     nest :header, ResponseHeader
-    unsigned :struct_size,          16, endian: 'little'
-    unsigned :flags, 16, endian: 'little'
+    unsigned :struct_size,          16
+    unsigned :flags, 16
     data_buffer :security_blob
 
     rest :buffer

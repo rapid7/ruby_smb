@@ -9,7 +9,7 @@ class Smb2::Packet
     # request structure, not including the header. The client MUST set it to
     # this value regardless of how long Buffer[] actually is in the request
     # being sent."
-    unsigned :struct_size, 16, endian: 'little', default: 57
+    unsigned :struct_size, 16, default: 57
 
     unsigned :oplock, 8
 
@@ -17,25 +17,25 @@ class Smb2::Packet
     # this to 0, and the server MUST ignore it."
     unsigned :security_flags, 8, default: 0
 
-    unsigned :impersonation, 32, endian: 'little'
+    unsigned :impersonation, 32
 
-    unsigned :access_mask, 32, endian: 'little'
+    unsigned :access_mask, 32
 
-    unsigned :create_flags, 64, endian: 'little'
+    unsigned :create_flags, 64
 
     # The documentation says this should be 8 bytes, but I'm only seeing 4 on
     # the wire.
-    unsigned :reserved, 32, endian: 'little', default: 0
+    unsigned :reserved, 32, default: 0
 
-    unsigned :desired_access, 32, endian: 'little'
-    unsigned :file_attributes, 32, endian: 'little'
-    unsigned :share_access, 32, endian: 'little'
-    unsigned :disposition, 32, endian: 'little'
-    unsigned :create_options, 32, endian: 'little'
+    unsigned :desired_access, 32
+    unsigned :file_attributes, 32
+    unsigned :share_access, 32
+    unsigned :disposition, 32
+    unsigned :create_options, 32
 
     data_buffer :filename
-    unsigned :create_contexts_offset, 32, endian: 'little'
-    unsigned :create_contexts_length, 32, endian: 'little'
+    unsigned :create_contexts_offset, 32
+    unsigned :create_contexts_length, 32
 
     rest :buffer
 

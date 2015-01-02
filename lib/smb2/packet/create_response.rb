@@ -10,7 +10,7 @@ class Smb2::Packet
     # request structure, not including the header. The client MUST set it to
     # this value regardless of how long Buffer[] actually is in the request
     # being sent."
-    unsigned :struct_size, 16, endian: 'little', default: 89
+    unsigned :struct_size, 16, default: 89
 
     unsigned :oplock, 8
 
@@ -19,20 +19,20 @@ class Smb2::Packet
     # used and MUST be reserved."
     unsigned :flags, 8, default: 0
 
-    unsigned :create_action, 32, endian: 'little'
-    unsigned :creation_time, 64, endian: 'little'
-    unsigned :last_action_time, 64, endian: 'little'
-    unsigned :last_write_time, 64, endian: 'little'
-    unsigned :change_time, 64, endian: 'little'
-    unsigned :allocation_size, 64, endian: 'little'
-    unsigned :end_of_file, 64, endian: 'little'
-    unsigned :file_attributes, 32, endian: 'little'
-    unsigned :reserved2, 32, endian: 'little'
+    unsigned :create_action, 32
+    unsigned :creation_time, 64
+    unsigned :last_action_time, 64
+    unsigned :last_write_time, 64
+    unsigned :change_time, 64
+    unsigned :allocation_size, 64
+    unsigned :end_of_file, 64
+    unsigned :file_attributes, 32
+    unsigned :reserved2, 32
 
     string :file_id, 128
 
-    unsigned :create_contexts_offset, 32, endian: 'little'
-    unsigned :create_contexts_length, 32, endian: 'little'
+    unsigned :create_contexts_offset, 32
+    unsigned :create_contexts_length, 32
 
   end
 end

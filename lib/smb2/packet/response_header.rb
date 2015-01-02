@@ -5,20 +5,20 @@ class Smb2::Packet
   # @todo DRY
   class ResponseHeader < Smb2::Packet
     string   :magic,         32, default: "\xfeSMB".b
-    unsigned :header_len,    16, endian: 'little', default: 64
-    unsigned :credit_charge, 16, endian: 'little', default: 1
+    unsigned :header_len,    16, default: 64
+    unsigned :credit_charge, 16, default: 1
 
-    unsigned :nt_status,     32, endian: 'little'
+    unsigned :nt_status,     32
 
-    unsigned :command,       16, endian: 'little'
+    unsigned :command,       16
 
-    unsigned :credits_requested, 16, endian: 'little'
-    unsigned :flags,         32, endian: 'little'
-    unsigned :chain_offset,  32, endian: 'little'
-    unsigned :command_seq,   64, endian: 'little'
-    unsigned :process_id,    32, endian: 'little'
-    unsigned :tree_id,       32, endian: 'little'
-    unsigned :session_id,    64, endian: 'little'
+    unsigned :credits_requested, 16
+    unsigned :flags,         32
+    unsigned :chain_offset,  32
+    unsigned :command_seq,   64
+    unsigned :process_id,    32
+    unsigned :tree_id,       32
+    unsigned :session_id,    64
 
     # 16 bytes
     string :signature,       (8*16)

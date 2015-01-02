@@ -6,10 +6,10 @@ class Smb2::Packet
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class WriteResponse < Smb2::Packet
     nest :header, ResponseHeader
-    unsigned :struct_size, 16, endian: 'little', default: 17
-    unsigned :reserved, 16, endian: 'little'
-    unsigned :byte_count, 32, endian: 'little'
-    unsigned :remaining, 32, endian: 'little'
+    unsigned :struct_size, 16, default: 17
+    unsigned :reserved, 16
+    unsigned :byte_count, 32
+    unsigned :remaining, 32
 
     data_buffer :channel_info
 
