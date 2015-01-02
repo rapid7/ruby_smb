@@ -10,7 +10,10 @@ class Smb2::Packet
     unsigned :reserved, 16, endian: 'little'
     unsigned :byte_count, 32, endian: 'little'
     unsigned :remaining, 32, endian: 'little'
+
     data_buffer :channel_info
+
+    rest :buffer
 
   end
 end

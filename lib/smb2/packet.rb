@@ -4,53 +4,79 @@ require 'bit-struct'
 class Smb2::Packet < BitStruct
   class InvalidFlagError < StandardError; end
 
-  autoload :RequestHeader,  "smb2/packet/request_header"
-  autoload :ResponseHeader,  "smb2/packet/response_header"
+  autoload :RequestHeader, "smb2/packet/request_header"
+  autoload :ResponseHeader, "smb2/packet/response_header"
 
-  autoload :SessionSetupRequest,  "smb2/packet/session_setup_request"
+  autoload :SessionSetupRequest, "smb2/packet/session_setup_request"
   autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
 
-  autoload :TreeConnectRequest,  "smb2/packet/tree_connect_request"
-  autoload :TreeConnectResponse,  "smb2/packet/tree_connect_response"
+  autoload :TreeConnectRequest, "smb2/packet/tree_connect_request"
+  autoload :TreeConnectResponse, "smb2/packet/tree_connect_response"
 
-  autoload :CreateRequest,  "smb2/packet/create_request"
-  autoload :CreateResponse,  "smb2/packet/create_response"
+  autoload :CreateRequest, "smb2/packet/create_request"
+  autoload :CreateResponse, "smb2/packet/create_response"
 
-  autoload :WriteRequest,  "smb2/packet/write_request"
-  autoload :WriteResponse,  "smb2/packet/write_response"
+  autoload :WriteRequest, "smb2/packet/write_request"
+  autoload :WriteResponse, "smb2/packet/write_response"
+
+  # List of all {.data_buffer} field names
+  # @return [Array<String>]
+  def self.data_buffer_fields
+    @data_buffer_fields ||= []
+  end
 
   # A data buffer consisting of a 16-bit offset, a 16-bit length, and a value
   # of `length` bytes at the end of the packet.
   #
+  # @parameter name [Symbol]
+  # @parameter bit_length [Fixnum] length in bits of the buffer's length field.
   # @!macro [attach] data_buffer
   #   @!attribute [rw] $1_offset
   #     @return [Fixnum] 16-bit, little-endian offset of {#$1} from the
   #       beginning of the SMB2 header
   #   @!attribute [rw] $1_length
   #     @return [Fixnum] 16-bit, little-endian length of {#$1}
-  #   @!attribute [r] $1
+  #   @!attribute [rw] $1
   #     @note Copy semantics, not reference
-  #     @return [String]
-  def self.data_buffer(name)
-    (@data_buffers ||= []) << name
+  #     @return [String] A copy of the data
+  def self.data_buffer(name, bit_length=16)
+    (@data_buffer_fields ||= []) << name
 
     self.unsigned "#{name}_offset", 16, endian: 'little'
-    self.unsigned "#{name}_length", 16, endian: 'little'
-    unless self.rest_field
-      self.rest :data
-    end
+    self.unsigned "#{name}_length", bit_length, endian: 'little'
 
     class_eval do
+
       define_method(name) do
-        to_s.slice(self.send("#{name}_offset"), self.send("#{name}_length"))
+        field_offset = self.send("#{name}_offset")
+        field_length = self.send("#{name}_length")
+        # Must use #to_s so we get the whole packet packed because offset is from
+        # beginning of header.
+        to_s.slice(field_offset, field_length)
       end
-      # TODO add setter
-      #define_method(name + "=") do |other|
-      #  recalculate
-      #end
+
+      define_method("#{name}=") do |other|
+        @data_buffers[name] = other
+        recalculate
+      end
+
     end
 
     self
+  end
+
+  # @see BitStruct#initialize
+  def initialize(*args)
+    @data_buffers = {}
+    super do
+      if !self.class.data_buffer_fields.empty?
+        self.class.data_buffer_fields.each do |buffer_name|
+          @data_buffers[buffer_name] = self.send(buffer_name)
+        end
+        recalculate
+      end
+      yield self if block_given?
+    end
   end
 
   # A generic flag checking method. Subclasses should have a field named
@@ -62,17 +88,25 @@ class Smb2::Packet < BitStruct
     (flags & self.class::FLAGS[flag]) == self.class::FLAGS[flag]
   end
 
-  # Fix the length and offset fields for all {.data_buffer data buffers}
+  # Fix the length and offset fields for all {.data_buffer data buffer fields}
   #
   # @return [self]
   def recalculate
-    offset = 0
-    data_buffers.each do |buffer_name|
-      new_size = self.public_send(buffer_name).size
-      self.public_send("#{buffer_name}_length=", new_size)
-      self.public_send("#{buffer_name}_offset=", offset)
+    offset = self.header.header_len + (struct_size & ~1)
+    new_buffer = ""
+
+    self.class.data_buffer_fields.each do |buffer_name|
+      new_size = @data_buffers[buffer_name].size
+      if new_size.zero?
+        self.send("#{buffer_name}_offset=", 0)
+      else
+        new_buffer << @data_buffers[buffer_name]
+        self.send("#{buffer_name}_length=", new_size)
+        self.send("#{buffer_name}_offset=", offset)
+      end
       offset += new_size
     end
+    self.buffer = new_buffer
 
     self
   end

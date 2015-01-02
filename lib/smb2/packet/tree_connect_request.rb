@@ -9,5 +9,7 @@ class Smb2::Packet
     unsigned :unused, 16, endian: 'little'
     data_buffer :tree
 
+    rest :buffer
+
   end
 end

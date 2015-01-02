@@ -6,7 +6,7 @@ class Smb2::Packet
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class CreateResponse < Smb2::Packet
     nest :header, ResponseHeader
-    # "The client MUST set this field to 57, indicating the size of the
+    # "The server MUST set this field to 89, indicating the size of the
     # request structure, not including the header. The client MUST set it to
     # this value regardless of how long Buffer[] actually is in the request
     # being sent."

@@ -37,5 +37,7 @@ class Smb2::Packet
     unsigned :create_contexts_offset, 32, endian: 'little'
     unsigned :create_contexts_length, 32, endian: 'little'
 
+    rest :buffer
+
   end
 end

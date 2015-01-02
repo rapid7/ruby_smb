@@ -8,6 +8,8 @@ class Smb2::Packet
     unsigned :flags, 16, endian: 'little'
     data_buffer :security_blob
 
+    rest :buffer
+
     FLAGS = {
       NULL_SESSION: 0x0000_0010,
       GUEST_SESSION: 0x0000_0001

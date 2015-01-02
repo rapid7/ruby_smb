@@ -14,6 +14,8 @@ class Smb2::Packet
 
     unsigned :previous_session_id,  64, endian: 'little'
 
+    rest :buffer
+
     FLAGS = {
       SESSION_BINDING_REQUEST: 0x0000_0001
     }.freeze

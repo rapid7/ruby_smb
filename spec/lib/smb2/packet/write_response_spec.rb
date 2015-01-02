@@ -25,5 +25,6 @@ describe Smb2::Packet::WriteResponse do
       expect(packet.channel_info).to eq('')
     end
   end
+
 end
 

@@ -8,19 +8,20 @@ class Smb2::Packet
     nest :header, RequestHeader
     unsigned :struct_size, 16, endian: 'little', default: 49
 
-    unsigned :data_offset, 16, endian: 'little'
-    unsigned :data_length, 32, endian: 'little'
+    data_buffer :data, 32
 
-    # where to begin the write, an offset from the beginning of the file. must
-    # be 0 for named pipes
+    # Where to begin the write, an offset from the beginning of the file. Must
+    # be 0 for named pipes.
     unsigned :file_offset, 64, endian: 'little'
 
     string :file_id, 128
 
     unsigned :channel, 32, endian: 'little'
     unsigned :remaining_bytes, 32, endian: 'little'
-    data_buffer :channel_info
+    data_buffer :channel_info, 16
     unsigned :flags, 32, endian: 'little'
+
+    rest :buffer
 
   end
 end

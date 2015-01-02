@@ -19,18 +19,69 @@ describe Smb2::Packet::WriteRequest do
       ].pack('H*')
     end
 
-    specify do
+    specify 'struct_size' do
       expect(packet.struct_size).to eq(49)
+    end
+
+    specify 'data things' do
       expect(packet.data_offset).to eq(0x0070)
       expect(packet.data_length).to eq(116)
+    end
+
+    specify do
       expect(packet.file_offset).to eq(0)
+    end
+
+    specify do
       expect(packet.file_id).to eq(["250000000000000001000000ffffffff"].pack('H*'))
+    end
+
+    specify do
       expect(packet.channel).to eq(0)
+    end
+
+    specify do
       expect(packet.remaining_bytes).to eq(0)
+    end
+
+    specify do
       expect(packet.channel_info_offset).to eq(0)
+    end
+
+    specify do
       expect(packet.channel_info_length).to eq(0)
+    end
+
+    specify do
       expect(packet.flags).to eq(0)
     end
+
+    specify do
+      expect(packet.data).to eq(["05000b03100000007400000002000000b810b810000000000200000000000100c84f324b7016d30112785a47bf6ee18803000000045d888aeb1cc9119fe808002b1048600200000001000100c84f324b7016d30112785a47bf6ee188030000002c1cb76c12984045030000000000000001000000"].pack('H*'))
+    end
+  end
+
+  describe '.new' do
+    subject { described_class }
+
+    specify do
+      packet = described_class.new do |inst|
+        inst.data = "asdf"
+      end
+      expect(packet.data_offset).to eq(0x70)
+      expect(packet.data_length).to eq(4)
+      expect(packet.data).to eq("asdf")
+    end
+
+    specify do
+      packet = described_class.new do |inst|
+        inst.data = ''
+      end
+      expect(packet.data_offset).to eq(0)
+      expect(packet.data_length).to eq(0)
+      expect(packet.data).to be_empty
+    end
+
   end
 
 end
