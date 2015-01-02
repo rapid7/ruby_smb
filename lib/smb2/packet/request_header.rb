@@ -37,32 +37,32 @@ class Smb2::Packet
     # @!attribute [rw] magic
     #   The magic header value, always `\xFE\x53\x4d\x42`
     #   @return [String] `\xFE\x53\x4d\x42`
-    string   :magic,         32, default: "\xfeSMB".b
+    string :magic, 32, default: "\xfeSMB".b
     # @!attribute [rw] header_len
     #   Length of the SMB2 header, including itself and the {magic}. Should
     #   always be 64.
     #   @return [Fixnum]
-    unsigned :header_len,    16, default: 64, endian: 'little'
+    unsigned :header_len, 16, default: 64, endian: 'little'
     unsigned :credit_charge, 16, default: 1, endian: 'little'
 
     # Here the response would have a 32-bit `nt_response`. Instead we have 2
     # 16-bit values.
-    unsigned :channel_seq,   16, endian: 'little'
-    unsigned :reserved,      16, default: 0, endian: 'little'
+    unsigned :channel_seq, 16, endian: 'little'
+    unsigned :reserved, 16, default: 0, endian: 'little'
 
     # @!attribute [rw] command
     #   The task this packet is meant to perform. Should be one of the values
     #   from {Smb2::Commands}
     #   @return [Fixnum]
-    unsigned :command,       16, endian: 'little'
+    unsigned :command, 16, endian: 'little'
 
     unsigned :credits_requested, 16, endian: 'little'
-    unsigned :flags,         32, endian: 'little'
-    unsigned :chain_offset,  32, endian: 'little'
-    unsigned :command_seq,   64, endian: 'little'
-    unsigned :process_id,    32, endian: 'little'
-    unsigned :tree_id,       32, endian: 'little'
-    unsigned :session_id,    64, endian: 'little'
+    unsigned :flags, 32, endian: 'little'
+    unsigned :chain_offset, 32, endian: 'little'
+    unsigned :command_seq, 64, endian: 'little'
+    unsigned :process_id, 32, endian: 'little'
+    unsigned :tree_id, 32, endian: 'little'
+    unsigned :session_id, 64, endian: 'little'
 
     # 16 bytes
     string :signature,       (8*16)
