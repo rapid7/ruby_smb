@@ -1,6 +1,8 @@
 # Smb2
 
-TODO: Write a gem description
+A packet parsing and manipulation library for the SMB2 protocol.
+
+See Microsoft's [[MS-SMB2]](http://msdn.microsoft.com/en-us/library/cc246482.aspx)
 
 ## Installation
 
@@ -24,7 +26,7 @@ TODO: Write usage instructions here
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/smb2/fork )
+1. Fork it ( https://github.com/jlee-r7/smb2/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
