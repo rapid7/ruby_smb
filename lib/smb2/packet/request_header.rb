@@ -39,7 +39,7 @@ class Smb2::Packet
     #   @return [String] `\xFE\x53\x4d\x42`
     string :magic, 32, default: "\xfeSMB".b
     # @!attribute [rw] header_len
-    #   Length of the SMB2 header, including itself and the {magic}. Should
+    #   Length of the SMB2 header, including itself and the magic. Should
     #   always be 64.
     #   @return [Fixnum]
     unsigned :header_len, 16, default: 64
@@ -56,11 +56,11 @@ class Smb2::Packet
     #   @return [Fixnum]
     unsigned :command, 16
 
-    unsigned :credits_requested, 16
+    unsigned :credits_requested, 16, default: 31
     unsigned :flags, 32
     unsigned :chain_offset, 32
     unsigned :command_seq, 64
-    unsigned :process_id, 32
+    unsigned :process_id, 32, default: 0x0000_ffef
     unsigned :tree_id, 32
     unsigned :session_id, 64
 

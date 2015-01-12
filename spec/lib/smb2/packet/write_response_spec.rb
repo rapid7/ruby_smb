@@ -5,7 +5,7 @@ describe Smb2::Packet::WriteResponse do
     described_class.new(data)
   end
 
-  context 'with srvsvc' do
+  context 'when parsing a packet' do
     let(:data) do
       [
         "fe534d4240000100000000000900010001000000000000000700000000000000" \
@@ -16,14 +16,87 @@ describe Smb2::Packet::WriteResponse do
 
     specify do
       expect(packet.struct_size).to eq(17)
+    end
+    specify do
       expect(packet.reserved).to eq(0)
+    end
+    specify do
       expect(packet.byte_count).to eq(116)
+    end
+    specify do
       expect(packet.remaining).to eq(0)
+    end
 
+    specify do
       expect(packet.channel_info_offset).to eq(0)
       expect(packet.channel_info_length).to eq(0)
       expect(packet.channel_info).to eq('')
     end
+
+  end
+
+  context 'when taking options' do
+
+    subject(:packet) do
+      described_class.new(
+        struct_size: 17,
+        byte_count: 116,
+        remaining: 0,
+        channel_info: '',
+      )
+    end
+
+    specify do
+      expect(packet.struct_size).to eq(17)
+    end
+    specify do
+      expect(packet.reserved).to eq(0)
+    end
+    specify do
+      expect(packet.byte_count).to eq(116)
+    end
+    specify do
+      expect(packet.remaining).to eq(0)
+    end
+
+    specify do
+      expect(packet.channel_info_offset).to eq(0)
+      expect(packet.channel_info_length).to eq(0)
+      expect(packet.channel_info).to eq('')
+    end
+
+  end
+
+  context 'when configured with a block' do
+
+    subject(:packet) do
+      described_class.new do |p|
+        p.struct_size = 17
+        p.byte_count = 116
+        p.remaining = 0
+        p.channel_info = ''
+      end
+    end
+
+    specify do
+      expect(packet.struct_size).to eq(17)
+    end
+    specify do
+      expect(packet.reserved).to eq(0)
+    end
+    specify do
+      expect(packet.byte_count).to eq(116)
+    end
+    specify do
+      expect(packet.remaining).to eq(0)
+    end
+
+    specify do
+      expect(packet.channel_info_offset).to eq(0)
+      expect(packet.channel_info_length).to eq(0)
+      expect(packet.channel_info).to eq('')
+    end
+
   end
 
 end

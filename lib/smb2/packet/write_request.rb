@@ -13,12 +13,12 @@ class Smb2::Packet
     # Where to begin the write, an offset from the beginning of the file. Must
     # be 0 for named pipes.
     unsigned :file_offset, 64
-
     string :file_id, 128
-
     unsigned :channel, 32
     unsigned :remaining_bytes, 32
+
     data_buffer :channel_info, 16
+
     unsigned :flags, 32
 
     rest :buffer

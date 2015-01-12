@@ -7,6 +7,9 @@ class Smb2::Packet < BitStruct
   autoload :RequestHeader, "smb2/packet/request_header"
   autoload :ResponseHeader, "smb2/packet/response_header"
 
+  autoload :NegotiateRequest, "smb2/packet/negotiate_request"
+  autoload :NegotiateResponse, "smb2/packet/negotiate_response"
+
   autoload :SessionSetupRequest, "smb2/packet/session_setup_request"
   autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
 
@@ -27,20 +30,25 @@ class Smb2::Packet < BitStruct
     @data_buffer_fields ||= []
   end
 
-  # A data buffer consisting of a 16-bit offset, a 16-bit length, and a value
-  # of `length` bytes at the end of the packet.
+  # A data buffer consisting of a 16-bit offset, 16- or 32-bit length, and a
+  # value of `length` bytes at the end of the packet.
   #
-  # @parameter name [Symbol]
-  # @parameter bit_length [Fixnum] length in bits of the buffer's length field.
+  # @param name [Symbol]
+  # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
   # @!macro [attach] data_buffer
   #   @!attribute [rw] $1_offset
   #     @return [Fixnum] 16-bit, little-endian offset of {#$1} from the
   #       beginning of the SMB2 header
   #   @!attribute [rw] $1_length
-  #     @return [Fixnum] 16-bit, little-endian length of {#$1}
-  #   @!attribute [rw] $1
+  #     @return [Fixnum] $2-bit, little-endian length of {#$1}
+  #   @!method $1
   #     @note Copy semantics, not reference
-  #     @return [String] A copy of the data
+  #     @return [String] a copy of the data
+  #   @!method $1=(other)
+  #     Set the value of `$1` and call {#recalculate} to fix the {#$1_length
+  #     length} and {#$1_offset offset}.
+  #     @param other [String]
+  #     @return [void]
   def self.data_buffer(name, bit_length=16)
     (@data_buffer_fields ||= []) << name
 
@@ -73,7 +81,7 @@ class Smb2::Packet < BitStruct
     super do
       if !self.class.data_buffer_fields.empty?
         self.class.data_buffer_fields.each do |buffer_name|
-          @data_buffers[buffer_name] = self.send(buffer_name)
+          @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end
         recalculate
       end
