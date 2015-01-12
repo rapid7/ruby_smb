@@ -41,14 +41,11 @@ class Smb2::Packet < BitStruct
   #       beginning of the SMB2 header
   #   @!attribute [rw] $1_length
   #     @return [Fixnum] $2-bit, little-endian length of {#$1}
-  #   @!method $1
+  #   @!attribute [rw] $1
   #     @note Copy semantics, not reference
-  #     @return [String] a copy of the data
-  #   @!method $1=(other)
-  #     Set the value of `$1` and call {#recalculate} to fix the {#$1_length
-  #     length} and {#$1_offset offset}.
-  #     @param other [String]
-  #     @return [void]
+  #     @note Setter will call {#recalculate} to fix the {#$1_length length} and
+  #       {#$1_offset offset}.
+  #     @return [String]
   def self.data_buffer(name, bit_length=16)
     (@data_buffer_fields ||= []) << name
 
