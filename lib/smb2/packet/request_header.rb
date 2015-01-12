@@ -58,6 +58,18 @@ class Smb2::Packet
 
     unsigned :credits_requested, 16, default: 31
     unsigned :flags, 32
+    # @!attribute [rw] chain_offset
+    #   Called "NextCommand" in the Microsoft documentation
+    #
+    #   """
+    #   NextCommand (4 bytes): For a compounded request, this field MUST be
+    #   set to the offset, in bytes, from the beginning of this SMB2 header to
+    #   the start of the subsequent 8-byte aligned SMB2 header. If this is not
+    #   a compounded request, or this is the last header in a compounded
+    #   request, this value MUST be 0.
+    #   """
+    #
+    #   @return [Fixnum]
     unsigned :chain_offset, 32
     unsigned :command_seq, 64
     unsigned :process_id, 32, default: 0x0000_ffef

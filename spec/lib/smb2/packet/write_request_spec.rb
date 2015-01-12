@@ -1,11 +1,12 @@
 require 'smb2'
+require 'support/shared/examples/request'
 
 describe Smb2::Packet::WriteRequest do
   subject(:packet) do
     described_class.new(data)
   end
 
-  context 'with srvsvc' do
+  context 'with packet bytes' do
     let(:data) do
       [
         "fe534d4240000100000000000900010000000000000000000700000000000000" \
@@ -18,6 +19,8 @@ describe Smb2::Packet::WriteRequest do
         "01000000"
       ].pack('H*')
     end
+
+    it_behaves_like "request", Smb2::Commands::WRITE
 
     specify 'struct_size' do
       expect(packet.struct_size).to eq(49)
@@ -90,5 +93,3 @@ describe Smb2::Packet::WriteRequest do
   end
 
 end
-
-

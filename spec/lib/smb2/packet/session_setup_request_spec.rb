@@ -1,5 +1,6 @@
 require 'smb2'
 require 'net/ntlm'
+require 'support/shared/examples/request'
 
 describe Smb2::Packet::SessionSetupRequest do
   subject(:packet) do
@@ -18,11 +19,7 @@ describe Smb2::Packet::SessionSetupRequest do
       ].pack('H*')
     end
 
-    specify 'header' do
-      expect(packet.header.magic).to eq("\xfeSMB".b)
-      expect(packet.header.signature).to eq(("\x00"*16).b)
-      expect(packet.header.command).to eq(Smb2::Commands::SESSION_SETUP)
-    end
+    it_behaves_like "request", Smb2::Commands::SESSION_SETUP
 
     specify 'body' do
       expect(packet.struct_size).to eq(25)

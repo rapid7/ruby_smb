@@ -19,8 +19,18 @@ class Smb2::Packet < BitStruct
   autoload :CreateRequest, "smb2/packet/create_request"
   autoload :CreateResponse, "smb2/packet/create_response"
 
+  autoload :QueryInfoRequest, "smb2/packet/query_info_request"
+  autoload :QueryInfoResponse, "smb2/packet/query_info_response"
+
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
+
+  QUERY_INFO_TYPES = {
+    FILE: 0x01,
+    FILESYSTEM: 0x02,
+    SECURITY: 0x03,
+    QUOTA: 0x04
+  }.freeze
 
   default_options endian: 'little'
 
@@ -30,11 +40,16 @@ class Smb2::Packet < BitStruct
     @data_buffer_fields ||= []
   end
 
-  # A data buffer consisting of a 16-bit offset, 16- or 32-bit length, and a
-  # value of `length` bytes at the end of the packet.
+  # Define a data buffer consisting of a 16-bit offset, 16- or 32-bit length,
+  # and a value of `length` bytes at the end of the packet. Will create
+  # attributes for the thing itself as well as one for `<name>_length` and
+  # `<name>_offset`
   #
   # @param name [Symbol]
   # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
+  # @option opts [Fixnum] :padding (0) Number of bits to align after the length,
+  #   before the offset
+  #
   # @!macro [attach] data_buffer
   #   @!attribute [rw] $1_offset
   #     @return [Fixnum] 16-bit, little-endian offset of {#$1} from the
@@ -46,10 +61,11 @@ class Smb2::Packet < BitStruct
   #     @note Setter will call {#recalculate} to fix the {#$1_length length} and
   #       {#$1_offset offset}.
   #     @return [String]
-  def self.data_buffer(name, bit_length=16)
+  def self.data_buffer(name, bit_length=16, opts={})
     (@data_buffer_fields ||= []) << name
 
     self.unsigned "#{name}_offset", 16, endian: 'little'
+    self.unsigned "#{name}_padding", opts[:padding] if opts.has_key?(:padding)
     self.unsigned "#{name}_length", bit_length, endian: 'little'
 
     class_eval do

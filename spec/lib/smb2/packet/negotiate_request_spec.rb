@@ -1,4 +1,5 @@
 require 'smb2'
+require 'support/shared/examples/request'
 
 describe Smb2::Packet::NegotiateRequest do
   subject(:packet) do
@@ -14,6 +15,8 @@ describe Smb2::Packet::NegotiateRequest do
         "00000000020210020003"
       ].pack('H*')
     end
+
+    it_behaves_like "request", Smb2::Commands::NEGOTIATE
 
     context 'header' do
       specify do

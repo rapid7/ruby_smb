@@ -1,4 +1,5 @@
 require 'smb2'
+require 'support/shared/examples/request'
 
 describe Smb2::Packet::CreateRequest do
   subject(:packet) do
@@ -16,11 +17,7 @@ describe Smb2::Packet::CreateRequest do
       ].pack('H*')
     end
 
-    specify 'header' do
-      expect(packet.header.magic).to eq("\xfeSMB".b)
-      expect(packet.header.signature).to eq(("\x00"*16).b)
-      expect(packet.header.command).to eq(Smb2::Commands::CREATE)
-    end
+    it_behaves_like "request", Smb2::Commands::CREATE
 
     specify 'body' do
       expect(packet.struct_size).to eq(57)
