@@ -8,6 +8,8 @@ class Smb2::Packet
     nest :header, ResponseHeader
     unsigned :struct_size, 16, default: 17
 
+    # The result of the read operation.
+    #
     # XXX: the documentation says this should be 1 byte with 1 byte of
     # 'reserved' between length and offset. Consider making data_buffer
     # configurable for the offset bitlength. In practice, the reserved byte is
@@ -15,8 +17,12 @@ class Smb2::Packet
     # giving me a little more confidence that treating it similarly is fine.
     data_buffer :data, 16
 
+    # > The length, in bytes, of the data being sent on the Channel specified in
+    #   the request.
     unsigned :data_remaining, 32
 
+    # > This field MUST NOT be used and MUST be reserved. The server MUST set
+    #   this to 0, and the client MUST ignore it on receipt.
     unsigned :reserved2, 32
 
     rest :buffer

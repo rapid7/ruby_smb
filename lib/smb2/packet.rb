@@ -105,18 +105,6 @@ class Smb2::Packet < BitStruct
   # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
   # @option opts [Fixnum] :padding (0) Number of bits to align after the length,
   #   before the offset
-  #
-  # @!macro [attach] data_buffer
-  #   @!attribute [rw] $1_offset
-  #     @return [Fixnum] 16-bit, little-endian offset of {#$1} from the
-  #       beginning of the SMB2 header
-  #   @!attribute [rw] $1_length
-  #     @return [Fixnum] $2-bit, little-endian length of {#$1}
-  #   @!attribute [rw] $1
-  #     @note Copy semantics, not reference
-  #     @note Setter will call {#recalculate} to fix the {#$1_length length} and
-  #       {#$1_offset offset}.
-  #     @return [String]
   def self.data_buffer(name, bit_length=16, opts={})
     (@data_buffer_fields ||= []) << name
 
