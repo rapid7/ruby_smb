@@ -32,6 +32,12 @@ describe Smb2::Packet::QueryInfoRequest do
         expect(packet.output_buffer_length).to eq(24)
       end
 
+      specify 'input_buffer' do
+        expect(packet.input_buffer_length).to eq(0)
+        expect(packet.input_buffer_offset).to eq(0)
+        expect(packet.input_buffer).to eq("")
+      end
+
       specify 'file_id' do
         expect(packet.file_id).to eq(["250000000000000001000000ffffffff"].pack("H*"))
       end
