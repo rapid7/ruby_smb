@@ -22,6 +22,9 @@ class Smb2::Packet < BitStruct
   autoload :QueryInfoRequest, "smb2/packet/query_info_request"
   autoload :QueryInfoResponse, "smb2/packet/query_info_response"
 
+  autoload :ReadRequest, "smb2/packet/read_request"
+  autoload :ReadResponse, "smb2/packet/read_response"
+
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
 
