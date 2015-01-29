@@ -9,6 +9,7 @@ RSpec::Core::RakeTask.new(:spec)
 
 YARD::Rake::YardocTask.new do |t|
   t.options = [ '-m', 'markdown' ]
+  t.options += Dir.glob('yard_extensions/*.rb').map { |e| [ '-e', e ] }.flatten
   t.files = ['lib/**/*.rb', '-', 'README.md', 'LICENSE.txt']
 end
 
