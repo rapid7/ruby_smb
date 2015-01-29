@@ -25,6 +25,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
   spec.add_development_dependency "yard"
 
+  spec.add_development_dependency "fivemat"
+
   spec.add_runtime_dependency "rubyntlm"
   spec.add_runtime_dependency "bit-struct"
 
