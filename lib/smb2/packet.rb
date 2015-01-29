@@ -35,6 +35,59 @@ class Smb2::Packet < BitStruct
     QUOTA: 0x04
   }.freeze
 
+  # Used in {QueryInfoRequest} packets' {QueryInfoRequest#file_info_class} field.
+  #
+  # See [[MS-FSCC] 2.4 File Information
+  # Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx) for a
+  # description of these values.
+  FILE_INFORMATION_CLASSES = {
+    FileAccessInformation:  8, # Query
+    FileAlignmentInformation:  17, # Query
+    FileAllInformation:  18, # Query
+    FileAllocationInformation:  19, # Set
+    FileAlternateNameInformation:  21, # Query
+    FileAttributeTagInformation:  35, # Query
+    FileBasicInformation:  4, # Query, Set
+    FileBothDirectoryInformation:  3, # Query
+    FileCompressionInformation:  28, # Query
+    FileDirectoryInformation:  1, # Query
+    FileDispositionInformation:  13, # Set
+    FileEaInformation:  7, # Query
+    FileEndOfFileInformation:  20, # Set
+    FileFullDirectoryInformation:  2, # Query
+    FileFullEaInformation:  15, # Query, Set
+    FileHardLinkInformation:  46, # LOCAL<71>
+    FileIdBothDirectoryInformation:  37, # Query
+    FileIdFullDirectoryInformation:  38, # Query
+    FileIdGlobalTxDirectoryInformation:  50, # LOCAL<72>
+    FileInternalInformation:  6, # Query
+    FileLinkInformation:  11, # Set
+    FileMailslotQueryInformation:  26, # LOCAL<73>
+    FileMailslotSetInformation:  27, # LOCAL<74>
+    FileModeInformation:  16, # Query, Set<75>
+    FileMoveClusterInformation:  31, # <76>
+    FileNameInformation:  9, # LOCAL<77>
+    FileNamesInformation:  12, # Query
+    FileNetworkOpenInformation:  34, # Query
+    FileNormalizedNameInformation:  48, # <78>
+    FileObjectIdInformation:  29, # LOCAL<79>
+    FilePipeInformation:  23, # Query, Set
+    FilePipeLocalInformation:  24, # Query
+    FilePipeRemoteInformation:  25, # Query
+    FilePositionInformation:  14, # Query, Set
+    FileQuotaInformation:  32, # Query, Set<80>
+    FileRenameInformation:  10, # Set
+    FileReparsePointInformation:  33, # LOCAL<81>
+    FileSfioReserveInformation:  44, # LOCAL<82>
+    FileSfioVolumeInformation:  45, # <83>
+    FileShortNameInformation:  40, # Set
+    FileStandardInformation:  5, # Query
+    FileStandardLinkInformation:  54, # LOCAL<84>
+    FileStreamInformation:  22, # Query
+    FileTrackingInformation:  36, # LOCAL<85>
+    FileValidDataLengthInformation:  39, # Set
+  }.freeze
+
   default_options endian: 'little'
 
   # List of all {.data_buffer} field names
