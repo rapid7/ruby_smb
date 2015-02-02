@@ -34,15 +34,12 @@ class Smb2::Packet
   #    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   # ```
   class RequestHeader < Smb2::Packet
-    # @!attribute [rw] magic
-    #   The magic header value, always `\xFE\x53\x4d\x42`
-    #   @return [String] `\xFE\x53\x4d\x42`
+    # The magic header value, always `\xFE\x53\x4d\x42`
     string :magic, 32, default: "\xfeSMB".b
-    # @!attribute [rw] header_len
-    #   Length of the SMB2 header, including itself and the magic. Should
-    #   always be 64.
-    #   @return [Fixnum]
+    # Length of the SMB2 header, including itself and the magic. Should
+    # always be 64.
     unsigned :header_len, 16, default: 64
+
     unsigned :credit_charge, 16, default: 1
 
     # Here the response would have a 32-bit `nt_response`. Instead we have 2
@@ -50,26 +47,19 @@ class Smb2::Packet
     unsigned :channel_seq, 16
     unsigned :reserved, 16, default: 0
 
-    # @!attribute [rw] command
-    #   The task this packet is meant to perform. Should be one of the values
-    #   from {Smb2::Commands}
-    #   @return [Fixnum]
+    # The task this packet is meant to perform. Should be one of the values
+    # from {Smb2::Commands}
     unsigned :command, 16
 
     unsigned :credits_requested, 16, default: 31
     unsigned :flags, 32
-    # @!attribute [rw] chain_offset
-    #   Called "NextCommand" in the Microsoft documentation
+    # Called "NextCommand" in the Microsoft documentation
     #
-    #   """
-    #   NextCommand (4 bytes): For a compounded request, this field MUST be
+    # > NextCommand (4 bytes): For a compounded request, this field MUST be
     #   set to the offset, in bytes, from the beginning of this SMB2 header to
     #   the start of the subsequent 8-byte aligned SMB2 header. If this is not
     #   a compounded request, or this is the last header in a compounded
     #   request, this value MUST be 0.
-    #   """
-    #
-    #   @return [Fixnum]
     unsigned :chain_offset, 32
     unsigned :command_seq, 64
     unsigned :process_id, 32, default: 0x0000_ffef
@@ -77,7 +67,7 @@ class Smb2::Packet
     unsigned :session_id, 64
 
     # 16 bytes
-    string :signature,       (8*16)
+    string :signature, (8*16)
 
     FLAGS = {
       REPLAY:   0x0200_0000,

@@ -4,26 +4,29 @@ require 'bit-struct'
 class Smb2::Packet < BitStruct
   class InvalidFlagError < StandardError; end
 
-  autoload :RequestHeader, "smb2/packet/request_header"
-  autoload :ResponseHeader, "smb2/packet/response_header"
+  autoload :CreateRequest, "smb2/packet/create_request"
+  autoload :CreateResponse, "smb2/packet/create_response"
 
   autoload :NegotiateRequest, "smb2/packet/negotiate_request"
   autoload :NegotiateResponse, "smb2/packet/negotiate_response"
 
-  autoload :SessionSetupRequest, "smb2/packet/session_setup_request"
-  autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
-
-  autoload :TreeConnectRequest, "smb2/packet/tree_connect_request"
-  autoload :TreeConnectResponse, "smb2/packet/tree_connect_response"
-
-  autoload :CreateRequest, "smb2/packet/create_request"
-  autoload :CreateResponse, "smb2/packet/create_response"
+  autoload :IoctlRequest, "smb2/packet/ioctl_request"
+  autoload :IoctlResponse, "smb2/packet/ioctl_response"
 
   autoload :QueryInfoRequest, "smb2/packet/query_info_request"
   autoload :QueryInfoResponse, "smb2/packet/query_info_response"
 
   autoload :ReadRequest, "smb2/packet/read_request"
   autoload :ReadResponse, "smb2/packet/read_response"
+
+  autoload :RequestHeader, "smb2/packet/request_header"
+  autoload :ResponseHeader, "smb2/packet/response_header"
+
+  autoload :SessionSetupRequest, "smb2/packet/session_setup_request"
+  autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
+
+  autoload :TreeConnectRequest, "smb2/packet/tree_connect_request"
+  autoload :TreeConnectResponse, "smb2/packet/tree_connect_response"
 
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
@@ -103,12 +106,13 @@ class Smb2::Packet < BitStruct
   #
   # @param name [Symbol]
   # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
-  # @option opts [Fixnum] :padding (0) Number of bits to align after the length,
-  #   before the offset
+  # @option opts [Fixnum] :padding (0) number of bits to align after the length,
+  # @option opts [Fixnum] :offset_bitlength (16) length in bits of the
+  #   buffer's `offset` field.
   def self.data_buffer(name, bit_length=16, opts={})
     (@data_buffer_fields ||= []) << name
 
-    self.unsigned "#{name}_offset", 16, endian: 'little'
+    self.unsigned "#{name}_offset", (opts[:offset_bitlength] || 16), endian: 'little'
     self.unsigned "#{name}_padding", opts[:padding] if opts.has_key?(:padding)
     self.unsigned "#{name}_length", bit_length, endian: 'little'
 

@@ -10,12 +10,11 @@ class Smb2::Packet
 
     # The result of the read operation.
     #
-    # XXX: the documentation says this should be 1 byte with 1 byte of
-    # 'reserved' between length and offset. Consider making data_buffer
-    # configurable for the offset bitlength. In practice, the reserved byte is
-    # always 0. Further, wireshark displays data_offset as a 16-bit value,
-    # giving me a little more confidence that treating it similarly is fine.
-    data_buffer :data, 16
+    # @note The documentation says this should be 1 byte with 1 byte of
+    # 'reserved' between length and offset. Wireshark displays data_offset as
+    # a 16-bit value, but the padding is always 0 in practice, so it works
+    # out.
+    data_buffer :data, 16, offset_bitlength: 8, padding: 8
 
     # > The length, in bytes, of the data being sent on the Channel specified in
     #   the request.
