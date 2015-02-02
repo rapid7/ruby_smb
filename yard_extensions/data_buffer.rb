@@ -19,20 +19,24 @@ class DataBufferHandler < YARD::Handlers::Ruby::AttributeHandler
 
     if reader.docstring.blank?
       # Use the default if there wasn't a field-specific docstring
-      doc = "Value of the `#{name}` field\n@note Copy semantics\n@return [String]"
+      doc = "Value of the `#{name}` field"
       reader.docstring.replace(doc)
     end
 
     writer = reader.dup
     writer.name = "#{name}="
     register(writer)
+
     namespace.attributes[scope][name] = SymbolHash[:read => reader, :write => writer]
 
     unless reader.docstring.has_tag?(:return)
       reader.docstring.add_tag(
-        YARD::Tags::Tag.new(:return, "value", "String")
+        YARD::Tags::Tag.new(:return, "Copy of #{name} value", "String")
       )
     end
+    reader.docstring.add_tag(
+      YARD::Tags::Tag.new(:note, "Copy semantics")
+    )
 
     reader = YARD::CodeObjects::MethodObject.new(namespace, "#{name}_length")
     reader.dynamic = true

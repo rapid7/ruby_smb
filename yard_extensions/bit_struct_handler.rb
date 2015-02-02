@@ -1,4 +1,4 @@
-class UnsignedHandler < YARD::Handlers::Ruby::AttributeHandler
+class BitStructHandler < YARD::Handlers::Ruby::AttributeHandler
   handles method_call(:unsigned)
   handles method_call(:signed)
   handles method_call(:string)
@@ -13,8 +13,9 @@ class UnsignedHandler < YARD::Handlers::Ruby::AttributeHandler
              "Fixnum"
            when :string
              "String"
+           else
+             "Object"
            end
-
 
     reader = YARD::CodeObjects::MethodObject.new(namespace, name)
     reader.dynamic = true
