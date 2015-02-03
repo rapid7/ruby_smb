@@ -4,6 +4,9 @@ require 'bit-struct'
 class Smb2::Packet < BitStruct
   class InvalidFlagError < StandardError; end
 
+  autoload :CloseRequest, "smb2/packet/close_request"
+  autoload :CloseResponse, "smb2/packet/close_response"
+
   autoload :CreateRequest, "smb2/packet/create_request"
   autoload :CreateResponse, "smb2/packet/create_response"
 
