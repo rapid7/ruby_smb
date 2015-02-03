@@ -9,6 +9,16 @@ class Smb2::Packet
     unsigned :struct_size, 16, default: 41
 
     # Should be one of the {QUERY_INFO_TYPES} constants
+    #
+    # > The type of information queried. This field MUST contain one of the
+    #   following values:
+    #
+    # | Value | Meaning
+    # | SMB2_0_INFO_FILE 0x01 | The file information is requested.
+    # | SMB2_0_INFO_FILESYSTEM 0x02 | The underlying object store information is requested.
+    # | SMB2_0_INFO_SECURITY 0x03 | The security information is requested.
+    # | SMB2_0_INFO_QUOTA 0x04 | The underlying object store quota information is requested.
+    #
     unsigned :info_type, 8
 
     # Should be one of the {FILE_INFORMATION_CLASSES} constants

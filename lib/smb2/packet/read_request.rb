@@ -15,6 +15,18 @@ class Smb2::Packet
     #   not binding on the server.
     unsigned :padding, 8
 
+    # Flags
+    #
+    # > For the SMB 2.002, 2.1 and 3.0 dialects, this field MUST NOT be used
+    #   and MUST be reserved. The client MUST set this field to 0, and the
+    #   server MUST ignore it on receipt. For the SMB 3.02 dialect, this field
+    #   MUST contain zero or more of the following values:
+    #
+    # | Value | Meaning |
+    # | ----- | ------- |
+    # | SMB2_READFLAG_READ_UNBUFFERED 0x01 | The server or underlying object store SHOULD NOT cache the read data at intermediate layers.
+    #
+    # @see FLAGS
     unsigned :flags, 8
 
     # > The length, in bytes, of the data to read from the specified file or
@@ -39,6 +51,9 @@ class Smb2::Packet
 
     rest :buffer
 
+    FLAGS = {
+      READ_UNBUFFERED: 0x01
+    }.freeze
   end
 end
 

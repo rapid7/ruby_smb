@@ -71,5 +71,7 @@ describe Smb2::Packet::IoctlRequest do
 
   end
 
+  # TODO figure out what actions cause Windows to send a non-FSCTL packet
+
 end
 

@@ -43,9 +43,8 @@ class Smb2::Packet < BitStruct
 
   # Used in {QueryInfoRequest} packets' {QueryInfoRequest#file_info_class} field.
   #
-  # See [[MS-FSCC] 2.4 File Information
-  # Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx) for a
-  # description of these values.
+  # See [[MS-FSCC] 2.4 File Information Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx)
+  # for a description of these values.
   FILE_INFORMATION_CLASSES = {
     FileAccessInformation:  8, # Query
     FileAlignmentInformation:  17, # Query
