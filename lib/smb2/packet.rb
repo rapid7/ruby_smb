@@ -111,6 +111,7 @@ class Smb2::Packet < BitStruct
   # @option opts [Fixnum] :padding (0) number of bits to align after the length,
   # @option opts [Fixnum] :offset_bitlength (16) length in bits of the
   #   buffer's `offset` field.
+  # @return [void]
   def self.data_buffer(name, bit_length=16, opts={})
     (@data_buffer_fields ||= []) << name
 

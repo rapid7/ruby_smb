@@ -1,1 +1,2 @@
 -m markdown
+--plugin yard-bit-struct
