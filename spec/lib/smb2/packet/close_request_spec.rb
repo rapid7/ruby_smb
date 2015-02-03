@@ -26,7 +26,6 @@ describe Smb2::Packet::CloseRequest do
     end
 
     specify 'file_id' do
-      puts packet.inspect
       expect(packet.file_id).to eq(["250000000000000001000000ffffffff"].pack('H*'))
     end
 
