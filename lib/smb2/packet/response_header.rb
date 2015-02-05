@@ -4,7 +4,7 @@ class Smb2::Packet
   # A response header, largely copy-pasta'd from the request header.
   # @todo DRY
   class ResponseHeader < Smb2::Packet
-    string   :magic,         32, default: "\xfeSMB".b
+    string   :magic,         32, default: "\xfeSMB".force_encoding("binary")
     unsigned :header_len,    16, default: 64
     unsigned :credit_charge, 16, default: 1
 

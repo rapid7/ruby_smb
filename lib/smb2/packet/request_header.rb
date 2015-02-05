@@ -35,7 +35,7 @@ class Smb2::Packet
   # ```
   class RequestHeader < Smb2::Packet
     # The magic header value, always `\xFE\x53\x4d\x42`
-    string :magic, 32, default: "\xfeSMB".b
+    string :magic, 32, default: "\xfeSMB".force_encoding("binary")
     # Length of the SMB2 header, including itself and the magic. Should
     # always be 64.
     unsigned :header_len, 16, default: 64
