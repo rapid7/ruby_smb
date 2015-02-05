@@ -14,6 +14,7 @@ class Smb2::Packet
     unsigned :client_start_time, 64
 
     # Just 2.02 for now. XXX Update dialect_count if you add anything here
+    # XXX This doesn't seem to actually set a default.  =(
     rest :dialects, default: "\x02\x02"
   end
 
