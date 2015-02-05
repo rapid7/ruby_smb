@@ -47,10 +47,17 @@ describe Smb2::Packet::NegotiateRequest do
         # TODO constantize
         expect(packet.capabilities).to eq(127)
       end
+
+      specify do
+        expect(packet.client_guid).to eq(["ec1cb173f176e411af9e000c293f25dc"].pack("H*"))
+      end
+
+      specify do
+        expect(packet.dialects).to eq(["020210020003"].pack("H*"))
+      end
+
     end
 
   end
 end
-
-
 
