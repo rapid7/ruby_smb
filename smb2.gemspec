@@ -5,7 +5,7 @@ require 'smb2/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "smb2"
-  spec.version       = Smb2::VERSION
+  spec.version       = Smb2::GEM_VERSION
   spec.authors       = ["James Lee"]
   spec.email         = ["egypt@metasploit.com"]
   spec.summary       = %q{A message creator and parser for the SMB2 protocol}
@@ -28,7 +28,6 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", "~> 1.7"
   spec.add_development_dependency "fivemat"
-  spec.add_development_dependency "mocksocket"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "simplecov"
