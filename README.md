@@ -10,6 +10,8 @@ It supports authentication via NTLM using the [ruby ntlm gem](https://rubygems.o
 
 ## Installation
 
+This gem has not yet been released, but when it is, do this:
+
 Add this line to your application's Gemfile:
 
 ```ruby
@@ -26,14 +28,34 @@ Or install it yourself as:
 
 ## Usage
 
+### Using the `Client` class
+
+```ruby
+sock = TCPSocket.new("192.168.100.140", 445)
+c = Smb2::Client.new(
+  socket: sock,
+  username:"administrator",
+  password:"P@ssword1",
+  domain:"asdfasdf"
+)
+c.negotiate
+c.authenticate
+```
+
+### Making packets manually
+
 ```ruby
 sock = TCPSocket.new("192.168.100.140", 445)
 neg = Smb2::Packet::NegotiateRequest.new(
-  dialects: "\x02\x02".b,
+  # This is necessary until I can figure out how to set a default for
+  # `rest` fields
+  dialects: "\x02\x02".force_encoding("binary"),
 )
 nbss = [neg.length].pack("N")
 sock.write(nbss + neg.to_s)
-data = sock.read(36)
+# Grab NBSS size
+size = sock.read(4).unpack("N").first
+data = sock.read(size)
 neg_response = Smb2::Packet::NegotiateResponse.new(data)
 
 ```
