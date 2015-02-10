@@ -18,8 +18,6 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "bundler", "~> 1.7"
-  spec.add_development_dependency "rake", "~> 10.0"
   if RUBY_PLATFORM =~ /java/
     spec.add_development_dependency "kramdown"
     spec.platform = Gem::Platform::JAVA
@@ -27,12 +25,15 @@ Gem::Specification.new do |spec|
     spec.add_development_dependency "redcarpet"
     spec.platform = Gem::Platform::RUBY
   end
+
+  spec.add_development_dependency "bundler", "~> 1.7"
+  spec.add_development_dependency "fivemat"
+  spec.add_development_dependency "mocksocket"
+  spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "simplecov"
   spec.add_development_dependency "yard"
   spec.add_development_dependency "yard-bit-struct"
-
-  spec.add_development_dependency "fivemat"
 
   spec.add_runtime_dependency "rubyntlm"
   spec.add_runtime_dependency "bit-struct"

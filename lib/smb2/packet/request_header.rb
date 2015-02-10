@@ -42,7 +42,7 @@ class Smb2::Packet
 
     unsigned :credit_charge, 16, default: 1
 
-    # Here the response would have a 32-bit `nt_response`. Instead we have 2
+    # Here the response would have a 32-bit `nt_status`. Instead we have 2
     # 16-bit values.
     unsigned :channel_seq, 16
     unsigned :reserved, 16, default: 0
@@ -62,7 +62,7 @@ class Smb2::Packet
     #   request, this value MUST be 0.
     unsigned :chain_offset, 32
     unsigned :command_seq, 64
-    unsigned :process_id, 32, default: 0x0000_ffef
+    unsigned :process_id, 32, default: 0x0000_feff
     unsigned :tree_id, 32
     unsigned :session_id, 64
 

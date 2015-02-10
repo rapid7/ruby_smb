@@ -10,12 +10,12 @@ class Smb2::Packet
     unsigned :security_mode, 16
     unsigned :reserved, 16
     unsigned :capabilities, 32, default: 0x0000_0001
-    string :client_guid, 256 # 32 bytes
-    unsigned :client_start_time, 64
+    string :client_guid, 128 # 16 bytes
+    unsigned :client_start_time, 64, default: 0
 
     # Just 2.02 for now. XXX Update dialect_count if you add anything here
-    # XXX This doesn't seem to actually set a default.  =(
-    rest :dialects, default: "\x02\x02"
+    # XXX :default doesn't do anything at all on rest fields
+    rest :dialects #, default: "\x02\x02"
   end
 
 end

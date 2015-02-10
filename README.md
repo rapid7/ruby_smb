@@ -1,8 +1,12 @@
 # Smb2
 
+[![Build Status](https://travis-ci.org/jlee-r7/smb2.svg?branch=master)](https://github.com/jlee-r7/smb2)
+
 A packet parsing and manipulation library for the SMB2 protocol.
 
 See Microsoft's [[MS-SMB2]](http://msdn.microsoft.com/en-us/library/cc246482.aspx)
+
+It supports authentication via NTLM using the [ruby ntlm gem](https://rubygems.org/gems/rubyntlm)
 
 ## Installation
 
@@ -22,7 +26,17 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+sock = TCPSocket.new("192.168.100.140", 445)
+neg = Smb2::Packet::NegotiateRequest.new(
+  dialects: "\x02\x02".b,
+)
+nbss = [neg.length].pack("N")
+sock.write(nbss + neg.to_s)
+data = sock.read(36)
+neg_response = Smb2::Packet::NegotiateResponse.new(data)
+
+```
 
 ## Contributing
 
