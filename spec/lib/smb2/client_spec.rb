@@ -17,15 +17,18 @@ describe Smb2::Client do
   context '#negotiate' do
     before do
       expect(dispatcher).to receive(:send_packet).with(kind_of Smb2::Packet)
+      expect(dispatcher).to receive(:recv_packet).and_return(response.to_s)
     end
 
     let(:response) { Smb2::Packet::NegotiateResponse.new }
 
     specify do
-      expect(dispatcher).to receive(:recv_packet).and_return(response.to_s)
+      expect { client.negotiate }.not_to raise_error
+      expect(client.sequence_number).to eq(0)
+    end
+    specify do
       expect { client.negotiate }.not_to raise_error
       expect(client.capabilities).to eq(response.capabilities)
-      expect(client.sequence_number).to eq(0)
     end
   end
 
