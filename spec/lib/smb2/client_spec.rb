@@ -1,6 +1,6 @@
 require 'spec_helper'
 require 'smb2/client'
-require 'support/mock_socket'
+require 'support/mock_socket_dispatcher'
 
 describe Smb2::Client do
   subject(:client) do
