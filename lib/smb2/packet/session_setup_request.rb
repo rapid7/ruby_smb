@@ -1,16 +1,14 @@
 require 'smb2/packet'
 
 class Smb2::Packet
-  SECURITY_MODES = {
-    SIGNING_ENABLED: 0x1,
-    SIGNING_REQUIRED: 0x2
-  }
 
   class SessionSetupRequest < Smb2::Packet
     nest :header, RequestHeader
     unsigned :struct_size,   16, default: 25
     unsigned :flags,          8, default: 0x00
+    # @see Packet::SECURITY_MODES
     unsigned :security_mode,  8
+
     unsigned :capabilities,  32, default: 0x0000_0001
     unsigned :channel,       32, default: 0
 

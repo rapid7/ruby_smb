@@ -4,6 +4,8 @@ require 'net/ntlm/client'
 
 class Smb2::Client
 
+  DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+
   # TODO: fix
   # The client's capabilities
   #
@@ -91,7 +93,7 @@ class Smb2::Client
   def authenticate
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: (
-        @security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+        @security_mode & DEFAULT_SECURITY_MODE
       ),
     )
     header = packet.header
@@ -118,7 +120,7 @@ class Smb2::Client
 
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: (
-        @security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+        @security_mode & DEFAULT_SECURITY_MODE
       ),
     )
 

@@ -93,6 +93,15 @@ class Smb2::Packet < BitStruct
     FileValidDataLengthInformation:  39, # Set
   }.freeze
 
+  # For {SessionSetupRequest} packets' {SessionSetupRequest#security_mode}
+  # field.
+  #
+  # @see https://msdn.microsoft.com/en-us/library/cc246563.aspx
+  SECURITY_MODES = {
+    SIGNING_ENABLED: 0x1,
+    SIGNING_REQUIRED: 0x2
+  }.freeze
+
   default_options endian: 'little'
 
   # List of all {.data_buffer} field names
@@ -101,9 +110,9 @@ class Smb2::Packet < BitStruct
     @data_buffer_fields ||= []
   end
 
-  # Define a data buffer consisting of a 16-bit offset, 16- or 32-bit length,
-  # and a value of `length` bytes at the end of the packet. Will create
-  # attributes for the thing itself as well as one for `<name>_length` and
+  # Define a data buffer consisting of an offset, 16- or 32-bit length, and a
+  # value of `length` bytes at the end of the packet. Will create attributes
+  # for the thing itself as well as one for `<name>_length` and
   # `<name>_offset`
   #
   # @param name [Symbol]
