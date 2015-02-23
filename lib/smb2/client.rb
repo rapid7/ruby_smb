@@ -4,23 +4,67 @@ require 'net/ntlm/client'
 
 class Smb2::Client
 
-  attr_accessor :socket
+  # TODO: fix
+  # The client's capabilities
+  #
+  # @return [Array]
+  attr_accessor :capabilities
 
-  attr_accessor :username
-  attr_accessor :password
+  # The ActiveDirectory domain name to associate the client with
+  #
+  # @return [String]
   attr_accessor :domain
 
-  attr_accessor :tree_ids
+  # The ActiveDirectory domain name to associate the client with
+  #
+  # @return [String]
   attr_accessor :file_handles
+
+  # An NT Lan Manager client
+  #
+  # @return [Net::NTLM::Client]
+  attr_accessor :ntlm_client
+
+  # The ActiveDirectory password to use in authentication
+  #
+  # @return [String]
+  attr_accessor :password
+
+  # The session identifier returned by the server upon successful authentication
+  #
+  # @return [String]
   attr_accessor :session_id
+
+  # The current sequence number, incremented as needed for new {Packet} objects
+  #
+  # @return [Fixnum]
   attr_accessor :sequence_number
 
-  attr_accessor :capabilities
+  # TODO: URL enumerating these?
+  # The server-dictated security mode, set by a successful authentication
+  #
+  # @return [String]
   attr_accessor :security_mode
 
+  # The [TCPSocket]-like thing to operate on
+  #
+  # @return [TCPSocket]
+  attr_accessor :socket
+
+  # TODO: wat
+  #
+  # @return [String]
   attr_accessor :state
 
-  attr_accessor :ntlm_client
+  # TODO: wat
+  #
+  # @return [String]
+  attr_accessor :tree_ids
+
+  # The ActiveDirectory username to authenticate with
+  #
+  # @return [String]
+  attr_accessor :username
 
   def initialize(opts = {})
     @socket      = opts.fetch(:socket)
@@ -28,26 +72,6 @@ class Smb2::Client
     @password    = opts.fetch(:password).encode("utf-8")
     @domain      = opts[:domain]
     @local_workstation = (opts[:local_workstation] || "")
-  end
-
-  def negotiate
-    packet = Smb2::Packet::NegotiateRequest.new(
-      dialects: "\x02\x02".b,
-      dialect_count: 1,
-      client_guid: 0,
-    )
-
-    send_packet(packet)
-    response = recv_packet
-    response_packet = Smb2::Packet::NegotiateResponse.new(response)
-
-    @capabilities  = response_packet.capabilities
-    @security_mode = response_packet.security_mode
-
-    @state = :negotiated
-
-    @sequence_number = 0
-    # XXX do we need the Server GUID?
   end
 
   def authenticate
@@ -104,6 +128,27 @@ class Smb2::Client
 
     response_packet.header.nt_status
   end
+
+  def negotiate
+    packet = Smb2::Packet::NegotiateRequest.new(
+      dialects: "\x02\x02".b,
+      dialect_count: 1,
+      client_guid: 0,
+    )
+
+    send_packet(packet)
+    response = recv_packet
+    response_packet = Smb2::Packet::NegotiateResponse.new(response)
+
+    @capabilities  = response_packet.capabilities
+    @security_mode = response_packet.security_mode
+
+    @state = :negotiated
+
+    @sequence_number = 0
+    # XXX do we need the Server GUID?
+  end
+
 
   protected
 
@@ -175,18 +220,6 @@ class Smb2::Client
     [packet.length].pack("N")
   end
 
-  def send_packet(packet)
-    data = nbss(packet) + packet.to_s
-    #$stderr.write("Writing #{data.length} bytes")
-    while (bytes_written = socket.send(data, 0)) < data.size
-      #$stderr.write(".")
-      data.slice!(0, bytes_written)
-    end
-    #$stderr.puts(" Done")
-
-    nil
-  end
-
   def recv_packet
     IO.select([socket])
     nbss_header = socket.read(4)
@@ -206,5 +239,18 @@ class Smb2::Client
 
     data
   end
+
+  def send_packet(packet)
+    data = nbss(packet) + packet.to_s
+    #$stderr.write("Writing #{data.length} bytes")
+    while (bytes_written = socket.send(data, 0)) < data.size
+      #$stderr.write(".")
+      data.slice!(0, bytes_written)
+    end
+    #$stderr.puts(" Done")
+
+    nil
+  end
+
 
 end
