@@ -4,14 +4,16 @@ require 'net/ntlm/client'
 
 class Smb2::Client
 
+  # This mode will be bitwise AND'd with the value from the server
   DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
 
-  # TODO: fix
   # The client's capabilities
   #
-  # @return [Array]
+  # @see Packet::SessionSetupRequest#capabilities
+  # @return [Fixnum]
   attr_accessor :capabilities
 
+  # @return [Smb2::Dispatcher,#send_packet,#recv_packet]
   attr_accessor :dispatcher
 
   # The ActiveDirectory domain name to associate the client with
@@ -19,9 +21,9 @@ class Smb2::Client
   # @return [String]
   attr_accessor :domain
 
-  # The ActiveDirectory domain name to associate the client with
+  # Connected file handles opened with a {Packet::CreateRequest}
   #
-  # @return [String]
+  # @return [Array]
   attr_accessor :file_handles
 
   # An NT Lan Manager client
@@ -47,20 +49,10 @@ class Smb2::Client
   # TODO: URL enumerating these?
   # The server-dictated security mode, set by a successful authentication
   #
-  # @return [String]
+  # @return [Fixnum]
   attr_accessor :security_mode
 
-  # The [TCPSocket]-like thing to operate on
-  #
-  # @return [TCPSocket]
-  attr_accessor :socket
-
-  # TODO: wat
-  #
-  # @return [String]
-  attr_accessor :state
-
-  # TODO: wat
+  # Connected tree identifiers returned in a {Packet::TreeConnectResponse}
   #
   # @return [String]
   attr_accessor :tree_ids

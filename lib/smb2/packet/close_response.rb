@@ -2,6 +2,7 @@ require 'smb2/packet'
 
 class Smb2::Packet
 
+  # [Section 2.2.16 SMB2 CLOSE Response](https://msdn.microsoft.com/en-us/library/cc246524.aspx)
   class CloseResponse < Smb2::Packet
     nest :header, ResponseHeader
     unsigned :struct_size, 16, default: 60

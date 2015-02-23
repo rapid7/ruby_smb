@@ -2,6 +2,7 @@ require 'smb2/packet'
 
 class Smb2::Packet
 
+  # [Section 2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
   class SessionSetupRequest < Smb2::Packet
     nest :header, RequestHeader
     unsigned :struct_size,   16, default: 25
@@ -9,6 +10,16 @@ class Smb2::Packet
     # @see Packet::SECURITY_MODES
     unsigned :security_mode,  8
 
+    # The documentation says the only flag defined for capabilities is
+    # `SMB2_GLOBAL_CAP_DFS` (0x1), however Wireshark also includes these
+    # values:
+    #  - 0x01 DFS
+    #  - 0x02 LEASING
+    #  - 0x04 LARGE MTU
+    #  - 0x08 MULTI CHANNEL
+    #  - 0x10 PERSISTENT HANDLES
+    #  - 0x20 DIRECTORY LEASING
+    #  - 0x40 ENCRYPTION
     unsigned :capabilities,  32, default: 0x0000_0001
     unsigned :channel,       32, default: 0
 
