@@ -39,7 +39,7 @@ class Smb2::Packet
     def initialize(*args)
       super
       new_header = self.header
-      new_header.command = Smb2::Commands::SESSION_SETUP
+      new_header.command = Smb2::COMMANDS[:SESSION_SETUP]
       self.header = new_header
     end
 

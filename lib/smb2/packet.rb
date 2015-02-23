@@ -34,6 +34,7 @@ class Smb2::Packet < BitStruct
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
 
+
   QUERY_INFO_TYPES = {
     FILE: 0x01,
     FILESYSTEM: 0x02,

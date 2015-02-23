@@ -19,7 +19,7 @@ describe Smb2::Packet::CreateResponse do
     specify 'header' do
       expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
-      expect(packet.header.command).to eq(Smb2::Commands::CREATE)
+      expect(packet.header.command).to eq(Smb2::COMMANDS[:CREATE])
     end
 
     specify 'body' do

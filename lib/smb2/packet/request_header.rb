@@ -48,7 +48,7 @@ class Smb2::Packet
     unsigned :reserved, 16, default: 0
 
     # The task this packet is meant to perform. Should be one of the values
-    # from {Smb2::Commands}
+    # from {Smb2::COMMANDS}
     unsigned :command, 16
 
     unsigned :credits_requested, 16, default: 31

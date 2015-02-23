@@ -15,7 +15,7 @@ describe Smb2::Packet::CloseRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::CLOSE
+    it_behaves_like "request", Smb2::COMMANDS[:CLOSE]
 
     specify do
       expect(packet.to_s).to eq(data)

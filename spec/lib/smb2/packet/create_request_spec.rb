@@ -17,7 +17,7 @@ describe Smb2::Packet::CreateRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::CREATE
+    it_behaves_like "request", Smb2::COMMANDS[:CREATE]
 
     specify 'body' do
       expect(packet.struct_size).to eq(57)

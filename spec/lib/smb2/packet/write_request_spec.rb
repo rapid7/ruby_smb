@@ -20,7 +20,7 @@ describe Smb2::Packet::WriteRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::WRITE
+    it_behaves_like "request", Smb2::COMMANDS[:WRITE]
 
     specify 'struct_size' do
       expect(packet.struct_size).to eq(49)

@@ -16,7 +16,7 @@ describe Smb2::Packet::NegotiateRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::NEGOTIATE
+    it_behaves_like "request", Smb2::COMMANDS[:NEGOTIATE]
 
     context 'header' do
       specify do
@@ -26,7 +26,7 @@ describe Smb2::Packet::NegotiateRequest do
         expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
       end
       specify do
-        expect(packet.header.command).to eq(Smb2::Commands::NEGOTIATE)
+        expect(packet.header.command).to eq(Smb2::COMMANDS[:NEGOTIATE])
       end
     end
 
