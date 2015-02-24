@@ -19,12 +19,12 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher
   # @return [void]
   def send_packet(packet)
     data = nbss(packet) + packet.to_s
-    $stderr.write("Writing #{data.length} bytes")
+    #$stderr.write("Writing #{data.length} bytes")
     while (bytes_written = @socket.write(data)) < data.size
-      $stderr.write(".")
+      #$stderr.write(".")
       data.slice!(0, bytes_written)
     end
-    $stderr.puts(" Done")
+    #$stderr.puts(" Done")
 
     nil
   end
@@ -39,14 +39,14 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher
     else
       length = nbss_header.unpack("N").first
     end
-    $stderr.write("Reading #{length} bytes")
+    #$stderr.write("Reading #{length} bytes")
     IO.select([@socket])
     data = @socket.read(length)
     while data.length < length
-      $stderr.write(".")
+      #$stderr.write(".")
       data << @socket.read(length - data.length)
     end
-    $stderr.puts(" Done")
+    #$stderr.puts(" Done")
 
     data
   end
