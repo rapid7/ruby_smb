@@ -1,6 +1,6 @@
 require 'smb2'
 
-describe Smb2::Packet::CreateResponse do
+RSpec.describe Smb2::Packet::CreateResponse do
   subject(:packet) do
     described_class.new(data)
   end

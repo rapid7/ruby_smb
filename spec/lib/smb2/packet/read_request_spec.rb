@@ -1,7 +1,7 @@
 require 'smb2'
 require 'support/shared/examples/request'
 
-describe Smb2::Packet::ReadRequest do
+RSpec.describe Smb2::Packet::ReadRequest do
   subject(:packet) do
     described_class.new(data)
   end

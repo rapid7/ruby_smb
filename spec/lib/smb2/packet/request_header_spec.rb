@@ -1,6 +1,6 @@
 require 'smb2'
 
-describe Smb2::Packet::RequestHeader do
+RSpec.describe Smb2::Packet::RequestHeader do
   let(:data) { nil }
   subject(:packet) do
     described_class.new(data)
