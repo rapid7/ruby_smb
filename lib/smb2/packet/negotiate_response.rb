@@ -2,6 +2,7 @@ require 'smb2/packet'
 
 class Smb2::Packet
 
+  # [[MS-SMB2] 2.2.4 SMB2 NEGOTIATE Response](https://msdn.microsoft.com/en-us/library/cc246561.aspx)
   class NegotiateResponse < Smb2::Packet
     nest :header, ResponseHeader
     unsigned :struct_size, 16, default: 65
