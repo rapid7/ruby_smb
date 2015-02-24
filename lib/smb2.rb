@@ -1,8 +1,11 @@
 # A packet parsing and manipulation library for the SMB2 protocol
+#
+# [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module Smb2
   autoload :VERSION, 'smb2/version'
   autoload :Packet, 'smb2/packet'
 
+  # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
   COMMANDS = {
     NEGOTIATE:        0x00,
     SESSION_SETUP:    0x01,

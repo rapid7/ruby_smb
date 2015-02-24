@@ -1,6 +1,9 @@
 require 'smb2'
 require 'bit-struct'
 
+# A PDU for the SMB2 protocol
+#
+# [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
 class Smb2::Packet < BitStruct
   class InvalidFlagError < StandardError; end
 
