@@ -1,4 +1,4 @@
-class Smb2::Dispatcher::Socket < Smb2::Dispatcher
+class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
 
   # @!attribute [rw] socket
   #   @return [IO]
