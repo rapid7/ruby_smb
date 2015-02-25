@@ -183,7 +183,7 @@ class Smb2::Packet < BitStruct
     new_buffer = ""
 
     self.class.data_buffer_fields.each do |buffer_name|
-      new_size = @data_buffers[buffer_name].size
+      new_size = @data_buffers[buffer_name].bytesize
       if new_size.zero?
         self.send("#{buffer_name}_offset=", 0)
       else
@@ -193,7 +193,7 @@ class Smb2::Packet < BitStruct
       end
       offset += new_size
     end
-    self.buffer = new_buffer
+    self.buffer = new_buffer.force_encoding("binary")
 
     self
   end

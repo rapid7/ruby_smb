@@ -74,6 +74,8 @@ class Smb2::Client
     @password    = opts.fetch(:password).encode("utf-8")
     @domain      = opts[:domain]
     @local_workstation = (opts[:local_workstation] || "")
+
+    @tree_ids = []
   end
 
   # Set up an authenticated session with the server.
@@ -159,6 +161,25 @@ class Smb2::Client
 
     @sequence_number = 0
     # XXX do we need the Server GUID?
+  end
+
+  # @param tree [String]
+  def tree_connect(tree)
+    packet = Smb2::Packet::TreeConnectRequest.new do |request|
+      header = request.header
+      header.command_seq = @sequence_number += 1
+      header.session_id = @session_id
+      request.header = header
+      request.tree = tree.encode("utf-16le")
+    end
+
+    dispatcher.send_packet(packet)
+    response = dispatcher.recv_packet
+    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
+    # @todo We probably need more than just the id
+    tree_ids << response_packet.header.tree_id
+
+    response
   end
 
   protected
