@@ -16,7 +16,7 @@ describe Smb2::Packet::QueryInfoRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::QUERY_INFO
+    it_behaves_like "request", Smb2::COMMANDS[:QUERY_INFO]
 
     context 'body' do
       specify 'struct_size' do

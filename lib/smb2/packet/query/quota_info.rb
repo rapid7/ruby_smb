@@ -1,4 +1,5 @@
 
+# [[MS-SMB2] 2.2.37.1 SMB2_QUERY_QUOTA_INFO](https://msdn.microsoft.com/en-us/library/cc246558.aspx)
 class Smb2::Packet::QueryQuotaInfo < BitStruct
   default_options endian: 'little'
 

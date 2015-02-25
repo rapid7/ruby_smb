@@ -4,20 +4,26 @@ require 'net/ntlm/client'
 
 class Smb2::Client
 
-  # TODO: fix
+  # This mode will be bitwise AND'd with the value from the server
+  DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+
   # The client's capabilities
   #
-  # @return [Array]
+  # @see Packet::SessionSetupRequest#capabilities
+  # @return [Fixnum]
   attr_accessor :capabilities
+
+  # @return [Smb2::Dispatcher,#send_packet,#recv_packet]
+  attr_accessor :dispatcher
 
   # The ActiveDirectory domain name to associate the client with
   #
   # @return [String]
   attr_accessor :domain
 
-  # The ActiveDirectory domain name to associate the client with
+  # Connected file handles opened with a {Packet::CreateRequest}
   #
-  # @return [String]
+  # @return [Array]
   attr_accessor :file_handles
 
   # An NT Lan Manager client
@@ -43,20 +49,10 @@ class Smb2::Client
   # TODO: URL enumerating these?
   # The server-dictated security mode, set by a successful authentication
   #
-  # @return [String]
+  # @return [Fixnum]
   attr_accessor :security_mode
 
-  # The [TCPSocket]-like thing to operate on
-  #
-  # @return [TCPSocket]
-  attr_accessor :socket
-
-  # TODO: wat
-  #
-  # @return [String]
-  attr_accessor :state
-
-  # TODO: wat
+  # Connected tree identifiers returned in a {Packet::TreeConnectResponse}
   #
   # @return [String]
   attr_accessor :tree_ids
@@ -66,18 +62,30 @@ class Smb2::Client
   # @return [String]
   attr_accessor :username
 
+  # @option opts [#send_packet,#recv_packet] :dispatcher
+  # @option opts [String] :username UTF-8
+  # @option opts [String] :password UTF-8
+  # @option opts [String] :domain UTF-8 *(optional)*
+  # @option opts [String] :local_workstation UTF-8 *(optional)*
+  # @raise KeyError if required options are missing
   def initialize(opts = {})
-    @socket      = opts.fetch(:socket)
+    @dispatcher  = opts.fetch(:dispatcher)
     @username    = opts.fetch(:username).encode("utf-8")
     @password    = opts.fetch(:password).encode("utf-8")
     @domain      = opts[:domain]
     @local_workstation = (opts[:local_workstation] || "")
   end
 
+  # Set up an authenticated session with the server.
+  #
+  # Currently only supports NTLM authentication.
+  #
+  # @todo Kerberos, lol
+  # @return [Fixnum] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: (
-        @security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+        @security_mode & DEFAULT_SECURITY_MODE
       ),
     )
     header = packet.header
@@ -95,24 +103,24 @@ class Smb2::Client
 
     packet.security_blob = gss_type1(type1.serialize)
 
-    send_packet(packet)
+    dispatcher.send_packet(packet)
 
-    response = recv_packet
+    response = dispatcher.recv_packet
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
+
+    @session_id = response_packet.header.session_id
 
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: (
-        @security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+        @security_mode & DEFAULT_SECURITY_MODE
       ),
     )
 
     # copy semantics are a pain, dance around it with the reassignment polka
     header = packet.header
     header.command_seq = @sequence_number += 1
-    header.session_id = response_packet.header.session_id
+    header.session_id = @session_id
     packet.header = header
-
-    @session_id = response_packet.header.session_id
 
     ssp_offset = response_packet.security_blob.index("NTLMSSP")
     resp_blob = response_packet.security_blob.slice(ssp_offset .. -1)
@@ -122,22 +130,26 @@ class Smb2::Client
     @session_key = type3.session_key
 
     packet.security_blob = gss_type3(type3.serialize)
-    send_packet(packet)
-    response = recv_packet
+    dispatcher.send_packet(packet)
+    response = dispatcher.recv_packet
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
     response_packet.header.nt_status
   end
 
+  # Send a {Packet::NegotiateRequest} and set up all the state required from the
+  # response.
+  #
+  # @return [void]
   def negotiate
     packet = Smb2::Packet::NegotiateRequest.new(
-      dialects: "\x02\x02".b,
+      dialects: "\x02\x02".force_encoding('binary'),
       dialect_count: 1,
       client_guid: 0,
     )
 
-    send_packet(packet)
-    response = recv_packet
+    dispatcher.send_packet(packet)
+    response = dispatcher.recv_packet
     response_packet = Smb2::Packet::NegotiateResponse.new(response)
 
     @capabilities  = response_packet.capabilities
@@ -149,7 +161,6 @@ class Smb2::Client
     # XXX do we need the Server GUID?
   end
 
-
   protected
 
   # Cargo culted from Rex
@@ -160,18 +171,18 @@ class Smb2::Client
     # length bytes that follow
 
     case str.length
-      when 0 .. 0x7F
-        res = [str.length].pack('C') + str
-      when 0x80 .. 0xFF
-        res = [0x81, str.length].pack('CC') + str
-      when 0x100 .. 0xFFFF
-        res = [0x82, str.length].pack('Cn') + str
-      when  0x10000 .. 0xffffff
-        res = [0x83, str.length >> 16, str.length & 0xFFFF].pack('CCn') + str
-      when  0x1000000 .. 0xffffffff
-        res = [0x84, str.length].pack('CN') + str
-      else
-        raise "ASN1 str too long"
+    when 0 .. 0x7F
+      res = [str.length].pack('C') + str
+    when 0x80 .. 0xFF
+      res = [0x81, str.length].pack('CC') + str
+    when 0x100 .. 0xFFFF
+      res = [0x82, str.length].pack('Cn') + str
+    when  0x10000 .. 0xffffff
+      res = [0x83, str.length >> 16, str.length & 0xFFFF].pack('CCn') + str
+    when  0x1000000 .. 0xffffffff
+      res = [0x84, str.length].pack('CN') + str
+    else
+      raise "ASN1 str too long"
     end
 
     res
@@ -215,42 +226,5 @@ class Smb2::Client
 
     gss
   end
-
-  def nbss(packet)
-    [packet.length].pack("N")
-  end
-
-  def recv_packet
-    IO.select([socket])
-    nbss_header = socket.read(4)
-    if nbss_header.nil?
-      raise "omg"
-    else
-      length = nbss_header.unpack("N").first
-    end
-    #$stderr.write("Reading #{length} bytes")
-    IO.select([socket])
-    data = socket.read(length)
-    while data.length < length
-      #$stderr.write(".")
-      data << socket.read(length - data.length)
-    end
-    #$stderr.puts(" Done")
-
-    data
-  end
-
-  def send_packet(packet)
-    data = nbss(packet) + packet.to_s
-    #$stderr.write("Writing #{data.length} bytes")
-    while (bytes_written = socket.send(data, 0)) < data.size
-      #$stderr.write(".")
-      data.slice!(0, bytes_written)
-    end
-    #$stderr.puts(" Done")
-
-    nil
-  end
-
 
 end

@@ -1,6 +1,7 @@
 require 'smb2/packet'
 
 class Smb2::Packet
+  # [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
   class TreeConnectRequest < Smb2::Packet
     nest :header, RequestHeader
     unsigned :struct_size, 16

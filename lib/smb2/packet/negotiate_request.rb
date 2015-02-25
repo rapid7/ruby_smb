@@ -2,6 +2,7 @@ require 'smb2/packet'
 
 class Smb2::Packet
 
+  # [Section 2.2.3 SMB2 NEGOTIATE Request](https://msdn.microsoft.com/en-us/library/cc246543.aspx)
   class NegotiateRequest < Smb2::Packet
 
     nest :header, RequestHeader

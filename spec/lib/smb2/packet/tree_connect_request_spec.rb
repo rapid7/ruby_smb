@@ -16,7 +16,7 @@ describe Smb2::Packet::TreeConnectRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "request", Smb2::Commands::TREE_CONNECT
+    it_behaves_like "request", Smb2::COMMANDS[:TREE_CONNECT]
 
     specify 'body' do
       expect(packet.struct_size).to eq(9)

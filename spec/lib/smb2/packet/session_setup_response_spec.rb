@@ -26,7 +26,8 @@ describe Smb2::Packet::SessionSetupResponse do
     specify 'header' do
       expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
-      expect(packet.header.command).to eq(Smb2::Commands::SESSION_SETUP)
+      expect(packet.header.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
+
     end
 
     context 'blob data' do
