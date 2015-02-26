@@ -5,6 +5,9 @@ require 'bit-struct'
 #
 # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
 class Smb2::Packet < BitStruct
+
+  # Raised when {#has_flag?} is given something that isn't a member of
+  # `FLAG_NAMES`
   class InvalidFlagError < StandardError; end
 
   # Values in SMB are always little endian. Make all fields default to little
@@ -180,6 +183,7 @@ class Smb2::Packet < BitStruct
   # `flags`, and constants `FLAGS` and `FLAG_NAMES`.
   #
   # @param flag [Symbol] a key in `FLAGS`
+  # @raise [InvalidFlagError] when `flag` is not a member of `FLAG_NAMES`
   def has_flag?(flag)
     raise InvalidFlagError, flag.to_s unless self.class::FLAG_NAMES.include?(flag)
     (flags & self.class::FLAGS[flag]) == self.class::FLAGS[flag]
