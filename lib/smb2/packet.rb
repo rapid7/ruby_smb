@@ -7,6 +7,10 @@ require 'bit-struct'
 class Smb2::Packet < BitStruct
   class InvalidFlagError < StandardError; end
 
+  # Values in SMB are always little endian. Make all fields default to little
+  # endian so we don't have to do it in every call to `unsigned`, etc.
+  default_options endian: 'little'
+
   autoload :CloseRequest, "smb2/packet/close_request"
   autoload :CloseResponse, "smb2/packet/close_response"
 
@@ -37,6 +41,9 @@ class Smb2::Packet < BitStruct
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
 
+  ##
+  # Constants
+  ##
 
   QUERY_INFO_TYPES = {
     FILE: 0x01,
@@ -106,7 +113,10 @@ class Smb2::Packet < BitStruct
     SIGNING_REQUIRED: 0x2
   }.freeze
 
-  default_options endian: 'little'
+
+  ##
+  # Class methods
+  ##
 
   # List of all {.data_buffer} field names
   # @return [Array<String>]
@@ -132,25 +142,25 @@ class Smb2::Packet < BitStruct
     self.unsigned "#{name}_padding", opts[:padding] if opts.has_key?(:padding)
     self.unsigned "#{name}_length", bit_length, endian: 'little'
 
-    class_eval do
+    define_method(name) do
+      field_offset = self.send("#{name}_offset")
+      field_length = self.send("#{name}_length")
+      # Must use #to_s so we get the whole packet packed because offset is from
+      # beginning of header.
+      to_s.slice(field_offset, field_length)
+    end
 
-      define_method(name) do
-        field_offset = self.send("#{name}_offset")
-        field_length = self.send("#{name}_length")
-        # Must use #to_s so we get the whole packet packed because offset is from
-        # beginning of header.
-        to_s.slice(field_offset, field_length)
-      end
-
-      define_method("#{name}=") do |other|
-        @data_buffers[name] = other
-        recalculate
-      end
-
+    define_method("#{name}=") do |other|
+      @data_buffers[name] = other
+      recalculate
     end
 
     self
   end
+
+  ##
+  # Instance methods
+  ##
 
   # @see BitStruct#initialize
   def initialize(*args)
