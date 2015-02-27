@@ -1,6 +1,6 @@
 # Smb2
 
-[![Build Status](https://travis-ci.org/jlee-r7/smb2.svg?branch=master)](https://travis-ci.org/jlee-r7/smb2)
+[![Build Status](https://travis-ci.org/rapid7/smb2.svg?branch=master)](https://travis-ci.org/rapid7/smb2)
 
 A packet parsing and manipulation library for the SMB2 protocol.
 

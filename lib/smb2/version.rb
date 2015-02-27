@@ -7,7 +7,7 @@ module Smb2
     # The minor version number, scoped to the {MAJOR} version number.
     MINOR = 0
     # The patch number, scoped to the {MINOR} version number.
-    PATCH = 1
+    PATCH = 2
 
     PRERELEASE = 'tree-connect'
 

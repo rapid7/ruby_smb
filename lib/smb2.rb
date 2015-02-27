@@ -4,6 +4,8 @@
 module Smb2
   autoload :VERSION, 'smb2/version'
   autoload :Packet, 'smb2/packet'
+  autoload :Dispatcher, 'smb2/dispatcher'
+  autoload :Client, 'smb2/client'
 
   # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
   COMMANDS = {
