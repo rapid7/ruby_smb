@@ -2,6 +2,19 @@ require 'smb2/packet'
 require 'net/ntlm'
 require 'net/ntlm/client'
 
+# A client for holding the state of an SMB2 session.
+#
+# ```ruby
+# sock = TCPSocket.new("192.168.100.140", 445)
+# c = Smb2::Client.new(
+#   socket: sock,
+#   username:"administrator",
+#   password:"P@ssword1",
+#   domain:"asdfasdf"
+# )
+# c.negotiate
+# c.authenticate
+# ```
 class Smb2::Client
 
   # This mode will be bitwise AND'd with the value from the server
@@ -179,7 +192,7 @@ class Smb2::Client
     # @todo We probably need more than just the id
     tree_ids << response_packet.header.tree_id
 
-    response
+    response_packet.header.nt_status
   end
 
   protected

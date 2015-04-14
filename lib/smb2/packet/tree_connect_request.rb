@@ -12,11 +12,8 @@ class Smb2::Packet
 
     rest :buffer
 
-    def initialize(*args)
-      super
-      new_header = self.header
-      new_header.command = Smb2::COMMANDS[:TREE_CONNECT]
-      self.header = new_header
+    def self.command
+      :TREE_CONNECT
     end
 
   end

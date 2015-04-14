@@ -23,5 +23,8 @@ class Smb2::Packet
 
     rest :buffer
 
+    def self.command
+      :WRITE
+    end
   end
 end

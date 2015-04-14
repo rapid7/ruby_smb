@@ -17,6 +17,7 @@ describe Smb2::Packet::IoctlRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:IOCTL]
 
     specify 'struct_size' do

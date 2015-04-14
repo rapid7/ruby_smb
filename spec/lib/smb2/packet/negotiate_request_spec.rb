@@ -16,6 +16,7 @@ describe Smb2::Packet::NegotiateRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:NEGOTIATE]
 
     context 'header' do

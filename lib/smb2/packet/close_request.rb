@@ -9,6 +9,10 @@ class Smb2::Packet
     unsigned :flags, 16
     unsigned :reserved, 32
     string :file_id, 128
+
+    def self.command
+      :CLOSE
+    end
   end
 
 end

@@ -16,6 +16,7 @@ describe Smb2::Packet::ReadRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:READ]
 
     specify 'struct_size' do

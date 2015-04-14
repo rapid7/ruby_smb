@@ -54,6 +54,9 @@ class Smb2::Packet
     FLAGS = {
       READ_UNBUFFERED: 0x01
     }.freeze
+    def self.command
+      :READ
+    end
   end
 end
 

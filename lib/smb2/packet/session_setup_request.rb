@@ -36,13 +36,9 @@ class Smb2::Packet
     }.freeze
     FLAG_NAMES = FLAGS.keys
 
-    def initialize(*args)
-      super
-      new_header = self.header
-      new_header.command = Smb2::COMMANDS[:SESSION_SETUP]
-      self.header = new_header
+    def self.command
+      :SESSION_SETUP
     end
-
   end
 
 end

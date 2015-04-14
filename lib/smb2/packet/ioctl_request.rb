@@ -65,5 +65,9 @@ class Smb2::Packet
       SMB2_0_IOCTL_IS_FSCTL: 1
     }.freeze
 
+    def self.command
+      :IOCTL
+    end
+
   end
 end

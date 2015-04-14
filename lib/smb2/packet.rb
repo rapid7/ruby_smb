@@ -169,14 +169,25 @@ class Smb2::Packet < BitStruct
   def initialize(*args)
     @data_buffers = {}
     super do
-      if !self.class.data_buffer_fields.empty?
-        self.class.data_buffer_fields.each do |buffer_name|
+      if !data_buffer_fields.empty?
+        data_buffer_fields.each do |buffer_name|
           @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end
         recalculate
       end
       yield self if block_given?
     end
+
+    if respond_to?(:header) && self.class.respond_to?(:command)
+      # Set the appropriate {#command} in the header for this packet type
+      new_header = self.header
+      new_header.command = Smb2::COMMANDS[self.class.command]
+      self.header = new_header
+    end
+  end
+
+  def data_buffer_fields
+    self.class.data_buffer_fields
   end
 
   # A generic flag checking method. Subclasses should have a field named

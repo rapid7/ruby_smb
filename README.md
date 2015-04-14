@@ -30,17 +30,7 @@ Or install it yourself as:
 
 ### Using the `Client` class
 
-```ruby
-sock = TCPSocket.new("192.168.100.140", 445)
-c = Smb2::Client.new(
-  socket: sock,
-  username:"administrator",
-  password:"P@ssword1",
-  domain:"asdfasdf"
-)
-c.negotiate
-c.authenticate
-```
+{include:Smb2::Client}
 
 ### Making packets manually
 
@@ -60,9 +50,14 @@ neg_response = Smb2::Packet::NegotiateResponse.new(data)
 
 ```
 
+## License
+
+{include:file:LICENSE.txt}
+
+
 ## Contributing
 
-1. Fork it ( https://github.com/jlee-r7/smb2/fork )
+1. Fork it ( https://github.com/rapid7/smb2/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

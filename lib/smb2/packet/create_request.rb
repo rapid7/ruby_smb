@@ -40,5 +40,8 @@ class Smb2::Packet
 
     rest :buffer
 
+    def self.command
+      :CREATE
+    end
   end
 end

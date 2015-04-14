@@ -19,6 +19,12 @@ RSpec.describe Smb2::Packet do
   it { is_expected.to respond_to(:data_offset) }
   it { is_expected.to respond_to(:data_length) }
 
+  describe '#data_buffer_fields' do
+    specify do
+      expect(packet.data_buffer_fields).to eq( [ :data ] )
+    end
+  end
+
   describe '#<data buffer>=' do
     specify do
       expect(packet).to receive(:recalculate).once

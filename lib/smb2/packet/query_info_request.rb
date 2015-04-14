@@ -35,6 +35,10 @@ class Smb2::Packet
     string :file_id, 128
 
     rest :buffer
+
+    def self.command
+      :QUERY_INFO
+    end
   end
 
 end
