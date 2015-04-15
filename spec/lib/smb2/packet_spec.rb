@@ -34,7 +34,7 @@ RSpec.describe Smb2::Packet do
 
   describe '#recalculate' do
 
-    context 'with ascii-8bit field' do
+    context 'with utf-16le field' do
       let(:value) { "omg data".encode("utf-16le") }
       before do
         packet.data = value
