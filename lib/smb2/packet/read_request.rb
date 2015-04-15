@@ -47,6 +47,8 @@ class Smb2::Packet
 
     unsigned :channel, 32
 
+    unsigned :remaining_bytes, 32
+
     data_buffer :read_channel_info, 16
 
     rest :buffer
