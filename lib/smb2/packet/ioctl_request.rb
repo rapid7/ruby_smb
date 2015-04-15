@@ -65,6 +65,7 @@ class Smb2::Packet
       SMB2_0_IOCTL_IS_FSCTL: 1
     }.freeze
 
+    # @return [Symbol] a key in {Smb2::COMMANDS}
     def self.command
       :IOCTL
     end

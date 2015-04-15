@@ -36,6 +36,7 @@ class Smb2::Packet
     }.freeze
     FLAG_NAMES = FLAGS.keys
 
+    # @return [Symbol] a key in {Smb2::COMMANDS}
     def self.command
       :SESSION_SETUP
     end
