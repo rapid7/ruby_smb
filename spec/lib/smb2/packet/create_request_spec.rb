@@ -23,10 +23,13 @@ describe Smb2::Packet::CreateRequest do
     specify 'body' do
       expect(packet.struct_size).to eq(57)
       expect(packet.oplock).to eq(0)
+      expect(packet.security_flags).to eq(0)
       expect(packet.impersonation).to eq(2)
-      expect(packet.access_mask).to eq(0)
       expect(packet.create_flags).to eq(0)
 
+      expect(packet.reserved).to eq(0)
+
+      expect(packet.desired_access).to eq(0x0012_019f)
       expect(packet.file_attributes).to eq(0)
       # SHARE_DELETE | SHARE_WRITE | SHARE_READ
       expect(packet.share_access).to eq(7)
