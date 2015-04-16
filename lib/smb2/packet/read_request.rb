@@ -49,6 +49,8 @@ class Smb2::Packet
 
     unsigned :remaining_bytes, 32
 
+    unsigned :read_channel_info_offset, 16
+    unsigned :read_channel_info_length, 16
     # Can't use a `data_buffer` for read_channel_info because unlike all other
     # data buffers, this one must have at least one NULL byte.
     #
@@ -57,9 +59,10 @@ class Smb2::Packet
     #   channel information, as described by ReadChannelInfoOffset and
     #   ReadChannelInfoLength. Unused at present. The client MUST set one byte
     #   of this field to 0, and the server MUST ignore it on receipt
-    unsigned :read_channel_info_offset, 16
-    unsigned :read_channel_info_length, 16
-    char :read_channel_info, 8, default: "\x00".force_encoding('binary')
+    #
+    # @note Updating this will *NOT* change {#read_channel_info_length} or
+    #   {#read_channel_info_offset}
+    string :read_channel_info, 8, default: "\x00".force_encoding('binary')
 
     FLAGS = {
       READ_UNBUFFERED: 0x01
