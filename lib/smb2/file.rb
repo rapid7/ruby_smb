@@ -32,7 +32,6 @@ class Smb2::File
       request.read_length = length
       request.file_id = self.create_response.file_id
       request.minimum_count = length
-      request.read_channel_info = ""
     end
 
     response = tree.send_recv(packet)
