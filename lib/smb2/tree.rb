@@ -15,13 +15,16 @@ class Smb2::Tree
     self.tree_connect_response = tree_connect_response
   end
 
+  # Open a file handle
+  #
+  # The protocol is persnickety about format. The `filename` must not begin
+  # with a backslash or it will return a STATUS_INVALID_PARAMETER.
+  #
+  # @param filename [String,#encode] this will be encoded in utf-16le
+  # @return [Smb2::File]
   def create(filename)
     packet = Smb2::Packet::CreateRequest.new do |request|
-      header = request.header
-      header.tree_id = self.tree_connect_response.header.tree_id
-      request.header = header
-
-      request.filename = filename
+      request.filename = filename.encode("utf-16le")
       # @todo document all these flags. value copied from smbclient traffic
       request.desired_access = 0x0012_0089
       request.impersonation = 2
@@ -30,7 +33,7 @@ class Smb2::Tree
       request.create_options = 0x40 # non-directory
     end
 
-    response = client.send_recv(packet)
+    response = send_recv(packet)
 
     create_response = Smb2::Packet::CreateResponse.new(response)
     Smb2::File.new(tree: self, create_response: create_response)
