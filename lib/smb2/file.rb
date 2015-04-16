@@ -10,20 +10,14 @@ class Smb2::File
     self.create_response = create_response
   end
 
-  def size
-    packet = Smb2::Packet::QueryInfoRequest.new do |request|
-      request.info_type = 0x01 # SMB2_0_INFO_FILE
-      request.file_info_class = Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation]
-      request.output_buffer_length = 40
-      request.input_buffer_length = 0
+  def close
+    packet = Smb2::Packet::CloseRequest.new do |request|
       request.file_id = self.create_response.file_id
     end
-    response = tree.send_recv(packet)
-    query_response = Smb2::Packet::QueryInfoResponse.new(response)
-    p query_response
-    info = Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
 
-    info.end_of_file
+    response = tree.send_recv(packet)
+
+    Smb2::Packet::CloseResponse.new(response)
   end
 
   def read(offset: 0, length: self.create_response.end_of_file)
@@ -38,4 +32,20 @@ class Smb2::File
 
     Smb2::Packet::ReadResponse.new(response)
   end
+
+  def size
+    packet = Smb2::Packet::QueryInfoRequest.new do |request|
+      request.info_type = 0x01 # SMB2_0_INFO_FILE
+      request.file_info_class = Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation]
+      request.output_buffer_length = 40
+      request.input_buffer_length = 0
+      request.file_id = self.create_response.file_id
+    end
+    response = tree.send_recv(packet)
+    query_response = Smb2::Packet::QueryInfoResponse.new(response)
+    info = Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
+
+    info.end_of_file
+  end
+
 end
