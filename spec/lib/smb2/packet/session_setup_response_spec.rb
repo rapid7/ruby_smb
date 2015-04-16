@@ -1,7 +1,7 @@
 require 'smb2'
 require 'net/ntlm'
 
-describe Smb2::Packet::SessionSetupResponse do
+RSpec.describe Smb2::Packet::SessionSetupResponse do
   subject(:packet) do
     described_class.new(data)
   end

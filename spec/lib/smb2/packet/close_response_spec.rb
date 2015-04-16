@@ -1,7 +1,7 @@
 require 'smb2'
 require 'support/shared/examples/request'
 
-describe Smb2::Packet::CloseResponse do
+RSpec.describe Smb2::Packet::CloseResponse do
   subject(:packet) do
     described_class.new(data)
   end

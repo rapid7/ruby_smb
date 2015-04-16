@@ -1,6 +1,6 @@
 require 'smb2'
 
-describe Smb2::Packet::QueryInfoResponse do
+RSpec.describe Smb2::Packet::QueryInfoResponse do
   subject(:packet) do
     described_class.new(data)
   end

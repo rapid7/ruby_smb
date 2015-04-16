@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'smb2/client'
 require 'support/mock_socket_dispatcher'
 
-describe Smb2::Client do
+RSpec.describe Smb2::Client do
   subject(:client) do
     described_class.new(dispatcher: dispatcher, username: username, password: password)
   end
