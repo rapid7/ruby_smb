@@ -27,6 +27,7 @@ Gem::Specification.new do |spec|
   end
 
   spec.add_development_dependency "bundler", "~> 1.7"
+  spec.add_development_dependency "coveralls"
   spec.add_development_dependency "fivemat"
   spec.add_development_dependency "metasploit-version"
   spec.add_development_dependency "rake", "~> 10.0"

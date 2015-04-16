@@ -1,4 +1,13 @@
 require 'simplecov'
+require 'coveralls'
+
+if ENV['TRAVIS'] == 'true'
+  # don't generate local report as it is inaccessible on travis-ci, which is
+  # why coveralls is being used.
+  SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+else
+  SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
+end
 
 # Use find_all_by_name instead of find_by_name as find_all_by_name will return pre-release versions
 gem_specification = Gem::Specification.find_all_by_name('metasploit-version').first
