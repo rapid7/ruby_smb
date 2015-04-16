@@ -51,6 +51,7 @@ class Smb2::Packet
 
     unsigned :read_channel_info_offset, 16
     unsigned :read_channel_info_length, 16
+
     # Can't use a `data_buffer` for read_channel_info because unlike all other
     # data buffers, this one must have at least one NULL byte.
     #
