@@ -20,10 +20,4 @@ tree = c.tree_connect("\\\\#{host}\\Users")
 
 file = tree.create("public\\foo.txt".encode('utf-16le'))
 
-# Right now this returns a Smb2::Packet::ReadResponse. When it works
-# correctly, it will be the actual file contents
-response = file.read
-
-puts response.header.nt_status.to_s(16)
-
-p response
+puts file.read

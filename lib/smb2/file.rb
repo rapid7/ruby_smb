@@ -30,7 +30,9 @@ class Smb2::File
 
     response = tree.send_recv(packet)
 
-    Smb2::Packet::ReadResponse.new(response)
+    response_packet = Smb2::Packet::ReadResponse.new(response)
+
+    response_packet.data
   end
 
   def size
