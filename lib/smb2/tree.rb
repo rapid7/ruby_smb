@@ -27,12 +27,22 @@ class Smb2::Tree
       request.impersonation = 2
       request.share_access = 3  # SHARE_WRITE | SHARE_READ
       request.disposition = 1   # Open (if file exists open it, else fail)
+      request.create_options = 0x40 # non-directory
     end
 
     response = client.send_recv(packet)
 
-    Smb2::Packet::CreateResponse.new(response)
+    create_response = Smb2::Packet::CreateResponse.new(response)
+    Smb2::File.new(tree: self, create_response: create_response)
+  end
+
+  def send_recv(request)
+    header = request.header
+    header.tree_id = self.tree_connect_response.header.tree_id
+    header.process_id = 0
+    request.header = header
+
+    client.send_recv(request)
   end
 
 end
-
