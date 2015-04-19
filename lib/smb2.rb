@@ -1,8 +1,8 @@
 # A packet parsing and manipulation library for the SMB2 protocol
-#
-# [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
+# [[MS-SMB2] Server Message Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
+
 module Smb2
-  autoload :VERSION, 'smb2/version'
+  autoload :Version, 'smb2/version'
   autoload :Packet, 'smb2/packet'
   autoload :Dispatcher, 'smb2/dispatcher'
   autoload :Client, 'smb2/client'
@@ -28,5 +28,5 @@ module Smb2
     QUERY_INFO:       0x10,
     SET_INFO:         0x11,
   }.freeze
-
 end
+

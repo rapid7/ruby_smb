@@ -1,16 +1,13 @@
-require 'smb2/packet'
+# Implements [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
+class Smb2::Packet::TreeConnectRequest < Smb2::Packet::Generic
+  nest :header, Smb2::Packet::RequestHeader
+  unsigned :struct_size, 16
+  # These two bytes are used in the response, but just padding in the
+  # request
+  unsigned :unused, 16
+  data_buffer :tree
 
-class Smb2::Packet
-  # [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
-  class TreeConnectRequest < Smb2::Packet
-    nest :header, RequestHeader
-    unsigned :struct_size, 16
-    # These two bytes are used in the response, but just padding in the
-    # request
-    unsigned :unused, 16
-    data_buffer :tree
+  rest :buffer
 
-    rest :buffer
-
-  end
 end
+
