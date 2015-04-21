@@ -47,17 +47,134 @@ class Smb2::Packet < BitStruct
   # Constants
   ##
 
-  # Values for {QueryInfoRequest#info_type}
-  # @see https://msdn.microsoft.com/en-us/library/cc246557.aspx
-  QUERY_INFO_TYPES = {
-    # SMB2_0_INFO_FILE
-    FILE: 0x01,
-    # SMB2_0_INFO_FILESYSTEM
-    FILESYSTEM: 0x02,
-    # SMB2_0_INFO_SECURITY
-    SECURITY: 0x03,
-    # SMB2_0_INFO_QUOTA
-    QUOTA: 0x04
+  # Used in {CreateRequest#disposition}
+  CREATE_DISPOSITIONS = {
+    # If the file already exists, supersede it. Otherwise, create the file.
+    # This value SHOULD NOT be used for a printer object.<30>
+    FILE_SUPERSEDE: 0x00000000,
+    # If the file already exists, return success; otherwise, fail the
+    # operation. MUST NOT be used for a printer object.
+    FILE_OPEN: 0x00000001,
+    # If the file already exists, fail the operation; otherwise, create the
+    # file.
+    FILE_CREATE: 0x00000002,
+    # Open the file if it already exists; otherwise, create the file. This
+    # value SHOULD NOT be used for a printer object.<31>
+    FILE_OPEN_IF: 0x00000003,
+    # Overwrite the file if it already exists; otherwise, fail the operation. MUST
+    # NOT be used for a printer object.
+    FILE_OVERWRITE: 0x00000004,
+    # Overwrite the file if it already exists; otherwise, create the file.
+    # This value SHOULD NOT be used for a printer object.<32>
+    FILE_OVERWRITE_IF: 0x00000005,
+  }
+
+  # Used in {CreateRequest#create_options}
+  #
+  # https://msdn.microsoft.com/en-us/library/cc246502.aspx
+  CREATE_OPTIONS = {
+    FILE_DIRECTORY_FILE: 0x0000_0001,
+    FILE_WRITE_THROUGH: 0x0000_0002,
+    FILE_SEQUENTIAL_ONLY: 0x0000_0004,
+    FILE_NO_INTERMEDIATE_BUFFERING: 0x0000_0008,
+    FILE_SYNCHRONOUS_IO_ALERT: 0x0000_0010,
+    FILE_SYNCHRONOUS_IO_NONALERT: 0x0000_0020,
+    FILE_NON_DIRECTORY_FILE: 0x0000_0040,
+    FILE_COMPLETE_IF_OPLOCKED: 0x0000_0100,
+    FILE_NO_EA_KNOWLEDGE: 0x0000_0200,
+    FILE_RANDOM_ACCESS: 0x0000_0800,
+    FILE_DELETE_ON_CLOSE: 0x0000_1000,
+    FILE_OPEN_BY_FILE_ID: 0x0000_2000,
+    FILE_OPEN_FOR_BACKUP_INTENT: 0x0000_4000,
+    FILE_NO_COMPRESSION: 0x0000_8000,
+    FILE_OPEN_REMOTE_INSTANCE: 0x0000_0400,
+    FILE_OPEN_REQUIRING_OPLOCK: 0x0001_0000,
+    FILE_DISALLOW_EXCLUSIVE: 0x0002_0000,
+    FILE_RESERVE_OPFILTER: 0x0010_0000,
+    FILE_OPEN_REPARSE_POINT: 0x0020_0000,
+    FILE_OPEN_NO_RECALL: 0x0040_0000,
+    FILE_OPEN_FOR_FREE_SPACE_QUERY: 0x0080_0000,
+  }.freeze
+
+  # Used in {CreateRequest#desired_access} when opening a file, pipe, printer.
+  # For access mask values to use when opening a directory, see
+  # {DIRECTORY_ACCESS_MASK}.
+  #
+  # From the documentation ([2.2.13.1.1 File_Pipe_Printer_Access_Mask](https://msdn.microsoft.com/en-us/library/cc246802.aspx)):
+  #
+  # > The SMB2 Access Mask Encoding in SMB2 is a 4-byte bit field value that
+  #   contains an array of flags. An access mask can specify access for one of
+  #   two basic groups: either for a file, pipe, or printer (specified in
+  #   section 2.2.13.1.1) or for a directory (specified in section 2.2.13.1.2).
+  #
+  # @see DIRECTORY_ACCESS_MASK
+  FILE_ACCESS_MASK = {
+    # This value indicates the right to read data from the file or named pipe.
+    FILE_READ_DATA: 0x00000001,
+    # This value indicates the right to write data into the file or named pipe
+    # beyond the end of the file.
+    FILE_WRITE_DATA: 0x00000002,
+    # This value indicates the right to append data into the file or named
+    # pipe.
+    FILE_APPEND_DATA: 0x00000004,
+    # This value indicates the right to read the extended attributes of the
+    # file or named pipe.
+    FILE_READ_EA: 0x00000008,
+    # This value indicates the right to write or change the extended
+    # attributes to the file or named pipe.
+    FILE_WRITE_EA: 0x00000010,
+    # This value indicates the right to delete entries within a directory.
+    FILE_DELETE_CHILD: 0x00000040,
+    # This value indicates the right to execute the file.
+    FILE_EXECUTE: 0x00000020,
+    # This value indicates the right to read the attributes of the file.
+    FILE_READ_ATTRIBUTES: 0x00000080,
+    # This value indicates the right to change the attributes of the file.
+    FILE_WRITE_ATTRIBUTES: 0x00000100,
+    # This value indicates the right to delete the file.
+    DELETE: 0x00010000,
+    # This value indicates the right to read the security descriptor for the
+    # file or named pipe.
+    READ_CONTROL: 0x00020000,
+    # This value indicates the right to change the discretionary access
+    # control list (DACL) in the security descriptor for the file or named
+    # pipe. For the DACL data structure, see ACL in [MS-DTYP].
+    WRITE_DAC: 0x00040000,
+    # This value indicates the right to change the owner in the security
+    # descriptor for the file or named pipe.
+    WRITE_OWNER: 0x00080000,
+    # SMB2 clients set this flag to any value.<40> SMB2 servers SHOULD<41>
+    # ignore this flag.
+    SYNCHRONIZE: 0x00100000,
+    # This value indicates the right to read or change the system access
+    # control list (SACL) in the security descriptor for the file or named
+    # pipe. For the SACL data structure, see ACL in [MS-DTYP].<42>
+    ACCESS_SYSTEM_SECURITY: 0x01000000,
+    # This value indicates that the client is requesting an open to the file
+    # with the highest level of access the client has on this file. If no
+    # access is granted for the client on this file, the server MUST fail the
+    # open with STATUS_ACCESS_DENIED.
+    MAXIMUM_ALLOWED: 0x02000000,
+    # This value indicates a request for all the access flags that are
+    # previously listed except MAXIMUM_ALLOWED and ACCESS_SYSTEM_SECURITY.
+    GENERIC_ALL: 0x10000000,
+    # This value indicates a request for the following combination of access
+    # flags listed above: FILE_READ_ATTRIBUTES| FILE_EXECUTE| SYNCHRONIZE|
+    # READ_CONTROL.
+    GENERIC_EXECUTE: 0x20000000,
+    # This value indicates a request for the following combination of access
+    # flags listed above: FILE_WRITE_DATA| FILE_APPEND_DATA|
+    # FILE_WRITE_ATTRIBUTES| FILE_WRITE_EA| SYNCHRONIZE| READ_CONTROL.
+    GENERIC_WRITE: 0x40000000,
+    # This value indicates a request for the following combination of access
+    # flags listed above: FILE_READ_DATA| FILE_READ_ATTRIBUTES| FILE_READ_EA|
+    # SYNCHRONIZE| READ_CONTROL.
+    GENERIC_READ: 0x80000000,
+  }.freeze
+
+  # [2.2.13.1.2 Directory_Access_Mask](https://msdn.microsoft.com/en-us/library/cc246801.aspx)
+  # @todo
+  DIRECTORY_ACCESS_MASK = {
   }.freeze
 
   # Used in {QueryInfoRequest} packets' {QueryInfoRequest#file_info_class} field.
@@ -110,6 +227,19 @@ class Smb2::Packet < BitStruct
     FileStreamInformation:  22, # Query
     FileTrackingInformation:  36, # LOCAL<85>
     FileValidDataLengthInformation:  39, # Set
+  }.freeze
+
+  # Values for {QueryInfoRequest#info_type}
+  # @see https://msdn.microsoft.com/en-us/library/cc246557.aspx
+  QUERY_INFO_TYPES = {
+    # SMB2_0_INFO_FILE
+    FILE: 0x01,
+    # SMB2_0_INFO_FILESYSTEM
+    FILESYSTEM: 0x02,
+    # SMB2_0_INFO_SECURITY
+    SECURITY: 0x03,
+    # SMB2_0_INFO_QUOTA
+    QUOTA: 0x04
   }.freeze
 
   # For {SessionSetupRequest} packets' {SessionSetupRequest#security_mode}

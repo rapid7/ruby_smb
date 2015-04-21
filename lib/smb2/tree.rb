@@ -30,15 +30,18 @@ class Smb2::Tree
   #
   # @param filename [String,#encode] this will be encoded in utf-16le
   # @return [Smb2::File]
-  def create(filename)
+  def create(filename, mode: "r")
+    desired_access = Smb2::Packet::FILE_ACCESS_MASK[:MAXIMUM_ALLOWED] # YOLO
+    create_options = Smb2::Packet::CREATE_OPTIONS[:FILE_NON_DIRECTORY_FILE]
+
     packet = Smb2::Packet::CreateRequest.new do |request|
       request.filename = filename.encode("utf-16le")
       # @todo document all these flags. value copied from smbclient traffic
-      request.desired_access = 0x0012_0089
+      request.desired_access = desired_access
       request.impersonation = 2
       request.share_access = 3  # SHARE_WRITE | SHARE_READ
-      request.disposition = 1   # Open (if file exists open it, else fail)
-      request.create_options = 0x40 # non-directory
+      request.disposition = disposition_from_file_mode(mode)
+      request.create_options = create_options
     end
 
     response = send_recv(packet)
@@ -58,6 +61,21 @@ class Smb2::Tree
     request.header = header
 
     client.send_recv(request)
+  end
+
+
+  private
+
+
+  def disposition_from_file_mode(mode)
+    case mode
+    when "r"
+      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN]
+    when "w"
+      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_SUPERSEDE]
+    when "a"
+      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_CREATE]
+    end
   end
 
 end

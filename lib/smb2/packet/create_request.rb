@@ -25,6 +25,10 @@ class Smb2::Packet
 
     unsigned :impersonation, 32
 
+    # Not to be confused with {#create_options}.
+    #
+    # > This field MUST NOT be used and MUST be reserved. The client SHOULD
+    #   set this field to zero, and the server MUST ignore it on receipt
     unsigned :create_flags, 64
 
     unsigned :reserved, 64, default: 0

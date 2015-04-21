@@ -119,4 +119,18 @@ class Smb2::File
     info.end_of_file
   end
 
+  def write(offset: 0, data:)
+    packet = Smb2::Packet::WriteRequest.new do |request|
+      request.file_offset = offset
+      request.file_id = self.create_response.file_id
+      request.data = data
+    end
+
+    response = tree.send_recv(packet)
+
+    response_packet = Smb2::Packet::WriteResponse.new(response)
+
+    response_packet
+  end
+
 end
