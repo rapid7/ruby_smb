@@ -62,9 +62,12 @@ class Smb2::File
     response_packet.data
   end
 
+  # The size of the file in bytes
+  #
+  # @return [Fixnum]
   def size
     packet = Smb2::Packet::QueryInfoRequest.new do |request|
-      request.info_type = 0x01 # SMB2_0_INFO_FILE
+      request.info_type = Smb2::Packet::QUERY_INFO_TYPES[:FILE]
       request.file_info_class = Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation]
       request.output_buffer_length = 40
       request.input_buffer_length = 0
