@@ -1,4 +1,3 @@
-require 'smb2'
 require 'bit-struct'
 
 # A PDU for the SMB2 protocol
@@ -192,6 +191,7 @@ class Smb2::Packet < BitStruct
     end
   end
 
+  # @return [Array<String>] list of field names for {.data_buffer} fields
   def data_buffer_fields
     self.class.data_buffer_fields
   end

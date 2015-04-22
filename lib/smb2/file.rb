@@ -1,6 +1,7 @@
 
 require 'smb2/packet/query/standard_information'
 
+# An open file on the remote filesystem
 class Smb2::File
 
   # The tree that {Tree#create created} this File
@@ -19,6 +20,10 @@ class Smb2::File
   # @return [Smb2::Packet::ReadResponse]
   attr_accessor :last_response
 
+  # @param tree [Smb2::Tree] the Tree where this File was opened. See {#tree}
+  # @param create_response [Smb2::Packet::CreateResponse] the server's
+  #   response from when we {Tree#create created} this File. See
+  #   {#create_response}
   def initialize(tree:, create_response:)
     self.tree = tree
     self.create_response = create_response
@@ -36,6 +41,11 @@ class Smb2::File
     response = tree.send_recv(packet)
 
     Smb2::Packet::CloseResponse.new(response)
+  end
+
+  # @return [String]
+  def inspect
+    "#<Smb2::File file-id=#{create_response.file_id.unpack("H*").first} >"
   end
 
   # Send a {Smb2::Packet::ReadRequest ReadRequest} and return the data.
