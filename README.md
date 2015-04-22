@@ -30,7 +30,17 @@ Or install it yourself as:
 
 ### Using the `Client` class
 
-{include:Smb2::Client}
+```ruby
+sock = TCPSocket.new("192.168.100.140", 445)
+c = Smb2::Client.new(
+  socket: sock,
+  username:"administrator",
+  password:"P@ssword1",
+  domain:"asdfasdf"
+)
+c.negotiate
+c.authenticate
+```
 
 ### Making packets manually
 
@@ -52,7 +62,7 @@ neg_response = Smb2::Packet::NegotiateResponse.new(data)
 
 ## License
 
-{include:file:LICENSE.txt}
+Smb2 is released under a 3-clause BSD license. See [LICENSE.txt](LICENSE.txt) for full text.
 
 
 ## Contributing
