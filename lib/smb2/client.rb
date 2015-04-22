@@ -1,7 +1,21 @@
 require 'smb2/packet'
+require 'smb2/tree'
 require 'net/ntlm'
 require 'net/ntlm/client'
 
+# A client for holding the state of an SMB2 session.
+#
+# ```ruby
+# sock = TCPSocket.new("192.168.100.140", 445)
+# c = Smb2::Client.new(
+#   socket: sock,
+#   username:"administrator",
+#   password:"P@ssword1",
+#   domain:"asdfasdf"
+# )
+# c.negotiate
+# c.authenticate
+# ```
 class Smb2::Client
 
   # This mode will be bitwise AND'd with the value from the server
@@ -74,6 +88,8 @@ class Smb2::Client
     @password    = opts.fetch(:password).encode("utf-8")
     @domain      = opts[:domain]
     @local_workstation = (opts[:local_workstation] || "")
+
+    @tree_ids = []
   end
 
   # Set up an authenticated session with the server.
@@ -88,9 +104,6 @@ class Smb2::Client
         @security_mode & DEFAULT_SECURITY_MODE
       ),
     )
-    header = packet.header
-    header.command_seq = @sequence_number += 1
-    packet.header = header
 
     @ntlm_client = Net::NTLM::Client.new(
       username,
@@ -103,9 +116,7 @@ class Smb2::Client
 
     packet.security_blob = gss_type1(type1.serialize)
 
-    dispatcher.send_packet(packet)
-
-    response = dispatcher.recv_packet
+    response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
     @session_id = response_packet.header.session_id
@@ -116,12 +127,6 @@ class Smb2::Client
       ),
     )
 
-    # copy semantics are a pain, dance around it with the reassignment polka
-    header = packet.header
-    header.command_seq = @sequence_number += 1
-    header.session_id = @session_id
-    packet.header = header
-
     ssp_offset = response_packet.security_blob.index("NTLMSSP")
     resp_blob = response_packet.security_blob.slice(ssp_offset .. -1)
 
@@ -130,8 +135,7 @@ class Smb2::Client
     @session_key = type3.session_key
 
     packet.security_blob = gss_type3(type3.serialize)
-    dispatcher.send_packet(packet)
-    response = dispatcher.recv_packet
+    response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
     response_packet.header.nt_status
@@ -148,8 +152,7 @@ class Smb2::Client
       client_guid: 0,
     )
 
-    dispatcher.send_packet(packet)
-    response = dispatcher.recv_packet
+    response = send_recv(packet)
     response_packet = Smb2::Packet::NegotiateResponse.new(response)
 
     @capabilities  = response_packet.capabilities
@@ -157,8 +160,40 @@ class Smb2::Client
 
     @state = :negotiated
 
-    @sequence_number = 0
     # XXX do we need the Server GUID?
+  end
+
+  # @param tree [String]
+  def tree_connect(tree)
+    packet = Smb2::Packet::TreeConnectRequest.new do |request|
+      request.tree = tree.encode("utf-16le")
+    end
+
+    response = send_recv(packet)
+    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
+
+    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
+  end
+
+  # Adjust `request`'s header with an appropriate sequence number and session
+  # id, then send it and wait for a response.
+  #
+  # @return (see Dispatcher::Socket#recv_packet)
+  def send_recv(request)
+    # negative to avoid complicating the increment below
+    @sequence_number ||= -1
+
+    # Adjust header
+    header = request.header
+    header.command_seq = @sequence_number += 1
+    if @session_id
+      header.session_id = @session_id
+    end
+    request.header = header
+
+    dispatcher.send_packet(request)
+
+    dispatcher.recv_packet
   end
 
   protected

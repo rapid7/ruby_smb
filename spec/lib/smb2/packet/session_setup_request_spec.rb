@@ -19,6 +19,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:SESSION_SETUP]
 
     specify 'body' do

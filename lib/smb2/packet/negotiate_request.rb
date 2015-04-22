@@ -17,6 +17,12 @@ class Smb2::Packet
     # Just 2.02 for now. XXX Update dialect_count if you add anything here
     # XXX :default doesn't do anything at all on rest fields
     rest :dialects #, default: "\x02\x02"
+
+    # @return [Symbol] a key in {Smb2::COMMANDS}
+    def self.command
+      :NEGOTIATE
+    end
+
   end
 
 end

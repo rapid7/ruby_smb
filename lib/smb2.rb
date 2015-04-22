@@ -2,10 +2,12 @@
 #
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module Smb2
-  autoload :VERSION, 'smb2/version'
-  autoload :Packet, 'smb2/packet'
-  autoload :Dispatcher, 'smb2/dispatcher'
   autoload :Client, 'smb2/client'
+  autoload :Dispatcher, 'smb2/dispatcher'
+  autoload :Packet, 'smb2/packet'
+  autoload :Tree, 'smb2/tree'
+  autoload :File, 'smb2/file'
+  autoload :VERSION, 'smb2/version'
 
   # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
   COMMANDS = {

@@ -23,5 +23,9 @@ class Smb2::Packet
 
     rest :buffer
 
+    # @return [Symbol] a key in {Smb2::COMMANDS}
+    def self.command
+      :WRITE
+    end
   end
 end

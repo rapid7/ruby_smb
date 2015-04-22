@@ -16,6 +16,7 @@ RSpec.describe Smb2::Packet::QueryInfoRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:QUERY_INFO]
 
     context 'body' do

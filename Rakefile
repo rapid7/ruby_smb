@@ -13,7 +13,11 @@ YARD::Rake::YardocTask.new do |t|
     '--plugin', 'yard-bit-struct',
   ]
   t.options += Dir.glob('yard_extensions/*.rb').flat_map { |e| [ '-e', e ] }
-  t.files = ['lib/**/*.rb', '-', 'README.md', 'LICENSE.txt']
+  t.files = [
+    'lib/**/*.rb',
+    '-',
+    'README.md', 'LICENSE.txt'
+  ]
 end
 
 task :default => :spec

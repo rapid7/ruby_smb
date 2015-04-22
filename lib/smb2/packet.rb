@@ -5,7 +5,14 @@ require 'bit-struct'
 #
 # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
 class Smb2::Packet < BitStruct
+
+  # Raised when {#has_flag?} is given something that isn't a member of
+  # `FLAG_NAMES`
   class InvalidFlagError < StandardError; end
+
+  # Values in SMB are always little endian. Make all fields default to little
+  # endian so we don't have to do it in every call to `unsigned`, etc.
+  default_options endian: 'little'
 
   autoload :CloseRequest, "smb2/packet/close_request"
   autoload :CloseResponse, "smb2/packet/close_response"
@@ -37,6 +44,9 @@ class Smb2::Packet < BitStruct
   autoload :WriteRequest, "smb2/packet/write_request"
   autoload :WriteResponse, "smb2/packet/write_response"
 
+  ##
+  # Constants
+  ##
 
   QUERY_INFO_TYPES = {
     FILE: 0x01,
@@ -106,7 +116,10 @@ class Smb2::Packet < BitStruct
     SIGNING_REQUIRED: 0x2
   }.freeze
 
-  default_options endian: 'little'
+
+  ##
+  # Class methods
+  ##
 
   # List of all {.data_buffer} field names
   # @return [Array<String>]
@@ -132,44 +145,56 @@ class Smb2::Packet < BitStruct
     self.unsigned "#{name}_padding", opts[:padding] if opts.has_key?(:padding)
     self.unsigned "#{name}_length", bit_length, endian: 'little'
 
-    class_eval do
+    define_method(name) do
+      field_offset = self.send("#{name}_offset")
+      field_length = self.send("#{name}_length")
+      # Must use #to_s so we get the whole packet packed because offset is from
+      # beginning of header.
+      to_s.slice(field_offset, field_length)
+    end
 
-      define_method(name) do
-        field_offset = self.send("#{name}_offset")
-        field_length = self.send("#{name}_length")
-        # Must use #to_s so we get the whole packet packed because offset is from
-        # beginning of header.
-        to_s.slice(field_offset, field_length)
-      end
-
-      define_method("#{name}=") do |other|
-        @data_buffers[name] = other
-        recalculate
-      end
-
+    define_method("#{name}=") do |other|
+      @data_buffers[name] = other
+      recalculate
     end
 
     self
   end
 
+  ##
+  # Instance methods
+  ##
+
   # @see BitStruct#initialize
   def initialize(*args)
     @data_buffers = {}
     super do
-      if !self.class.data_buffer_fields.empty?
-        self.class.data_buffer_fields.each do |buffer_name|
+      if !data_buffer_fields.empty?
+        data_buffer_fields.each do |buffer_name|
           @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end
         recalculate
       end
       yield self if block_given?
     end
+
+    if respond_to?(:header) && self.class.respond_to?(:command)
+      # Set the appropriate {#command} in the header for this packet type
+      new_header = self.header
+      new_header.command = Smb2::COMMANDS[self.class.command]
+      self.header = new_header
+    end
+  end
+
+  def data_buffer_fields
+    self.class.data_buffer_fields
   end
 
   # A generic flag checking method. Subclasses should have a field named
   # `flags`, and constants `FLAGS` and `FLAG_NAMES`.
   #
   # @param flag [Symbol] a key in `FLAGS`
+  # @raise [InvalidFlagError] when `flag` is not a member of `FLAG_NAMES`
   def has_flag?(flag)
     raise InvalidFlagError, flag.to_s unless self.class::FLAG_NAMES.include?(flag)
     (flags & self.class::FLAGS[flag]) == self.class::FLAGS[flag]
@@ -183,7 +208,7 @@ class Smb2::Packet < BitStruct
     new_buffer = ""
 
     self.class.data_buffer_fields.each do |buffer_name|
-      new_size = @data_buffers[buffer_name].size
+      new_size = @data_buffers[buffer_name].bytesize
       if new_size.zero?
         self.send("#{buffer_name}_offset=", 0)
       else
@@ -193,7 +218,7 @@ class Smb2::Packet < BitStruct
       end
       offset += new_size
     end
-    self.buffer = new_buffer
+    self.buffer = new_buffer.force_encoding("binary")
 
     self
   end

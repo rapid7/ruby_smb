@@ -1,5 +1,5 @@
+require 'spec_helper'
 require 'smb2'
-require 'support/shared/examples/request'
 
 RSpec.describe Smb2::Packet::CloseRequest do
   subject(:packet) do
@@ -15,6 +15,7 @@ RSpec.describe Smb2::Packet::CloseRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:CLOSE]
 
     specify do

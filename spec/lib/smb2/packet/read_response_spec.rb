@@ -21,13 +21,20 @@ RSpec.describe Smb2::Packet::ReadResponse do
       expect(packet.struct_size).to eq(17)
     end
 
-    specify 'data' do
+    specify do
       expect(packet.data_length).to eq(92)
+    end
+    specify do
+      expect(packet.data.length).to eq(92)
+    end
+    specify do
       expect(packet.data_offset).to eq(0x0050)
+    end
+    specify 'data' do
       expect(packet.data).to eq([
-        "0c03100000005c00000002000000b810b8104a1e00000d005c504950455c7372" \
-        "7673766300000200000000000000045d888aeb1cc9119fe808002b1048600200" \
-        "0000030003000000000000000000000000000000000000000000"
+        "05000c03100000005c00000002000000b810b8104a1e00000d005c504950455c" \
+        "73727673766300000200000000000000045d888aeb1cc9119fe808002b104860" \
+        "02000000030003000000000000000000000000000000000000000000"
       ].pack("H*"))
     end
 

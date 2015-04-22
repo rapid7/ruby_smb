@@ -47,13 +47,32 @@ class Smb2::Packet
 
     unsigned :channel, 32
 
-    data_buffer :read_channel_info, 16
+    unsigned :remaining_bytes, 32
 
-    rest :buffer
+    unsigned :read_channel_info_offset, 16
+    unsigned :read_channel_info_length, 16
+
+    # Can't use a `data_buffer` for read_channel_info because unlike all other
+    # data buffers, this one must have at least one NULL byte.
+    #
+    # @see https://msdn.microsoft.com/en-us/library/cc246527.aspx
+    # > Buffer (variable): A variable-length buffer that contains the read
+    #   channel information, as described by ReadChannelInfoOffset and
+    #   ReadChannelInfoLength. Unused at present. The client MUST set one byte
+    #   of this field to 0, and the server MUST ignore it on receipt
+    #
+    # @note Updating this will *NOT* change {#read_channel_info_length} or
+    #   {#read_channel_info_offset}
+    string :read_channel_info, 8, default: "\x00".force_encoding('binary')
 
     FLAGS = {
       READ_UNBUFFERED: 0x01
     }.freeze
+
+    # @return [Symbol] a key in {Smb2::COMMANDS}
+    def self.command
+      :READ
+    end
   end
 end
 
