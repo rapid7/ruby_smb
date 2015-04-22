@@ -50,18 +50,21 @@ class Smb2::File
 
   # Send a {Smb2::Packet::ReadRequest ReadRequest} and return the data.
   #
-  # @note Does not yet handle files being too large for a single response.
+  # @note Does not handle files being too large for a single request. See
+  #   {#read_all} if `length` is greater than {Smb2::Client#max_read_size
+  #   tree.client.max_read_size}
   #
   # @param offset [Fixnum] offset from the beginning of the file (*default*: 0)
-  # @param length [Fixnum] number of bytes to read, starting from `offset`
-  #   (*default*: the whole file)
+  # @param length [Fixnum] number of bytes to read, starting from `offset`. If
+  #   this is greater than the negotiated maximum read size, the server will
+  #   respond with STATUS_INVALID_PARAMETER
   # @return [String]
-  def read(offset: 0, length: self.create_response.end_of_file)
+  def read(offset: 0, length: self.tree.client.max_read_size)
     packet = Smb2::Packet::ReadRequest.new do |request|
       request.read_offset = offset
       request.read_length = length
       request.file_id = self.create_response.file_id
-      request.minimum_count = length
+      request.minimum_count = 0
     end
 
     response = tree.send_recv(packet)
@@ -70,6 +73,22 @@ class Smb2::File
     @last_response = response_packet
 
     response_packet.data
+  end
+
+  # Call {#read} repeatedly until we get everything
+  #
+  # @note Beware of ballooning memory usage
+  # @note Calling this on a pipe is probably a really bad idea
+  #
+  # @return [String] full contents of the remote file
+  def read_all
+    data = ''
+    max = tree.client.max_read_size
+    (0...size).step(tree.client.max_read_size) do |offset|
+      data << read(offset: offset, length: max)
+    end
+
+    data
   end
 
   # The size of the file in bytes

@@ -35,10 +35,16 @@ class Smb2::Client
   # @return [String]
   attr_accessor :domain
 
-  # Connected file handles opened with a {Packet::CreateRequest}
-  #
-  # @return [Array]
-  attr_accessor :file_handles
+  # Largest value usable in {Packet::ReadRequest#read_length}. Anything bigger
+  # than this will result in a STATUS_INVALID_PARAMETER when reading.
+  # @return [Fixnum]
+  attr_accessor :max_read_size
+
+  # @return [Fixnum]
+  attr_accessor :max_transaction_size
+
+  # @return [Fixnum]
+  attr_accessor :max_write_size
 
   # An NT Lan Manager client
   #
@@ -65,11 +71,6 @@ class Smb2::Client
   #
   # @return [Fixnum]
   attr_accessor :security_mode
-
-  # Connected tree identifiers returned in a {Packet::TreeConnectResponse}
-  #
-  # @return [String]
-  attr_accessor :tree_ids
 
   # The ActiveDirectory username to authenticate with
   #
@@ -161,10 +162,14 @@ class Smb2::Client
 
     @capabilities  = response_packet.capabilities
     @security_mode = response_packet.security_mode
+    @max_read_size = response_packet.max_read_size
+    @max_transaction_size = response_packet.max_transaction_size
+    @max_write_size = response_packet.max_write_size
 
     @state = :negotiated
 
     # XXX do we need the Server GUID?
+    response_packet
   end
 
   # Adjust `request`'s header with an appropriate sequence number and session
