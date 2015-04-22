@@ -1,15 +1,23 @@
 
-# A connected tree, as returned by a {Smb2::Packet::TreeRequest}.
+# A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class Smb2::Tree
 
+  # The {Smb2::Client} to which this Tree is connected.
+  #
+  # @return [Smb2::Client]
   attr_accessor :client
 
+  # The response that occasioned the creation of this {Tree}.
+  #
+  # @return [Smb2::Packet::TreeConnectResponse]
   attr_accessor :tree_connect_response
 
   # @param client [Smb::Client]
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, tree_connect_response:)
-    raise ArgumentError unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
+    unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
+      raise TypeError, "tree_connect_response must be a TreeConnectResponse"
+    end
 
     self.client = client
     self.tree_connect_response = tree_connect_response
@@ -39,6 +47,10 @@ class Smb2::Tree
     Smb2::File.new(tree: self, create_response: create_response)
   end
 
+  # Send a packet and return the response
+  #
+  # @param request [Smb2::Packet]
+  # @return (see Client#send_recv)
   def send_recv(request)
     header = request.header
     header.tree_id = self.tree_connect_response.header.tree_id
