@@ -4,6 +4,7 @@ require 'smb2/packet/query/standard_information'
 class Smb2::File
   attr_accessor :tree
   attr_accessor :create_response
+  attr_accessor :last_response
 
   def initialize(tree:, create_response:)
     self.tree = tree
@@ -31,6 +32,7 @@ class Smb2::File
     response = tree.send_recv(packet)
 
     response_packet = Smb2::Packet::ReadResponse.new(response)
+    @last_response = response_packet
 
     response_packet.data
   end
