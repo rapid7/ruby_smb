@@ -13,10 +13,10 @@ RSpec.describe Smb2::Packet do
     klass.new
   end
 
-  it { is_expected.to respond_to(:recalculate) }
   it { is_expected.to respond_to(:data) }
-  it { is_expected.to respond_to(:data_offset) }
   it { is_expected.to respond_to(:data_length) }
+  it { is_expected.to respond_to(:data_offset) }
+  it { is_expected.to respond_to(:recalculate) }
 
   describe '#data_buffer_fields' do
     specify do
