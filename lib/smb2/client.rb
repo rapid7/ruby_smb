@@ -1,21 +1,21 @@
-require 'smb2/packet'
-require 'smb2/tree'
 require 'net/ntlm'
 require 'net/ntlm/client'
 
 # A client for holding the state of an SMB2 session.
 #
-# ```ruby
-# sock = TCPSocket.new("192.168.100.140", 445)
-# c = Smb2::Client.new(
-#   socket: sock,
-#   username:"administrator",
-#   password:"P@ssword1",
-#   domain:"asdfasdf"
-# )
-# c.negotiate
-# c.authenticate
-# ```
+#
+# @example Connect and authenticate
+#   sock = TCPSocket.new("192.168.100.140", 445)
+#   c = Smb2::Client.new(
+#     socket: sock,
+#     username:"administrator",
+#     password:"P@ssword1",
+#     domain:"asdfasdf"
+#   )
+#   c.negotiate
+#   c.authenticate
+#
+#
 class Smb2::Client
 
   # This mode will be bitwise AND'd with the value from the server
@@ -137,6 +137,10 @@ class Smb2::Client
     packet.security_blob = gss_type3(type3.serialize)
     response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
+
+    if response_packet.header.nt_status == 0
+      @state = :authenticated
+    end
 
     response_packet.header.nt_status
   end
