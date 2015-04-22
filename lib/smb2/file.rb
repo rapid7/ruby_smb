@@ -1,7 +1,7 @@
 
 require 'smb2/packet/query/standard_information'
 
-# An open file on the remote filesystem
+# An open file on the remote filesystem.
 class Smb2::File
 
   # The tree that {Tree#create created} this File
