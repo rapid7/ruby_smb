@@ -3,6 +3,10 @@ require 'smb2/packet'
 class Smb2::Packet
   # [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
   class TreeConnectRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :TREE_CONNECT
+
     nest :header, RequestHeader
     # "The client MUST set this field to 9, indicating the size of the request
     # structure, not including the header. The client MUST set it to this
@@ -15,11 +19,5 @@ class Smb2::Packet
     data_buffer :tree
 
     rest :buffer
-
-    # @return [Symbol] a key in {Smb2::COMMANDS}
-    def self.command
-      :TREE_CONNECT
-    end
-
   end
 end

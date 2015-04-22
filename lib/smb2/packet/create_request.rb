@@ -6,6 +6,10 @@ class Smb2::Packet
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class CreateRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :CREATE
+
     nest :header, RequestHeader
     # "The client MUST set this field to 57, indicating the size of the
     # request structure, not including the header. The client MUST set it to
@@ -43,10 +47,5 @@ class Smb2::Packet
     unsigned :create_contexts_length, 32
 
     rest :buffer
-
-    # @return [Symbol] a key in {Smb2::COMMANDS}
-    def self.command
-      :CREATE
-    end
   end
 end

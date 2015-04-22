@@ -183,10 +183,10 @@ class Smb2::Packet < BitStruct
       yield self if block_given?
     end
 
-    if respond_to?(:header) && self.class.respond_to?(:command)
+    if respond_to?(:header) && self.class.const_defined?(:COMMAND)
       # Set the appropriate {#command} in the header for this packet type
       new_header = self.header
-      new_header.command = Smb2::COMMANDS[self.class.command]
+      new_header.command = Smb2::COMMANDS[self.class::COMMAND]
       self.header = new_header
     end
   end
