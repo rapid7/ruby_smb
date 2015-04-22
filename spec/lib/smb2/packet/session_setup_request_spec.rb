@@ -2,7 +2,7 @@ require 'smb2'
 require 'net/ntlm'
 require 'support/shared/examples/request'
 
-describe Smb2::Packet::SessionSetupRequest do
+RSpec.describe Smb2::Packet::SessionSetupRequest do
   subject(:packet) do
     described_class.new(data)
   end
