@@ -167,18 +167,6 @@ class Smb2::Client
     # XXX do we need the Server GUID?
   end
 
-  # @param tree [String]
-  def tree_connect(tree)
-    packet = Smb2::Packet::TreeConnectRequest.new do |request|
-      request.tree = tree.encode("utf-16le")
-    end
-
-    response = send_recv(packet)
-    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
-
-    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
-  end
-
   # Adjust `request`'s header with an appropriate sequence number and session
   # id, then send it and wait for a response.
   #
@@ -198,6 +186,19 @@ class Smb2::Client
     dispatcher.send_packet(request)
 
     dispatcher.recv_packet
+  end
+
+  # @param tree [String]
+  # @return [Smb2::Tree]
+  def tree_connect(tree)
+    packet = Smb2::Packet::TreeConnectRequest.new do |request|
+      request.tree = tree.encode("utf-16le")
+    end
+
+    response = send_recv(packet)
+    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
+
+    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
   end
 
   protected
