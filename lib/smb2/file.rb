@@ -119,18 +119,31 @@ class Smb2::File
     info.end_of_file
   end
 
+  # Write the entire contents of `data`, starting at `offset` from the
+  # beginning of the file.
+  #
+  # @param offset [Fixnum] where in the file to start writing
+  # @param data [String] what to write
+  # @return [void]
   def write(offset: 0, data:)
-    packet = Smb2::Packet::WriteRequest.new do |request|
-      request.file_offset = offset
-      request.file_id = self.create_response.file_id
-      request.data = data
+    max = tree.client.max_write_size
+    (offset...data.length).step(max) do |step|
+      packet = Smb2::Packet::WriteRequest.new do |request|
+        request.file_offset = step
+        request.file_id = self.create_response.file_id
+        request.data = data.slice(step, max)
+      end
+      response = tree.send_recv(packet)
+
+      response_packet = Smb2::Packet::WriteResponse.new(response)
+      if response_packet.header.nt_status != 0
+        raise RuntimeError, response_packet.inspect
+      end
+
+      response_packet
     end
 
-    response = tree.send_recv(packet)
-
-    response_packet = Smb2::Packet::WriteResponse.new(response)
-
-    response_packet
+    self
   end
 
 end
