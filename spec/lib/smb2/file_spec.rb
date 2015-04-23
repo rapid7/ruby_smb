@@ -53,6 +53,16 @@ RSpec.describe Smb2::File do
         expect(tree).to receive(:send_recv).twice.with(instance_of(Smb2::Packet::ReadRequest))
         expect(file.read).to eq(data)
       end
+
+      context 'with an offset that makes it less than max read size' do
+
+        specify do
+          expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+          offset = (data.length - max_read_size/2)
+          expect(file.read(offset: offset)).to eq(data.slice(offset .. data.length))
+        end
+
+      end
     end
   end
 
