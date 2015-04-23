@@ -61,9 +61,14 @@ class Smb2::File
   def read(offset: 0, length: nil)
     data = ''
     max = tree.client.max_read_size
-    length ||= size
+    length ||= size - offset
+
+    # Starting from `offset`, up to `length` bytes after `offset`, counting by
+    # maximum chunk size
     (offset...(offset+length)).step(max) do |step|
-      data << read_chunk(offset: step, length: max)
+      # when we are close to the end, we need to read fewer then max bytes
+      len = [ max, length - data.length ].min
+      data << read_chunk(offset: step, length: len)
     end
 
     data

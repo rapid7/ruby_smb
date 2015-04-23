@@ -47,10 +47,12 @@ RSpec.describe Smb2::File do
     end
 
     context 'with data bigger than max read size' do
-      let(:data) { "A" * (max_read_size + 1) }
+      let(:data) { "A"*max_read_size + "B"*max_read_size + "C" }
 
       specify do
-        expect(tree).to receive(:send_recv).twice.with(instance_of(Smb2::Packet::ReadRequest))
+        expect(tree).to receive(:send_recv)
+          .exactly(1 + (data.length / max_read_size)).times
+          .with(instance_of(Smb2::Packet::ReadRequest))
         expect(file.read).to eq(data)
       end
 
@@ -61,9 +63,19 @@ RSpec.describe Smb2::File do
           offset = (data.length - max_read_size/2)
           expect(file.read(offset: offset)).to eq(data.slice(offset .. data.length))
         end
-
       end
+
+      context 'with an offset in the middle and length less than max_read_size' do
+        specify do
+          expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+          offset = (data.length/2 - max_read_size/2)
+          length = max_read_size - 1
+          expect(file.read(offset: offset, length: length)).to eq(data.slice(offset, length))
+        end
+      end
+
     end
+
   end
 
 end
