@@ -203,7 +203,7 @@ class Smb2::Client
     response = send_recv(packet)
     response_packet = Smb2::Packet::TreeConnectResponse.new(response)
 
-    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
+    Smb2::Tree.new(client: self, tree: tree, tree_connect_response: response_packet)
   end
 
   protected

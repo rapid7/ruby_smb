@@ -7,6 +7,11 @@ class Smb2::Tree
   # @return [Smb2::Client]
   attr_accessor :client
 
+  # The share
+  #
+  # @return [String]
+  attr_accessor :tree
+
   # The response that occasioned the creation of this {Tree}.
   #
   # @return [Smb2::Packet::TreeConnectResponse]
@@ -14,12 +19,13 @@ class Smb2::Tree
 
   # @param client [Smb::Client]
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
-  def initialize(client:, tree_connect_response:)
+  def initialize(client:, tree:, tree_connect_response:)
     unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
       raise TypeError, "tree_connect_response must be a TreeConnectResponse"
     end
 
     self.client = client
+    self.tree = tree
     self.tree_connect_response = tree_connect_response
   end
 
@@ -36,7 +42,6 @@ class Smb2::Tree
 
     packet = Smb2::Packet::CreateRequest.new do |request|
       request.filename = filename.encode("utf-16le")
-      # @todo document all these flags. value copied from smbclient traffic
       request.desired_access = desired_access
       request.impersonation = 2
       request.share_access = 3  # SHARE_WRITE | SHARE_READ
@@ -48,6 +53,15 @@ class Smb2::Tree
 
     create_response = Smb2::Packet::CreateResponse.new(response)
     Smb2::File.new(tree: self, create_response: create_response)
+  end
+
+  def inspect
+    if tree_connect_response.header.nt_status != 0
+      stuff = "Error: #{tree_connect_response.header.nt_status.to_s 16}"
+    else
+      stuff = tree
+    end
+    "#<#{self.class} #{stuff} >"
   end
 
   # Send a packet and return the response
