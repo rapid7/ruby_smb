@@ -2,15 +2,15 @@
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class Smb2::Tree
 
-  # The {Smb2::Client} to which this Tree is connected.
+  # The {Smb2::Client} on which this Tree is connected.
   #
   # @return [Smb2::Client]
   attr_accessor :client
 
-  # The share
+  # The name of the share this Tree operates on
   #
   # @return [String]
-  attr_accessor :tree
+  attr_accessor :share
 
   # The response that occasioned the creation of this {Tree}.
   #
@@ -19,13 +19,13 @@ class Smb2::Tree
 
   # @param client [Smb::Client]
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
-  def initialize(client:, tree:, tree_connect_response:)
+  def initialize(client:, share:, tree_connect_response:)
     unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
       raise TypeError, "tree_connect_response must be a TreeConnectResponse"
     end
 
     self.client = client
-    self.tree = tree
+    self.share = share
     self.tree_connect_response = tree_connect_response
   end
 

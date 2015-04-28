@@ -34,9 +34,9 @@ class Smb2::File
   #
   # @return [Smb2::Packet::CloseResponse]
   def close
-    packet = Smb2::Packet::CloseRequest.new do |request|
-      request.file_id = self.create_response.file_id
-    end
+    packet = Smb2::Packet::CloseRequest.new(
+      file_id: self.create_response.file_id
+    )
 
     response = tree.send_recv(packet)
 
@@ -128,17 +128,14 @@ class Smb2::File
   def write(data, offset: 0)
     max = tree.client.max_write_size
     (offset...data.length).step(max) do |step|
-      packet = Smb2::Packet::WriteRequest.new do |request|
-        request.file_offset = step
-        request.file_id = self.create_response.file_id
-        request.data = data.slice(step, max)
-      end
+      packet = Smb2::Packet::WriteRequest.new(
+        file_offset: step,
+        file_id: self.create_response.file_id,
+        data: data.slice(step, max)
+      )
       response = tree.send_recv(packet)
 
       response_packet = Smb2::Packet::WriteResponse.new(response)
-      if response_packet.header.nt_status != 0
-        raise RuntimeError, response_packet.inspect
-      end
 
       response_packet
     end

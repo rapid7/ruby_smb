@@ -77,20 +77,17 @@ class Smb2::Client
   # @return [String]
   attr_accessor :username
 
-  # @option opts [#send_packet,#recv_packet] :dispatcher
-  # @option opts [String] :username UTF-8
-  # @option opts [String] :password UTF-8
-  # @option opts [String] :domain UTF-8 *(optional)*
-  # @option opts [String] :local_workstation UTF-8 *(optional)*
-  # @raise KeyError if required options are missing
-  def initialize(opts = {})
-    @dispatcher  = opts.fetch(:dispatcher)
-    @username    = opts.fetch(:username).encode("utf-8")
-    @password    = opts.fetch(:password).encode("utf-8")
-    @domain      = opts[:domain]
-    @local_workstation = (opts[:local_workstation] || "")
-
-    @tree_ids = []
+  # @param dispatcher [#send_packet,#recv_packet]
+  # @param username [String] UTF-8
+  # @param password [String] UTF-8
+  # @param domain [String] UTF-8
+  # @param local_workstation [String] UTF-8
+  def initialize(dispatcher:, username:, password:, domain: nil, local_workstation: "")
+    @dispatcher  = dispatcher
+    @username    = username.encode("utf-8")
+    @password    = password.encode("utf-8")
+    @domain      = domain
+    @local_workstation = local_workstation
   end
 
   # Set up an authenticated session with the server.
@@ -193,17 +190,19 @@ class Smb2::Client
     dispatcher.recv_packet
   end
 
-  # @param tree [String]
+  # Connect to a share
+  #
+  # @param tree [String] Something like "\\\\hostname\\tree"
   # @return [Smb2::Tree]
   def tree_connect(tree)
-    packet = Smb2::Packet::TreeConnectRequest.new do |request|
-      request.tree = tree.encode("utf-16le")
-    end
+    packet = Smb2::Packet::TreeConnectRequest.new(
+      tree: tree.encode("utf-16le")
+    )
 
     response = send_recv(packet)
     response_packet = Smb2::Packet::TreeConnectResponse.new(response)
 
-    Smb2::Tree.new(client: self, tree: tree, tree_connect_response: response_packet)
+    Smb2::Tree.new(client: self, share: tree, tree_connect_response: response_packet)
   end
 
   protected
