@@ -4,11 +4,6 @@ require 'smb2/packet/query/standard_information'
 # An open file on the remote filesystem.
 class Smb2::File
 
-  # The tree that {Tree#create created} this File
-  #
-  # @return [Smb2::Tree]
-  attr_accessor :tree
-
   # The server's response from when we {Tree#create created} this File
   #
   # @return [Smb2::Packet::CreateResponse]
@@ -19,6 +14,11 @@ class Smb2::File
   #
   # @return [Smb2::Packet::ReadResponse]
   attr_accessor :last_read_response
+
+  # The tree that {Tree#create created} this File
+  #
+  # @return [Smb2::Tree]
+  attr_accessor :tree
 
   # @param tree [Smb2::Tree] the Tree where this File was opened. See {#tree}
   # @param create_response [Smb2::Packet::CreateResponse] the server's
