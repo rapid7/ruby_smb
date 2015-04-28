@@ -181,6 +181,7 @@ class Smb2::File
       response = tree.send_recv(packet)
 
       response_packet = Smb2::Packet::WriteResponse.new(response)
+      seek(response_packet.byte_count, IO::SEEK_CUR)
 
       response_packet
     end
