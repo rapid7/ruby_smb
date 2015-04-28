@@ -58,7 +58,7 @@ class Smb2::File
   # @param length [Fixnum,nil] number of bytes to read. If this is nil, read
   #   the whole file, i.e. {#size} bytes.
   # @return [String] full contents of the remote file
-  def read(offset: 0, length: nil)
+  def read(length = nil, offset: 0)
     data = ''
     max = tree.client.max_read_size
     length ||= size - offset
@@ -86,12 +86,12 @@ class Smb2::File
   #   respond with STATUS_INVALID_PARAMETER
   # @return [String]
   def read_chunk(offset: 0, length: self.tree.client.max_read_size)
-    packet = Smb2::Packet::ReadRequest.new do |request|
-      request.read_offset = offset
-      request.read_length = length
-      request.file_id = self.create_response.file_id
-      request.minimum_count = 0
-    end
+    packet = Smb2::Packet::ReadRequest.new(
+      read_offset: offset,
+      read_length: length,
+      file_id: self.create_response.file_id,
+      minimum_count: 0
+    )
 
     response = tree.send_recv(packet)
 
@@ -105,13 +105,13 @@ class Smb2::File
   #
   # @return [Fixnum]
   def size
-    packet = Smb2::Packet::QueryInfoRequest.new do |request|
-      request.info_type = Smb2::Packet::QUERY_INFO_TYPES[:FILE]
-      request.file_info_class = Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation]
-      request.output_buffer_length = 40
-      request.input_buffer_length = 0
-      request.file_id = self.create_response.file_id
-    end
+    packet = Smb2::Packet::QueryInfoRequest.new(
+      info_type: Smb2::Packet::QUERY_INFO_TYPES[:FILE],
+      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
+      output_buffer_length: 40,
+      input_buffer_length: 0,
+      file_id: self.create_response.file_id
+    )
     response = tree.send_recv(packet)
     query_response = Smb2::Packet::QueryInfoResponse.new(response)
     info = Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
@@ -122,10 +122,10 @@ class Smb2::File
   # Write the entire contents of `data`, starting at `offset` from the
   # beginning of the file.
   #
-  # @param offset [Fixnum] where in the file to start writing
   # @param data [String] what to write
+  # @param offset [Fixnum] where in the file to start writing
   # @return [void]
-  def write(offset: 0, data:)
+  def write(data, offset: 0)
     max = tree.client.max_write_size
     (offset...data.length).step(max) do |step|
       packet = Smb2::Packet::WriteRequest.new do |request|

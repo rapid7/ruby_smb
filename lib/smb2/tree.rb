@@ -34,27 +34,58 @@ class Smb2::Tree
   # The protocol is persnickety about format. The `filename` must not begin
   # with a backslash or it will return a STATUS_INVALID_PARAMETER.
   #
+  # If the optional code block is given, it will be passed the opened file as
+  # an argument and the {File} object will automatically be {File#close
+  # closed} when the block terminates. The value of the block will be
+  # returned.
+  #
   # @param filename [String,#encode] this will be encoded in utf-16le
+  # @param mode [String] See stdlib ::File#mode
+  # @yield [Smb2::File]
   # @return [Smb2::File]
-  def create(filename, mode: "r")
-    desired_access = Smb2::Packet::FILE_ACCESS_MASK[:MAXIMUM_ALLOWED] # YOLO
+  def create(filename, mode = "r+")
+    desired_access = desired_access_from_mode(mode)
     create_options = Smb2::Packet::CREATE_OPTIONS[:FILE_NON_DIRECTORY_FILE]
 
-    packet = Smb2::Packet::CreateRequest.new do |request|
-      request.filename = filename.encode("utf-16le")
-      request.desired_access = desired_access
-      request.impersonation = 2
-      request.share_access = 3  # SHARE_WRITE | SHARE_READ
-      request.disposition = disposition_from_file_mode(mode)
-      request.create_options = create_options
-    end
+    packet = Smb2::Packet::CreateRequest.new(
+      filename: filename.encode("utf-16le"),
+      desired_access: desired_access,
+      impersonation: 2,
+      share_access: 3,  # SHARE_WRITE | SHARE_READ
+      disposition: disposition_from_file_mode(mode),
+      create_options: create_options
+    )
 
     response = send_recv(packet)
 
     create_response = Smb2::Packet::CreateResponse.new(response)
-    Smb2::File.new(tree: self, create_response: create_response)
+    file = Smb2::File.new(tree: self, create_response: create_response)
+
+    if block_given?
+      value = yield file
+      file.close
+      value
+    else
+      file
+    end
   end
 
+  def delete(filename)
+    packet = Smb2::Packet::CreateRequest.new(
+      filename: filename.encode("utf-16le"),
+      desired_access: Smb2::Packet::FILE_ACCESS_MASK[:FILE_DELETE],
+      impersonation: 2,
+      share_access: 7, # SHARE_DELETE | SHARE_WRITE | SHARE_READ
+      disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
+      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DELETE_ON_CLOSE]
+    )
+
+    response = send_recv(packet)
+
+    Smb2::Packet::CreateResponse.new(response)
+  end
+
+  # @return [String]
   def inspect
     if tree_connect_response.header.nt_status != 0
       stuff = "Error: #{tree_connect_response.header.nt_status.to_s 16}"
@@ -77,18 +108,45 @@ class Smb2::Tree
     client.send_recv(request)
   end
 
-
   private
 
+  def desired_access_from_mode(mode)
+    case mode
+    when "r+","w+","a+","w","a"
+      # read/write and write-only. Samba's smbclient sets all the read flags
+      # when writing, so emulate that.
+      Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_DATA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_APPEND_DATA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_EA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_EA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_ATTRIBUTES] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES] |
+        Smb2::Packet::FILE_ACCESS_MASK[:READ_CONTROL] |
+        Smb2::Packet::FILE_ACCESS_MASK[:SYNCHRONIZE]
+    when "r"
+      # read-only
+      Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_EA] |
+        Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_ATTRIBUTES] |
+        Smb2::Packet::FILE_ACCESS_MASK[:READ_CONTROL] |
+        Smb2::Packet::FILE_ACCESS_MASK[:SYNCHRONIZE]
+    else
+      raise ArgumentError
+    end
+  end
 
   def disposition_from_file_mode(mode)
-    case mode
-    when "r"
+    case mode[0]
+    when "r","r+"
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN]
-    when "w"
-      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_SUPERSEDE]
-    when "a"
+    when "w","w+"
+      # truncate
+      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OVERWRITE_IF]
+    when "a","a+"
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_CREATE]
+    else
+      raise ArgumentError
     end
   end
 

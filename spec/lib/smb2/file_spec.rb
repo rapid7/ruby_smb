@@ -70,7 +70,7 @@ RSpec.describe Smb2::File do
           expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
           offset = (data.length/2 - max_read_size/2)
           length = max_read_size - 1
-          expect(file.read(offset: offset, length: length)).to eq(data.slice(offset, length))
+          expect(file.read(length, offset: offset)).to eq(data.slice(offset, length))
         end
       end
 

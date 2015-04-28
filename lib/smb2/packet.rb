@@ -67,7 +67,7 @@ class Smb2::Packet < BitStruct
     # Overwrite the file if it already exists; otherwise, create the file.
     # This value SHOULD NOT be used for a printer object.<32>
     FILE_OVERWRITE_IF: 0x00000005,
-  }
+  }.freeze
 
   # Used in {CreateRequest#create_options}
   #
