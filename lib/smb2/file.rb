@@ -4,6 +4,9 @@ require 'smb2/packet/query/standard_information'
 # An open file on the remote filesystem.
 class Smb2::File
 
+  # Some day we'll document all of these in one place
+  STATUS_END_OF_FILE = 0xC0000011
+
   # The server's response from when we {Tree#create created} this File
   #
   # @return [Smb2::Packet::CreateResponse]
@@ -14,6 +17,12 @@ class Smb2::File
   #
   # @return [Smb2::Packet::ReadResponse]
   attr_accessor :last_read_response
+
+  # Current offset of the read/write pointer from the beginning of the file,
+  # in bytes.
+  #
+  # @return [Fixnum]
+  attr_accessor :pos
 
   # The tree that {Tree#create created} this File
   #
@@ -27,6 +36,7 @@ class Smb2::File
   def initialize(tree:, create_response:)
     self.tree = tree
     self.create_response = create_response
+    self.pos = 0
   end
 
 
@@ -43,12 +53,19 @@ class Smb2::File
     Smb2::Packet::CloseResponse.new(response)
   end
 
+  # Whether the current read/write pointer is at the end of the file
+  #
+  # @return [Boolean]
+  def eof?
+    (@last_read_response && @last_read_response.header.nt_status == STATUS_END_OF_FILE) || pos == size
+  end
+
   # @return [String]
   def inspect
     "#<Smb2::File file-id=#{create_response.file_id.unpack("H*").first} >"
   end
 
-  # Call {#read_chunk} repeatedly until we get everything
+  # Call {#read_chunk} repeatedly until we get `length` bytes or hit eof.
   #
   # @note Beware of ballooning memory usage
   # @note Calling this on a pipe without a `length` is probably a really bad
@@ -58,23 +75,22 @@ class Smb2::File
   # @param length [Fixnum,nil] number of bytes to read. If this is nil, read
   #   the whole file, i.e. {#size} bytes.
   # @return [String] full contents of the remote file
-  def read(length = nil, offset: 0)
+  def read(length = nil, offset: self.pos)
     data = ''
     max = tree.client.max_read_size
     length ||= size - offset
+    seek(offset)
 
-    # Starting from `offset`, up to `length` bytes after `offset`, counting by
-    # maximum chunk size
-    (offset...(offset+length)).step(max) do |step|
+    while data.length < length && !eof?
       # when we are close to the end, we need to read fewer then max bytes
       len = [ max, length - data.length ].min
-      data << read_chunk(offset: step, length: len)
+      data << read_chunk(offset: pos, length: len)
     end
 
     data
   end
 
-  # Send a {Smb2::Packet::ReadRequest ReadRequest} and return the data.
+  # Send a single {Smb2::Packet::ReadRequest ReadRequest} and return the data.
   #
   # @note Does not handle files being too large for a single request. See
   #   {#read} if `length` is greater than {Smb2::Client#max_read_size
@@ -85,7 +101,7 @@ class Smb2::File
   #   this is greater than the server's maximum read size, the server will
   #   respond with STATUS_INVALID_PARAMETER
   # @return [String]
-  def read_chunk(offset: 0, length: self.tree.client.max_read_size)
+  def read_chunk(offset: self.pos, length: self.tree.client.max_read_size)
     packet = Smb2::Packet::ReadRequest.new(
       read_offset: offset,
       read_length: length,
@@ -98,7 +114,32 @@ class Smb2::File
     response_packet = Smb2::Packet::ReadResponse.new(response)
     @last_read_response = response_packet
 
+    seek(response_packet.data_length, IO::SEEK_CUR)
+
     response_packet.data
+  end
+
+  # Seeks to a given `offset` in the stream according to the value of
+  # `whence`:
+  #
+  # |`whence`||
+  # |----------------------|--------------------------------------------------
+  # | :CUR or IO::SEEK_CUR | Seeks to `amount` plus current position
+  # | :END or IO::SEEK_END | Seeks to `amount` plus end of stream (you probably want a negative value for `amount`)
+  # | :SET or IO::SEEK_SET | Seeks to the absolute location given by `amount`
+  #
+  # @see http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek
+  # @param amount [Fixnum]
+  # @param whence [Symbol]
+  def seek(amount, whence=IO::SEEK_SET)
+    @pos = case whence
+           when :CUR, IO::SEEK_CUR
+             @pos + amount
+           when :END, IO::SEEK_END
+             amount + size
+           when :SET, IO::SEEK_SET
+             amount
+           end
   end
 
   # The size of the file in bytes
@@ -125,7 +166,7 @@ class Smb2::File
   # @param data [String] what to write
   # @param offset [Fixnum] where in the file to start writing
   # @return [void]
-  def write(data, offset: 0)
+  def write(data, offset: self.pos)
     max = tree.client.max_write_size
     (offset...data.length).step(max) do |step|
       packet = Smb2::Packet::WriteRequest.new(
