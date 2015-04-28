@@ -20,6 +20,7 @@ RSpec.describe Smb2::Packet::WriteRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:WRITE]
 
     specify 'struct_size' do

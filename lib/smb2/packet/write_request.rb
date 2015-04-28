@@ -5,6 +5,10 @@ class Smb2::Packet
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class WriteRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :WRITE
+
     nest :header, RequestHeader
     unsigned :struct_size, 16, default: 49
 
@@ -22,6 +26,5 @@ class Smb2::Packet
     unsigned :flags, 32
 
     rest :buffer
-
   end
 end

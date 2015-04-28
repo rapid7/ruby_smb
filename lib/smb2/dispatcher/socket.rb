@@ -1,3 +1,5 @@
+require 'socket'
+
 class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
 
   # @!attribute [rw] socket
@@ -7,7 +9,7 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
   # @param host [String] passed to TCPSocket.new
   # @param port [Fixnum] passed to TCPSocket.new
   def self.connect(host, port)
-    new(TCPSocket.new(host, port))
+    new(::TCPSocket.new(host, port))
   end
 
   # @param socket [IO]

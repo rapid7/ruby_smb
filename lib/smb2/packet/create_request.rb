@@ -1,10 +1,15 @@
 require 'smb2/packet'
 
 class Smb2::Packet
+
   # [Section 2.2.13 SMB2 CREATE Request](http://msdn.microsoft.com/en-us/library/cc246502.aspx)
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class CreateRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :CREATE
+
     nest :header, RequestHeader
     # "The client MUST set this field to 57, indicating the size of the
     # request structure, not including the header. The client MUST set it to
@@ -20,14 +25,17 @@ class Smb2::Packet
 
     unsigned :impersonation, 32
 
-    unsigned :access_mask, 32
-
     unsigned :create_flags, 64
 
-    # The documentation says this should be 8 bytes, but I'm only seeing 4 on
-    # the wire.
-    unsigned :reserved, 32, default: 0
+    unsigned :reserved, 64, default: 0
 
+    # Wireshark calls this field 'Access Mask', which fits with the
+    # documentation for possible values, but not the packet docs, which call
+    # it 'Desired Access'
+    #
+    # @see https://msdn.microsoft.com/en-us/library/cc246503.aspx
+    # @see https://msdn.microsoft.com/en-us/library/cc246802.aspx
+    # @see https://msdn.microsoft.com/en-us/library/cc246801.aspx
     unsigned :desired_access, 32
     unsigned :file_attributes, 32
     unsigned :share_access, 32
@@ -39,6 +47,5 @@ class Smb2::Packet
     unsigned :create_contexts_length, 32
 
     rest :buffer
-
   end
 end

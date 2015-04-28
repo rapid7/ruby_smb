@@ -17,15 +17,24 @@ RSpec.describe Smb2::Packet::CreateRequest do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
     it_behaves_like "request", Smb2::COMMANDS[:CREATE]
 
     specify 'body' do
       expect(packet.struct_size).to eq(57)
       expect(packet.oplock).to eq(0)
+      expect(packet.security_flags).to eq(0)
       expect(packet.impersonation).to eq(2)
-      expect(packet.access_mask).to eq(0)
       expect(packet.create_flags).to eq(0)
 
+      expect(packet.reserved).to eq(0)
+
+      # 0x100000 = SYNCHRONIZE
+      # 0x20000 = READ_CONTROL
+      # 0x100 = FILE_WRITE_ATTRIBUTES
+      # 0x90 = FILE_WRITE_EA | FILE_READ_ATTRIBUTES
+      # 0xf = FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_READ_EA
+      expect(packet.desired_access).to eq(0x0012_019f)
       expect(packet.file_attributes).to eq(0)
       # SHARE_DELETE | SHARE_WRITE | SHARE_READ
       expect(packet.share_access).to eq(7)

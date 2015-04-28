@@ -5,6 +5,15 @@ class Smb2::Packet
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class ReadRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :READ
+
+    # Values for {#flags}
+    FLAGS = {
+      READ_UNBUFFERED: 0x01
+    }.freeze
+
     nest :header, RequestHeader
 
     unsigned :struct_size, 16, default: 49
@@ -47,13 +56,23 @@ class Smb2::Packet
 
     unsigned :channel, 32
 
-    data_buffer :read_channel_info, 16
+    unsigned :remaining_bytes, 32
 
-    rest :buffer
+    unsigned :read_channel_info_offset, 16
+    unsigned :read_channel_info_length, 16
 
-    FLAGS = {
-      READ_UNBUFFERED: 0x01
-    }.freeze
+    # Can't use a `data_buffer` for read_channel_info because unlike all other
+    # data buffers, this one must have at least one NULL byte.
+    #
+    # @see https://msdn.microsoft.com/en-us/library/cc246527.aspx
+    # > Buffer (variable): A variable-length buffer that contains the read
+    #   channel information, as described by ReadChannelInfoOffset and
+    #   ReadChannelInfoLength. Unused at present. The client MUST set one byte
+    #   of this field to 0, and the server MUST ignore it on receipt
+    #
+    # @note Updating this will *NOT* change {#read_channel_info_length} or
+    #   {#read_channel_info_offset}
+    string :read_channel_info, 8, default: "\x00".force_encoding('binary')
   end
 end
 

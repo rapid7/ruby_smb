@@ -4,7 +4,9 @@
 module Smb2
   autoload :Client, 'smb2/client'
   autoload :Dispatcher, 'smb2/dispatcher'
+  autoload :File, 'smb2/file'
   autoload :Packet, 'smb2/packet'
+  autoload :Tree, 'smb2/tree'
   autoload :VERSION, 'smb2/version'
   autoload :Version, 'smb2/version'
 

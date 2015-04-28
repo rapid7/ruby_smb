@@ -1,5 +1,3 @@
-require 'spec_helper'
-require 'smb2/client'
 require 'support/mock_socket_dispatcher'
 
 RSpec.describe Smb2::Client do

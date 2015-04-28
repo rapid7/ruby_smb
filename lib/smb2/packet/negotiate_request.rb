@@ -5,6 +5,9 @@ class Smb2::Packet
   # [Section 2.2.3 SMB2 NEGOTIATE Request](https://msdn.microsoft.com/en-us/library/cc246543.aspx)
   class NegotiateRequest < Smb2::Packet
 
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :NEGOTIATE
+
     nest :header, RequestHeader
     unsigned :struct_size, 16, default: 36
     unsigned :dialect_count, 16, default: 1
@@ -17,6 +20,6 @@ class Smb2::Packet
     # Just 2.02 for now. XXX Update dialect_count if you add anything here
     # XXX :default doesn't do anything at all on rest fields
     rest :dialects #, default: "\x02\x02"
-  end
 
+  end
 end

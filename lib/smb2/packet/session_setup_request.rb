@@ -4,6 +4,10 @@ class Smb2::Packet
 
   # [Section 2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
   class SessionSetupRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :SESSION_SETUP
+
     nest :header, RequestHeader
     unsigned :struct_size,   16, default: 25
     unsigned :flags,          8, default: 0x00
@@ -35,14 +39,6 @@ class Smb2::Packet
       SESSION_BINDING_REQUEST: 0x0000_0001
     }.freeze
     FLAG_NAMES = FLAGS.keys
-
-    def initialize(*args)
-      super
-      new_header = self.header
-      new_header.command = Smb2::COMMANDS[:SESSION_SETUP]
-      self.header = new_header
-    end
-
   end
 
 end
