@@ -5,6 +5,10 @@ class Smb2::Packet
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class IoctlRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :IOCTL
+
     nest :header, RequestHeader
 
     # > The client MUST set this field to 57, indicating the size of the
@@ -64,11 +68,5 @@ class Smb2::Packet
       SMB2_0_IOCTL_IS_IOCTL: 0,
       SMB2_0_IOCTL_IS_FSCTL: 1
     }.freeze
-
-    # @return [Symbol] a key in {Smb2::COMMANDS}
-    def self.command
-      :IOCTL
-    end
-
   end
 end

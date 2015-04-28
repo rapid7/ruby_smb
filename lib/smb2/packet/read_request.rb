@@ -5,6 +5,15 @@ class Smb2::Packet
   #
   # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
   class ReadRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :READ
+
+    # Values for {#flags}
+    FLAGS = {
+      READ_UNBUFFERED: 0x01
+    }.freeze
+
     nest :header, RequestHeader
 
     unsigned :struct_size, 16, default: 49
@@ -64,15 +73,6 @@ class Smb2::Packet
     # @note Updating this will *NOT* change {#read_channel_info_length} or
     #   {#read_channel_info_offset}
     string :read_channel_info, 8, default: "\x00".force_encoding('binary')
-
-    FLAGS = {
-      READ_UNBUFFERED: 0x01
-    }.freeze
-
-    # @return [Symbol] a key in {Smb2::COMMANDS}
-    def self.command
-      :READ
-    end
   end
 end
 

@@ -24,12 +24,19 @@ RSpec.describe Smb2::Packet::ReadResponse do
     specify do
       expect(packet.data_length).to eq(92)
     end
+
     specify do
       expect(packet.data.length).to eq(92)
     end
+
+    specify do
+      expect(packet.data.length).to eq(packet.data_length)
+    end
+
     specify do
       expect(packet.data_offset).to eq(0x0050)
     end
+
     specify 'data' do
       expect(packet.data).to eq([
         "05000c03100000005c00000002000000b810b8104a1e00000d005c504950455c" \

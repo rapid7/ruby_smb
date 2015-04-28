@@ -1,4 +1,3 @@
-require 'smb2'
 require 'bit-struct'
 
 # A PDU for the SMB2 protocol
@@ -48,10 +47,16 @@ class Smb2::Packet < BitStruct
   # Constants
   ##
 
+  # Values for {QueryInfoRequest#info_type}
+  # @see https://msdn.microsoft.com/en-us/library/cc246557.aspx
   QUERY_INFO_TYPES = {
+    # SMB2_0_INFO_FILE
     FILE: 0x01,
+    # SMB2_0_INFO_FILESYSTEM
     FILESYSTEM: 0x02,
+    # SMB2_0_INFO_SECURITY
     SECURITY: 0x03,
+    # SMB2_0_INFO_QUOTA
     QUOTA: 0x04
   }.freeze
 
@@ -178,14 +183,15 @@ class Smb2::Packet < BitStruct
       yield self if block_given?
     end
 
-    if respond_to?(:header) && self.class.respond_to?(:command)
+    if respond_to?(:header) && self.class.const_defined?(:COMMAND)
       # Set the appropriate {#command} in the header for this packet type
       new_header = self.header
-      new_header.command = Smb2::COMMANDS[self.class.command]
+      new_header.command = Smb2::COMMANDS[self.class::COMMAND]
       self.header = new_header
     end
   end
 
+  # @return [Array<String>] list of field names for {.data_buffer} fields
   def data_buffer_fields
     self.class.data_buffer_fields
   end

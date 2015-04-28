@@ -2,8 +2,7 @@ require 'smb2'
 
 RSpec.describe Smb2::Packet do
   subject(:packet) do
-    klass = Class.new(described_class)
-    klass.instance_eval do
+    klass = Class.new(described_class) do
       nest :header, Smb2::Packet::RequestHeader
       # struct_size is part of the API and must be present
       # 2 bytes for struct_size itself, 2 for data_offset, 4 for data_length
@@ -14,10 +13,10 @@ RSpec.describe Smb2::Packet do
     klass.new
   end
 
-  it { is_expected.to respond_to(:recalculate) }
   it { is_expected.to respond_to(:data) }
-  it { is_expected.to respond_to(:data_offset) }
   it { is_expected.to respond_to(:data_length) }
+  it { is_expected.to respond_to(:data_offset) }
+  it { is_expected.to respond_to(:recalculate) }
 
   describe '#data_buffer_fields' do
     specify do

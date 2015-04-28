@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-$:.push File.expand_path(File.join(File.dirname(__FILE__), '..', 'lib'))
+require 'bundler/setup'
 
 require 'smb2'
 
@@ -18,6 +18,6 @@ c.negotiate
 c.authenticate
 tree = c.tree_connect("\\\\#{host}\\Users")
 
-file = tree.create("public\\foo.txt".encode('utf-16le'))
+file = tree.create("public\\foo.txt")
 
 puts file.read

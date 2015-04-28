@@ -29,6 +29,11 @@ RSpec.describe Smb2::Packet::CreateRequest do
 
       expect(packet.reserved).to eq(0)
 
+      # 0x100000 = SYNCHRONIZE
+      # 0x20000 = READ_CONTROL
+      # 0x100 = FILE_WRITE_ATTRIBUTES
+      # 0x90 = FILE_WRITE_EA | FILE_READ_ATTRIBUTES
+      # 0xf = FILE_READ_DATA | FILE_WRITE_DATA | FILE_APPEND_DATA | FILE_READ_EA
       expect(packet.desired_access).to eq(0x0012_019f)
       expect(packet.file_attributes).to eq(0)
       # SHARE_DELETE | SHARE_WRITE | SHARE_READ

@@ -4,6 +4,10 @@ class Smb2::Packet
 
   # @see Smb2::Packet::QUERY_INFO_TYPES
   class QueryInfoRequest < Smb2::Packet
+
+    # A key in {Smb2::COMMANDS}
+    COMMAND = :QUERY_INFO
+
     nest :header, RequestHeader
 
     unsigned :struct_size, 16, default: 41
@@ -35,12 +39,6 @@ class Smb2::Packet
     string :file_id, 128
 
     rest :buffer
-
-    # @return [Symbol] a key in {Smb2::COMMANDS}
-    def self.command
-      :QUERY_INFO
-    end
   end
 
 end
-

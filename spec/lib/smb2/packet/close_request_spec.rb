@@ -1,6 +1,3 @@
-require 'spec_helper'
-require 'smb2'
-
 RSpec.describe Smb2::Packet::CloseRequest do
   subject(:packet) do
     described_class.new(data)

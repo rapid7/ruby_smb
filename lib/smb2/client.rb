@@ -1,21 +1,21 @@
-require 'smb2/packet'
-require 'smb2/tree'
 require 'net/ntlm'
 require 'net/ntlm/client'
 
 # A client for holding the state of an SMB2 session.
 #
-# ```ruby
-# sock = TCPSocket.new("192.168.100.140", 445)
-# c = Smb2::Client.new(
-#   socket: sock,
-#   username:"administrator",
-#   password:"P@ssword1",
-#   domain:"asdfasdf"
-# )
-# c.negotiate
-# c.authenticate
-# ```
+#
+# @example Connect and authenticate
+#   sock = TCPSocket.new("192.168.100.140", 445)
+#   c = Smb2::Client.new(
+#     socket: sock,
+#     username:"administrator",
+#     password:"P@ssword1",
+#     domain:"asdfasdf"
+#   )
+#   c.negotiate
+#   c.authenticate
+#
+#
 class Smb2::Client
 
   # This mode will be bitwise AND'd with the value from the server
@@ -35,10 +35,16 @@ class Smb2::Client
   # @return [String]
   attr_accessor :domain
 
-  # Connected file handles opened with a {Packet::CreateRequest}
-  #
-  # @return [Array]
-  attr_accessor :file_handles
+  # Largest value usable in {Packet::ReadRequest#read_length}. Anything bigger
+  # than this will result in a STATUS_INVALID_PARAMETER when reading.
+  # @return [Fixnum]
+  attr_accessor :max_read_size
+
+  # @return [Fixnum]
+  attr_accessor :max_transaction_size
+
+  # @return [Fixnum]
+  attr_accessor :max_write_size
 
   # An NT Lan Manager client
   #
@@ -65,11 +71,6 @@ class Smb2::Client
   #
   # @return [Fixnum]
   attr_accessor :security_mode
-
-  # Connected tree identifiers returned in a {Packet::TreeConnectResponse}
-  #
-  # @return [String]
-  attr_accessor :tree_ids
 
   # The ActiveDirectory username to authenticate with
   #
@@ -138,6 +139,10 @@ class Smb2::Client
     response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
+    if response_packet.header.nt_status == 0
+      @state = :authenticated
+    end
+
     response_packet.header.nt_status
   end
 
@@ -157,22 +162,14 @@ class Smb2::Client
 
     @capabilities  = response_packet.capabilities
     @security_mode = response_packet.security_mode
+    @max_read_size = response_packet.max_read_size
+    @max_transaction_size = response_packet.max_transaction_size
+    @max_write_size = response_packet.max_write_size
 
     @state = :negotiated
 
     # XXX do we need the Server GUID?
-  end
-
-  # @param tree [String]
-  def tree_connect(tree)
-    packet = Smb2::Packet::TreeConnectRequest.new do |request|
-      request.tree = tree.encode("utf-16le")
-    end
-
-    response = send_recv(packet)
-    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
-
-    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
+    response_packet
   end
 
   # Adjust `request`'s header with an appropriate sequence number and session
@@ -194,6 +191,19 @@ class Smb2::Client
     dispatcher.send_packet(request)
 
     dispatcher.recv_packet
+  end
+
+  # @param tree [String]
+  # @return [Smb2::Tree]
+  def tree_connect(tree)
+    packet = Smb2::Packet::TreeConnectRequest.new do |request|
+      request.tree = tree.encode("utf-16le")
+    end
+
+    response = send_recv(packet)
+    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
+
+    Smb2::Tree.new(client: self, tree_connect_response: response_packet)
   end
 
   protected

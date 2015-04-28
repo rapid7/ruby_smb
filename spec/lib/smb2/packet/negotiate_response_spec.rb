@@ -33,6 +33,23 @@ RSpec.describe Smb2::Packet::NegotiateResponse do
       specify do
         expect(packet.struct_size).to eq(65)
       end
+
+      specify do
+        expect(packet.capabilities).to eq(7)
+      end
+
+      specify do
+        expect(packet.max_transaction_size).to eq(1048576)
+      end
+
+      specify do
+        expect(packet.max_read_size).to eq(1048576)
+      end
+
+      specify do
+        expect(packet.max_write_size).to eq(1048576)
+      end
+
     end
 
   end

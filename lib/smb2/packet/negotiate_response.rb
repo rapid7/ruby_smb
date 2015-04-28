@@ -9,7 +9,7 @@ class Smb2::Packet
     unsigned :security_mode, 16
     unsigned :dialect_revision, 16
     unsigned :reserved, 16
-    string :server_guid, 256 # 32 bytes
+    string :server_guid, 16 * 8 # 16 bytes
     unsigned :capabilities,  32, default: 0x0000_0001
     unsigned :max_transaction_size, 32
     unsigned :max_read_size, 32
