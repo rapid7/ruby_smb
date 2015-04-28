@@ -12,6 +12,9 @@ class Smb2::File
   # @return [Smb2::Packet::CreateResponse]
   attr_accessor :create_response
 
+  # @return [String]
+  attr_accessor :filename
+
   # The last response we got from {#read}. Useful for figuring out what went
   # wrong.
   #
@@ -33,7 +36,8 @@ class Smb2::File
   # @param create_response [Smb2::Packet::CreateResponse] the server's
   #   response from when we {Tree#create created} this File. See
   #   {#create_response}
-  def initialize(tree:, create_response:)
+  def initialize(filename:, tree:, create_response:)
+    self.filename = filename
     self.tree = tree
     self.create_response = create_response
     self.pos = 0
@@ -62,7 +66,7 @@ class Smb2::File
 
   # @return [String]
   def inspect
-    "#<Smb2::File file-id=#{create_response.file_id.unpack("H*").first} >"
+    "#<Smb2::File:#{filename} file-id=#{create_response.file_id.unpack("H*").first} >"
   end
 
   # Call {#read_chunk} repeatedly until we get `length` bytes or hit eof.
@@ -172,8 +176,8 @@ class Smb2::File
       packet = Smb2::Packet::WriteRequest.new(
         file_offset: step,
         file_id: self.create_response.file_id,
-        data: data.slice(step, max)
       )
+      packet.data = data.slice(step, max)
       response = tree.send_recv(packet)
 
       response_packet = Smb2::Packet::WriteResponse.new(response)

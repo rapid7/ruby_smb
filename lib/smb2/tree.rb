@@ -59,7 +59,7 @@ class Smb2::Tree
     response = send_recv(packet)
 
     create_response = Smb2::Packet::CreateResponse.new(response)
-    file = Smb2::File.new(tree: self, create_response: create_response)
+    file = Smb2::File.new(filename: filename, tree: self, create_response: create_response)
 
     if block_given?
       value = yield file
@@ -90,7 +90,7 @@ class Smb2::Tree
     if tree_connect_response.header.nt_status != 0
       stuff = "Error: #{tree_connect_response.header.nt_status.to_s 16}"
     else
-      stuff = tree
+      stuff = share
     end
     "#<#{self.class} #{stuff} >"
   end
@@ -137,7 +137,7 @@ class Smb2::Tree
   end
 
   def disposition_from_file_mode(mode)
-    case mode[0]
+    case mode
     when "r","r+"
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN]
     when "w","w+"

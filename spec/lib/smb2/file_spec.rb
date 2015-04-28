@@ -1,7 +1,7 @@
 
 RSpec.describe Smb2::File do
   subject(:file) do
-    described_class.new(tree: tree, create_response: create_response)
+    described_class.new(filename: "test.txt", tree: tree, create_response: create_response)
   end
 
   let(:create_response) do
