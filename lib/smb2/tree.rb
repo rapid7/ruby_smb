@@ -60,6 +60,9 @@ class Smb2::Tree
 
     create_response = Smb2::Packet::CreateResponse.new(response)
     file = Smb2::File.new(filename: filename, tree: self, create_response: create_response)
+    if mode.start_with?("a")
+      file.seek(create_response.end_of_file)
+    end
 
     if block_given?
       value = yield file
@@ -144,7 +147,7 @@ class Smb2::Tree
       # truncate
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OVERWRITE_IF]
     when "a","a+"
-      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_CREATE]
+      Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN_IF]
     else
       raise ArgumentError
     end

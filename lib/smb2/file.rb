@@ -172,21 +172,27 @@ class Smb2::File
   # @return [void]
   def write(data, offset: self.pos)
     max = tree.client.max_write_size
-    (offset...data.length).step(max) do |step|
+    bytes_written = 0
+    seek(offset)
+
+    while data.length > bytes_written
       packet = Smb2::Packet::WriteRequest.new(
-        file_offset: step,
+        file_offset: pos,
         file_id: self.create_response.file_id,
       )
-      packet.data = data.slice(step, max)
+      packet.data = data.slice(bytes_written, max)
+
       response = tree.send_recv(packet)
 
       response_packet = Smb2::Packet::WriteResponse.new(response)
-      seek(response_packet.byte_count, IO::SEEK_CUR)
+      # @todo raise instead?
+      break if response_packet.header.nt_status != 0
 
-      response_packet
+      bytes_written += response_packet.byte_count
+      seek(bytes_written)
     end
 
-    self
+    bytes_written
   end
 
 end
