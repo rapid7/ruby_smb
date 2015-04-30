@@ -164,12 +164,13 @@ class Smb2::File
     info.end_of_file
   end
 
-  # Write the entire contents of `data`, starting at `offset` from the
+  # Write the entire contents of `data`, starting at `offset` bytes from the
   # beginning of the file.
   #
   # @param data [String] what to write
   # @param offset [Fixnum] where in the file to start writing
-  # @return [void]
+  # @return [Fixnum] number of bytes written. This may be less than the length
+  #   of `data` if there was an error.
   def write(data, offset: self.pos)
     max = tree.client.max_write_size
     bytes_written = 0
@@ -189,7 +190,7 @@ class Smb2::File
       break if response_packet.header.nt_status != 0
 
       bytes_written += response_packet.byte_count
-      seek(bytes_written)
+      seek(offset + bytes_written)
     end
 
     bytes_written
