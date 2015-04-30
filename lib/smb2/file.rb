@@ -88,7 +88,8 @@ class Smb2::File
     while data.length < length && !eof?
       # when we are close to the end, we need to read fewer then max bytes
       len = [ max, length - data.length ].min
-      data << read_chunk(offset: pos, length: len)
+      response_packet = read_chunk(offset: pos, length: len)
+      data << response_packet.data
     end
 
     data
@@ -104,7 +105,7 @@ class Smb2::File
   # @param length [Fixnum] number of bytes to read, starting from `offset`. If
   #   this is greater than the server's maximum read size, the server will
   #   respond with STATUS_INVALID_PARAMETER
-  # @return [String]
+  # @return [Smb2::Packet::ReadResponse]
   def read_chunk(offset: self.pos, length: self.tree.client.max_read_size)
     packet = Smb2::Packet::ReadRequest.new(
       read_offset: offset,
@@ -120,7 +121,7 @@ class Smb2::File
 
     seek(response_packet.data_length, IO::SEEK_CUR)
 
-    response_packet.data
+    response_packet
   end
 
   # Seeks to a given `offset` in the stream according to the value of
@@ -177,15 +178,9 @@ class Smb2::File
     seek(offset)
 
     while data.length > bytes_written
-      packet = Smb2::Packet::WriteRequest.new(
-        file_offset: pos,
-        file_id: self.create_response.file_id,
-      )
-      packet.data = data.slice(bytes_written, max)
+      data_chunk = data.slice(bytes_written, max)
+      response_packet = write_chunk(data_chunk, offset: pos)
 
-      response = tree.send_recv(packet)
-
-      response_packet = Smb2::Packet::WriteResponse.new(response)
       # @todo raise instead?
       break if response_packet.header.nt_status != 0
 
@@ -194,6 +189,27 @@ class Smb2::File
     end
 
     bytes_written
+  end
+
+  # Write a single chunk of data.
+  #
+  # @note Does not handle data being too large for a single request. See
+  #   {#write} if `data` is larger than {Smb2::Client#max_write_size
+  #   tree.client.max_write_size}
+  #
+  # @param data [String] what to write
+  # @param offset [Fixnum] where in the file to start writing
+  # @return [Smb2::Packet::WriteResponse]
+  def write_chunk(data, offset: self.pos)
+    packet = Smb2::Packet::WriteRequest.new(
+      file_offset: offset,
+      file_id: self.create_response.file_id,
+    )
+    packet.data = data
+
+    response = tree.send_recv(packet)
+
+    Smb2::Packet::WriteResponse.new(response)
   end
 
 end
