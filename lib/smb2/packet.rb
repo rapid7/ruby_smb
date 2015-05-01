@@ -269,15 +269,15 @@ class Smb2::Packet < BitStruct
   #
   # @param name [Symbol]
   # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
-  # @option opts [Fixnum] :padding (0) number of bits to align after the length,
-  # @option opts [Fixnum] :offset_bitlength (16) length in bits of the
+  # @param padding [Fixnum,nil] number of bits to align after the length, if any
+  # @param offset_bitlength [Fixnum,nil] (16) length in bits of the
   #   buffer's `offset` field.
   # @return [void]
-  def self.data_buffer(name, bit_length=16, opts={})
+  def self.data_buffer(name, bit_length=16, padding: nil, offset_bitlength: 16)
     (@data_buffer_fields ||= []) << name
 
-    self.unsigned "#{name}_offset", (opts[:offset_bitlength] || 16), endian: 'little'
-    self.unsigned "#{name}_padding", opts[:padding] if opts.has_key?(:padding)
+    self.unsigned "#{name}_offset", offset_bitlength, endian: 'little'
+    self.unsigned "#{name}_padding", padding if padding
     self.unsigned "#{name}_length", bit_length, endian: 'little'
 
     define_method(name) do
@@ -304,13 +304,13 @@ class Smb2::Packet < BitStruct
   def initialize(*args)
     @data_buffers = {}
     super do
+      yield self if block_given?
       if !data_buffer_fields.empty?
         data_buffer_fields.each do |buffer_name|
           @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end
         recalculate
       end
-      yield self if block_given?
     end
 
     if respond_to?(:header) && self.class.const_defined?(:COMMAND)
@@ -343,7 +343,8 @@ class Smb2::Packet < BitStruct
     offset = self.header.header_len + (struct_size & ~1)
     new_buffer = ""
 
-    self.class.data_buffer_fields.each do |buffer_name|
+    data_buffer_fields.each do |buffer_name|
+      @data_buffers[buffer_name] ||= ''
       new_size = @data_buffers[buffer_name].bytesize
       if new_size.zero?
         self.send("#{buffer_name}_offset=", 0)

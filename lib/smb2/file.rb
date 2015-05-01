@@ -204,8 +204,8 @@ class Smb2::File
     packet = Smb2::Packet::WriteRequest.new(
       file_offset: offset,
       file_id: self.create_response.file_id,
+      data: data
     )
-    packet.data = data
 
     response = tree.send_recv(packet)
 
