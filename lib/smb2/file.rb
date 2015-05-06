@@ -12,6 +12,20 @@ class Smb2::File
   # @return [Smb2::Packet::CreateResponse]
   attr_accessor :create_response
 
+  # Path to the remote file.
+  #
+  # A UNC path like this:
+  #
+  #   \\hostname-or-ip\share\path\to\file.txt
+  #
+  # gets broken up like this:
+  #
+  #   tree.share -> \\hostname-or-ip\share
+  #   file.filename -> path\to\file.txt
+  #
+  # Note that share has no trailing backslash and filename has no prefixed
+  # backslash.
+  #
   # @return [String]
   attr_accessor :filename
 
@@ -66,10 +80,11 @@ class Smb2::File
 
   # @return [String]
   def inspect
-    "#<Smb2::File:#{filename} file-id=#{create_response.file_id.unpack("H*").first} >"
+    "#<Smb2::File:#{tree.share}\\#{filename} file-id=#{create_response.file_id.unpack("H*").first} >"
   end
 
-  # Call {#read_chunk} repeatedly until we get `length` bytes or hit eof.
+  # Call {#read_chunk} repeatedly until we get `length` bytes or hit {#eof?
+  # end of file}.
   #
   # @note Beware of ballooning memory usage
   # @note Calling this on a pipe without a `length` is probably a really bad
@@ -136,6 +151,7 @@ class Smb2::File
   # @see http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek
   # @param amount [Fixnum]
   # @param whence [Symbol]
+  # @return [Integer] Always 0 to match the {http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek IO#seek} API
   def seek(amount, whence=IO::SEEK_SET)
     @pos = case whence
            when :CUR, IO::SEEK_CUR
@@ -145,6 +161,7 @@ class Smb2::File
            when :SET, IO::SEEK_SET
              amount
            end
+    0
   end
 
   # The size of the file in bytes
