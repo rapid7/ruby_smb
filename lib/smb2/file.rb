@@ -47,6 +47,7 @@ class Smb2::File
   attr_accessor :tree
 
   # @param tree [Smb2::Tree] the Tree where this File was opened. See {#tree}
+  # @param filename [String] remote filesystem path of this File.
   # @param create_response [Smb2::Packet::CreateResponse] the server's
   #   response from when we {Tree#create created} this File. See
   #   {#create_response}
@@ -75,7 +76,7 @@ class Smb2::File
   #
   # @return [Boolean]
   def eof?
-    (@last_read_response && @last_read_response.header.nt_status == STATUS_END_OF_FILE) || pos == size
+    (last_read_response && last_read_response.header.nt_status == STATUS_END_OF_FILE) || pos == size
   end
 
   # @return [String]
@@ -132,7 +133,7 @@ class Smb2::File
     response = tree.send_recv(packet)
 
     response_packet = Smb2::Packet::ReadResponse.new(response)
-    @last_read_response = response_packet
+    self.last_read_response = response_packet
 
     seek(response_packet.data_length, IO::SEEK_CUR)
 
@@ -153,14 +154,14 @@ class Smb2::File
   # @param whence [Symbol]
   # @return [Integer] Always 0 to match the {http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek IO#seek} API
   def seek(amount, whence=IO::SEEK_SET)
-    @pos = case whence
-           when :CUR, IO::SEEK_CUR
-             @pos + amount
-           when :END, IO::SEEK_END
-             amount + size
-           when :SET, IO::SEEK_SET
-             amount
-           end
+    self.pos = case whence
+               when :CUR, IO::SEEK_CUR
+                 pos + amount
+               when :END, IO::SEEK_END
+                 amount + size
+               when :SET, IO::SEEK_SET
+                 amount
+               end
     0
   end
 
