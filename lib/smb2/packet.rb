@@ -304,16 +304,18 @@ class Smb2::Packet < BitStruct
   ##
 
   # @see BitStruct#initialize
+  # @yield [self] if a block is given, yields self to allow callers to modify
+  #   the Packet before {#recalculate} is called
+  # @yieldreturn [void]
   def initialize(*args)
     @data_buffers = {}
-    super do
-      yield self if block_given?
-      if !data_buffer_fields.empty?
-        data_buffer_fields.each do |buffer_name|
-          @data_buffers[buffer_name] = self.send(buffer_name) || ""
-        end
-        recalculate
+    super
+
+    if !data_buffer_fields.empty?
+      data_buffer_fields.each do |buffer_name|
+        @data_buffers[buffer_name] = self.send(buffer_name) || ""
       end
+      recalculate
     end
 
     if respond_to?(:header) && self.class.const_defined?(:COMMAND)
