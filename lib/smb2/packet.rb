@@ -48,30 +48,32 @@ class Smb2::Packet < BitStruct
   ##
 
   # Used in {CreateRequest#disposition}
+  # @note Ordered by value
   CREATE_DISPOSITIONS = {
     # If the file already exists, supersede it. Otherwise, create the file.
     # This value SHOULD NOT be used for a printer object.<30>
-    FILE_SUPERSEDE: 0x00000000,
+    FILE_SUPERSEDE: 0x0000_0000,
     # If the file already exists, return success; otherwise, fail the
     # operation. MUST NOT be used for a printer object.
-    FILE_OPEN: 0x00000001,
+    FILE_OPEN: 0x0000_0001,
     # If the file already exists, fail the operation; otherwise, create the
     # file.
-    FILE_CREATE: 0x00000002,
+    FILE_CREATE: 0x0000_0002,
     # Open the file if it already exists; otherwise, create the file. This
     # value SHOULD NOT be used for a printer object.<31>
-    FILE_OPEN_IF: 0x00000003,
+    FILE_OPEN_IF: 0x0000_0003,
     # Overwrite the file if it already exists; otherwise, fail the operation. MUST
     # NOT be used for a printer object.
-    FILE_OVERWRITE: 0x00000004,
+    FILE_OVERWRITE: 0x0000_0004,
     # Overwrite the file if it already exists; otherwise, create the file.
     # This value SHOULD NOT be used for a printer object.<32>
-    FILE_OVERWRITE_IF: 0x00000005,
+    FILE_OVERWRITE_IF: 0x0000_0005,
   }.freeze
 
   # Used in {CreateRequest#create_options}
   #
-  # https://msdn.microsoft.com/en-us/library/cc246502.aspx
+  # @see https://msdn.microsoft.com/en-us/library/cc246502.aspx
+  # @note Ordered by value
   CREATE_OPTIONS = {
     FILE_DIRECTORY_FILE: 0x0000_0001,
     FILE_WRITE_THROUGH: 0x0000_0002,
@@ -108,68 +110,69 @@ class Smb2::Packet < BitStruct
   #   section 2.2.13.1.1) or for a directory (specified in section 2.2.13.1.2).
   #
   # @see DIRECTORY_ACCESS_MASK
+  # @note Ordered by value
   FILE_ACCESS_MASK = {
     # This value indicates the right to read data from the file or named pipe.
-    FILE_READ_DATA: 0x00000001,
+    FILE_READ_DATA: 0x0000_0001,
     # This value indicates the right to write data into the file or named pipe
     # beyond the end of the file.
-    FILE_WRITE_DATA: 0x00000002,
+    FILE_WRITE_DATA: 0x0000_0002,
     # This value indicates the right to append data into the file or named
     # pipe.
-    FILE_APPEND_DATA: 0x00000004,
+    FILE_APPEND_DATA: 0x0000_0004,
     # This value indicates the right to read the extended attributes of the
     # file or named pipe.
-    FILE_READ_EA: 0x00000008,
+    FILE_READ_EA: 0x0000_0008,
     # This value indicates the right to write or change the extended
     # attributes to the file or named pipe.
-    FILE_WRITE_EA: 0x00000010,
+    FILE_WRITE_EA: 0x0000_0010,
     # This value indicates the right to delete entries within a directory.
-    FILE_DELETE_CHILD: 0x00000040,
+    FILE_DELETE_CHILD: 0x0000_0040,
     # This value indicates the right to execute the file.
-    FILE_EXECUTE: 0x00000020,
+    FILE_EXECUTE: 0x0000_0020,
     # This value indicates the right to read the attributes of the file.
-    FILE_READ_ATTRIBUTES: 0x00000080,
+    FILE_READ_ATTRIBUTES: 0x0000_0080,
     # This value indicates the right to change the attributes of the file.
-    FILE_WRITE_ATTRIBUTES: 0x00000100,
+    FILE_WRITE_ATTRIBUTES: 0x0000_0100,
     # This value indicates the right to delete the file.
-    DELETE: 0x00010000,
+    DELETE: 0x0001_0000,
     # This value indicates the right to read the security descriptor for the
     # file or named pipe.
-    READ_CONTROL: 0x00020000,
+    READ_CONTROL: 0x0002_0000,
     # This value indicates the right to change the discretionary access
     # control list (DACL) in the security descriptor for the file or named
     # pipe. For the DACL data structure, see ACL in [MS-DTYP].
-    WRITE_DAC: 0x00040000,
+    WRITE_DAC: 0x0004_0000,
     # This value indicates the right to change the owner in the security
     # descriptor for the file or named pipe.
-    WRITE_OWNER: 0x00080000,
+    WRITE_OWNER: 0x0008_0000,
     # SMB2 clients set this flag to any value.<40> SMB2 servers SHOULD<41>
     # ignore this flag.
-    SYNCHRONIZE: 0x00100000,
+    SYNCHRONIZE: 0x0010_0000,
     # This value indicates the right to read or change the system access
     # control list (SACL) in the security descriptor for the file or named
     # pipe. For the SACL data structure, see ACL in [MS-DTYP].<42>
-    ACCESS_SYSTEM_SECURITY: 0x01000000,
+    ACCESS_SYSTEM_SECURITY: 0x0100_0000,
     # This value indicates that the client is requesting an open to the file
     # with the highest level of access the client has on this file. If no
     # access is granted for the client on this file, the server MUST fail the
     # open with STATUS_ACCESS_DENIED.
-    MAXIMUM_ALLOWED: 0x02000000,
+    MAXIMUM_ALLOWED: 0x0200_0000,
     # This value indicates a request for all the access flags that are
     # previously listed except MAXIMUM_ALLOWED and ACCESS_SYSTEM_SECURITY.
-    GENERIC_ALL: 0x10000000,
+    GENERIC_ALL: 0x1000_0000,
     # This value indicates a request for the following combination of access
     # flags listed above: FILE_READ_ATTRIBUTES| FILE_EXECUTE| SYNCHRONIZE|
     # READ_CONTROL.
-    GENERIC_EXECUTE: 0x20000000,
+    GENERIC_EXECUTE: 0x2000_0000,
     # This value indicates a request for the following combination of access
     # flags listed above: FILE_WRITE_DATA| FILE_APPEND_DATA|
     # FILE_WRITE_ATTRIBUTES| FILE_WRITE_EA| SYNCHRONIZE| READ_CONTROL.
-    GENERIC_WRITE: 0x40000000,
+    GENERIC_WRITE: 0x4000_0000,
     # This value indicates a request for the following combination of access
     # flags listed above: FILE_READ_DATA| FILE_READ_ATTRIBUTES| FILE_READ_EA|
     # SYNCHRONIZE| READ_CONTROL.
-    GENERIC_READ: 0x80000000,
+    GENERIC_READ: 0x8000_0000,
   }.freeze
 
   # [2.2.13.1.2 Directory_Access_Mask](https://msdn.microsoft.com/en-us/library/cc246801.aspx)
@@ -262,10 +265,10 @@ class Smb2::Packet < BitStruct
     @data_buffer_fields ||= []
   end
 
-  # Define a data buffer consisting of an offset, 16- or 32-bit length, and a
-  # value of `length` bytes at the end of the packet. Will create attributes
-  # for the thing itself as well as one for `<name>_length` and
-  # `<name>_offset`
+  # Define a data buffer consisting of an offset, 16- or 32-bit length, an
+  # optional padding, and a value of `length` bytes at the end of the packet.
+  # Will create attributes for the thing itself as well as one for
+  # `<name>_length`, `<name>_offset`, and possibly `<name>_padding`.
   #
   # @param name [Symbol]
   # @param bit_length [Fixnum] length in bits of the buffer's `length` field.
