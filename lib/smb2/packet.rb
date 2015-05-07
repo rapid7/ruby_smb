@@ -254,6 +254,12 @@ class Smb2::Packet < BitStruct
     SIGNING_REQUIRED: 0x2
   }.freeze
 
+  SHARE_ACCESS = {
+    FILE_SHARE_READ: 1,
+    FILE_SHARE_WRITE: 2,
+    FILE_SHARE_DELETE: 4,
+  }.freeze
+
 
   ##
   # Class methods
@@ -309,6 +315,8 @@ class Smb2::Packet < BitStruct
   # @yieldreturn [void]
   def initialize(*args)
     @data_buffers = {}
+
+    # implicitly pass a block if one was given
     super
 
     if !data_buffer_fields.empty?

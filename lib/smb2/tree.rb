@@ -17,7 +17,8 @@ class Smb2::Tree
   # @return [Smb2::Packet::TreeConnectResponse]
   attr_accessor :tree_connect_response
 
-  # @param client [Smb::Client]
+  # @param client [Smb::Client] (see {#client})
+  # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, share:, tree_connect_response:)
     unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
@@ -46,14 +47,17 @@ class Smb2::Tree
   def create(filename, mode = "r+")
     desired_access = desired_access_from_mode(mode)
     create_options = Smb2::Packet::CREATE_OPTIONS[:FILE_NON_DIRECTORY_FILE]
+    share_access =
+      Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ] |
+      Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_WRITE]
 
     packet = Smb2::Packet::CreateRequest.new(
-      filename: filename.encode("utf-16le"),
+      create_options: create_options,
       desired_access: desired_access,
-      impersonation: 2,
-      share_access: 3,  # SHARE_WRITE | SHARE_READ
       disposition: disposition_from_file_mode(mode),
-      create_options: create_options
+      filename: filename.encode("utf-16le"),
+      impersonation: 2,
+      share_access: share_access,
     )
 
     response = send_recv(packet)
@@ -73,19 +77,33 @@ class Smb2::Tree
     end
   end
 
+  # Remove `filename` on the remote share.
+  #
+  # @example
+  #   tree = client.tree_connect("\\\\192.168.99.134\\Share")
+  #   tree.delete("path\\to\\remove_me.txt")
+  #
+  # @param filename [String] path to the file to be removed
+  # @return [void]
   def delete(filename)
+    share_access =
+      Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ] |
+      Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_WRITE] |
+      Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_DELETE]
     packet = Smb2::Packet::CreateRequest.new(
-      filename: filename.encode("utf-16le"),
-      desired_access: Smb2::Packet::FILE_ACCESS_MASK[:FILE_DELETE],
-      impersonation: 2,
-      share_access: 7, # SHARE_DELETE | SHARE_WRITE | SHARE_READ
+      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DELETE_ON_CLOSE],
+      desired_access: Smb2::Packet::FILE_ACCESS_MASK[:DELETE],
       disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
-      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DELETE_ON_CLOSE]
+      filename: filename.encode("utf-16le"),
+      impersonation: 2,
+      share_access: share_access,
     )
 
     response = send_recv(packet)
 
-    Smb2::Packet::CreateResponse.new(response)
+    create_response = Smb2::Packet::CreateResponse.new(response)
+    file = Smb2::File.new(filename: filename, tree: self, create_response: create_response)
+    file.close
   end
 
   # @return [String]
