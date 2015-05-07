@@ -56,7 +56,7 @@ class Smb2::Tree
       desired_access: desired_access,
       disposition: disposition_from_file_mode(mode),
       filename: filename.encode("utf-16le"),
-      impersonation: 2,
+      impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
       share_access: share_access,
     )
 
@@ -90,12 +90,13 @@ class Smb2::Tree
       Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ] |
       Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_WRITE] |
       Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_DELETE]
+
     packet = Smb2::Packet::CreateRequest.new(
       create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DELETE_ON_CLOSE],
       desired_access: Smb2::Packet::FILE_ACCESS_MASK[:DELETE],
       disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
       filename: filename.encode("utf-16le"),
-      impersonation: 2,
+      impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
       share_access: share_access,
     )
 

@@ -234,6 +234,23 @@ class Smb2::Packet < BitStruct
     FileValidDataLengthInformation:  39, # Set
   }.freeze
 
+  # Values for {CreateRequest#impersonation}
+  #
+  # Value                     | Meaning
+  # --------------------------+------------------------
+  # Anonymous      0x00000000 | The application-requested impersonation level is Anonymous.
+  # Identification 0x00000001 | The application-requested impersonation level is Identification.
+  # Impersonation  0x00000002 | The application-requested impersonation level is Impersonation.
+  # Delegate       0x00000003 | The application-requested impersonation level is Delegate.
+  #
+  # @see https://msdn.microsoft.com/en-us/library/cc246502.aspx
+  IMPERSONATION_LEVELS = {
+    ANONYMOUS: 0x0,
+    IDENTIFICATION: 0x1,
+    IMPERSONATION: 0x2,
+    DELEGATE: 0x3,
+  }.freeze
+
   # Values for {QueryInfoRequest#info_type}
   # @see https://msdn.microsoft.com/en-us/library/cc246557.aspx
   QUERY_INFO_TYPES = {
