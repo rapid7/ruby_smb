@@ -148,6 +148,9 @@ class Smb2::File
   # | :SET or IO::SEEK_SET | Seeks to the absolute location given by `amount`
   #
   # @see http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek
+  # @see http://ruby-doc.org/core-2.2.2/IO.html#SEEK_CUR
+  # @see http://ruby-doc.org/core-2.2.2/IO.html#SEEK_END
+  # @see http://ruby-doc.org/core-2.2.2/IO.html#SEEK_SET
   # @param amount [Fixnum]
   # @param whence [Symbol]
   # @return [Integer] Always 0 to match the {http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek IO#seek} API
