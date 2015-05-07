@@ -38,6 +38,7 @@ class Smb2::File
   #
   # @return [Fixnum]
   attr_accessor :pos
+  alias tell pos
 
   # The tree that {Tree#create created} this File
   #
