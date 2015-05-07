@@ -1,6 +1,4 @@
 
-require 'smb2/packet/query/standard_information'
-
 # An open file on the remote filesystem.
 class Smb2::File
 
@@ -172,7 +170,7 @@ class Smb2::File
     packet = Smb2::Packet::QueryInfoRequest.new(
       info_type: Smb2::Packet::QUERY_INFO_TYPES[:FILE],
       file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
-      output_buffer_length: 40,
+      output_buffer_length: Smb2::Packet::Query::STANDARD_INFORMATION_SIZE,
       input_buffer_length: 0,
       file_id: self.create_response.file_id
     )

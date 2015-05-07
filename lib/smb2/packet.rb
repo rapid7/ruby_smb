@@ -25,6 +25,8 @@ class Smb2::Packet < BitStruct
   autoload :IoctlRequest, "smb2/packet/ioctl_request"
   autoload :IoctlResponse, "smb2/packet/ioctl_response"
 
+  autoload :Query, "smb2/packet/query"
+
   autoload :QueryInfoRequest, "smb2/packet/query_info_request"
   autoload :QueryInfoResponse, "smb2/packet/query_info_response"
 
