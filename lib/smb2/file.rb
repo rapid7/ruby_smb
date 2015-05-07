@@ -90,15 +90,13 @@ class Smb2::File
   # @note Calling this on a pipe without a `length` is probably a really bad
   #   idea
   #
-  # @param offset [Fixnum] offset from the beginning of the file (*default*: 0)
   # @param length [Fixnum,nil] number of bytes to read. If this is nil, read
   #   the whole file, i.e. {#size} bytes.
   # @return [String] full contents of the remote file
-  def read(length = nil, offset: self.pos)
+  def read(length = nil)
     data = ''
     max = tree.client.max_read_size
-    length ||= size - offset
-    seek(offset)
+    length ||= size
 
     while data.length < length && !eof?
       # when we are close to the end, we need to read fewer then max bytes
