@@ -12,7 +12,7 @@ YARD::Rake::YardocTask.new do |t|
     '-m', 'markdown',
     '--plugin', 'yard-bit-struct',
   ]
-  t.options += Dir.glob('yard_extensions/*.rb').flat_map { |e| [ '-e', e ] }
+  t.options += Dir.glob('yard_extensions/*.rb').flat_map { |e| ['-e', e] }
   t.files = [
     'lib/**/*.rb',
     '-',

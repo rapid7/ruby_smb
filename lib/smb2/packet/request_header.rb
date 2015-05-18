@@ -67,7 +67,7 @@ class Smb2::Packet
     unsigned :session_id, 64
 
     # 16 bytes
-    string :signature, (8*16)
+    string :signature, (8 * 16)
 
     FLAGS = {
       REPLAY:   0x0200_0000,

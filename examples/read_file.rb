@@ -12,7 +12,7 @@ end
 
 d = Smb2::Dispatcher::Socket.connect(host, 445)
 
-c = Smb2::Client.new(dispatcher: d, username:"msfadmin", password:"msfadmin")
+c = Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
 
 c.negotiate
 c.authenticate

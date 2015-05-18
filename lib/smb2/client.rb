@@ -126,7 +126,7 @@ class Smb2::Client
     )
 
     ssp_offset = response_packet.security_blob.index("NTLMSSP")
-    resp_blob = response_packet.security_blob.slice(ssp_offset .. -1)
+    resp_blob = response_packet.security_blob.slice(ssp_offset..-1)
 
     type3 = @ntlm_client.init_context([resp_blob].pack("m"))
 
@@ -208,22 +208,22 @@ class Smb2::Client
   protected
 
   # Cargo culted from Rex
-  def asn1encode(str='')
+  def asn1encode(str = '')
     res = ''
 
     # If the high bit of the first byte is 1, it contains the number of
     # length bytes that follow
 
     case str.length
-    when 0 .. 0x7F
+    when 0..0x7F
       res = [str.length].pack('C') + str
-    when 0x80 .. 0xFF
+    when 0x80..0xFF
       res = [0x81, str.length].pack('CC') + str
-    when 0x100 .. 0xFFFF
+    when 0x100..0xFFFF
       res = [0x82, str.length].pack('Cn') + str
-    when  0x10000 .. 0xffffff
+    when  0x10000..0xffffff
       res = [0x83, str.length >> 16, str.length & 0xFFFF].pack('CCn') + str
-    when  0x1000000 .. 0xffffffff
+    when  0x1000000..0xffffffff
       res = [0x84, str.length].pack('CN') + str
     else
       raise "ASN1 str too long"

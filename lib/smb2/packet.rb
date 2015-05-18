@@ -301,7 +301,7 @@ class Smb2::Packet < BitStruct
   # @param offset_bitlength [Fixnum,nil] (16) length in bits of the
   #   buffer's `offset` field.
   # @return [void]
-  def self.data_buffer(name, bit_length=16, padding: nil, offset_bitlength: 16)
+  def self.data_buffer(name, bit_length = 16, padding: nil, offset_bitlength: 16)
     (@data_buffer_fields ||= []) << name
 
     self.unsigned "#{name}_offset", offset_bitlength, endian: 'little'

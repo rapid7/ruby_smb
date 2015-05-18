@@ -16,7 +16,7 @@ RSpec.describe Smb2::Packet::TreeConnectResponse do
 
     specify 'header' do
       expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
-      expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
+      expect(packet.header.signature).to eq(("\x00" * 16).force_encoding("binary"))
       expect(packet.header.command).to eq(Smb2::COMMANDS[:TREE_CONNECT])
       expect(packet.header).to have_flag(:RESPONSE)
     end

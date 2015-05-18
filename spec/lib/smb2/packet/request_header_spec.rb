@@ -41,12 +41,12 @@ RSpec.describe Smb2::Packet::RequestHeader do
       expect(packet.credit_charge).to eq(1)
       expect(packet.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
       expect(packet.credits_requested).to eq(31)
-      expect(packet.signature).to eq(("\x00"*16).force_encoding("binary"))
+      expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
     end
 
     describe '#has_flag?' do
       specify do
-        expect{ packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
+        expect { packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
       end
       specify do
         expect(packet.has_flag?(:RESPONSE)).to be_falsey

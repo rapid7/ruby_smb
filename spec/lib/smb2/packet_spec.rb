@@ -79,7 +79,7 @@ RSpec.describe Smb2::Packet do
 
   describe '#data_buffer_fields' do
     specify do
-      expect(packet.data_buffer_fields).to eq( [ :data ] )
+      expect(packet.data_buffer_fields).to eq([:data])
     end
   end
 
