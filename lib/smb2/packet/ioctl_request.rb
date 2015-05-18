@@ -61,7 +61,6 @@ class Smb2::Packet
     #   this field to 0, and the server MUST ignore it on receipt
     unsigned :reserved2, 32
 
-
     rest :buffer
 
     FLAGS = {

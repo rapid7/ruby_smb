@@ -279,7 +279,6 @@ class Smb2::Packet < BitStruct
     FILE_SHARE_DELETE: 4,
   }.freeze
 
-
   ##
   # Class methods
   ##

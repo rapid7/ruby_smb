@@ -57,7 +57,6 @@ class Smb2::File
     self.pos = 0
   end
 
-
   # Close this File handle on the server
   #
   # @return [Smb2::Packet::CloseResponse]
