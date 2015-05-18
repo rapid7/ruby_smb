@@ -31,4 +31,3 @@ RSpec.describe Smb2::Client do
   end
 
 end
-

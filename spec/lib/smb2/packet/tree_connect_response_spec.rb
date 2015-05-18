@@ -36,5 +36,3 @@ RSpec.describe Smb2::Packet::TreeConnectResponse do
   end
 
 end
-
-

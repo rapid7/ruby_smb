@@ -100,4 +100,3 @@ RSpec.describe Smb2::Packet::WriteResponse do
   end
 
 end
-

@@ -11,4 +11,3 @@ class Smb2::Dispatcher::Base
   # @abstract
   def recv_packet; raise NotImplementedError; end
 end
-

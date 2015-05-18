@@ -12,4 +12,3 @@ class Smb2::Packet
     unsigned :access_mask, 32
   end
 end
-

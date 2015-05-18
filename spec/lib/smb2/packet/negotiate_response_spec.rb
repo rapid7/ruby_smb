@@ -55,5 +55,3 @@ RSpec.describe Smb2::Packet::NegotiateResponse do
   end
 
 end
-
-

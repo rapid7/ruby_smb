@@ -22,4 +22,3 @@ RSpec.shared_examples "request" do |command|
     end
   end
 end
-

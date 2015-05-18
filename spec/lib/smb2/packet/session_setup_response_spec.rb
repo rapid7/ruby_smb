@@ -55,4 +55,3 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
 
   end
 end
-

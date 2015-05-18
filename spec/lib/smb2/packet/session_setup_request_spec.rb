@@ -117,4 +117,3 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
 
   end
 end
-

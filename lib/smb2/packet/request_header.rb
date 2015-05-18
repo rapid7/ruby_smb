@@ -81,4 +81,3 @@ class Smb2::Packet
     FLAG_NAMES = FLAGS.keys
   end
 end
-

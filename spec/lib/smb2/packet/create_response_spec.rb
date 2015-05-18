@@ -41,5 +41,3 @@ RSpec.describe Smb2::Packet::CreateResponse do
   end
 
 end
-
-
