@@ -6,8 +6,12 @@ class Smb2::Dispatcher::Base
   end
 
   # @abstract
-  def send_packet(packet); raise NotImplementedError; end
+  def send_packet(packet)
+    raise NotImplementedError
+  end
 
   # @abstract
-  def recv_packet; raise NotImplementedError; end
+  def recv_packet
+    raise NotImplementedError
+  end
 end
