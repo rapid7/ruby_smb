@@ -35,4 +35,3 @@ RSpec.describe Smb2::Packet::TreeConnectRequest do
   end
 
 end
-

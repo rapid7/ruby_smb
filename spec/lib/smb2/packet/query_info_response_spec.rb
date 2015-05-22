@@ -36,4 +36,3 @@ RSpec.describe Smb2::Packet::QueryInfoResponse do
   end
 
 end
-

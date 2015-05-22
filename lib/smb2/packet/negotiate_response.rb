@@ -23,4 +23,3 @@ class Smb2::Packet
   end
 
 end
-

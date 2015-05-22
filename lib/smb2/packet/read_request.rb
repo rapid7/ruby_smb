@@ -75,4 +75,3 @@ class Smb2::Packet
     string :read_channel_info, 8, default: "\x00".force_encoding('binary')
   end
 end
-

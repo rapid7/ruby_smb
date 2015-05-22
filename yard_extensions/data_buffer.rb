@@ -63,5 +63,3 @@ class DataBufferHandler < YARD::Handlers::Ruby::AttributeHandler
     namespace.attributes[scope]["#{name}_offset"] = SymbolHash[:read => reader, :write => writer]
   end
 end
-
-

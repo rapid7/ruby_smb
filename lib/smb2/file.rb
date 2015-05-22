@@ -57,7 +57,6 @@ class Smb2::File
     self.pos = 0
   end
 
-
   # Close this File handle on the server
   #
   # @return [Smb2::Packet::CloseResponse]
@@ -100,7 +99,7 @@ class Smb2::File
 
     while data.length < length && !eof?
       # when we are close to the end, we need to read fewer then max bytes
-      len = [ max, length - data.length ].min
+      len = [max, length - data.length].min
       response_packet = read_chunk(offset: pos, length: len)
       data << response_packet.data
     end
@@ -153,7 +152,7 @@ class Smb2::File
   # @param amount [Fixnum]
   # @param whence [Symbol]
   # @return [Integer] Always 0 to match the {http://ruby-doc.org/core-2.2.2/IO.html#method-i-seek IO#seek} API
-  def seek(amount, whence=IO::SEEK_SET)
+  def seek(amount, whence = IO::SEEK_SET)
     self.pos = case whence
                when :CUR, IO::SEEK_CUR
                  pos + amount

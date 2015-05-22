@@ -42,7 +42,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
       end
 
       specify do
-        expect{ Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
+        expect { Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
         expect(Net::NTLM::Message.parse(ntlmssp_data)).to be_a(Net::NTLM::Message::Type1)
       end
     end
@@ -78,7 +78,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
 
     specify 'header' do
       expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
-      expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
+      expect(packet.header.signature).to eq(("\x00" * 16).force_encoding("binary"))
       expect(packet.header.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
     end
 
@@ -101,14 +101,14 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
       end
 
       specify do
-        expect{ Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
+        expect { Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
         expect(Net::NTLM::Message.parse(ntlmssp_data)).to be_a(Net::NTLM::Message::Type3)
       end
     end
 
     describe '#has_flag?' do
       specify do
-        expect{ packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
+        expect { packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
       end
       specify do
         expect(packet.has_flag?(:SESSION_BINDING_REQUEST)).to be_falsey
@@ -117,4 +117,3 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
 
   end
 end
-

@@ -25,7 +25,7 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
 
     specify 'header' do
       expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
-      expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
+      expect(packet.header.signature).to eq(("\x00" * 16).force_encoding("binary"))
       expect(packet.header.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
 
     end
@@ -40,7 +40,7 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
       end
 
       specify do
-        expect{ Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
+        expect { Net::NTLM::Message.parse(ntlmssp_data) }.not_to raise_error
         parsed = Net::NTLM::Message.parse(ntlmssp_data)
         expect(parsed).to be_a(Net::NTLM::Message::Type2)
         expect(parsed.flag).to eq(0xe28a8215)
@@ -55,4 +55,3 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
 
   end
 end
-

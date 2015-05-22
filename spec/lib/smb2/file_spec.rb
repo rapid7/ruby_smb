@@ -6,7 +6,7 @@ RSpec.describe Smb2::File do
 
   let(:create_response) do
     cr = double('Smb2::Packet::CreateResponse')
-    allow(cr).to receive(:file_id) { "f"*16 }
+    allow(cr).to receive(:file_id) { "f" * 16 }
     cr
   end
 
@@ -49,7 +49,7 @@ RSpec.describe Smb2::File do
     end
 
     context 'with data bigger than max read size' do
-      let(:data) { "A"*max_read_size + "B"*max_read_size + "C" }
+      let(:data) { "A" * max_read_size + "B" * max_read_size + "C" }
 
       specify do
         expect(tree).to receive(:send_recv)
@@ -61,16 +61,16 @@ RSpec.describe Smb2::File do
       context 'with an offset that makes it less than max read size' do
         specify do
           expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
-          offset = (data.length - max_read_size/2)
+          offset = (data.length - max_read_size / 2)
           file.seek(offset)
-          expect(file.read).to eq(data.slice(offset .. data.length))
+          expect(file.read).to eq(data.slice(offset..data.length))
         end
       end
 
       context 'with an offset in the middle and length less than max_read_size' do
         specify do
           expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
-          offset = (data.length/2 - max_read_size/2)
+          offset = (data.length / 2 - max_read_size / 2)
           file.seek(offset)
           length = max_read_size - 1
           expect(file.read(length)).to eq(data.slice(offset, length))
@@ -100,7 +100,7 @@ RSpec.describe Smb2::File do
           once.with(data[0, expected_len], offset: 0).
           and_return(response_packet)
         expect(file).to receive(:write_chunk).
-          once.with(data[expected_len .. -1], offset: expected_len).
+          once.with(data[expected_len..-1], offset: expected_len).
           and_return(response_packet)
 
         file.write(data)
@@ -116,7 +116,7 @@ RSpec.describe Smb2::File do
       allow(t).to receive_message_chain(:client, :max_write_size) { max_write_size }
       allow(t).to receive(:send_recv) do |packet|
         response = Smb2::Packet::WriteResponse.new(
-          byte_count: [ packet.data_length, max_write_size ].min
+          byte_count: [packet.data_length, max_write_size].min
         )
         header = response.header
         header.nt_status = 0

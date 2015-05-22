@@ -22,7 +22,7 @@ RSpec.describe Smb2::Packet::NegotiateResponse do
         expect(packet.header.magic).to eq("\xfeSMB".force_encoding("binary"))
       end
       specify do
-        expect(packet.header.signature).to eq(("\x00"*16).force_encoding("binary"))
+        expect(packet.header.signature).to eq(("\x00" * 16).force_encoding("binary"))
       end
       specify do
         expect(packet.header.command).to eq(Smb2::COMMANDS[:NEGOTIATE])
@@ -55,5 +55,3 @@ RSpec.describe Smb2::Packet::NegotiateResponse do
   end
 
 end
-
-

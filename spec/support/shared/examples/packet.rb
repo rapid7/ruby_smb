@@ -6,4 +6,3 @@ RSpec.shared_examples 'packet' do
     end
   end
 end
-

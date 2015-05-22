@@ -134,7 +134,7 @@ class Smb2::Tree
 
   def desired_access_from_mode(mode)
     case mode
-    when "r+","w+","a+","w","a"
+    when "r+", "w+", "a+", "w", "a"
       # read/write and write-only. Samba's smbclient sets all the read flags
       # when writing, so emulate that.
       Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
@@ -160,12 +160,12 @@ class Smb2::Tree
 
   def disposition_from_file_mode(mode)
     case mode
-    when "r","r+"
+    when "r", "r+"
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN]
-    when "w","w+"
+    when "w", "w+"
       # truncate
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OVERWRITE_IF]
-    when "a","a+"
+    when "a", "a+"
       Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN_IF]
     else
       raise ArgumentError
