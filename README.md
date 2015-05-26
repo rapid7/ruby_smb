@@ -48,7 +48,8 @@ tree = client.tree_connect("\\\\#{dispatcher.socket.remote_address.ip_address}\\
 ```
 
 Now you can open files on the connected share. `Tree#create` is intended
-to behave like Ruby's `File.open`:
+to behave like Ruby's
+[File.open](http://ruby-doc.org/core-2.2.0/File.html#method-c-open):
 ```ruby
 # read/write by default
 file = tree.create("Public\\file.txt")
