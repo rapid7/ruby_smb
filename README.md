@@ -34,15 +34,33 @@ Or install it yourself as:
 ### Using the `Client` class
 
 ```ruby
-sock = TCPSocket.new("192.168.100.140", 445)
-c = Smb2::Client.new(
-  socket: sock,
+dispatcher = Smb2::Dispatcher::Socket.create("192.168.100.140", 445)
+client = Smb2::Client.new(
+  dispatcher: dispatcher,
   username:"administrator",
   password:"P@ssword1",
   domain:"asdfasdf"
 )
-c.negotiate
-c.authenticate
+client.negotiate
+client.authenticate
+
+tree = client.tree_connect("\\\\#{dispatcher.socket.remote_address.ip_address}\\Users")
+```
+
+Now you can open files on the connected share. `Tree#create` is intended
+to behave like Ruby's `File.open`:
+```ruby
+# read/write by default
+file = tree.create("Public\\file.txt")
+file.read # => <full contents of file.txt>
+file.write("\nAppend a new line to file.txt")
+```
+
+Or with a block, the file will be closed when the block returns:
+```ruby
+data = tree.create("Public\\file.txt") { |file|
+  file.read
+}
 ```
 
 ### Making packets manually
