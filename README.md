@@ -34,7 +34,7 @@ Or install it yourself as:
 ### Using the `Client` class
 
 ```ruby
-dispatcher = Smb2::Dispatcher::Socket.create("192.168.100.140", 445)
+dispatcher = Smb2::Dispatcher::Socket.connect("192.168.100.140", 445)
 client = Smb2::Client.new(
   dispatcher: dispatcher,
   username:"administrator",
