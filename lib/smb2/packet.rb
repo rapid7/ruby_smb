@@ -30,6 +30,9 @@ class Smb2::Packet < BitStruct
   autoload :QueryInfoRequest, "smb2/packet/query_info_request"
   autoload :QueryInfoResponse, "smb2/packet/query_info_response"
 
+  autoload :QueryDirectoryRequest, "smb2/packet/query_directory_request"
+  autoload :QueryDirectoryResponse, "smb2/packet/query_directory_response"
+
   autoload :ReadRequest, "smb2/packet/read_request"
   autoload :ReadResponse, "smb2/packet/read_response"
 
@@ -183,6 +186,7 @@ class Smb2::Packet < BitStruct
   }.freeze
 
   # Used in {QueryInfoRequest} packets' {QueryInfoRequest#file_info_class} field.
+  # Also used in {QueryDirectoryRequest} packets' {QueryDirectoryRequest#file_info_class} field.
   #
   # See [[MS-FSCC] 2.4 File Information Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx)
   # for a description of these values.
@@ -262,6 +266,19 @@ class Smb2::Packet < BitStruct
     SECURITY: 0x03,
     # SMB2_0_INFO_QUOTA
     QUOTA: 0x04
+  }.freeze
+
+  # Values for {QueryDirectoryRequest#flags}
+  # @see https://msdn.microsoft.com/en-us/library/cc246551.aspx
+  QUERY_DIRECTORY_FLAGS = {
+    # SMB2_RESTART_SCANS
+    RESTART_SCANS: 0x01,
+    # SMB2_RETURN_SINGLE_ENTRY
+    RETURN_SINGLE_ENTRY: 0x02,
+    # SMB2_INDEX_SPECIFIED
+    INDEX_SPECIFIED: 0x04,
+    # SMB2_REOPEN
+    REOPEN: 0x10
   }.freeze
 
   # For {SessionSetupRequest} packets' {SessionSetupRequest#security_mode}
