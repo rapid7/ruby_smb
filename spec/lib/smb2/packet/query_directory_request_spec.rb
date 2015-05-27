@@ -24,7 +24,9 @@ RSpec.describe Smb2::Packet::QueryDirectoryRequest do
         expect(packet.struct_size).to eq(33)
       end
       specify 'file_info_class' do
-        expect(packet.file_info_class).to eq(37)
+        expect(packet.file_info_class).to eq(
+          Smb2::Packet::FILE_INFORMATION_CLASSES[:FileIdBothDirectoryInformation]
+        )
       end
       specify 'flags' do
         expect(packet.flags).to eq(0)
