@@ -27,7 +27,9 @@ RSpec.describe Smb2::Packet::QueryInfoRequest do
         expect(packet.info_type).to eq(Smb2::Packet::QUERY_INFO_TYPES[:FILE])
       end
       specify 'file_info_class' do
-        expect(packet.file_info_class).to eq(5)
+        expect(packet.file_info_class).to eq(
+          Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation]
+        )
       end
       specify 'output_buffer_length' do
         expect(packet.output_buffer_length).to eq(24)
