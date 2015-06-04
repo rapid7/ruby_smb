@@ -408,4 +408,25 @@ class Smb2::Packet < BitStruct
     self
   end
 
+  # Sign this {Packet} with `session_key` and set the {#header}'s
+  # {RequestHeader#signature signature}.
+  #
+  # @param session_key [String] the key to sign with
+  # @return [void]
+  def sign!(session_key)
+    hdr = header
+    hdr.signature = "\0"*16
+    hdr.flags |= Smb2::Packet::RequestHeader::FLAGS[:SIGNING]
+
+    self.header = hdr
+
+    hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, self.to_s)
+
+    hdr = header
+    hdr.signature = hmac[0, 16]
+    self.header = hdr
+
+    self
+  end
+
 end
