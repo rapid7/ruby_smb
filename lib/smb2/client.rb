@@ -18,16 +18,21 @@ require 'net/ntlm/client'
 #
 class Smb2::Client
 
-  # This mode will be bitwise AND'd with the value from the server
-  DEFAULT_SECURITY_MODE =
-     Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED] |
-     Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED]
+  # @see Smb2::Packet::SECURITY_MODES
+  # @return [Fixnum]
+  DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
 
   # The client's capabilities
   #
   # @see Packet::SessionSetupRequest#capabilities
   # @return [Fixnum]
   attr_accessor :capabilities
+
+  # The negotiated dialect. Before {#negotiate negotiation}, this will be nil.
+  #
+  # @see Packet::SessionSetupResponse#dialect_revision
+  # @return [Fixnum]
+  attr_accessor :dialect
 
   # @return [Smb2::Dispatcher,#send_packet,#recv_packet]
   attr_accessor :dispatcher
@@ -85,6 +90,7 @@ class Smb2::Client
   # @param domain [String] UTF-8
   # @param local_workstation [String] UTF-8
   def initialize(dispatcher:, username:, password:, domain: nil, local_workstation: "")
+    @dialect     = nil
     @dispatcher  = dispatcher
     @username    = username.encode("utf-8")
     @password    = password.encode("utf-8")
@@ -142,7 +148,11 @@ class Smb2::Client
   end
 
   def inspect
-    "#<#{self.class} #{@state} >"
+    info = @state.to_s
+    if dialect
+      info += " 0x#{dialect.to_s(16)}"
+    end
+    "#<#{self.class} #{info}>"
   end
 
   # Send a {Packet::NegotiateRequest} and set up all the state required from the
@@ -160,7 +170,8 @@ class Smb2::Client
     response = send_recv(packet)
     response_packet = Smb2::Packet::NegotiateResponse.new(response)
 
-    @capabilities  = response_packet.capabilities
+    @capabilities = response_packet.capabilities
+    @dialect = response_packet.dialect_revision
     @max_read_size = response_packet.max_read_size
     @max_transaction_size = response_packet.max_transaction_size
     @max_write_size = response_packet.max_write_size
@@ -208,10 +219,16 @@ class Smb2::Client
   end
 
   # Whether this session has negotiated required signing
+  #
+  # |                         | Server Required | Server Not Required |
+  # | ----------------------- |:---------------:|:-------------------:|
+  # | **Client Required**     | Signed          | Signed              |
+  # | **Client Not Required** | Signed          | Not Signed          |
+  #
+  # @see http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx
   def signing_required?
-    #Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
-    #  (security_mode | Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
-    true
+    Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
+      (security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
   end
 
   # Connect to a share

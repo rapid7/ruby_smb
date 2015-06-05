@@ -408,7 +408,7 @@ class Smb2::Packet < BitStruct
     self
   end
 
-  # Sign this {Packet} with `session_key` and set the {#header}'s
+  # Sign this {Packet} with `session_key` and set the header's
   # {RequestHeader#signature signature}.
   #
   # @param session_key [String] the key to sign with
