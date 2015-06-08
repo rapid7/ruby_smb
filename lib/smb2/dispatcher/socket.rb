@@ -21,8 +21,9 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
   # @return [void]
   def send_packet(packet)
     data = nbss(packet) + packet.to_s
-    while (bytes_written = @socket.write(data)) < data.size
-      data.slice!(0, bytes_written)
+    bytes_written = 0
+    while bytes_written < data.size
+      bytes_written += @socket.write(data[bytes_written..-1])
     end
 
     nil
