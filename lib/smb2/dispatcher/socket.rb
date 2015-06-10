@@ -8,7 +8,7 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
 
   # @param host [String] passed to TCPSocket.new
   # @param port [Fixnum] passed to TCPSocket.new
-  def self.connect(host, port)
+  def self.connect(host, port=445)
     new(::TCPSocket.new(host, port))
   end
 
