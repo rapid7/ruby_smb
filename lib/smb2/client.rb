@@ -18,7 +18,8 @@ require 'net/ntlm/client'
 #
 class Smb2::Client
 
-  # This mode will be bitwise AND'd with the value from the server
+  # @see Smb2::Packet::SECURITY_MODES
+  # @return [Fixnum]
   DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
 
   # The client's capabilities
@@ -26,6 +27,12 @@ class Smb2::Client
   # @see Packet::SessionSetupRequest#capabilities
   # @return [Fixnum]
   attr_accessor :capabilities
+
+  # The negotiated dialect. Before {#negotiate negotiation}, this will be nil.
+  #
+  # @see Packet::SessionSetupResponse#dialect_revision
+  # @return [Fixnum]
+  attr_accessor :dialect
 
   # @return [Smb2::Dispatcher,#send_packet,#recv_packet]
   attr_accessor :dispatcher
@@ -83,6 +90,7 @@ class Smb2::Client
   # @param domain [String] UTF-8
   # @param local_workstation [String] UTF-8
   def initialize(dispatcher:, username:, password:, domain: nil, local_workstation: "")
+    @dialect     = nil
     @dispatcher  = dispatcher
     @username    = username.encode("utf-8")
     @password    = password.encode("utf-8")
@@ -98,9 +106,7 @@ class Smb2::Client
   # @return [Fixnum] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
     packet = Smb2::Packet::SessionSetupRequest.new(
-      security_mode: (
-        @security_mode & DEFAULT_SECURITY_MODE
-      ),
+      security_mode: security_mode,
     )
 
     @ntlm_client = Net::NTLM::Client.new(
@@ -120,9 +126,7 @@ class Smb2::Client
     @session_id = response_packet.header.session_id
 
     packet = Smb2::Packet::SessionSetupRequest.new(
-      security_mode: (
-        @security_mode & DEFAULT_SECURITY_MODE
-      ),
+      security_mode: security_mode,
     )
 
     ssp_offset = response_packet.security_blob.index("NTLMSSP")
@@ -130,17 +134,25 @@ class Smb2::Client
 
     type3 = @ntlm_client.init_context([resp_blob].pack("m"))
 
-    @session_key = type3.session_key
-
     packet.security_blob = gss_type3(type3.serialize)
     response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
     if response_packet.header.nt_status == 0
       @state = :authenticated
+    else
+      @state = :authentication_failed
     end
 
     response_packet.header.nt_status
+  end
+
+  def inspect
+    info = @state.to_s
+    if dialect
+      info += " 0x#{dialect.to_s(16)}"
+    end
+    "#<#{self.class} #{info}>"
   end
 
   # Send a {Packet::NegotiateRequest} and set up all the state required from the
@@ -152,16 +164,19 @@ class Smb2::Client
       dialects: "\x02\x02".force_encoding('binary'),
       dialect_count: 1,
       client_guid: 0,
+      security_mode: DEFAULT_SECURITY_MODE,
     )
 
     response = send_recv(packet)
     response_packet = Smb2::Packet::NegotiateResponse.new(response)
 
-    @capabilities  = response_packet.capabilities
-    @security_mode = response_packet.security_mode
+    @capabilities = response_packet.capabilities
+    @dialect = response_packet.dialect_revision
     @max_read_size = response_packet.max_read_size
     @max_transaction_size = response_packet.max_transaction_size
     @max_write_size = response_packet.max_write_size
+
+    @security_mode = DEFAULT_SECURITY_MODE | response_packet.security_mode
 
     @state = :negotiated
 
@@ -177,17 +192,43 @@ class Smb2::Client
     # negative to avoid complicating the increment below
     @sequence_number ||= -1
 
-    # Adjust header
+    # Adjust header with sequence number and session id if we have one
     header = request.header
     header.command_seq = @sequence_number += 1
-    if @session_id
-      header.session_id = @session_id
-    end
+    header.session_id  = @session_id if @session_id
     request.header = header
 
-    dispatcher.send_packet(request)
+    # Sign the packet if necessary.
+    # THIS MUST BE THE LAST THING WE DO BEFORE SENDING
+    if @session_id && signing_required? && !request.kind_of?(Smb2::Packet::SessionSetupRequest)
+      request.sign!(session_key)
+    end
 
+    dispatcher.send_packet(request)
     dispatcher.recv_packet
+  end
+
+  # Signing key as supplied by the underlying authentication mechanism (just
+  # NTLMSSP right now)
+  #
+  # @return [String] binary-encoded String for use in {Packet#sign! packet signing}
+  def session_key
+    # Ghetto, reaching into the session for private methods.
+    # @todo Submit upstream patch for rubyntlm to expose this
+    @ntlm_client.session.send(:master_key)
+  end
+
+  # Whether this session has negotiated required signing
+  #
+  # |                         | Server Required | Server Not Required |
+  # | ----------------------- |:---------------:|:-------------------:|
+  # | **Client Required**     | Signed          | Signed              |
+  # | **Client Not Required** | Signed          | Not Signed          |
+  #
+  # @see http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx
+  def signing_required?
+    Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
+      (security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
   end
 
   # Connect to a share

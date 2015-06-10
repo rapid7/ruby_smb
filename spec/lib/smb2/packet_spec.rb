@@ -141,4 +141,15 @@ RSpec.describe Smb2::Packet do
 
     end
   end
+
+  describe '#sign!' do
+    let(:key) { "0123456789abcdef" }
+
+    specify do
+      packet.sign!(key)
+      expected = ["e1a453aed1a58529299658224dd1374d"].pack("H*")
+      expect(packet.header.signature).to eq(expected)
+    end
+
+  end
 end
