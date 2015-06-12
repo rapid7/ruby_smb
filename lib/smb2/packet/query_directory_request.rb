@@ -32,7 +32,7 @@ class Smb2::Packet::QueryDirectoryRequest < Smb2::Packet::Request
 
   data_buffer :file_name, 16
 
-  unsigned :output_buffer_length, 32
+  unsigned :output_buffer_length, 32, default: 65535
 
   rest :buffer
 

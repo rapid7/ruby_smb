@@ -2,6 +2,8 @@
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class Smb2::Tree
 
+  STATUS_NO_MORE_FILES = 0x80000006
+
   # The {Smb2::Client} on which this Tree is connected.
   #
   # @return [Smb2::Client]
@@ -120,6 +122,63 @@ class Smb2::Tree
       stuff = share
     end
     "#<#{self.class} #{stuff} >"
+  end
+
+  # XXX: Listing the current directory, uh, doesn't work yet
+  def list(directory = nil, pattern = '*')
+    create_request = Smb2::Packet::CreateRequest.new(
+      impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
+      desired_access: Smb2::Packet::DIRECTORY_ACCESS_MASK[:FILE_LIST_DIRECTORY],
+      share_access: Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ],
+      disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
+      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DIRECTORY_FILE],
+      filename: directory ? directory.encode('utf-16le') : ''
+    )
+
+    unless directory
+      create_request.filename_offset = create_request.length
+    end
+
+    response = send_recv(create_request)
+    create_response = Smb2::Packet::CreateResponse.new(response)
+
+    raise 'omg' unless create_response.header.nt_status.zero?
+
+    directory_request = Smb2::Packet::QueryDirectoryRequest.new(
+      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[:FileNamesInformation],
+      file_id: create_response.file_id,
+      file_name: pattern.encode('utf-16le')
+    )
+
+    directories = []
+
+    loop do
+      response = send_recv(directory_request)
+      directory_response = Smb2::Packet::QueryDirectoryResponse.new(response)
+
+      break if directory_response.header.nt_status == STATUS_NO_MORE_FILES
+
+      blob = directory_response.output_buffer
+      offset = 0
+
+      loop do
+        length = blob[offset, 4].unpack('V').first
+
+        if length.zero?
+          data = blob[offset..-1]
+        else
+          data = blob[offset, length]
+        end
+
+        struct = Smb2::Packet::Query::NamesInformation.new(data)
+        directories << struct.file_name[0, struct.file_name_length]
+        offset += length
+
+        break if length.zero?
+      end
+    end
+
+    directories
   end
 
   # Send a packet and return the response
