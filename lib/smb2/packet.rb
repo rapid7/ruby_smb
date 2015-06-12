@@ -180,8 +180,27 @@ module Smb2
     }.freeze
 
     # [2.2.13.1.2 Directory_Access_Mask](https://msdn.microsoft.com/en-us/library/cc246801.aspx)
-    # @todo
     DIRECTORY_ACCESS_MASK = {
+      FILE_LIST_DIRECTORY: 0x0000_0001,
+      FILE_ADD_FILE: 0x0000_0002,
+      FILE_ADD_SUBDIRECTORY: 0x0000_0004,
+      FILE_READ_EA: 0x0000_0008,
+      FILE_WRITE_EA: 0x0000_0010,
+      FILE_TRAVERSE: 0x0000_0020,
+      FILE_DELETE_CHILD: 0x0000_0040,
+      FILE_READ_ATTRIBUTES: 0x0000_0080,
+      FILE_WRITE_ATTRIBUTES: 0x0000_0100,
+      DELETE: 0x0001_0000,
+      READ_CONTROL: 0x0002_0000,
+      WRITE_DAC: 0x0004_0000,
+      WRITE_OWNER: 0x0008_0000,
+      SYNCHRONIZE: 0x0010_0000,
+      ACCESS_SYSTEM_SECURITY: 0x0100_0000,
+      MAXIMUM_ALLOWED: 0x0200_0000,
+      GENERIC_ALL: 0x1000_0000,
+      GENERIC_EXECUTE: 0x2000_0000,
+      GENERIC_WRITE: 0x4000_0000,
+      GENERIC_READ: 0x8000_0000
     }.freeze
 
     # Used in {QueryInfoRequest} packets' {QueryInfoRequest#file_info_class} field.
