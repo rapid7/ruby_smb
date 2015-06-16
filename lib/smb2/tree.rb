@@ -124,19 +124,20 @@ class Smb2::Tree
     "#<#{self.class} #{stuff} >"
   end
 
-  # XXX: Listing the current directory, uh, doesn't work yet
   def list(directory = nil, pattern = '*')
     create_request = Smb2::Packet::CreateRequest.new(
       impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
       desired_access: Smb2::Packet::DIRECTORY_ACCESS_MASK[:FILE_LIST_DIRECTORY],
       share_access: Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ],
       disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
-      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DIRECTORY_FILE],
-      filename: directory ? directory.encode('utf-16le') : ''
+      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DIRECTORY_FILE]
     )
 
-    unless directory
-      create_request.filename_offset = create_request.length
+    if directory
+      create_request.filename = directory.encode('utf-16le')
+    else # y u do dis microsoft
+      create_request.filename = "\x00"
+      create_request.filename_length = 0
     end
 
     response = send_recv(create_request)
