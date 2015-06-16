@@ -159,22 +159,10 @@ class Smb2::Tree
       break if directory_response.header.nt_status == STATUS_NO_MORE_FILES
 
       blob = directory_response.output_buffer
-      offset = 0
+      klass = Smb2::Packet::Query::NamesInformation
 
-      loop do
-        length = blob[offset, 4].unpack('V').first
-
-        if length.zero?
-          data = blob[offset..-1]
-        else
-          data = blob[offset, length]
-        end
-
-        struct = Smb2::Packet::Query::NamesInformation.new(data)
+      class_array_from_blob(blob, klass).each do |struct|
         directories << struct.file_name[0, struct.file_name_length]
-        offset += length
-
-        break if length.zero?
       end
     end
 
@@ -232,6 +220,28 @@ class Smb2::Tree
     else
       raise ArgumentError
     end
+  end
+
+  def class_array_from_blob(blob, klass)
+    class_array = []
+    offset = 0
+
+    loop do
+      length = blob[offset, 4].unpack('V').first
+
+      if length.zero?
+        data = blob[offset..-1]
+      else
+        data = blob[offset, length]
+      end
+
+      class_array << klass.new(data)
+      offset += length
+
+      break if length.zero?
+    end
+
+    class_array
   end
 
 end
