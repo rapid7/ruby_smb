@@ -1,4 +1,3 @@
-
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class Smb2::Tree
 
