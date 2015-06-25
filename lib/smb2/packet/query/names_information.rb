@@ -5,6 +5,10 @@ class Smb2::Packet::Query::NamesInformation < BitStruct
   unsigned :next_entry_offset, 32
   unsigned :file_index, 32
   unsigned :file_name_length, 32
-  rest :file_name
+  rest :raw_file_name
+
+  def file_name
+    raw_file_name[0, file_name_length]
+  end
 
 end
