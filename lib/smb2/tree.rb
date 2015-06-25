@@ -238,7 +238,7 @@ class Smb2::Tree
       class_array << klass.new(data)
       offset += length
 
-      break if length.zero?
+      break if length.zero? || offset > blob.length
     end
 
     class_array
