@@ -123,7 +123,7 @@ class Smb2::Tree
     "#<#{self.class} #{stuff} >"
   end
 
-  def list(directory = nil, pattern = '*')
+  def list(directory: nil, pattern: '*')
     create_request = Smb2::Packet::CreateRequest.new(
       impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
       desired_access: Smb2::Packet::DIRECTORY_ACCESS_MASK[:FILE_LIST_DIRECTORY],
