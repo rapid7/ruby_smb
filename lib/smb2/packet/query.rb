@@ -5,4 +5,26 @@ module Smb2::Packet::Query
 
   # Number of bytes in a StandardInformation packet.
   STANDARD_INFORMATION_SIZE = 40
+
+  def self.class_array_from_blob(blob, klass)
+    class_array = []
+    offset = 0
+
+    loop do
+      length = blob[offset, 4].unpack('V').first
+
+      if length.zero?
+        data = blob[offset..-1]
+      else
+        data = blob[offset, length]
+      end
+
+      class_array << klass.new(data)
+      offset += length
+
+      break if length.zero? || offset > blob.length
+    end
+
+    class_array
+  end
 end
