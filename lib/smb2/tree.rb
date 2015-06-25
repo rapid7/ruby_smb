@@ -150,7 +150,7 @@ class Smb2::Tree
       file_name: pattern.encode('utf-16le')
     )
 
-    directories = []
+    class_array = []
 
     loop do
       response = send_recv(directory_request)
@@ -161,12 +161,10 @@ class Smb2::Tree
       blob = directory_response.output_buffer
       klass = Smb2::Packet::Query::NamesInformation
 
-      Smb2::Packet::Query.class_array_from_blob(blob, klass).each do |struct|
-        directories << struct.file_name[0, struct.file_name_length]
-      end
+      class_array << Smb2::Packet::Query.class_array_from_blob(blob, klass)
     end
 
-    directories
+    class_array.flatten
   end
 
   # Send a packet and return the response
