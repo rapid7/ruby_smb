@@ -227,7 +227,7 @@ class Smb2::Tree
     offset = 0
 
     loop do
-      length = blob.unpack('V').first
+      length = blob[offset, 4].unpack('V').first
 
       if length.zero?
         data = blob[offset..-1]
