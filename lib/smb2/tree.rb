@@ -123,7 +123,7 @@ class Smb2::Tree
     "#<#{self.class} #{stuff} >"
   end
 
-  def list(directory: nil, pattern: '*')
+  def list(directory: nil, pattern: '*', type: :FileNamesInformation)
     create_request = Smb2::Packet::CreateRequest.new(
       impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
       desired_access: Smb2::Packet::DIRECTORY_ACCESS_MASK[:FILE_LIST_DIRECTORY],
@@ -145,7 +145,7 @@ class Smb2::Tree
     raise 'omg' unless create_response.header.nt_status.zero?
 
     directory_request = Smb2::Packet::QueryDirectoryRequest.new(
-      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[:FileNamesInformation],
+      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[type],
       file_id: create_response.file_id,
       file_name: pattern.encode('utf-16le')
     )
@@ -159,7 +159,7 @@ class Smb2::Tree
       break if directory_response.header.nt_status == STATUS_NO_MORE_FILES
 
       blob = directory_response.output_buffer
-      klass = Smb2::Packet::Query::NamesInformation
+      klass = Smb2::Packet::Query::FILE_INFORMATION_CLASSES[type]
 
       class_array << Smb2::Packet::Query.class_array_from_blob(blob, klass)
     end

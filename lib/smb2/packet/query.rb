@@ -6,6 +6,16 @@ module Smb2::Packet::Query
   # Number of bytes in a StandardInformation packet.
   STANDARD_INFORMATION_SIZE = 40
 
+  FILE_INFORMATION_CLASSES = {
+    FileDirectoryInformation: nil,
+    FileFullDirectoryInformation: nil,
+    FileIdFullDirectoryInformation: nil,
+    FileBothDirectoryInformation: nil,
+    FileIdBothDirectoryInformation: nil,
+    FileBothDirectoryInformation: nil,
+    FileNamesInformation: NamesInformation
+  }
+
   def self.class_array_from_blob(blob, klass)
     class_array = []
     offset = 0
