@@ -109,8 +109,8 @@ class Smb2::Tree
 
   # @return [String]
   def inspect
-    if tree_connect_response.header.nt_status != 0
-      stuff = "Error: #{tree_connect_response.header.nt_status.to_s 16}"
+    if tree_connect_response.nt_status != 0
+      stuff = "Error: #{tree_connect_response.nt_status.to_s 16}"
     else
       stuff = share
     end
@@ -122,10 +122,8 @@ class Smb2::Tree
   # @param request [Smb2::Packet]
   # @return (see Client#send_recv)
   def send_recv(request)
-    header = request.header
-    header.tree_id = self.tree_connect_response.header.tree_id
-    header.process_id = 0
-    request.header = header
+    request.tree_id = self.tree_connect_response.tree_id
+    request.process_id = 0
 
     client.send_recv(request)
   end

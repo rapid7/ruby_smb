@@ -92,10 +92,11 @@ class Smb2::Client
   def initialize(dispatcher:, username:, password:, domain: nil, local_workstation: "")
     @dialect     = nil
     @dispatcher  = dispatcher
-    @username    = username.encode("utf-8")
-    @password    = password.encode("utf-8")
     @domain      = domain
     @local_workstation = local_workstation
+    @password    = password.encode("utf-8")
+    @session_id  = nil
+    @username    = username.encode("utf-8")
   end
 
   # Set up an authenticated session with the server.
@@ -123,7 +124,7 @@ class Smb2::Client
     response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
-    @session_id = response_packet.header.session_id
+    @session_id = response_packet.session_id
 
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
@@ -138,13 +139,13 @@ class Smb2::Client
     response = send_recv(packet)
     response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
-    if response_packet.header.nt_status == 0
+    if response_packet.nt_status == 0
       @state = :authenticated
     else
       @state = :authentication_failed
     end
 
-    response_packet.header.nt_status
+    response_packet.nt_status
   end
 
   def inspect
@@ -193,10 +194,8 @@ class Smb2::Client
     @sequence_number ||= -1
 
     # Adjust header with sequence number and session id if we have one
-    header = request.header
-    header.command_seq = @sequence_number += 1
-    header.session_id  = @session_id if @session_id
-    request.header = header
+    request.command_seq = @sequence_number += 1
+    request.session_id  = @session_id if @session_id
 
     # Sign the packet if necessary.
     # THIS MUST BE THE LAST THING WE DO BEFORE SENDING

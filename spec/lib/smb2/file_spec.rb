@@ -118,9 +118,7 @@ RSpec.describe Smb2::File do
         response = Smb2::Packet::WriteResponse.new(
           byte_count: [packet.data_length, max_write_size].min
         )
-        header = response.header
-        header.nt_status = 0
-        response.header = header
+        response.nt_status = 0
 
         response
       end

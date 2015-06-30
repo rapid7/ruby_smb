@@ -1,9 +1,8 @@
 require 'smb2'
 
-RSpec.describe Smb2::Packet do
+RSpec.describe Smb2::Packet::Generic do
   let(:klass) do
     Class.new(described_class) do
-      nest :header, Smb2::Packet::RequestHeader
       # struct_size is part of the API and must be present
       # 2 bytes for struct_size itself, 2 for data_offset, 4 for data_length
       unsigned :struct_size, 16, default: 2 + 2 + 4
@@ -26,7 +25,6 @@ RSpec.describe Smb2::Packet do
 
     let(:klass) do
       Class.new(described_class) do
-        nest :header, Smb2::Packet::RequestHeader
         # same as above, +1 for padding byte
         unsigned :struct_size, 16, default: 2 + 2 + 4 + 1
         data_buffer :data, 32, padding: 8
@@ -143,12 +141,22 @@ RSpec.describe Smb2::Packet do
   end
 
   describe '#sign!' do
+    let(:klass) do
+      Class.new(described_class) do
+        # struct_size is part of the API and must be present
+        # 2 bytes for struct_size itself, 2 for data_offset, 4 for data_length
+        unsigned :struct_size, 16, default: 2 + 2 + 4
+        data_buffer :data, 32
+        rest :buffer
+      end
+    end
+
     let(:key) { "0123456789abcdef" }
 
     specify do
       packet.sign!(key)
       expected = ["e1a453aed1a58529299658224dd1374d"].pack("H*")
-      expect(packet.header.signature).to eq(expected)
+      expect(packet.signature).to eq(expected)
     end
 
   end

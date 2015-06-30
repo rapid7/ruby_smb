@@ -14,7 +14,7 @@ RSpec.describe Smb2::Client do
 
   context '#negotiate' do
     before do
-      expect(dispatcher).to receive(:send_packet).with(kind_of Smb2::Packet)
+      expect(dispatcher).to receive(:send_packet).with(kind_of Smb2::Packet::Generic)
       expect(dispatcher).to receive(:recv_packet).and_return(response.to_s)
     end
 
