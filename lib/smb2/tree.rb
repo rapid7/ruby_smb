@@ -142,7 +142,9 @@ class Smb2::Tree
     response = send_recv(create_request)
     create_response = Smb2::Packet::CreateResponse.new(response)
 
-    raise 'omg' unless create_response.header.nt_status.zero?
+    unless create_response.header.nt_status.zero?
+      raise create_response.inspect
+    end
 
     directory_request = Smb2::Packet::QueryDirectoryRequest.new(
       file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[type],
@@ -155,6 +157,10 @@ class Smb2::Tree
     loop do
       response = send_recv(directory_request)
       directory_response = Smb2::Packet::QueryDirectoryResponse.new(response)
+
+      unless directory_response.header.nt_status.zero?
+        raise directory_response.inspect
+      end
 
       break if directory_response.header.nt_status == STATUS_NO_MORE_FILES
 
