@@ -17,8 +17,11 @@ RSpec.shared_examples "request" do |command|
       expect(packet.command).to eq(command)
     end
 
-    specify do
-      expect(packet).not_to have_header_flag(:RESPONSE)
-    end
+    it { is_expected.not_to have_header_flag(:RESPONSE) }
+    it { is_expected.to respond_to(:channel_seq) }
+    it { is_expected.to respond_to(:channel_seq=) }
+    it { is_expected.to respond_to(:header_reserved) }
+    it { is_expected.to respond_to(:header_reserved=) }
+
   end
 end

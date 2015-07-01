@@ -17,6 +17,8 @@ RSpec.describe Smb2::Packet::NegotiateResponse do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
+
     context 'header' do
       specify do
         expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))

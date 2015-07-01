@@ -5,6 +5,8 @@ require 'smb2/packet'
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
 class Smb2::Packet::WriteResponse < Smb2::Packet::Response
+  COMMAND = :WRITE
+
   unsigned :struct_size, 16, default: 17
   unsigned :reserved, 16
   unsigned :byte_count, 32

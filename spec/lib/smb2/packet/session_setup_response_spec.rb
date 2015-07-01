@@ -23,6 +23,8 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
+
     specify 'header' do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))

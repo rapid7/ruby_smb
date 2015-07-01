@@ -4,6 +4,8 @@ require 'smb2/packet'
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
 class Smb2::Packet::CreateResponse < Smb2::Packet::Response
+  COMMAND = :CREATE
+
   # "The server MUST set this field to 89, indicating the size of the
   # request structure, not including the header. The client MUST set it to
   # this value regardless of how long Buffer[] actually is in the request

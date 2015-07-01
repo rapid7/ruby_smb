@@ -2,6 +2,8 @@ require 'smb2/packet'
 
 # [Section 2.2.16 SMB2 CLOSE Response](https://msdn.microsoft.com/en-us/library/cc246524.aspx)
 class Smb2::Packet::CloseResponse < Smb2::Packet::Response
+  COMMAND = :CLOSE
+
   unsigned :struct_size, 16, default: 60
   unsigned :flags, 16
   unsigned :last_access_time, 64

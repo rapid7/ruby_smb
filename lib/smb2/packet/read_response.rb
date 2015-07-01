@@ -4,6 +4,8 @@ require 'smb2/packet'
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
 class Smb2::Packet::ReadResponse < Smb2::Packet::Response
+  COMMAND = :READ
+
   unsigned :struct_size, 16, default: 17
 
   # The result of the read operation.
