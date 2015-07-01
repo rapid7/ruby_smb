@@ -8,7 +8,7 @@ class Smb2::Packet::Query::NamesInformation < BitStruct
   rest :raw_file_name
 
   def file_name
-    raw_file_name[0, file_name_length]
+    raw_file_name[0, file_name_length].encode('utf-8', 'utf-16le')
   end
 
 end
