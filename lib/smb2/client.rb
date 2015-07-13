@@ -212,9 +212,7 @@ class Smb2::Client
   #
   # @return [String] binary-encoded String for use in {Packet#sign! packet signing}
   def session_key
-    # Ghetto, reaching into the session for private methods.
-    # @todo Submit upstream patch for rubyntlm to expose this
-    @ntlm_client.session.send(:master_key)
+    @ntlm_client.session_key
   end
 
   # Whether this session has negotiated required signing
