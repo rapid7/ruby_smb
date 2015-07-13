@@ -16,6 +16,9 @@ class Smb2::Packet < BitStruct
   autoload :CloseRequest, "smb2/packet/close_request"
   autoload :CloseResponse, "smb2/packet/close_response"
 
+  autoload :EchoRequest, "smb2/packet/echo_request"
+  autoload :EchoResponse, "smb2/packet/echo_response"
+
   autoload :CreateRequest, "smb2/packet/create_request"
   autoload :CreateResponse, "smb2/packet/create_response"
 
