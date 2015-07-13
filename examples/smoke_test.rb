@@ -26,7 +26,7 @@ end
 op.parse!(ARGV)
 
 d = Smb2::Dispatcher::Socket.connect(host, 445)
-p d
+puts "Connected"
 
 c = Smb2::Client.new(dispatcher: d, username: username, password: password)
 

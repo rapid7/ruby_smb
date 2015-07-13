@@ -45,7 +45,7 @@ class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
       data << @socket.read(length - data.length)
     end
 
-    data
+    Smb2::Packet.parse(data)
   end
 
 end

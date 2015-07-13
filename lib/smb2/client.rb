@@ -122,30 +122,28 @@ class Smb2::Client
     packet.security_blob = gss_type1(type1.serialize)
 
     response = send_recv(packet)
-    response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
-    @session_id = response_packet.session_id
+    @session_id = response.session_id
 
     packet = Smb2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
     )
 
-    ssp_offset = response_packet.security_blob.index("NTLMSSP")
-    resp_blob = response_packet.security_blob.slice(ssp_offset..-1)
+    ssp_offset = response.security_blob.index("NTLMSSP")
+    resp_blob = response.security_blob.slice(ssp_offset..-1)
 
     type3 = @ntlm_client.init_context([resp_blob].pack("m"))
 
     packet.security_blob = gss_type3(type3.serialize)
     response = send_recv(packet)
-    response_packet = Smb2::Packet::SessionSetupResponse.new(response)
 
-    if response_packet.nt_status == 0
+    if response.nt_status == 0
       @state = :authenticated
     else
       @state = :authentication_failed
     end
 
-    response_packet.nt_status
+    response.nt_status
   end
 
   def inspect
@@ -169,20 +167,19 @@ class Smb2::Client
     )
 
     response = send_recv(packet)
-    response_packet = Smb2::Packet::NegotiateResponse.new(response)
 
-    @capabilities = response_packet.capabilities
-    @dialect = response_packet.dialect_revision
-    @max_read_size = response_packet.max_read_size
-    @max_transaction_size = response_packet.max_transaction_size
-    @max_write_size = response_packet.max_write_size
+    @capabilities = response.capabilities
+    @dialect = response.dialect_revision
+    @max_read_size = response.max_read_size
+    @max_transaction_size = response.max_transaction_size
+    @max_write_size = response.max_write_size
 
-    @security_mode = DEFAULT_SECURITY_MODE | response_packet.security_mode
+    @security_mode = DEFAULT_SECURITY_MODE | response.security_mode
 
     @state = :negotiated
 
     # XXX do we need the Server GUID?
-    response_packet
+    response
   end
 
   # Adjust `request`'s header with an appropriate sequence number and session
@@ -238,9 +235,8 @@ class Smb2::Client
     )
 
     response = send_recv(packet)
-    response_packet = Smb2::Packet::TreeConnectResponse.new(response)
 
-    Smb2::Tree.new(client: self, share: tree, tree_connect_response: response_packet)
+    Smb2::Tree.new(client: self, share: tree, tree_connect_response: response)
   end
 
   protected

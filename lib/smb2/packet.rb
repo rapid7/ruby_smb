@@ -306,6 +306,10 @@ module Smb2
 
     HEADER_FLAG_NAMES = HEADER_FLAGS.keys
 
+    # Take data from the wire and determine the type of packet it is.
+    #
+    # @param data [String] packet data from the wire
+    # @return [Smb2::Packet::Generic] a subclass of {Generic}
     def self.parse(data)
       generic = Generic.new(data)
 
@@ -356,6 +360,8 @@ module Smb2
       when [ COMMANDS[:QUERY_INFO], false ]
         QueryInfoRequest.new(generic)
 
+      else
+        raise "Unimplemented command"
       end
     end
 
