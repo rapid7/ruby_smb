@@ -167,10 +167,10 @@ class Smb2::Tree
       blob = directory_response.output_buffer
       klass = Smb2::Packet::Query::FILE_INFORMATION_CLASSES[type]
 
-      class_array << Smb2::Packet::Query.class_array_from_blob(blob, klass)
+      class_array += Smb2::Packet::Query.class_array_from_blob(blob, klass)
     end
 
-    class_array.flatten
+    class_array
   end
 
   # Send a packet and return the response
