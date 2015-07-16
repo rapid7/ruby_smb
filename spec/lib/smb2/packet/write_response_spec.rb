@@ -14,6 +14,8 @@ RSpec.describe Smb2::Packet::WriteResponse do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
+
     specify do
       expect(packet.struct_size).to eq(17)
     end

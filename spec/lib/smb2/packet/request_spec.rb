@@ -1,6 +1,6 @@
 require 'smb2'
 
-RSpec.describe Smb2::Packet::RequestHeader do
+RSpec.describe Smb2::Packet::Request do
   let(:data) { nil }
   subject(:packet) do
     described_class.new(data)
@@ -11,10 +11,10 @@ RSpec.describe Smb2::Packet::RequestHeader do
     expect(packet).to respond_to(:header_len)
     expect(packet).to respond_to(:credit_charge)
     expect(packet).to respond_to(:channel_seq)
-    expect(packet).to respond_to(:reserved)
+    expect(packet).to respond_to(:header_reserved)
     expect(packet).to respond_to(:command)
     expect(packet).to respond_to(:credits_requested)
-    expect(packet).to respond_to(:flags)
+    expect(packet).to respond_to(:header_flags)
     expect(packet).to respond_to(:chain_offset)
     expect(packet).to respond_to(:command_seq)
     expect(packet).to respond_to(:process_id)
@@ -44,15 +44,15 @@ RSpec.describe Smb2::Packet::RequestHeader do
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
     end
 
-    describe '#has_flag?' do
+    describe '#has_header_flag?' do
       specify do
-        expect { packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
+        expect { packet.has_header_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
       end
       specify do
-        expect(packet.has_flag?(:RESPONSE)).to be_falsey
+        expect(packet.has_header_flag?(:RESPONSE)).to be_falsey
       end
       specify do
-        expect(packet.has_flag?(:ASYNC)).to be_falsey
+        expect(packet.has_header_flag?(:ASYNC)).to be_falsey
       end
     end
 

@@ -14,6 +14,8 @@ RSpec.describe Smb2::Packet::QueryInfoResponse do
       ].pack('H*')
     end
 
+    it_behaves_like "packet"
+
     context 'body' do
       specify 'struct_size' do
         expect(packet.struct_size).to eq(9)
