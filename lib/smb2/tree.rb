@@ -168,10 +168,9 @@ class Smb2::Tree
       response = send_recv(directory_request)
       directory_response = Smb2::Packet::QueryDirectoryResponse.new(response)
 
-      case directory_response.nt_status
-      when STATUS_NO_MORE_FILES
-        break
-      else
+      break if directory_response.nt_status == STATUS_NO_MORE_FILES
+
+      unless directory_response.nt_status.zero?
         raise directory_response.inspect
       end
 
