@@ -7,7 +7,7 @@ module Smb2
     # The minor version number, scoped to the {MAJOR} version number.
     MINOR = 0
     # The patch number, scoped to the {MINOR} version number.
-    PATCH = 5
+    PATCH = 6
 
     PRERELEASE = 'echo'
 

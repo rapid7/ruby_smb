@@ -43,7 +43,8 @@ class Smb2::Tree
   # @param filename [String,#encode] this will be encoded in utf-16le
   # @param mode [String] See stdlib ::File#mode
   # @yield [Smb2::File]
-  # @return [Smb2::File]
+  # @return [Smb2::File] if no block given
+  # @return [Object] value of the block if block given
   def create(filename, mode = "r+")
     desired_access = desired_access_from_mode(mode)
     create_options = Smb2::Packet::CREATE_OPTIONS[:FILE_NON_DIRECTORY_FILE]
@@ -103,14 +104,18 @@ class Smb2::Tree
     response = send_recv(packet)
 
     create_response = Smb2::Packet::CreateResponse.new(response)
-    file = Smb2::File.new(filename: filename, tree: self, create_response: create_response)
+    file = Smb2::File.new(
+      filename: filename,
+      tree: self,
+      create_response: create_response
+    )
     file.close
   end
 
   # @return [String]
   def inspect
-    if tree_connect_response.header.nt_status != 0
-      stuff = "Error: #{tree_connect_response.header.nt_status.to_s 16}"
+    if tree_connect_response.nt_status != 0
+      stuff = "Error: #{tree_connect_response.nt_status.to_s 16}"
     else
       stuff = share
     end
@@ -122,10 +127,8 @@ class Smb2::Tree
   # @param request [Smb2::Packet]
   # @return (see Client#send_recv)
   def send_recv(request)
-    header = request.header
-    header.tree_id = self.tree_connect_response.header.tree_id
-    header.process_id = 0
-    request.header = header
+    request.tree_id = self.tree_connect_response.tree_id
+    request.process_id = 0
 
     client.send_recv(request)
   end

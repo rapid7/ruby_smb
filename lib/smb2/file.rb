@@ -74,7 +74,7 @@ class Smb2::File
   #
   # @return [Boolean]
   def eof?
-    (last_read_response && last_read_response.header.nt_status == STATUS_END_OF_FILE) || pos == size
+    (last_read_response && last_read_response.nt_status == STATUS_END_OF_FILE) || pos == size
   end
 
   # @return [String]
@@ -199,7 +199,7 @@ class Smb2::File
       response_packet = write_chunk(data_chunk, offset: pos)
 
       # @todo raise instead?
-      break if response_packet.header.nt_status != 0
+      break if response_packet.nt_status != 0
 
       bytes_written += response_packet.byte_count
       seek(offset + bytes_written)
