@@ -123,6 +123,16 @@ class Smb2::Tree
     "#<#{self.class} #{stuff} >"
   end
 
+  # List `directory` on the remote share.
+  #
+  # @example
+  #   tree = client.tree_connect("\\\\192.168.99.134\\Share")
+  #   tree.list("path\\to\\directory")
+  #
+  # @param directory [String] path to the directory to be listed
+  # @param pattern [String] search pattern
+  # @param type [Symbol] file information class
+  # @return [Array] array of directory structures
   def list(directory: nil, pattern: '*', type: :FileNamesInformation)
     create_request = Smb2::Packet::CreateRequest.new(
       impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
