@@ -16,8 +16,8 @@ c = Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
 
 c.negotiate
 c.authenticate
-tree = c.tree_connect("\\\\#{host}\\Users")
+tree = c.tree_connect("\\\\#{host}\\C$")
 
-file = tree.create("public\\foo.txt")
+file = tree.create("Users\\Public\\foo.txt")
 
 puts file.read

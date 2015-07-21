@@ -16,6 +16,6 @@ c = Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
 
 c.negotiate
 c.authenticate
-tree = c.tree_connect("\\\\#{host}\\Users")
+tree = c.tree_connect("\\\\#{host}\\C$")
 
-tree.list(directory: 'public').each { |f| puts f.file_name }
+tree.list(directory: 'Users\\Public').each { |f| puts f.file_name }
