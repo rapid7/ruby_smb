@@ -1,6 +1,7 @@
-
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class Smb2::Tree
+
+  STATUS_NO_MORE_FILES = 0x80000006
 
   # The {Smb2::Client} on which this Tree is connected.
   #
@@ -120,6 +121,66 @@ class Smb2::Tree
       stuff = share
     end
     "#<#{self.class} #{stuff} >"
+  end
+
+  # List `directory` on the remote share.
+  #
+  # @example
+  #   tree = client.tree_connect("\\\\192.168.99.134\\Share")
+  #   tree.list(directory: "path\\to\\directory")
+  #
+  # @param directory [String] path to the directory to be listed
+  # @param pattern [String] search pattern
+  # @param type [Symbol] file information class
+  # @return [Array] array of directory structures
+  def list(directory: nil, pattern: '*', type: :FileNamesInformation)
+    create_request = Smb2::Packet::CreateRequest.new(
+      impersonation: Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
+      desired_access: Smb2::Packet::DIRECTORY_ACCESS_MASK[:FILE_LIST_DIRECTORY],
+      share_access: Smb2::Packet::SHARE_ACCESS[:FILE_SHARE_READ],
+      disposition: Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN],
+      create_options: Smb2::Packet::CREATE_OPTIONS[:FILE_DIRECTORY_FILE]
+    )
+
+    if directory
+      create_request.filename = directory.encode('utf-16le')
+    else # y u do dis microsoft
+      create_request.filename = "\x00"
+      create_request.filename_length = 0
+    end
+
+    response = send_recv(create_request)
+    create_response = Smb2::Packet::CreateResponse.new(response)
+
+    unless create_response.nt_status.zero?
+      raise create_response.inspect
+    end
+
+    directory_request = Smb2::Packet::QueryDirectoryRequest.new(
+      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[type],
+      file_id: create_response.file_id,
+      file_name: pattern.encode('utf-16le')
+    )
+
+    class_array = []
+
+    loop do
+      response = send_recv(directory_request)
+      directory_response = Smb2::Packet::QueryDirectoryResponse.new(response)
+
+      break if directory_response.nt_status == STATUS_NO_MORE_FILES
+
+      unless directory_response.nt_status.zero?
+        raise directory_response.inspect
+      end
+
+      blob = directory_response.output_buffer
+      klass = Smb2::Packet::Query::FILE_INFORMATION_CLASSES[type]
+
+      class_array += Smb2::Packet::Query.class_array_from_blob(blob, klass)
+    end
+
+    class_array
   end
 
   # Send a packet and return the response

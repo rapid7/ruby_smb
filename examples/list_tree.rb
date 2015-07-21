@@ -18,6 +18,4 @@ c.negotiate
 c.authenticate
 tree = c.tree_connect("\\\\#{host}\\C$")
 
-file = tree.create("Users\\Public\\foo.txt")
-
-puts file.read
+tree.list(directory: 'Users\\Public').each { |f| puts f.file_name }
