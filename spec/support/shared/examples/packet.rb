@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 RSpec.shared_examples 'packet' do
 
   context 'command' do

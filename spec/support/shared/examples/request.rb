@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 RSpec.shared_examples "request" do |command|
   context 'header' do
     specify do

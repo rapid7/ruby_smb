@@ -1,5 +1,4 @@
-require 'smb2'
-require 'support/shared/examples/request'
+require 'spec_helper'
 
 RSpec.describe Smb2::Packet::NegotiateRequest do
   subject(:packet) do
