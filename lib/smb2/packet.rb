@@ -369,9 +369,9 @@ module Smb2
       when [ COMMANDS[:WRITE], false ]
         WriteRequest.new(generic)
 
-      when [ COMMANDS[:QUERY_DIRECTORY_FLAGS], true ]
+      when [ COMMANDS[:QUERY_DIRECTORY], true ]
         QueryDirectoryResponse.new(generic)
-      when [ COMMANDS[:QUERY_DIRECTORY_FLAGS], false ]
+      when [ COMMANDS[:QUERY_DIRECTORY], false ]
         QueryDirectoryRequest.new(generic)
 
       when [ COMMANDS[:QUERY_INFO], true ]
