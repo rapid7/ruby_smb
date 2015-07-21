@@ -127,7 +127,7 @@ class Smb2::Tree
   #
   # @example
   #   tree = client.tree_connect("\\\\192.168.99.134\\Share")
-  #   tree.list("path\\to\\directory")
+  #   tree.list(directory: "path\\to\\directory")
   #
   # @param directory [String] path to the directory to be listed
   # @param pattern [String] search pattern
