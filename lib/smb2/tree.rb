@@ -152,7 +152,7 @@ class Smb2::Tree
     response = send_recv(create_request)
     create_response = Smb2::Packet::CreateResponse.new(response)
 
-    unless create_response.header.nt_status.zero?
+    unless create_response.nt_status.zero?
       raise create_response.inspect
     end
 
@@ -168,11 +168,12 @@ class Smb2::Tree
       response = send_recv(directory_request)
       directory_response = Smb2::Packet::QueryDirectoryResponse.new(response)
 
-      unless directory_response.header.nt_status.zero?
+      case directory_response.nt_status
+      when STATUS_NO_MORE_FILES
+        break
+      else
         raise directory_response.inspect
       end
-
-      break if directory_response.header.nt_status == STATUS_NO_MORE_FILES
 
       blob = directory_response.output_buffer
       klass = Smb2::Packet::Query::FILE_INFORMATION_CLASSES[type]
