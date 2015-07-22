@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
 class Smb2::Packet::TreeConnectRequest < Smb2::Packet::Request

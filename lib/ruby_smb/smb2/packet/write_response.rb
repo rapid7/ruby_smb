@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 
 # [Section 2.2.22 SMB2 Write Response](http://msdn.microsoft.com/en-us/library/cc246533.aspx)

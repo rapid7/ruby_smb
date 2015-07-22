@@ -1,5 +1,5 @@
 # [[MS-FSCC] 2.4.26 FileNamesInformation](https://msdn.microsoft.com/en-us/library/cc232077.aspx)
-class Smb2::Packet::Query::NamesInformation < BitStruct
+class RubySMB::Smb2::Packet::Query::NamesInformation < BitStruct
 
   default_options endian: 'little'
 

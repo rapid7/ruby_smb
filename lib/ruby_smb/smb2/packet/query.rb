@@ -1,5 +1,5 @@
 #
-module Smb2::Packet::Query
+module RubySMB::Smb2::Packet::Query
   autoload :NamesInformation, 'smb2/packet/query/names_information'
   autoload :StandardInformation, 'smb2/packet/query/standard_information'
 

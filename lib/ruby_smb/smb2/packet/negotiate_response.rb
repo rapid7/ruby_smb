@@ -1,7 +1,7 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # [[MS-SMB2] 2.2.4 SMB2 NEGOTIATE Response](https://msdn.microsoft.com/en-us/library/cc246561.aspx)
-class Smb2::Packet::NegotiateResponse < Smb2::Packet::Response
+class RubySMB::Smb2::Packet::NegotiateResponse < RubySMB::Smb2::Packet::Response
   COMMAND = :NEGOTIATE
 
   unsigned :struct_size, 16, default: 65

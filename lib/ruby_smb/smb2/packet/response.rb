@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # A response header, largely copy-pasta'd from the request header.
 class Smb2::Packet::Response < Smb2::Packet::Generic

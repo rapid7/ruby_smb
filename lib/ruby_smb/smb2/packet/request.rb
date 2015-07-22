@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # A request header, described by this lovely 32-bit wide ASCII diagram:
 #

@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # @see Smb2::Packet::QUERY_DIRECTORY_FLAGS
 class Smb2::Packet::QueryDirectoryRequest < Smb2::Packet::Request

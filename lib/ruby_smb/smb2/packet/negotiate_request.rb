@@ -1,10 +1,10 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 
 # [Section 2.2.3 SMB2 NEGOTIATE Request](https://msdn.microsoft.com/en-us/library/cc246543.aspx)
-class Smb2::Packet::NegotiateRequest < Smb2::Packet::Request
+class RubySMB::Smb2::Packet::NegotiateRequest < RubySMB::Smb2::Packet::Request
 
-  # A key in {Smb2::COMMANDS}
+  # A key in {RubySMB::Smb2::COMMANDS}
   COMMAND = :NEGOTIATE
 
   unsigned :struct_size, 16, default: 36

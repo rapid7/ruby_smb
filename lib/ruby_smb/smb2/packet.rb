@@ -3,52 +3,52 @@ require 'bit-struct'
 # A PDU for the SMB2 protocol
 #
 # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
-module Smb2
+module RubySMB::Smb2
   module Packet
 
     # Raised when {#has_flag?} is given something that isn't a member of
     # `FLAG_NAMES`
     class InvalidFlagError < StandardError; end
 
-    require "smb2/packet/generic"
+    require "ruby_smb/smb2/packet/generic"
 
-    autoload :CloseRequest, "smb2/packet/close_request"
-    autoload :CloseResponse, "smb2/packet/close_response"
+    autoload :CloseRequest, "ruby_smb/smb2/packet/close_request"
+    autoload :CloseResponse, "ruby_smb/smb2/packet/close_response"
 
-    autoload :EchoRequest, "smb2/packet/echo_request"
-    autoload :EchoResponse, "smb2/packet/echo_response"
+    autoload :EchoRequest, "ruby_smb/smb2/packet/echo_request"
+    autoload :EchoResponse, "ruby_smb/smb2/packet/echo_response"
 
-    autoload :CreateRequest, "smb2/packet/create_request"
-    autoload :CreateResponse, "smb2/packet/create_response"
+    autoload :CreateRequest, "ruby_smb/smb2/packet/create_request"
+    autoload :CreateResponse, "ruby_smb/smb2/packet/create_response"
 
-    autoload :NegotiateRequest, "smb2/packet/negotiate_request"
-    autoload :NegotiateResponse, "smb2/packet/negotiate_response"
+    autoload :NegotiateRequest, "ruby_smb/smb2/packet/negotiate_request"
+    autoload :NegotiateResponse, "ruby_smb/smb2/packet/negotiate_response"
 
-    autoload :IoctlRequest, "smb2/packet/ioctl_request"
-    autoload :IoctlResponse, "smb2/packet/ioctl_response"
+    autoload :IoctlRequest, "ruby_smb/smb2/packet/ioctl_request"
+    autoload :IoctlResponse, "ruby_smb/smb2/packet/ioctl_response"
 
-    autoload :Query, "smb2/packet/query"
+    autoload :Query, "ruby_smb/smb2/packet/query"
 
-    autoload :QueryInfoRequest, "smb2/packet/query_info_request"
-    autoload :QueryInfoResponse, "smb2/packet/query_info_response"
+    autoload :QueryInfoRequest, "ruby_smb/smb2/packet/query_info_request"
+    autoload :QueryInfoResponse, "ruby_smb/smb2/packet/query_info_response"
 
-    autoload :QueryDirectoryRequest, "smb2/packet/query_directory_request"
-    autoload :QueryDirectoryResponse, "smb2/packet/query_directory_response"
+    autoload :QueryDirectoryRequest, "ruby_smb/smb2/packet/query_directory_request"
+    autoload :QueryDirectoryResponse, "ruby_smb/smb2/packet/query_directory_response"
 
-    autoload :ReadRequest, "smb2/packet/read_request"
-    autoload :ReadResponse, "smb2/packet/read_response"
+    autoload :ReadRequest, "ruby_smb/smb2/packet/read_request"
+    autoload :ReadResponse, "ruby_smb/smb2/packet/read_response"
 
-    autoload :Request, "smb2/packet/request"
-    autoload :Response, "smb2/packet/response"
+    autoload :Request, "ruby_smb/smb2/packet/request"
+    autoload :Response, "ruby_smb/smb2/packet/response"
 
-    autoload :SessionSetupRequest, "smb2/packet/session_setup_request"
-    autoload :SessionSetupResponse, "smb2/packet/session_setup_response"
+    autoload :SessionSetupRequest, "ruby_smb/smb2/packet/session_setup_request"
+    autoload :SessionSetupResponse, "ruby_smb/smb2/packet/session_setup_response"
 
-    autoload :TreeConnectRequest, "smb2/packet/tree_connect_request"
-    autoload :TreeConnectResponse, "smb2/packet/tree_connect_response"
+    autoload :TreeConnectRequest, "ruby_smb/smb2/packet/tree_connect_request"
+    autoload :TreeConnectResponse, "ruby_smb/smb2/packet/tree_connect_response"
 
-    autoload :WriteRequest, "smb2/packet/write_request"
-    autoload :WriteResponse, "smb2/packet/write_response"
+    autoload :WriteRequest, "ruby_smb/smb2/packet/write_request"
+    autoload :WriteResponse, "ruby_smb/smb2/packet/write_response"
 
     ##
     # Constants

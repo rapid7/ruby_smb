@@ -1,5 +1,5 @@
 
-module Smb2::Packet
+module RubySMB::Smb2::Packet
   class Generic < BitStruct
 
     # Values in SMB are always little endian. Make all fields default to little
@@ -96,7 +96,7 @@ module Smb2::Packet
 
       if self.class.const_defined?(:COMMAND)
         # Set the appropriate {#command} in the header for this packet type
-        self.command = Smb2::COMMANDS[self.class::COMMAND]
+        self.command = RubySMB::Smb2::COMMANDS[self.class::COMMAND]
       end
     end
 
@@ -155,7 +155,7 @@ module Smb2::Packet
     # @return [void]
     def sign!(session_key)
       self.signature = "\0"*16
-      self.header_flags |= Smb2::Packet::HEADER_FLAGS[:SIGNING]
+      self.header_flags |= RubySMB::Smb2::Packet::HEADER_FLAGS[:SIGNING]
 
       hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, self.to_s)
 

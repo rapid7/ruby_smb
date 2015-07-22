@@ -1,11 +1,11 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # [Section 2.2.31 SMB2 IOCTL Request](https://msdn.microsoft.com/en-us/library/cc246545.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class Smb2::Packet::IoctlRequest < Smb2::Packet::Request
+class RubySMB::Smb2::Packet::IoctlRequest < RubySMB::Smb2::Packet::Request
 
-  # A key in {Smb2::COMMANDS}
+  # A key in {RubySMB::Smb2::COMMANDS}
   COMMAND = :IOCTL
 
   # > The client MUST set this field to 57, indicating the size of the

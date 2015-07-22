@@ -1,4 +1,4 @@
-require 'smb2/packet'
+require 'ruby_smb/smb2/packet'
 
 # @see Smb2::Packet::QUERY_INFO_TYPES
 class Smb2::Packet::QueryInfoRequest < Smb2::Packet::Request
