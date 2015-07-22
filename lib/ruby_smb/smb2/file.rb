@@ -1,6 +1,6 @@
 
 # An open file on the remote filesystem.
-class Smb2::File
+class RubySMB::Smb2::File
 
   # Some day we'll document all of these in one place
   STATUS_END_OF_FILE = 0xC0000011

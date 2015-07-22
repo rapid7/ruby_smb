@@ -16,7 +16,7 @@ require 'net/ntlm/client'
 #   c.authenticate
 #
 #
-class Smb2::Client
+class RubySMB::Smb2::Client
 
   # @see Smb2::Packet::SECURITY_MODES
   # @return [Fixnum]

@@ -1,5 +1,5 @@
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
-class Smb2::Tree
+class RubySMB::Smb2::Tree
 
   STATUS_NO_MORE_FILES = 0x80000006
 
