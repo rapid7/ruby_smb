@@ -1,7 +1,7 @@
-require 'smb2'
+require 'ruby_smb/smb2'
 require 'support/shared/examples/request'
 
-RSpec.describe Smb2::Packet::IoctlRequest do
+RSpec.describe RubySMB::Smb2::Packet::IoctlRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -18,7 +18,7 @@ RSpec.describe Smb2::Packet::IoctlRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", Smb2::COMMANDS[:IOCTL]
+    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:IOCTL]
 
     specify 'struct_size' do
       expect(packet.struct_size).to eq(57)

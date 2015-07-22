@@ -35,7 +35,7 @@ require 'ruby_smb/smb2/packet'
 class RubySMB::Smb2::Packet::Request < RubySMB::Smb2::Packet::Generic
   def initialize(*args)
     super
-    self.header_flags &= ~Smb2::Packet::HEADER_FLAGS[:RESPONSE]
+    self.header_flags &= ~RubySMB::Smb2::Packet::HEADER_FLAGS[:RESPONSE]
   end
 
   def channel_seq

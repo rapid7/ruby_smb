@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Smb2::Packet::EchoRequest do
+RSpec.describe RubySMB::Smb2::Packet::EchoRequest do
 
   subject(:echo_request_packet){ described_class.new }
 

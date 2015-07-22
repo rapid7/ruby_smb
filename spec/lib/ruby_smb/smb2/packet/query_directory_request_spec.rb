@@ -1,7 +1,7 @@
-require 'smb2'
+require 'ruby_smb/smb2'
 require 'support/shared/examples/request'
 
-RSpec.describe Smb2::Packet::QueryDirectoryRequest do
+RSpec.describe RubySMB::Smb2::Packet::QueryDirectoryRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -17,7 +17,7 @@ RSpec.describe Smb2::Packet::QueryDirectoryRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", Smb2::COMMANDS[:QUERY_DIRECTORY]
+    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:QUERY_DIRECTORY]
 
     context 'body' do
       specify 'struct_size' do
@@ -25,7 +25,7 @@ RSpec.describe Smb2::Packet::QueryDirectoryRequest do
       end
       specify 'file_info_class' do
         expect(packet.file_info_class).to eq(
-          Smb2::Packet::FILE_INFORMATION_CLASSES[:FileIdBothDirectoryInformation]
+          RubySMB::Smb2::Packet::FILE_INFORMATION_CLASSES[:FileIdBothDirectoryInformation]
         )
       end
       specify 'flags' do

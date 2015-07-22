@@ -1,8 +1,8 @@
-require 'smb2'
+require 'ruby_smb/smb2'
 require 'net/ntlm'
 require 'support/shared/examples/request'
 
-RSpec.describe Smb2::Packet::SessionSetupRequest do
+RSpec.describe RubySMB::Smb2::Packet::SessionSetupRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -20,7 +20,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", Smb2::COMMANDS[:SESSION_SETUP]
+    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:SESSION_SETUP]
 
     specify 'body' do
       expect(packet.struct_size).to eq(25)
@@ -79,7 +79,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
     specify 'header' do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      expect(packet.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
+      expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:SESSION_SETUP])
     end
 
     specify 'body' do
@@ -108,7 +108,7 @@ RSpec.describe Smb2::Packet::SessionSetupRequest do
 
     describe '#has_flag?' do
       specify do
-        expect { packet.has_flag?(:garbage) }.to raise_error(Smb2::Packet::InvalidFlagError)
+        expect { packet.has_flag?(:garbage) }.to raise_error(RubySMB::Smb2::Packet::InvalidFlagError)
       end
       specify do
         expect(packet.has_flag?(:SESSION_BINDING_REQUEST)).to be_falsey

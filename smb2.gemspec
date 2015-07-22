@@ -1,14 +1,14 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'smb2/version'
+require 'ruby_smb/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "smb2"
-  spec.version       = Smb2::GEM_VERSION
+  spec.name          = "ruby_smb"
+  spec.version       = RubySMB::GEM_VERSION
   spec.authors       = ["James Lee"]
   spec.email         = ["egypt@metasploit.com"]
-  spec.summary       = %q{A message creator and parser for the SMB2 protocol}
+  spec.summary       = %q{A message creator and parser for the SMB protocol family}
   spec.description   = %q{}
   spec.homepage      = "http://www.metasploit.com"
   spec.license       = "BSD-3-clause"

@@ -1,6 +1,6 @@
 require 'support/mock_socket_dispatcher'
 
-RSpec.describe Smb2::Client do
+RSpec.describe RubySMB::Smb2::Client do
   subject(:client) do
     described_class.new(dispatcher: dispatcher, username: username, password: password)
   end
@@ -14,11 +14,11 @@ RSpec.describe Smb2::Client do
 
   context '#negotiate' do
     before do
-      expect(dispatcher).to receive(:send_packet).with(kind_of Smb2::Packet::Generic)
+      expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::Smb2::Packet::Generic)
       expect(dispatcher).to receive(:recv_packet).and_return(response)
     end
 
-    let(:response) { Smb2::Packet::NegotiateResponse.new }
+    let(:response) { RubySMB::Smb2::Packet::NegotiateResponse.new }
 
     specify do
       expect { client.negotiate }.not_to raise_error

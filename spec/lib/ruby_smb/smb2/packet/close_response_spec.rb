@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe Smb2::Packet::CloseResponse do
+RSpec.describe RubySMB::Smb2::Packet::CloseResponse do
   subject(:packet) do
     described_class.new(data)
   end

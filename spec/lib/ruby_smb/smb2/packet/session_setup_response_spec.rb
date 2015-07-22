@@ -1,7 +1,7 @@
-require 'smb2'
+require 'ruby_smb/smb2'
 require 'net/ntlm'
 
-RSpec.describe Smb2::Packet::SessionSetupResponse do
+RSpec.describe RubySMB::Smb2::Packet::SessionSetupResponse do
   subject(:packet) do
     described_class.new(data)
   end
@@ -28,7 +28,7 @@ RSpec.describe Smb2::Packet::SessionSetupResponse do
     specify 'header' do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      expect(packet.command).to eq(Smb2::COMMANDS[:SESSION_SETUP])
+      expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:SESSION_SETUP])
 
     end
 

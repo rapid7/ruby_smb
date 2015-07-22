@@ -1,5 +1,5 @@
 
-RSpec.describe Smb2::File do
+RSpec.describe RubySMB::Smb2::File do
   subject(:file) do
     described_class.new(filename: "test.txt", tree: tree, create_response: create_response)
   end
@@ -21,7 +21,7 @@ RSpec.describe Smb2::File do
       t = double('Smb2::Tree')
       allow(t).to receive_message_chain(:client, :max_read_size) { max_read_size }
       allow(t).to receive(:send_recv) do |packet|
-        Smb2::Packet::ReadResponse.new do |response|
+        RubySMB::Smb2::Packet::ReadResponse.new do |response|
           response.data = data.slice(packet.read_offset, packet.read_length)
         end
       end
@@ -35,7 +35,7 @@ RSpec.describe Smb2::File do
     context 'with data smaller than max read size' do
       let(:data) { "A" * (max_read_size - 1) }
       specify do
-        expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+        expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::ReadRequest))
         expect(file.read).to eq(data)
       end
     end
@@ -43,7 +43,7 @@ RSpec.describe Smb2::File do
     context 'with data equal to max read size' do
       let(:data) { "A" * (max_read_size) }
       specify do
-        expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+        expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::ReadRequest))
         expect(file.read).to eq(data)
       end
     end
@@ -54,13 +54,13 @@ RSpec.describe Smb2::File do
       specify do
         expect(tree).to receive(:send_recv)
           .exactly(1 + (data.length / max_read_size)).times
-          .with(instance_of(Smb2::Packet::ReadRequest))
+          .with(instance_of(RubySMB::Smb2::Packet::ReadRequest))
         expect(file.read).to eq(data)
       end
 
       context 'with an offset that makes it less than max read size' do
         specify do
-          expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+          expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::ReadRequest))
           offset = (data.length - max_read_size / 2)
           file.seek(offset)
           expect(file.read).to eq(data.slice(offset..data.length))
@@ -69,7 +69,7 @@ RSpec.describe Smb2::File do
 
       context 'with an offset in the middle and length less than max_read_size' do
         specify do
-          expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::ReadRequest))
+          expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::ReadRequest))
           offset = (data.length / 2 - max_read_size / 2)
           file.seek(offset)
           length = max_read_size - 1
@@ -94,7 +94,7 @@ RSpec.describe Smb2::File do
 
       specify do
         expected_len = data.length / 2
-        response_packet = Smb2::Packet::WriteResponse.new(byte_count: expected_len)
+        response_packet = RubySMB::Smb2::Packet::WriteResponse.new(byte_count: expected_len)
 
         expect(file).to receive(:write_chunk).
           once.with(data[0, expected_len], offset: 0).
@@ -115,7 +115,7 @@ RSpec.describe Smb2::File do
       t = double('Smb2::Tree')
       allow(t).to receive_message_chain(:client, :max_write_size) { max_write_size }
       allow(t).to receive(:send_recv) do |packet|
-        response = Smb2::Packet::WriteResponse.new(
+        response = RubySMB::Smb2::Packet::WriteResponse.new(
           byte_count: [packet.data_length, max_write_size].min
         )
         response.nt_status = 0
@@ -133,14 +133,14 @@ RSpec.describe Smb2::File do
       end
 
       specify do
-        expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::WriteRequest))
-        expect(file.write_chunk(data)).to be_a(Smb2::Packet::WriteResponse)
+        expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::WriteRequest))
+        expect(file.write_chunk(data)).to be_a(RubySMB::Smb2::Packet::WriteResponse)
       end
 
       specify do
-        expect(tree).to receive(:send_recv).once.with(instance_of(Smb2::Packet::WriteRequest))
+        expect(tree).to receive(:send_recv).once.with(instance_of(RubySMB::Smb2::Packet::WriteRequest))
         packet = file.write_chunk(data)
-        expect(packet).to be_a(Smb2::Packet::WriteResponse)
+        expect(packet).to be_a(RubySMB::Smb2::Packet::WriteResponse)
         expect(packet.byte_count).to eq(data.length)
       end
 

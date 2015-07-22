@@ -1,6 +1,6 @@
-require 'smb2'
+require 'ruby_smb/smb2'
 
-RSpec.describe Smb2::Packet::CreateResponse do
+RSpec.describe RubySMB::Smb2::Packet::CreateResponse do
   subject(:packet) do
     described_class.new(data)
   end
@@ -21,7 +21,7 @@ RSpec.describe Smb2::Packet::CreateResponse do
     specify 'header' do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      expect(packet.command).to eq(Smb2::COMMANDS[:CREATE])
+      expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:CREATE])
     end
 
     specify 'body' do
