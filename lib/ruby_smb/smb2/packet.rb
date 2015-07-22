@@ -331,7 +331,7 @@ module RubySMB::Smb2
     # Take data from the wire and determine the type of packet it is.
     #
     # @param data [String] packet data from the wire
-    # @return [Smb2::Packet::Generic] a subclass of {Generic}
+    # @return [RubySMB::Smb2::Packet::Generic] a subclass of {Generic}
     def self.parse(data)
       generic = Generic.new(data)
 

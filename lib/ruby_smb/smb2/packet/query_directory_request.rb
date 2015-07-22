@@ -1,7 +1,7 @@
 require 'ruby_smb/smb2/packet'
 
-# @see Smb2::Packet::QUERY_DIRECTORY_FLAGS
-class Smb2::Packet::QueryDirectoryRequest < Smb2::Packet::Request
+# @see RubySMB::Smb2::Packet::QUERY_DIRECTORY_FLAGS
+class RubySMB::Smb2::Packet::QueryDirectoryRequest < RubySMB::Smb2::Packet::Request
 
   # A key in {Smb2::COMMANDS}
   COMMAND = :QUERY_DIRECTORY

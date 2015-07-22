@@ -7,7 +7,7 @@ class RubySMB::Smb2::File
 
   # The server's response from when we {Tree#create created} this File
   #
-  # @return [Smb2::Packet::CreateResponse]
+  # @return [RubySMB::Smb2::Packet::CreateResponse]
   attr_accessor :create_response
 
   # Path to the remote file.
@@ -30,7 +30,7 @@ class RubySMB::Smb2::File
   # The last response we got from {#read}. Useful for figuring out what went
   # wrong.
   #
-  # @return [Smb2::Packet::ReadResponse]
+  # @return [RubySMB::Smb2::Packet::ReadResponse]
   attr_accessor :last_read_response
 
   # Current offset of the read/write pointer from the beginning of the file,
@@ -42,12 +42,12 @@ class RubySMB::Smb2::File
 
   # The tree that {Tree#create created} this File
   #
-  # @return [Smb2::Tree]
+  # @return [RubySMB::Smb2::Tree]
   attr_accessor :tree
 
-  # @param tree [Smb2::Tree] the Tree where this File was opened. See {#tree}
+  # @param tree [RubySMB::Smb2::Tree] the Tree where this File was opened. See {#tree}
   # @param filename [String] remote filesystem path of this File.
-  # @param create_response [Smb2::Packet::CreateResponse] the server's
+  # @param create_response [RubySMB::Smb2::Packet::CreateResponse] the server's
   #   response from when we {Tree#create created} this File. See
   #   {#create_response}
   def initialize(filename:, tree:, create_response:)
@@ -59,15 +59,15 @@ class RubySMB::Smb2::File
 
   # Close this File handle on the server
   #
-  # @return [Smb2::Packet::CloseResponse]
+  # @return [RubySMB::Smb2::Packet::CloseResponse]
   def close
-    packet = Smb2::Packet::CloseRequest.new(
+    packet = RubySMB::Smb2::Packet::CloseRequest.new(
       file_id: self.create_response.file_id
     )
 
     response = tree.send_recv(packet)
 
-    Smb2::Packet::CloseResponse.new(response)
+    RubySMB::Smb2::Packet::CloseResponse.new(response)
   end
 
   # Whether the current read/write pointer is at the end of the file
@@ -117,9 +117,9 @@ class RubySMB::Smb2::File
   # @param length [Fixnum] number of bytes to read, starting from `offset`. If
   #   this is greater than the server's maximum read size, the server will
   #   respond with STATUS_INVALID_PARAMETER
-  # @return [Smb2::Packet::ReadResponse]
+  # @return [RubySMB::Smb2::Packet::ReadResponse]
   def read_chunk(offset: self.pos, length: self.tree.client.max_read_size)
-    packet = Smb2::Packet::ReadRequest.new(
+    packet = RubySMB::Smb2::Packet::ReadRequest.new(
       read_offset: offset,
       read_length: length,
       file_id: self.create_response.file_id,
@@ -128,7 +128,7 @@ class RubySMB::Smb2::File
 
     response = tree.send_recv(packet)
 
-    response_packet = Smb2::Packet::ReadResponse.new(response)
+    response_packet = RubySMB::Smb2::Packet::ReadResponse.new(response)
     self.last_read_response = response_packet
 
     seek(response_packet.data_length, IO::SEEK_CUR)
@@ -168,16 +168,16 @@ class RubySMB::Smb2::File
   #
   # @return [Fixnum]
   def size
-    packet = Smb2::Packet::QueryInfoRequest.new(
-      info_type: Smb2::Packet::QUERY_INFO_TYPES[:FILE],
-      file_info_class: Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
-      output_buffer_length: Smb2::Packet::Query::STANDARD_INFORMATION_SIZE,
+    packet = RubySMB::Smb2::Packet::QueryInfoRequest.new(
+      info_type: RubySMB::Smb2::Packet::QUERY_INFO_TYPES[:FILE],
+      file_info_class: RubySMB::Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
+      output_buffer_length: RubySMB::Smb2::Packet::Query::STANDARD_INFORMATION_SIZE,
       input_buffer_length: 0,
       file_id: self.create_response.file_id
     )
     response = tree.send_recv(packet)
-    query_response = Smb2::Packet::QueryInfoResponse.new(response)
-    info = Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
+    query_response = RubySMB::Smb2::Packet::QueryInfoResponse.new(response)
+    info = RubySMB::Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
 
     info.end_of_file
   end
@@ -216,9 +216,9 @@ class RubySMB::Smb2::File
   #
   # @param data [String] what to write
   # @param offset [Fixnum] where in the file to start writing
-  # @return [Smb2::Packet::WriteResponse]
+  # @return [RubySMB::Smb2::Packet::WriteResponse]
   def write_chunk(data, offset: self.pos)
-    packet = Smb2::Packet::WriteRequest.new(
+    packet = RubySMB::Smb2::Packet::WriteRequest.new(
       file_offset: offset,
       file_id: self.create_response.file_id,
       data: data
@@ -226,7 +226,7 @@ class RubySMB::Smb2::File
 
     response = tree.send_recv(packet)
 
-    Smb2::Packet::WriteResponse.new(response)
+    RubySMB::Smb2::Packet::WriteResponse.new(response)
   end
 
 end

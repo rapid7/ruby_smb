@@ -32,7 +32,7 @@ require 'ruby_smb/smb2/packet'
 #    *                                                               *
 #    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 # ```
-class Smb2::Packet::Request < Smb2::Packet::Generic
+class RubySMB::Smb2::Packet::Request < RubySMB::Smb2::Packet::Generic
   def initialize(*args)
     super
     self.header_flags &= ~Smb2::Packet::HEADER_FLAGS[:RESPONSE]

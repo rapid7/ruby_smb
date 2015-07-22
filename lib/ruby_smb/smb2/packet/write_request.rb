@@ -3,7 +3,7 @@ require 'ruby_smb/smb2/packet'
 # [Section 2.2.21 SMB2 Write Request](http://msdn.microsoft.com/en-us/library/cc246532.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class Smb2::Packet::WriteRequest < Smb2::Packet::Request
+class RubySMB::Smb2::Packet::WriteRequest < RubySMB::Smb2::Packet::Request
 
   # A key in {Smb2::COMMANDS}
   COMMAND = :WRITE

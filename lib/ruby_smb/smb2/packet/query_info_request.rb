@@ -1,7 +1,7 @@
 require 'ruby_smb/smb2/packet'
 
-# @see Smb2::Packet::QUERY_INFO_TYPES
-class Smb2::Packet::QueryInfoRequest < Smb2::Packet::Request
+# @see RubySMB::Smb2::Packet::QUERY_INFO_TYPES
+class RubySMB::Smb2::Packet::QueryInfoRequest < RubySMB::Smb2::Packet::Request
 
   # A key in {Smb2::COMMANDS}
   COMMAND = :QUERY_INFO

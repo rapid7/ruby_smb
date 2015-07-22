@@ -6,7 +6,7 @@ require 'net/ntlm/client'
 #
 # @example Connect and authenticate
 #   sock = TCPSocket.new("192.168.100.140", 445)
-#   c = Smb2::Client.new(
+#   c = RubySMB::Smb2::Client.new(
 #     socket: sock,
 #     username:"administrator",
 #     password:"P@ssword1",
@@ -18,9 +18,9 @@ require 'net/ntlm/client'
 #
 class RubySMB::Smb2::Client
 
-  # @see Smb2::Packet::SECURITY_MODES
+  # @see RubySMB::Smb2::Packet::SECURITY_MODES
   # @return [Fixnum]
-  DEFAULT_SECURITY_MODE = Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+  DEFAULT_SECURITY_MODE = RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
 
   # The client's capabilities
   #
@@ -34,7 +34,7 @@ class RubySMB::Smb2::Client
   # @return [Fixnum]
   attr_accessor :dialect
 
-  # @return [Smb2::Dispatcher,#send_packet,#recv_packet]
+  # @return [RubySMB::Smb2::Dispatcher,#send_packet,#recv_packet]
   attr_accessor :dispatcher
 
   # The ActiveDirectory domain name to associate the client with
@@ -106,7 +106,7 @@ class RubySMB::Smb2::Client
   # @todo Kerberos, lol
   # @return [Fixnum] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
-    packet = Smb2::Packet::SessionSetupRequest.new(
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
     )
 
@@ -125,7 +125,7 @@ class RubySMB::Smb2::Client
 
     @session_id = response.session_id
 
-    packet = Smb2::Packet::SessionSetupRequest.new(
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
     )
 
@@ -159,7 +159,7 @@ class RubySMB::Smb2::Client
   #
   # @return [void]
   def negotiate
-    packet = Smb2::Packet::NegotiateRequest.new(
+    packet = RubySMB::Smb2::Packet::NegotiateRequest.new(
       dialects: "\x02\x02".force_encoding('binary'),
       dialect_count: 1,
       client_guid: 0,
@@ -221,22 +221,22 @@ class RubySMB::Smb2::Client
   #
   # @see http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx
   def signing_required?
-    Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
-      (security_mode & Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
+    RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
+      (security_mode & RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
   end
 
   # Connect to a share
   #
   # @param tree [String] Something like "\\\\hostname\\tree"
-  # @return [Smb2::Tree]
+  # @return [RubySMB::Smb2::Tree]
   def tree_connect(tree)
-    packet = Smb2::Packet::TreeConnectRequest.new(
+    packet = RubySMB::Smb2::Packet::TreeConnectRequest.new(
       tree: tree.encode("utf-16le")
     )
 
     response = send_recv(packet)
 
-    Smb2::Tree.new(client: self, share: tree, tree_connect_response: response)
+    RubySMB::Smb2::Tree.new(client: self, share: tree, tree_connect_response: response)
   end
 
   protected
