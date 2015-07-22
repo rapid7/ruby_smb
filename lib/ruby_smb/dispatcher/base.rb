@@ -1,4 +1,4 @@
-class Smb2::Dispatcher::Base
+class RubySMB::Dispatcher::Base
   # @param packet [#length]
   # @return [Fixnum] NBSS header to go in front of `packet`
   def nbss(packet)

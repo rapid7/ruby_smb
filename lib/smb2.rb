@@ -7,8 +7,7 @@ module Smb2
   autoload :File, 'smb2/file'
   autoload :Packet, 'smb2/packet'
   autoload :Tree, 'smb2/tree'
-  autoload :VERSION, 'smb2/version'
-  autoload :Version, 'smb2/version'
+
 
   # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
   COMMANDS = {

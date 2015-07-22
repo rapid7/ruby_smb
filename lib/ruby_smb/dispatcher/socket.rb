@@ -1,6 +1,6 @@
 require 'socket'
 
-class Smb2::Dispatcher::Socket < Smb2::Dispatcher::Base
+class RubySMB::Dispatcher::Socket < Smb2::Dispatcher::Base
 
   # @!attribute [rw] socket
   #   @return [IO]
