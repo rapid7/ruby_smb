@@ -1,5 +1,5 @@
-require 'smb2/dispatcher'
-class MockSocketDispatcher < Smb2::Dispatcher::Base
+require 'ruby_smb/dispatcher'
+class MockSocketDispatcher < RubySMB::Dispatcher::Base
 
   def recv_packet
     ""

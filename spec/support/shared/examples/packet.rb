@@ -5,8 +5,8 @@ RSpec.shared_examples 'packet' do
   context 'command' do
 
     specify do
-      expect(Smb2::COMMANDS).to include(subject.class::COMMAND)
-      expect(subject.command).to eq(Smb2::COMMANDS[subject.class::COMMAND])
+      expect(RubySMB::Smb2::COMMANDS).to include(subject.class::COMMAND)
+      expect(subject.command).to eq(RubySMB::Smb2::COMMANDS[subject.class::COMMAND])
     end
 
     it { is_expected.to respond_to(:magic) }
