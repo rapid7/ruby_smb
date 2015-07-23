@@ -154,7 +154,7 @@ module RubySMB::Smb2::Packet
     # @param session_key [String] the key to sign with
     # @return [void]
     def sign!(session_key)
-      self.signature = "\0"*16
+      self.signature = "\0" * 16
       self.header_flags |= RubySMB::Smb2::Packet::HEADER_FLAGS[:SIGNING]
 
       hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, self.to_s)
