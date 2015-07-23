@@ -2,3 +2,5 @@
 notifications:
   pullrequest:
     comment: verbose
+languages:
+  - ruby
