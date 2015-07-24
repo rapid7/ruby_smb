@@ -4,3 +4,7 @@ notifications:
     comment: verbose
 languages:
   - ruby
+rules:
+  ignore:
+    - avoid_similar_code
+    - refactor_complex_method
