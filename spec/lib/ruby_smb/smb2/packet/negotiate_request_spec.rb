@@ -15,9 +15,9 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateRequest do
       ].pack('H*')
     end
 
-    it_behaves_like "packet"
-    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:NEGOTIATE]
-    it_behaves_like "smb2_negotiate_packet_header"
+    it_behaves_like 'packet'
+    it_behaves_like 'request', RubySMB::Smb2::COMMANDS[:NEGOTIATE]
+    it_behaves_like 'smb2_negotiate_packet_header'
 
     context 'body' do
       specify do

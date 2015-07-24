@@ -14,8 +14,8 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
       ].pack('H*')
     end
 
-    it_behaves_like "packet"
-    it_behaves_like "write_response_channel_info"
+    it_behaves_like 'packet'
+    it_behaves_like 'write_response_channel_info'
 
     specify do
       expect(packet.struct_size).to eq(17)
@@ -43,7 +43,7 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
       )
     end
 
-    it_behaves_like "write_response_channel_info"
+    it_behaves_like 'write_response_channel_info'
 
     specify do
       expect(packet.struct_size).to eq(17)
@@ -70,7 +70,7 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
       end
     end
 
-    it_behaves_like "write_response_channel_info"
+    it_behaves_like 'write_response_channel_info'
 
     specify do
       expect(packet.struct_size).to eq(17)
