@@ -8,7 +8,6 @@ module RubySMB::Smb2
   autoload :Packet, 'ruby_smb/smb2/packet'
   autoload :Tree, 'ruby_smb/smb2/tree'
 
-
   # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
   COMMANDS = {
     NEGOTIATE:        0x00,

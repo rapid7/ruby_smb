@@ -5,7 +5,6 @@ RSpec.describe RubySMB::Smb2::Packet::CloseResponse do
     described_class.new(data)
   end
 
-
   context 'with packet bytes' do
     let(:data) do
       [

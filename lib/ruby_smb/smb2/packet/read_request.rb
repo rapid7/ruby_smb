@@ -13,7 +13,7 @@ class RubySMB::Smb2::Packet::ReadRequest < RubySMB::Smb2::Packet::Request
     READ_UNBUFFERED: 0x01
   }.freeze
 
-  #nest :header, RequestHeader
+  # nest :header, RequestHeader
 
   unsigned :struct_size, 16, default: 49
 

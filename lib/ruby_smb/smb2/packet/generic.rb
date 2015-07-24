@@ -1,5 +1,5 @@
-
 module RubySMB::Smb2::Packet
+  # Class that represents a generic SMB2 packet.
   class Generic < BitStruct
 
     # Values in SMB are always little endian. Make all fields default to little
@@ -112,7 +112,6 @@ module RubySMB::Smb2::Packet
       raise InvalidFlagError, flag.to_s unless HEADER_FLAG_NAMES.include?(flag)
       (header_flags & HEADER_FLAGS[flag]) == HEADER_FLAGS[flag]
     end
-
 
     # A generic flag checking method. Subclasses should have a field named
     # `flags`, and constants `FLAGS` and `FLAG_NAMES`.
