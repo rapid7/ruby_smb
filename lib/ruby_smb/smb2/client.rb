@@ -139,7 +139,7 @@ class RubySMB::Smb2::Client
     packet.security_blob = gss_type3(type3.serialize)
     response = send_recv(packet)
 
-    if response.nt_status == 0
+    if response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
       @state = :authenticated
     else
       @state = :authentication_failed

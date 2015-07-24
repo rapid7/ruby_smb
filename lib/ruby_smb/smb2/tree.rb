@@ -22,7 +22,7 @@ class RubySMB::Smb2::Tree
   # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, share:, tree_connect_response:)
-    unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
+    unless tree_connect_response.is_a?(RubySMB::Smb2::Packet::TreeConnectResponse)
       raise TypeError, "tree_connect_response must be a TreeConnectResponse"
     end
 
@@ -211,7 +211,7 @@ class RubySMB::Smb2::Tree
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_DATA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_APPEND_DATA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_EA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES] |
+        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES]
     when "r"
       access_mask = base_access_mask
     else
