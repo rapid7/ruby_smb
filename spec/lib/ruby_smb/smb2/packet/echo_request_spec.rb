@@ -16,7 +16,6 @@ RSpec.describe RubySMB::Smb2::Packet::EchoRequest do
       expect(structure_size_field.length).to eq 16
     end
 
-
     it "should be hardcoded to 4 bits per the SMB spec" do
       expect(echo_request_packet.structure_size).to eq 4
     end

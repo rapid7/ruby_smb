@@ -87,7 +87,7 @@ module RubySMB::Smb2::Packet
       # implicitly pass a block if one was given
       super
 
-      if !data_buffer_fields.empty?
+      unless data_buffer_fields.empty?
         data_buffer_fields.each do |buffer_name|
           @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end

@@ -47,9 +47,7 @@ RSpec.describe RubySMB::Smb2::Packet::Generic do
 
       specify do
         inst = nil
-        expect {
-          inst = klass.new(data: "asdf")
-        }.to_not raise_error
+        expect { inst = klass.new(data: "asdf") }.to_not raise_error
         expect(inst.struct_size).to eq(8)
         expect(inst.data_length).to eq(4)
         expect(inst.data).to eq("asdf")
@@ -61,11 +59,11 @@ RSpec.describe RubySMB::Smb2::Packet::Generic do
 
       specify do
         inst = nil
-        expect {
+        expect do
           inst = klass.new do |packet|
             packet.data = "asdf"
           end
-        }.to_not raise_error
+        end.to_not raise_error
         expect(inst.struct_size).to eq(8)
         expect(inst.data_length).to eq(4)
         expect(inst.data).to eq("asdf")
