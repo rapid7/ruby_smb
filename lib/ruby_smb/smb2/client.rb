@@ -1,5 +1,7 @@
 require 'net/ntlm'
 require 'net/ntlm/client'
+require 'windows_error'
+require 'windows_error/nt_status'
 
 # A client for holding the state of an SMB2 session.
 #
@@ -143,7 +145,7 @@ class RubySMB::Smb2::Client
       @state = :authentication_failed
     end
 
-    response.nt_status
+    WindowsError::NTStatus.find_by_retval(response.nt_status)
   end
 
   def inspect
