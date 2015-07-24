@@ -18,6 +18,11 @@ class RubySMB::Smb2::Tree
   # @return [RubySMB::Smb2::Packet::TreeConnectResponse]
   attr_accessor :tree_connect_response
 
+  # The NTStatus code received from the {TreeConnectResponse}
+  #
+  # @return [WindowsError::ErrorCode] the NTStatus code object
+  attr_accessor :tree_connect_status
+
   # @param client [Smb::Client] (see {#client})
   # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
@@ -29,6 +34,7 @@ class RubySMB::Smb2::Tree
     self.client = client
     self.share = share
     self.tree_connect_response = tree_connect_response
+    self.tree_connect_status = WindowsError::NTStatus.find_by_retval(tree_connect_response.nt_status).first
   end
 
   # Open a file handle
@@ -115,8 +121,8 @@ class RubySMB::Smb2::Tree
 
   # @return [String]
   def inspect
-    if tree_connect_response.nt_status != 0
-      stuff = "Error: #{tree_connect_response.nt_status.to_s 16}"
+    if tree_connect_response.nt_status != WindowsError::NTStatus::STATUS_SUCCESS
+      stuff = "Error: #{tree_connect_status.name}"
     else
       stuff = share
     end
