@@ -30,15 +30,15 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateResponse do
       end
 
       specify do
-        expect(packet.max_transaction_size).to eq(1048576)
+        expect(packet.max_transaction_size).to eq(1_048_576)
       end
 
       specify do
-        expect(packet.max_read_size).to eq(1048576)
+        expect(packet.max_read_size).to eq(1_048_576)
       end
 
       specify do
-        expect(packet.max_write_size).to eq(1048576)
+        expect(packet.max_write_size).to eq(1_048_576)
       end
 
     end

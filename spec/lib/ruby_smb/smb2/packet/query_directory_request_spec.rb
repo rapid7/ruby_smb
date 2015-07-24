@@ -45,7 +45,7 @@ RSpec.describe RubySMB::Smb2::Packet::QueryDirectoryRequest do
       end
 
       specify 'output_buffer_length' do
-        expect(packet.output_buffer_length).to eq(65535)
+        expect(packet.output_buffer_length).to eq(65_535)
       end
     end
 
