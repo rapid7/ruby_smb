@@ -1,7 +1,7 @@
 require 'socket'
 # This class provides a wrapper around a Socket for the packet Dispatcher.
 # It allows for dependency injection of different Socket implementations.
-class RubySMB::Dispatcher::Socket < Smb2::Dispatcher::Base
+class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
   # @!attribute [rw] socket
   #   @return [IO]
@@ -46,7 +46,7 @@ class RubySMB::Dispatcher::Socket < Smb2::Dispatcher::Base
       data << @socket.read(length - data.length)
     end
 
-    Smb2::Packet.parse(data)
+    RubySMB::Smb2::Packet.parse(data)
   end
 
 end

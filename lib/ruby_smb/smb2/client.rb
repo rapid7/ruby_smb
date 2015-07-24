@@ -196,7 +196,7 @@ class RubySMB::Smb2::Client
 
     # Sign the packet if necessary.
     # THIS MUST BE THE LAST THING WE DO BEFORE SENDING
-    if @session_id && signing_required? && !request.kind_of?(Smb2::Packet::SessionSetupRequest)
+    if @session_id && signing_required? && !request.kind_of?(RubySMB::Smb2::Packet::SessionSetupRequest)
       request.sign!(session_key)
     end
 
