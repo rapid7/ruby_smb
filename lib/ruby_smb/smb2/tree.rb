@@ -1,8 +1,6 @@
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class RubySMB::Smb2::Tree
 
-  STATUS_NO_MORE_FILES = 0x80000006
-
   # The {Smb2::Client} on which this Tree is connected.
   #
   # @return [RubySMB::Smb2::Client]
@@ -158,7 +156,7 @@ class RubySMB::Smb2::Tree
     response = send_recv(create_request)
     create_response = RubySMB::Smb2::Packet::CreateResponse.new(response)
 
-    unless create_response.nt_status.zero?
+    unless create_response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
       raise create_response.inspect
     end
 
@@ -174,9 +172,9 @@ class RubySMB::Smb2::Tree
       response = send_recv(directory_request)
       directory_response = RubySMB::Smb2::Packet::QueryDirectoryResponse.new(response)
 
-      break if directory_response.nt_status == STATUS_NO_MORE_FILES
+      break if directory_response.nt_status == WindowsError::NTStatus::STATUS_NO_MORE_FILES
 
-      unless directory_response.nt_status.zero?
+      unless directory_response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
         raise directory_response.inspect
       end
 
