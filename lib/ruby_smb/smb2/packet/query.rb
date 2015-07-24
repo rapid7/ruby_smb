@@ -16,6 +16,12 @@ module RubySMB::Smb2::Packet::Query
     FileNamesInformation: NamesInformation
   }
 
+  # Takes a blob of data received from the wire and converts it
+  # into an array of objects for the supplied class.
+  #
+  # @param blob [String] the blob of data taken from the wire.
+  # @param klass [Class] the class of objects to create from the blob
+  # @return [Array] the array of objects parsed from the blob
   def self.class_array_from_blob(blob, klass)
     class_array = []
     offset = 0
