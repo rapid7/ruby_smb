@@ -18,18 +18,7 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateResponse do
     end
 
     it_behaves_like "packet"
-
-    context 'header' do
-      specify do
-        expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
-      end
-      specify do
-        expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      end
-      specify do
-        expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:NEGOTIATE])
-      end
-    end
+    it_behaves_like "smb2_negotiate_packet_header"
 
     context 'body' do
       specify do
