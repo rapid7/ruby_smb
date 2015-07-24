@@ -15,6 +15,7 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
     end
 
     it_behaves_like "packet"
+    it_behaves_like "write_response_channel_info"
 
     specify do
       expect(packet.struct_size).to eq(17)
@@ -27,12 +28,6 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
     end
     specify do
       expect(packet.remaining).to eq(0)
-    end
-
-    specify do
-      expect(packet.channel_info_offset).to eq(0)
-      expect(packet.channel_info_length).to eq(0)
-      expect(packet.channel_info).to eq('')
     end
 
   end
@@ -48,6 +43,8 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
       )
     end
 
+    it_behaves_like "write_response_channel_info"
+
     specify do
       expect(packet.struct_size).to eq(17)
     end
@@ -60,13 +57,6 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
     specify do
       expect(packet.remaining).to eq(0)
     end
-
-    specify do
-      expect(packet.channel_info_offset).to eq(0)
-      expect(packet.channel_info_length).to eq(0)
-      expect(packet.channel_info).to eq('')
-    end
-
   end
 
   context 'when configured with a block' do
@@ -80,6 +70,8 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
       end
     end
 
+    it_behaves_like "write_response_channel_info"
+
     specify do
       expect(packet.struct_size).to eq(17)
     end
@@ -92,13 +84,6 @@ RSpec.describe RubySMB::Smb2::Packet::WriteResponse do
     specify do
       expect(packet.remaining).to eq(0)
     end
-
-    specify do
-      expect(packet.channel_info_offset).to eq(0)
-      expect(packet.channel_info_length).to eq(0)
-      expect(packet.channel_info).to eq('')
-    end
-
   end
 
 end
