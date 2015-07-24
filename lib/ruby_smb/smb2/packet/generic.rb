@@ -1,5 +1,5 @@
-
 module RubySMB::Smb2::Packet
+  # Class that represents a generic SMB2 packet.
   class Generic < BitStruct
 
     # Values in SMB are always little endian. Make all fields default to little
@@ -87,7 +87,7 @@ module RubySMB::Smb2::Packet
       # implicitly pass a block if one was given
       super
 
-      if !data_buffer_fields.empty?
+      unless data_buffer_fields.empty?
         data_buffer_fields.each do |buffer_name|
           @data_buffers[buffer_name] = self.send(buffer_name) || ""
         end
@@ -112,7 +112,6 @@ module RubySMB::Smb2::Packet
       raise InvalidFlagError, flag.to_s unless HEADER_FLAG_NAMES.include?(flag)
       (header_flags & HEADER_FLAGS[flag]) == HEADER_FLAGS[flag]
     end
-
 
     # A generic flag checking method. Subclasses should have a field named
     # `flags`, and constants `FLAGS` and `FLAG_NAMES`.
@@ -154,7 +153,7 @@ module RubySMB::Smb2::Packet
     # @param session_key [String] the key to sign with
     # @return [void]
     def sign!(session_key)
-      self.signature = "\0"*16
+      self.signature = "\0" * 16
       self.header_flags |= RubySMB::Smb2::Packet::HEADER_FLAGS[:SIGNING]
 
       hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, self.to_s)

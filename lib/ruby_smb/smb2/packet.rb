@@ -335,51 +335,51 @@ module RubySMB::Smb2
     def self.parse(data)
       generic = Generic.new(data)
 
-      case [ generic.command, generic.response? ]
+      case [generic.command, generic.response?]
 
-      when [ COMMANDS[:NEGOTIATE], true ]
+      when [COMMANDS[:NEGOTIATE], true]
         NegotiateResponse.new(generic)
-      when [ COMMANDS[:NEGOTIATE], false ]
+      when [COMMANDS[:NEGOTIATE], false]
         NegotiateRequest.new(generic)
 
-      when [ COMMANDS[:SESSION_SETUP], true ]
+      when [COMMANDS[:SESSION_SETUP], true]
         SessionSetupResponse.new(generic)
-      when [ COMMANDS[:SESSION_SETUP], false ]
+      when [COMMANDS[:SESSION_SETUP], false]
         SessionSetupRequest.new(generic)
 
-      when [ COMMANDS[:TREE_CONNECT], true ]
+      when [COMMANDS[:TREE_CONNECT], true]
         TreeConnectResponse.new(generic)
-      when [ COMMANDS[:TREE_CONNECT], false ]
+      when [COMMANDS[:TREE_CONNECT], false]
         TreeConnectRequest.new(generic)
 
-      when [ COMMANDS[:CREATE], true ]
+      when [COMMANDS[:CREATE], true]
         CreateResponse.new(generic)
-      when [ COMMANDS[:CREATE], false ]
+      when [COMMANDS[:CREATE], false]
         CreateRequest.new(generic)
 
-      when [ COMMANDS[:CLOSE], true ]
+      when [COMMANDS[:CLOSE], true]
         CloseResponse.new(generic)
-      when [ COMMANDS[:CLOSE], false ]
+      when [COMMANDS[:CLOSE], false]
         CloseRequest.new(generic)
 
-      when [ COMMANDS[:READ], true ]
+      when [COMMANDS[:READ], true]
         ReadResponse.new(generic)
-      when [ COMMANDS[:READ], false ]
+      when [COMMANDS[:READ], false]
         ReadRequest.new(generic)
 
-      when [ COMMANDS[:WRITE], true ]
+      when [COMMANDS[:WRITE], true]
         WriteResponse.new(generic)
-      when [ COMMANDS[:WRITE], false ]
+      when [COMMANDS[:WRITE], false]
         WriteRequest.new(generic)
 
-      when [ COMMANDS[:QUERY_DIRECTORY], true ]
+      when [COMMANDS[:QUERY_DIRECTORY], true]
         QueryDirectoryResponse.new(generic)
-      when [ COMMANDS[:QUERY_DIRECTORY], false ]
+      when [COMMANDS[:QUERY_DIRECTORY], false]
         QueryDirectoryRequest.new(generic)
 
-      when [ COMMANDS[:QUERY_INFO], true ]
+      when [COMMANDS[:QUERY_INFO], true]
         QueryInfoResponse.new(generic)
-      when [ COMMANDS[:QUERY_INFO], false ]
+      when [COMMANDS[:QUERY_INFO], false]
         QueryInfoRequest.new(generic)
 
       else

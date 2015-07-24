@@ -1,5 +1,6 @@
 require 'socket'
-
+# This class provides a wrapper around a Socket for the packet Dispatcher.
+# It allows for dependency injection of different Socket implementations.
 class RubySMB::Dispatcher::Socket < Smb2::Dispatcher::Base
 
   # @!attribute [rw] socket

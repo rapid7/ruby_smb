@@ -17,19 +17,8 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateResponse do
       ].pack('H*')
     end
 
-    it_behaves_like "packet"
-
-    context 'header' do
-      specify do
-        expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
-      end
-      specify do
-        expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      end
-      specify do
-        expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:NEGOTIATE])
-      end
-    end
+    it_behaves_like 'packet'
+    it_behaves_like 'smb2_negotiate_packet_header'
 
     context 'body' do
       specify do
@@ -41,15 +30,15 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateResponse do
       end
 
       specify do
-        expect(packet.max_transaction_size).to eq(1048576)
+        expect(packet.max_transaction_size).to eq(1_048_576)
       end
 
       specify do
-        expect(packet.max_read_size).to eq(1048576)
+        expect(packet.max_read_size).to eq(1_048_576)
       end
 
       specify do
-        expect(packet.max_write_size).to eq(1048576)
+        expect(packet.max_write_size).to eq(1_048_576)
       end
 
     end

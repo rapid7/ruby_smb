@@ -36,7 +36,7 @@ RSpec.describe RubySMB::Smb2::Packet::CreateResponse do
       expect(packet.end_of_file).to eq(0)
       expect(packet.file_attributes).to eq(0x0000_0080)
 
-      #expect(packet.reserved2).to eq(0)
+      # expect(packet.reserved2).to eq(0)
       expect(packet.file_id).to eq(["250000000000000001000000ffffffff"].pack('H*'))
     end
 

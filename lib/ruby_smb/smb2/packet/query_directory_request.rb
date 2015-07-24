@@ -32,7 +32,7 @@ class RubySMB::Smb2::Packet::QueryDirectoryRequest < RubySMB::Smb2::Packet::Requ
 
   data_buffer :file_name, 16
 
-  unsigned :output_buffer_length, 32, default: 65535
+  unsigned :output_buffer_length, 32, default: 65_535
 
   rest :buffer
 

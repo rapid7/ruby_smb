@@ -1,6 +1,5 @@
 require 'ruby_smb/smb2/packet'
 
-
 # [Section 2.2.3 SMB2 NEGOTIATE Request](https://msdn.microsoft.com/en-us/library/cc246543.aspx)
 class RubySMB::Smb2::Packet::NegotiateRequest < RubySMB::Smb2::Packet::Request
 

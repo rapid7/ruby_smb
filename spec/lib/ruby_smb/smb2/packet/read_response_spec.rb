@@ -57,5 +57,4 @@ RSpec.describe RubySMB::Smb2::Packet::ReadResponse do
 
   end
 
-
 end

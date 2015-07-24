@@ -197,29 +197,27 @@ class RubySMB::Smb2::Tree
   private
 
   def desired_access_from_mode(mode)
+    # Read-only is our base access here.
+    base_access_mask = RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
+      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_EA] |
+      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_ATTRIBUTES] |
+      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:READ_CONTROL] |
+      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:SYNCHRONIZE]
     case mode
     when "r+", "w+", "a+", "w", "a"
       # read/write and write-only. Samba's smbclient sets all the read flags
       # when writing, so emulate that.
-      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
+      access_mask = base_access_mask |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_DATA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_APPEND_DATA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_EA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_EA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_ATTRIBUTES] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:READ_CONTROL] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:SYNCHRONIZE]
     when "r"
-      # read-only
-      RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_DATA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_EA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_READ_ATTRIBUTES] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:READ_CONTROL] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:SYNCHRONIZE]
+      access_mask = base_access_mask
     else
       raise ArgumentError
     end
+    access_mask
   end
 
   def disposition_from_file_mode(mode)

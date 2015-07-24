@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.shared_examples "request" do |command|
+RSpec.shared_examples 'request' do |command|
   context 'header' do
     specify do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))

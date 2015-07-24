@@ -47,9 +47,7 @@ RSpec.describe RubySMB::Smb2::Packet::Generic do
 
       specify do
         inst = nil
-        expect {
-          inst = klass.new(data: "asdf")
-        }.to_not raise_error
+        expect { inst = klass.new(data: "asdf") }.to_not raise_error
         expect(inst.struct_size).to eq(8)
         expect(inst.data_length).to eq(4)
         expect(inst.data).to eq("asdf")
@@ -61,11 +59,11 @@ RSpec.describe RubySMB::Smb2::Packet::Generic do
 
       specify do
         inst = nil
-        expect {
+        expect do
           inst = klass.new do |packet|
             packet.data = "asdf"
           end
-        }.to_not raise_error
+        end.to_not raise_error
         expect(inst.struct_size).to eq(8)
         expect(inst.data_length).to eq(4)
         expect(inst.data).to eq("asdf")
@@ -141,16 +139,6 @@ RSpec.describe RubySMB::Smb2::Packet::Generic do
   end
 
   describe '#sign!' do
-    let(:klass) do
-      Class.new(described_class) do
-        # struct_size is part of the API and must be present
-        # 2 bytes for struct_size itself, 2 for data_offset, 4 for data_length
-        unsigned :struct_size, 16, default: 2 + 2 + 4
-        data_buffer :data, 32
-        rest :buffer
-      end
-    end
-
     let(:key) { "0123456789abcdef" }
 
     specify do

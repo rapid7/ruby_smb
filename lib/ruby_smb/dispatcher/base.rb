@@ -1,3 +1,4 @@
+# Provides the base class for the packet dispatcher.
 class RubySMB::Dispatcher::Base
   # @param packet [#length]
   # @return [Fixnum] NBSS header to go in front of `packet`
