@@ -106,38 +106,17 @@ class RubySMB::Smb2::Client
   # Currently only supports NTLM authentication.
   #
   # @todo Kerberos, lol
-  # @return [Fixnum] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
+  # @return [WindowsError::ErrorCode] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
-      security_mode: security_mode,
-    )
-
     @ntlm_client = Net::NTLM::Client.new(
       username,
       password,
       workstation: @local_workstation,
-      domain: @domain,
+      domain: @domain
     )
-
-    type1 = @ntlm_client.init_context
-
-    packet.security_blob = gss_type1(type1.serialize)
-
-    response = send_recv(packet)
-
+    response = ntlmssp_negotiate
     @session_id = response.session_id
-
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
-      security_mode: security_mode,
-    )
-
-    ssp_offset = response.security_blob.index("NTLMSSP")
-    resp_blob = response.security_blob.slice(ssp_offset..-1)
-
-    type3 = @ntlm_client.init_context([resp_blob].pack("m"))
-
-    packet.security_blob = gss_type3(type3.serialize)
-    response = send_recv(packet)
+    response = ntlmssp_auth(response)
 
     if response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
       @state = :authenticated
@@ -182,6 +161,38 @@ class RubySMB::Smb2::Client
 
     # XXX do we need the Server GUID?
     response
+  end
+
+  # Sends a {SessionSetupRequest} packet with the
+  # NTLMSSP_AUTH data to complete authentication handshake.
+  #
+  # @param challenge [RubySMB::Smb2::Packet::SessionSetupResponse]  the response packet from #ntlmssp_negotiate
+  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the final SessionSetup Response packet
+  def ntlmssp_auth(challenge)
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+      security_mode: security_mode,
+    )
+
+    ssp_offset = challenge.security_blob.index("NTLMSSP")
+    resp_blob = challenge.security_blob.slice(ssp_offset..-1)
+
+    type3 = @ntlm_client.init_context([resp_blob].pack("m"))
+
+    packet.security_blob = gss_type3(type3.serialize)
+    send_recv(packet)
+  end
+
+  # Sends a {SessionSetupRequest} packet with the
+  # NTLMSSP_NEGOTIATE data to initiate authentication handshake.
+  #
+  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the first SessionSetup Response packet
+  def ntlmssp_negotiate
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+      security_mode: security_mode,
+    )
+    type1 = @ntlm_client.init_context
+    packet.security_blob = gss_type1(type1.serialize)
+    send_recv(packet)
   end
 
   # Adjust `request`'s header with an appropriate sequence number and session
