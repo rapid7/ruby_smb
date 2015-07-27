@@ -20,7 +20,7 @@ RSpec.describe RubySMB::Smb2::Client do
 
     let(:negotiate_response) { RubySMB::Smb2::Packet::NegotiateResponse.new }
 
-    context '#negotiate' do
+    describe '#negotiate' do
       it 'runs without error' do
         expect{ client.negotiate }.not_to raise_error
       end
@@ -39,7 +39,7 @@ RSpec.describe RubySMB::Smb2::Client do
 
     end
 
-    context '#authenticate' do
+    describe '#authenticate' do
       before do
         expect{ client.negotiate }.not_to raise_error
         expect(client).to receive(:ntlmssp_negotiate).and_return(challenge)
@@ -65,7 +65,7 @@ RSpec.describe RubySMB::Smb2::Client do
 
       context 'with invalid credentials' do
         before do
-          response.nt_status = 3221225581
+          response.nt_status = 3_221_225_581
         end
 
         it 'returns WindowsError::NTStatus::STATUS_LOGON_FAILURE' do
@@ -78,7 +78,7 @@ RSpec.describe RubySMB::Smb2::Client do
       end
     end
 
-    context '#ntlmssp_negotiate' do
+    describe '#ntlmssp_negotiate' do
       before do
         expect{ client.negotiate }.not_to raise_error
         expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::Smb2::Packet::SessionSetupRequest)
@@ -90,4 +90,6 @@ RSpec.describe RubySMB::Smb2::Client do
       end
     end
   end
+
+
 end
