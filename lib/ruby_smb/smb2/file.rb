@@ -71,7 +71,7 @@ class RubySMB::Smb2::File
   #
   # @return [Boolean]
   def eof?
-    (last_read_response && last_read_response.nt_status == Windows::Error::NTStatus::STATUS_END_OF_FILE) || pos == size
+    (last_read_response && last_read_response.nt_status == WindowsError::NTStatus::STATUS_END_OF_FILE) || pos == size
   end
 
   # @return [String]

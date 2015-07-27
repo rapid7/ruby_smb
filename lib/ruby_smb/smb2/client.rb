@@ -81,6 +81,11 @@ class RubySMB::Smb2::Client
   # @return [Fixnum]
   attr_accessor :security_mode
 
+  # The client's current state.
+  #
+  # @return [Symbol]
+  attr_accessor :state
+
   # The ActiveDirectory username to authenticate with
   #
   # @return [String]
@@ -99,6 +104,12 @@ class RubySMB::Smb2::Client
     @password    = password.encode("utf-8")
     @session_id  = nil
     @username    = username.encode("utf-8")
+    @ntlm_client = Net::NTLM::Client.new(
+      username,
+      password,
+      workstation: @local_workstation,
+      domain: @domain
+    )
   end
 
   # Set up an authenticated session with the server.
@@ -108,12 +119,6 @@ class RubySMB::Smb2::Client
   # @todo Kerberos, lol
   # @return [WindowsError::ErrorCode] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
-    @ntlm_client = Net::NTLM::Client.new(
-      username,
-      password,
-      workstation: @local_workstation,
-      domain: @domain
-    )
     response = ntlmssp_negotiate
     @session_id = response.session_id
     response = ntlmssp_auth(response)
@@ -124,7 +129,7 @@ class RubySMB::Smb2::Client
       @state = :authentication_failed
     end
 
-    WindowsError::NTStatus.find_by_retval(response.nt_status)
+    WindowsError::NTStatus.find_by_retval(response.nt_status).first
   end
 
   def inspect
