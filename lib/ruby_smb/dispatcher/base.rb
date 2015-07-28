@@ -13,6 +13,6 @@ class RubySMB::Dispatcher::Base
 
   # @abstract
   def recv_packet
-    raise NotImplementedError
+    raise NotImlementedError
   end
 end
