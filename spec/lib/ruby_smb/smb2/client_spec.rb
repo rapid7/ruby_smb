@@ -65,7 +65,7 @@ RSpec.describe RubySMB::Smb2::Client do
 
       context 'with invalid credentials' do
         before do
-          response.nt_status = 3_221_225_581
+          response.nt_status = 0xC000006D
         end
 
         it 'returns WindowsError::NTStatus::STATUS_LOGON_FAILURE' do
