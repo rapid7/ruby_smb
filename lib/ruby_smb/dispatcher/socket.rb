@@ -30,13 +30,16 @@ class RubySMB::Dispatcher::Socket < Smb2::Dispatcher::Base
     nil
   end
 
+  # Read a packet off the wire and parse it into a string
+  # Throw Error::NetBiosSessionService if there's an error reading the first 4 bytes,
+  # which are assumed to be the NetBiosSessionService header.
   # @return [String]
   # @todo should return Smb2::Packet
   def recv_packet
     IO.select([@socket])
-    nbss_header = @socket.read(4)
+    nbss_header = @socket.read(4) # Length of NBSS header. TODO: remove to a constant
     if nbss_header.nil?
-      raise "omg"
+      raise RubySmb::Error::NetBiosSessionService, "NBSS Header is missing"
     else
       length = nbss_header.unpack("N").first
     end

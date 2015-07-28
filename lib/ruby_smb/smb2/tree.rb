@@ -23,7 +23,7 @@ class RubySMB::Smb2::Tree
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, share:, tree_connect_response:)
     unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
-      raise TypeError, "tree_connect_response must be a TreeConnectResponse"
+      raise ArgumentError, "tree_connect_response must be a TreeConnectResponse"
     end
 
     self.client = client
@@ -133,6 +133,8 @@ class RubySMB::Smb2::Tree
   # @param pattern [String] search pattern
   # @param type [Symbol] file information class
   # @return [Array] array of directory structures
+  # @todo refactor this method to not rely on exceptions
+  # @todo refactor exception-with-inspect pattern to use logging
   def list(directory: nil, pattern: '*', type: :FileNamesInformation)
     create_request = RubySMB::Smb2::Packet::CreateRequest.new(
       impersonation: RubySMB::Smb2::Packet::IMPERSONATION_LEVELS[:IMPERSONATION],
@@ -142,9 +144,11 @@ class RubySMB::Smb2::Tree
       create_options: RubySMB::Smb2::Packet::CREATE_OPTIONS[:FILE_DIRECTORY_FILE]
     )
 
+    # TODO: add some inline doc for this if block
+    # TODO: change magic format string to be a constant
     if directory
       create_request.filename = directory.encode('utf-16le')
-    else # y u do dis microsoft
+    else
       create_request.filename = "\x00"
       create_request.filename_length = 0
     end
@@ -153,7 +157,7 @@ class RubySMB::Smb2::Tree
     create_response = RubySMB::Smb2::Packet::CreateResponse.new(response)
 
     unless create_response.nt_status.zero?
-      raise create_response.inspect
+      raise create_response.inspect # TODO: log this instead of stopping the world
     end
 
     directory_request = RubySMB::Smb2::Packet::QueryDirectoryRequest.new(
@@ -171,7 +175,7 @@ class RubySMB::Smb2::Tree
       break if directory_response.nt_status == STATUS_NO_MORE_FILES
 
       unless directory_response.nt_status.zero?
-        raise directory_response.inspect
+        raise directory_response.inspect # TODO: log this instead of stopping the world
       end
 
       blob = directory_response.output_buffer
@@ -211,11 +215,11 @@ class RubySMB::Smb2::Tree
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_DATA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_APPEND_DATA] |
         RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_EA] |
-        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES] |
+        RubySMB::Smb2::Packet::FILE_ACCESS_MASK[:FILE_WRITE_ATTRIBUTES]
     when "r"
       access_mask = base_access_mask
     else
-      raise ArgumentError
+      raise ArgumentError, "mode is not a valid file mode"
     end
     access_mask
   end
@@ -230,7 +234,7 @@ class RubySMB::Smb2::Tree
     when "a", "a+"
       RubySMB::Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN_IF]
     else
-      raise ArgumentError
+      raise ArgumentError, "mode is not a valid file mode"
     end
   end
 

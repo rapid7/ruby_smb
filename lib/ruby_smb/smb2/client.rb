@@ -242,30 +242,30 @@ class RubySMB::Smb2::Client
   protected
 
   # Cargo culted from Rex
+  # @todo Document these magic numbers
   def asn1encode(str = '')
-    res = ''
-
     # If the high bit of the first byte is 1, it contains the number of
     # length bytes that follow
 
     case str.length
     when 0..0x7F
-      res = [str.length].pack('C') + str
+      encoded_string = [str.length].pack('C') + str
     when 0x80..0xFF
-      res = [0x81, str.length].pack('CC') + str
+      encoded_string = [0x81, str.length].pack('CC') + str
     when 0x100..0xFFFF
-      res = [0x82, str.length].pack('Cn') + str
+      encoded_string = [0x82, str.length].pack('Cn') + str
     when  0x10000..0xffffff
-      res = [0x83, str.length >> 16, str.length & 0xFFFF].pack('CCn') + str
+      encoded_string = [0x83, str.length >> 16, str.length & 0xFFFF].pack('CCn') + str
     when  0x1000000..0xffffffff
-      res = [0x84, str.length].pack('CN') + str
+      encoded_string = [0x84, str.length].pack('CN') + str
     else
-      raise "ASN1 str too long"
+      raise RubySmb::Error::ASN1Encoding, "Source string is too long. Size is #{str.length}"
     end
 
-    res
+    encoded_string
   end
 
+  # @todo Document these magic bytes
   def gss_type1(type1)
     "\x60".force_encoding("binary") + self.asn1encode(
       "\x06".force_encoding("binary") + self.asn1encode(

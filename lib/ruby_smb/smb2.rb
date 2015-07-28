@@ -4,6 +4,7 @@
 module RubySMB::Smb2
   autoload :Client, 'ruby_smb/smb2/client'
   autoload :Dispatcher, 'ruby_smb/smb2/dispatcher'
+  autoload :Error, 'ruby_smb/smb2/error'
   autoload :File, 'ruby_smb/smb2/file'
   autoload :Packet, 'ruby_smb/smb2/packet'
   autoload :Tree, 'ruby_smb/smb2/tree'
