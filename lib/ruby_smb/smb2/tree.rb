@@ -22,9 +22,7 @@ class RubySMB::Smb2::Tree
   # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, share:, tree_connect_response:)
-    unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
-      raise TypeError, "tree_connect_response must be a TreeConnectResponse"
-    end
+    raise TypeError, "tree_connect_response must be a TreeConnectResponse" unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
 
     self.client = client
     self.share = share
@@ -215,7 +213,7 @@ class RubySMB::Smb2::Tree
     when "r"
       access_mask = base_access_mask
     else
-      raise ArgumentError
+      raise ArgumentError, "mode is not a valid file mode"
     end
     access_mask
   end
@@ -230,7 +228,7 @@ class RubySMB::Smb2::Tree
     when "a", "a+"
       RubySMB::Smb2::Packet::CREATE_DISPOSITIONS[:FILE_OPEN_IF]
     else
-      raise ArgumentError
+      raise ArgumentError, "mode is not a valid file mode"
     end
   end
 
