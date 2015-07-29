@@ -5,6 +5,7 @@ module RubySMB
     module Packet
       autoload :SmbParameterBlock, 'ruby_smb/smb1/packet/smb_parameter_block'
       autoload :SmbHeader, 'ruby_smb/smb1/packet/smb_header'
+      autoload :SmbDataBlock, 'ruby_smb/smb1/packet/smb_data_block'
     end
   end
 end
