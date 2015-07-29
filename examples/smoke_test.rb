@@ -3,7 +3,7 @@
 require 'bundler/setup'
 
 require 'optparse'
-require 'smb2'
+require 'ruby_smb'
 
 username = "msfadmin"
 password = "msfadmin"
@@ -25,10 +25,10 @@ end
 
 op.parse!(ARGV)
 
-d = Smb2::Dispatcher::Socket.connect(host, 445)
+d = RubySMB::Dispatcher::Socket.connect(host, 445)
 puts "Connected"
 
-c = Smb2::Client.new(dispatcher: d, username: username, password: password)
+c = RubySMB::Smb2::Client.new(dispatcher: d, username: username, password: password)
 
 c.negotiate
 result = c.authenticate

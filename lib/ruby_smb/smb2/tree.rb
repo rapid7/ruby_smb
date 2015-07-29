@@ -25,7 +25,7 @@ class RubySMB::Smb2::Tree
   # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
   def initialize(client:, share:, tree_connect_response:)
-    unless tree_connect_response.is_a?(Smb2::Packet::TreeConnectResponse)
+    unless tree_connect_response.is_a?(RubySMB::Smb2::Packet::TreeConnectResponse)
       raise ArgumentError, "tree_connect_response must be a TreeConnectResponse"
     end
 

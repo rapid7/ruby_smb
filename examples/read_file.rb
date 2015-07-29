@@ -2,7 +2,7 @@
 
 require 'bundler/setup'
 
-require 'smb2'
+require 'ruby_smb'
 
 host = ARGV.first
 if host.nil?
@@ -10,9 +10,9 @@ if host.nil?
   exit 1
 end
 
-d = Smb2::Dispatcher::Socket.connect(host, 445)
+d = RubySMB::Dispatcher::Socket.connect(host, 445)
 
-c = Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
+c = RubySMB::Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
 
 c.negotiate
 c.authenticate

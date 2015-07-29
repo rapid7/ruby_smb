@@ -1,4 +1,4 @@
-module RubySmb::Error
+module RubySMB::Error
   # Raised when there is a length or formatting issue with an ASN1-encoded string
   # @see https://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One
   # @todo Find an SMB-specific link for ASN1 above
