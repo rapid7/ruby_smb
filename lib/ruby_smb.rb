@@ -8,4 +8,5 @@ module RubySMB
   autoload :VERSION, 'ruby_smb/version'
   autoload :Version, 'ruby_smb/version'
   autoload :Smb2, 'ruby_smb/smb2'
+  autoload :Smb1, 'ruby_smb/smb1'
 end
