@@ -8,6 +8,7 @@ module RubySMB
         rest :words
 
         def words=(value)
+          raise ArgumentError, "value must be a binary string" unless value.kind_of? String
           self[1,(1 + value.length)] = value.force_encoding('binary')
           self.word_count = (self.words.size/2)
         end
