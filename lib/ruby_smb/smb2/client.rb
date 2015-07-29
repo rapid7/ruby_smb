@@ -277,7 +277,7 @@ class RubySMB::Smb2::Client
     when  0x1000000..0xffffffff
       encoded_string = [0x84, str.length].pack('CN') + str
     else
-      raise RubySmb::Error::ASN1Encoding, "Source string is too long. Size is #{str.length}"
+      raise RubySMB::Smb2::Error::ASN1Encoding, "Source string is too long. Size is #{str.length}"
     end
 
     encoded_string

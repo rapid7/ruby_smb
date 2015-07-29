@@ -39,7 +39,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
     IO.select([@socket])
     nbss_header = @socket.read(4) # Length of NBSS header. TODO: remove to a constant
     if nbss_header.nil?
-      raise RubySmb::Error::NetBiosSessionService, "NBSS Header is missing"
+      raise RubySMB::Smb2::Error::NetBiosSessionService, "NBSS Header is missing"
     else
       length = nbss_header.unpack("N").first
     end
