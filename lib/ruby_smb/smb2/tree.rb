@@ -1,8 +1,6 @@
 # A connected tree, as returned by a {Smb2::Packet::TreeConnectRequest}.
 class RubySMB::Smb2::Tree
 
-  STATUS_NO_MORE_FILES = 0x80000006
-
   # The {Smb2::Client} on which this Tree is connected.
   #
   # @return [RubySMB::Smb2::Client]
@@ -18,6 +16,11 @@ class RubySMB::Smb2::Tree
   # @return [RubySMB::Smb2::Packet::TreeConnectResponse]
   attr_accessor :tree_connect_response
 
+  # The NTStatus code received from the {TreeConnectResponse}
+  #
+  # @return [WindowsError::ErrorCode] the NTStatus code object
+  attr_accessor :tree_connect_status
+
   # @param client [Smb::Client] (see {#client})
   # @param share [String] (see {#share})
   # @param tree_connect_response [Smb::Packet::TreeConnectResponse]
@@ -29,6 +32,7 @@ class RubySMB::Smb2::Tree
     self.client = client
     self.share = share
     self.tree_connect_response = tree_connect_response
+    self.tree_connect_status = WindowsError::NTStatus.find_by_retval(tree_connect_response.nt_status).first
   end
 
   # Open a file handle
@@ -115,8 +119,8 @@ class RubySMB::Smb2::Tree
 
   # @return [String]
   def inspect
-    if tree_connect_response.nt_status != 0
-      stuff = "Error: #{tree_connect_response.nt_status.to_s 16}"
+    if tree_connect_response.nt_status != WindowsError::NTStatus::STATUS_SUCCESS
+      stuff = "Error: #{tree_connect_status.name}"
     else
       stuff = share
     end
@@ -156,8 +160,8 @@ class RubySMB::Smb2::Tree
     response = send_recv(create_request)
     create_response = RubySMB::Smb2::Packet::CreateResponse.new(response)
 
-    unless create_response.nt_status.zero?
-      raise create_response.inspect # TODO: log this instead of stopping the world
+    unless create_response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
+      raise create_response.inspect
     end
 
     directory_request = RubySMB::Smb2::Packet::QueryDirectoryRequest.new(
@@ -172,10 +176,10 @@ class RubySMB::Smb2::Tree
       response = send_recv(directory_request)
       directory_response = RubySMB::Smb2::Packet::QueryDirectoryResponse.new(response)
 
-      break if directory_response.nt_status == STATUS_NO_MORE_FILES
+      break if directory_response.nt_status == WindowsError::NTStatus::STATUS_NO_MORE_FILES
 
-      unless directory_response.nt_status.zero?
-        raise directory_response.inspect # TODO: log this instead of stopping the world
+      unless directory_response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
+        raise directory_response.inspect
       end
 
       blob = directory_response.output_buffer

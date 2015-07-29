@@ -2,9 +2,6 @@
 # An open file on the remote filesystem.
 class RubySMB::Smb2::File
 
-  # Some day we'll document all of these in one place
-  STATUS_END_OF_FILE = 0xC0000011
-
   # The server's response from when we {Tree#create created} this File
   #
   # @return [RubySMB::Smb2::Packet::CreateResponse]
@@ -74,7 +71,7 @@ class RubySMB::Smb2::File
   #
   # @return [Boolean]
   def eof?
-    (last_read_response && last_read_response.nt_status == STATUS_END_OF_FILE) || pos == size
+    (last_read_response && last_read_response.nt_status == WindowsError::NTStatus::STATUS_END_OF_FILE) || pos == size
   end
 
   # @return [String]
@@ -199,7 +196,7 @@ class RubySMB::Smb2::File
       response_packet = write_chunk(data_chunk, offset: pos)
 
       # @todo raise instead?
-      break if response_packet.nt_status != 0
+      break if response_packet.nt_status != WindowsError::NTStatus::STATUS_SUCCESS
 
       bytes_written += response_packet.byte_count
       seek(offset + bytes_written)

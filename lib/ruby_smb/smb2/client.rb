@@ -1,5 +1,7 @@
 require 'net/ntlm'
 require 'net/ntlm/client'
+require 'windows_error'
+require 'windows_error/nt_status'
 
 # A client for holding the state of an SMB2 session.
 #
@@ -79,6 +81,11 @@ class RubySMB::Smb2::Client
   # @return [Fixnum]
   attr_accessor :security_mode
 
+  # The client's current state.
+  #
+  # @return [Symbol]
+  attr_accessor :state
+
   # The ActiveDirectory username to authenticate with
   #
   # @return [String]
@@ -97,6 +104,12 @@ class RubySMB::Smb2::Client
     @password    = password.encode("utf-8")
     @session_id  = nil
     @username    = username.encode("utf-8")
+    @ntlm_client = Net::NTLM::Client.new(
+      username,
+      password,
+      workstation: @local_workstation,
+      domain: @domain
+    )
   end
 
   # Set up an authenticated session with the server.
@@ -104,46 +117,19 @@ class RubySMB::Smb2::Client
   # Currently only supports NTLM authentication.
   #
   # @todo Kerberos, lol
-  # @return [Fixnum] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
+  # @return [WindowsError::ErrorCode] 32-bit NT_STATUS from the {Packet::SessionSetupResponse response}
   def authenticate
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
-      security_mode: security_mode,
-    )
-
-    @ntlm_client = Net::NTLM::Client.new(
-      username,
-      password,
-      workstation: @local_workstation,
-      domain: @domain,
-    )
-
-    type1 = @ntlm_client.init_context
-
-    packet.security_blob = gss_type1(type1.serialize)
-
-    response = send_recv(packet)
-
+    response = ntlmssp_negotiate
     @session_id = response.session_id
+    response = ntlmssp_auth(response)
 
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
-      security_mode: security_mode,
-    )
-
-    ssp_offset = response.security_blob.index("NTLMSSP")
-    resp_blob = response.security_blob.slice(ssp_offset..-1)
-
-    type3 = @ntlm_client.init_context([resp_blob].pack("m"))
-
-    packet.security_blob = gss_type3(type3.serialize)
-    response = send_recv(packet)
-
-    if response.nt_status == 0
+    if response.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
       @state = :authenticated
     else
       @state = :authentication_failed
     end
 
-    response.nt_status
+    WindowsError::NTStatus.find_by_retval(response.nt_status).first
   end
 
   def inspect
@@ -182,6 +168,38 @@ class RubySMB::Smb2::Client
     response
   end
 
+  # Sends a {SessionSetupRequest} packet with the
+  # NTLMSSP_AUTH data to complete authentication handshake.
+  #
+  # @param challenge [RubySMB::Smb2::Packet::SessionSetupResponse]  the response packet from #ntlmssp_negotiate
+  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the final SessionSetup Response packet
+  def ntlmssp_auth(challenge)
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+      security_mode: security_mode,
+    )
+
+    ssp_offset = challenge.security_blob.index("NTLMSSP")
+    resp_blob = challenge.security_blob.slice(ssp_offset..-1)
+
+    type3 = @ntlm_client.init_context([resp_blob].pack("m"))
+
+    packet.security_blob = gss_type3(type3.serialize)
+    send_recv(packet)
+  end
+
+  # Sends a {SessionSetupRequest} packet with the
+  # NTLMSSP_NEGOTIATE data to initiate authentication handshake.
+  #
+  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the first SessionSetup Response packet
+  def ntlmssp_negotiate
+    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+      security_mode: security_mode,
+    )
+    type1 = @ntlm_client.init_context
+    packet.security_blob = gss_type1(type1.serialize)
+    send_recv(packet)
+  end
+
   # Adjust `request`'s header with an appropriate sequence number and session
   # id, then send it and wait for a response.
   #
@@ -196,7 +214,7 @@ class RubySMB::Smb2::Client
 
     # Sign the packet if necessary.
     # THIS MUST BE THE LAST THING WE DO BEFORE SENDING
-    if @session_id && signing_required? && !request.kind_of?(Smb2::Packet::SessionSetupRequest)
+    if @session_id && signing_required? && !request.kind_of?(RubySMB::Smb2::Packet::SessionSetupRequest)
       request.sign!(session_key)
     end
 
