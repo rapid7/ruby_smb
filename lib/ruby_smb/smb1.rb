@@ -3,4 +3,6 @@
 module RubySMB::Smb1
   autoload :Packet, 'ruby_smb/smb1/packet'
 
+  # Protocol ID value. Translates to \xFFSMB
+  SMB_PROTOCOL_ID = 0xFF534D42
 end

@@ -16,4 +16,10 @@ RSpec.describe RubySMB::Smb1::Packet::SmbHeader do
   it { is_expected.to respond_to :pid_low }
   it { is_expected.to respond_to :uid }
   it { is_expected.to respond_to :mid }
+
+  describe 'defaults' do
+    it 'sets protocol to the SMB_PROTOCOL_ID by default' do
+      expect(header.protocol).to eq RubySMB::Smb1::SMB_PROTOCOL_ID
+    end
+  end
 end
