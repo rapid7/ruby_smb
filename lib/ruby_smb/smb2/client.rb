@@ -1,7 +1,3 @@
-require 'net/ntlm'
-require 'net/ntlm/client'
-require 'windows_error'
-require 'windows_error/nt_status'
 
 # A client for holding the state of an SMB2 session.
 #
