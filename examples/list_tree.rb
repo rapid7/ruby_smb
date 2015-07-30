@@ -12,7 +12,7 @@ end
 
 d = RubySMB::Dispatcher::Socket.connect(host, 445)
 
-c = RubySMB::Smb2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
+c = RubySMB::SMB2::Client.new(dispatcher: d, username: "msfadmin", password: "msfadmin")
 
 c.negotiate
 c.authenticate

@@ -1,10 +1,10 @@
 
 # An open file on the remote filesystem.
-class RubySMB::Smb2::File
+class RubySMB::SMB2::File
 
   # The server's response from when we {Tree#create created} this File
   #
-  # @return [RubySMB::Smb2::Packet::CreateResponse]
+  # @return [RubySMB::SMB2::Packet::CreateResponse]
   attr_accessor :create_response
 
   # Path to the remote file.
@@ -27,7 +27,7 @@ class RubySMB::Smb2::File
   # The last response we got from {#read}. Useful for figuring out what went
   # wrong.
   #
-  # @return [RubySMB::Smb2::Packet::ReadResponse]
+  # @return [RubySMB::SMB2::Packet::ReadResponse]
   attr_accessor :last_read_response
 
   # Current offset of the read/write pointer from the beginning of the file,
@@ -39,12 +39,12 @@ class RubySMB::Smb2::File
 
   # The tree that {Tree#create created} this File
   #
-  # @return [RubySMB::Smb2::Tree]
+  # @return [RubySMB::SMB2::Tree]
   attr_accessor :tree
 
-  # @param tree [RubySMB::Smb2::Tree] the Tree where this File was opened. See {#tree}
+  # @param tree [RubySMB::SMB2::Tree] the Tree where this File was opened. See {#tree}
   # @param filename [String] remote filesystem path of this File.
-  # @param create_response [RubySMB::Smb2::Packet::CreateResponse] the server's
+  # @param create_response [RubySMB::SMB2::Packet::CreateResponse] the server's
   #   response from when we {Tree#create created} this File. See
   #   {#create_response}
   def initialize(filename:, tree:, create_response:)
@@ -56,15 +56,15 @@ class RubySMB::Smb2::File
 
   # Close this File handle on the server
   #
-  # @return [RubySMB::Smb2::Packet::CloseResponse]
+  # @return [RubySMB::SMB2::Packet::CloseResponse]
   def close
-    packet = RubySMB::Smb2::Packet::CloseRequest.new(
+    packet = RubySMB::SMB2::Packet::CloseRequest.new(
       file_id: self.create_response.file_id
     )
 
     response = tree.send_recv(packet)
 
-    RubySMB::Smb2::Packet::CloseResponse.new(response)
+    RubySMB::SMB2::Packet::CloseResponse.new(response)
   end
 
   # Whether the current read/write pointer is at the end of the file
@@ -76,7 +76,7 @@ class RubySMB::Smb2::File
 
   # @return [String]
   def inspect
-    "#<Smb2::File:#{tree.share}\\#{filename} file-id=#{create_response.file_id.unpack("H*").first} >"
+    "#<SMB2::File:#{tree.share}\\#{filename} file-id=#{create_response.file_id.unpack("H*").first} >"
   end
 
   # Call {#read_chunk} repeatedly until we get `length` bytes or hit {#eof?
@@ -104,19 +104,19 @@ class RubySMB::Smb2::File
     data
   end
 
-  # Send a single {Smb2::Packet::ReadRequest ReadRequest} and return the data.
+  # Send a single {SMB2::Packet::ReadRequest ReadRequest} and return the data.
   #
   # @note Does not handle files being too large for a single request. See
-  #   {#read} if `length` is greater than {Smb2::Client#max_read_size
+  #   {#read} if `length` is greater than {SMB2::Client#max_read_size
   #   tree.client.max_read_size}
   #
   # @param offset [Fixnum] offset from the beginning of the file (*default*: 0)
   # @param length [Fixnum] number of bytes to read, starting from `offset`. If
   #   this is greater than the server's maximum read size, the server will
   #   respond with STATUS_INVALID_PARAMETER
-  # @return [RubySMB::Smb2::Packet::ReadResponse]
+  # @return [RubySMB::SMB2::Packet::ReadResponse]
   def read_chunk(offset: self.pos, length: self.tree.client.max_read_size)
-    packet = RubySMB::Smb2::Packet::ReadRequest.new(
+    packet = RubySMB::SMB2::Packet::ReadRequest.new(
       read_offset: offset,
       read_length: length,
       file_id: self.create_response.file_id,
@@ -125,7 +125,7 @@ class RubySMB::Smb2::File
 
     response = tree.send_recv(packet)
 
-    response_packet = RubySMB::Smb2::Packet::ReadResponse.new(response)
+    response_packet = RubySMB::SMB2::Packet::ReadResponse.new(response)
     self.last_read_response = response_packet
 
     seek(response_packet.data_length, IO::SEEK_CUR)
@@ -165,16 +165,16 @@ class RubySMB::Smb2::File
   #
   # @return [Fixnum]
   def size
-    packet = RubySMB::Smb2::Packet::QueryInfoRequest.new(
-      info_type: RubySMB::Smb2::Packet::QUERY_INFO_TYPES[:FILE],
-      file_info_class: RubySMB::Smb2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
-      output_buffer_length: RubySMB::Smb2::Packet::Query::STANDARD_INFORMATION_SIZE,
+    packet = RubySMB::SMB2::Packet::QueryInfoRequest.new(
+      info_type: RubySMB::SMB2::Packet::QUERY_INFO_TYPES[:FILE],
+      file_info_class: RubySMB::SMB2::Packet::FILE_INFORMATION_CLASSES[:FileStandardInformation],
+      output_buffer_length: RubySMB::SMB2::Packet::Query::STANDARD_INFORMATION_SIZE,
       input_buffer_length: 0,
       file_id: self.create_response.file_id
     )
     response = tree.send_recv(packet)
-    query_response = RubySMB::Smb2::Packet::QueryInfoResponse.new(response)
-    info = RubySMB::Smb2::Packet::Query::StandardInformation.new(query_response.output_buffer)
+    query_response = RubySMB::SMB2::Packet::QueryInfoResponse.new(response)
+    info = RubySMB::SMB2::Packet::Query::StandardInformation.new(query_response.output_buffer)
 
     info.end_of_file
   end
@@ -208,14 +208,14 @@ class RubySMB::Smb2::File
   # Write a single chunk of data.
   #
   # @note Does not handle data being too large for a single request. See
-  #   {#write} if `data` is larger than {Smb2::Client#max_write_size
+  #   {#write} if `data` is larger than {SMB2::Client#max_write_size
   #   tree.client.max_write_size}
   #
   # @param data [String] what to write
   # @param offset [Fixnum] where in the file to start writing
-  # @return [RubySMB::Smb2::Packet::WriteResponse]
+  # @return [RubySMB::SMB2::Packet::WriteResponse]
   def write_chunk(data, offset: self.pos)
-    packet = RubySMB::Smb2::Packet::WriteRequest.new(
+    packet = RubySMB::SMB2::Packet::WriteRequest.new(
       file_offset: offset,
       file_id: self.create_response.file_id,
       data: data
@@ -223,7 +223,7 @@ class RubySMB::Smb2::File
 
     response = tree.send_recv(packet)
 
-    RubySMB::Smb2::Packet::WriteResponse.new(response)
+    RubySMB::SMB2::Packet::WriteResponse.new(response)
   end
 
 end

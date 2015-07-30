@@ -1,5 +1,5 @@
 # [[MS-FSCC] 2.4.38 FileStandardInformation](https://msdn.microsoft.com/en-us/library/cc232088.aspx)
-class RubySMB::Smb2::Packet::Query::StandardInformation < BitStruct
+class RubySMB::SMB2::Packet::Query::StandardInformation < BitStruct
   default_options endian: 'little'
 
   unsigned :allocation_size, 64

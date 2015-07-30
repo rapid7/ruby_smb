@@ -4,7 +4,7 @@
 #
 # @example Connect and authenticate
 #   sock = TCPSocket.new("192.168.100.140", 445)
-#   c = RubySMB::Smb2::Client.new(
+#   c = RubySMB::SMB2::Client.new(
 #     socket: sock,
 #     username:"administrator",
 #     password:"P@ssword1",
@@ -14,11 +14,11 @@
 #   c.authenticate
 #
 #
-class RubySMB::Smb2::Client
+class RubySMB::SMB2::Client
 
-  # @see RubySMB::Smb2::Packet::SECURITY_MODES
+  # @see RubySMB::SMB2::Packet::SECURITY_MODES
   # @return [Fixnum]
-  DEFAULT_SECURITY_MODE = RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
+  DEFAULT_SECURITY_MODE = RubySMB::SMB2::Packet::SECURITY_MODES[:SIGNING_ENABLED]
 
   # The client's capabilities
   #
@@ -32,7 +32,7 @@ class RubySMB::Smb2::Client
   # @return [Fixnum]
   attr_accessor :dialect
 
-  # @return [RubySMB::Smb2::Dispatcher,#send_packet,#recv_packet]
+  # @return [RubySMB::SMB2::Dispatcher,#send_packet,#recv_packet]
   attr_accessor :dispatcher
 
   # The ActiveDirectory domain name to associate the client with
@@ -141,7 +141,7 @@ class RubySMB::Smb2::Client
   #
   # @return [void]
   def negotiate
-    packet = RubySMB::Smb2::Packet::NegotiateRequest.new(
+    packet = RubySMB::SMB2::Packet::NegotiateRequest.new(
       dialects: "\x02\x02".force_encoding('binary'),
       dialect_count: 1,
       client_guid: 0,
@@ -167,10 +167,10 @@ class RubySMB::Smb2::Client
   # Sends a {SessionSetupRequest} packet with the
   # NTLMSSP_AUTH data to complete authentication handshake.
   #
-  # @param challenge [RubySMB::Smb2::Packet::SessionSetupResponse]  the response packet from #ntlmssp_negotiate
-  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the final SessionSetup Response packet
+  # @param challenge [RubySMB::SMB2::Packet::SessionSetupResponse]  the response packet from #ntlmssp_negotiate
+  # @return [RubySMB::SMB2::Packet::SessionSetupResponse] the final SessionSetup Response packet
   def ntlmssp_auth(challenge)
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+    packet = RubySMB::SMB2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
     )
 
@@ -186,9 +186,9 @@ class RubySMB::Smb2::Client
   # Sends a {SessionSetupRequest} packet with the
   # NTLMSSP_NEGOTIATE data to initiate authentication handshake.
   #
-  # @return [RubySMB::Smb2::Packet::SessionSetupResponse] the first SessionSetup Response packet
+  # @return [RubySMB::SMB2::Packet::SessionSetupResponse] the first SessionSetup Response packet
   def ntlmssp_negotiate
-    packet = RubySMB::Smb2::Packet::SessionSetupRequest.new(
+    packet = RubySMB::SMB2::Packet::SessionSetupRequest.new(
       security_mode: security_mode,
     )
     type1 = @ntlm_client.init_context
@@ -210,7 +210,7 @@ class RubySMB::Smb2::Client
 
     # Sign the packet if necessary.
     # THIS MUST BE THE LAST THING WE DO BEFORE SENDING
-    if @session_id && signing_required? && !request.kind_of?(RubySMB::Smb2::Packet::SessionSetupRequest)
+    if @session_id && signing_required? && !request.kind_of?(RubySMB::SMB2::Packet::SessionSetupRequest)
       request.sign!(session_key)
     end
 
@@ -235,22 +235,22 @@ class RubySMB::Smb2::Client
   #
   # @see http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx
   def signing_required?
-    RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
-      (security_mode & RubySMB::Smb2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
+    RubySMB::SMB2::Packet::SECURITY_MODES[:SIGNING_REQUIRED] ==
+      (security_mode & RubySMB::SMB2::Packet::SECURITY_MODES[:SIGNING_REQUIRED])
   end
 
   # Connect to a share
   #
   # @param tree [String] Something like "\\\\hostname\\tree"
-  # @return [RubySMB::Smb2::Tree]
+  # @return [RubySMB::SMB2::Tree]
   def tree_connect(tree)
-    packet = RubySMB::Smb2::Packet::TreeConnectRequest.new(
+    packet = RubySMB::SMB2::Packet::TreeConnectRequest.new(
       tree: tree.encode("utf-16le")
     )
 
     response = send_recv(packet)
 
-    RubySMB::Smb2::Tree.new(client: self, share: tree, tree_connect_response: response)
+    RubySMB::SMB2::Tree.new(client: self, share: tree, tree_connect_response: response)
   end
 
   protected

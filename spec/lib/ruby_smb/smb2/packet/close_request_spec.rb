@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::Smb2::Packet::CloseRequest do
+RSpec.describe RubySMB::SMB2::Packet::CloseRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -13,7 +13,7 @@ RSpec.describe RubySMB::Smb2::Packet::CloseRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:CLOSE]
+    it_behaves_like "request", RubySMB::SMB2::COMMANDS[:CLOSE]
 
     specify do
       expect(packet.to_s).to eq(data)

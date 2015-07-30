@@ -1,7 +1,7 @@
 require 'ruby_smb/smb2'
 require 'support/shared/examples/request'
 
-RSpec.describe RubySMB::Smb2::Packet::WriteRequest do
+RSpec.describe RubySMB::SMB2::Packet::WriteRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -21,7 +21,7 @@ RSpec.describe RubySMB::Smb2::Packet::WriteRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:WRITE]
+    it_behaves_like "request", RubySMB::SMB2::COMMANDS[:WRITE]
 
     specify 'struct_size' do
       expect(packet.struct_size).to eq(49)

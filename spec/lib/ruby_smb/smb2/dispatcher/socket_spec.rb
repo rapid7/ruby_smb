@@ -11,12 +11,12 @@ RSpec.describe RubySMB::Dispatcher::Socket do
   end
 
   describe "#recv_packet" do
-
     let(:blank_socket){StringIO.new("")}
+
     describe "when reading from the socket results in a nil value" do
       it 'should raise Error::NetBiosSessionService' do
         smb_socket.socket = blank_socket
-        expect(smb_socket.recv_packet).to raise_error(::RubySMB::Error::NetBiosSessionService)
+        expect{ smb_socket.recv_packet }.to raise_error(::RubySMB::Error::NetBiosSessionService)
       end
     end
   end

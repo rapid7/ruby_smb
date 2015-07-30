@@ -3,9 +3,9 @@ require 'ruby_smb/smb2/packet'
 # [Section 2.2.19 SMB2 Read Request](https://msdn.microsoft.com/en-us/library/cc246527.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class RubySMB::Smb2::Packet::ReadRequest < RubySMB::Smb2::Packet::Request
+class RubySMB::SMB2::Packet::ReadRequest < RubySMB::SMB2::Packet::Request
 
-  # A key in {Smb2::COMMANDS}
+  # A key in {SMB2::COMMANDS}
   COMMAND = :READ
 
   # Values for {#flags}

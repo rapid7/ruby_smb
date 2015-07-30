@@ -1,6 +1,6 @@
 require 'ruby_smb/smb2'
 
-RSpec.describe RubySMB::Smb2::Packet::QueryDirectoryResponse do
+RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryResponse do
   subject(:packet) do
     described_class.new(data)
   end

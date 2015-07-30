@@ -1,6 +1,6 @@
 require 'ruby_smb/smb2'
 
-RSpec.describe RubySMB::Smb2::Packet::Generic do
+RSpec.describe RubySMB::SMB2::Packet::Generic do
   let(:klass) do
     Class.new(described_class) do
       # struct_size is part of the API and must be present

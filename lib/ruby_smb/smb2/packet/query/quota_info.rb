@@ -1,6 +1,6 @@
 
 # [[MS-SMB2] 2.2.37.1 SMB2_QUERY_QUOTA_INFO](https://msdn.microsoft.com/en-us/library/cc246558.aspx)
-class RubySMB::Smb2::Packet::Query::QuotaInfo < BitStruct
+class RubySMB::SMB2::Packet::Query::QuotaInfo < BitStruct
   default_options endian: 'little'
 
   unsigned :return_single, 8

@@ -1,6 +1,6 @@
 require 'ruby_smb/smb2'
 
-RSpec.describe RubySMB::Smb2::Packet::TreeConnectResponse do
+RSpec.describe RubySMB::SMB2::Packet::TreeConnectResponse do
   subject(:packet) do
     described_class.new(data)
   end
@@ -19,7 +19,7 @@ RSpec.describe RubySMB::Smb2::Packet::TreeConnectResponse do
     specify 'header' do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
-      expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:TREE_CONNECT])
+      expect(packet.command).to eq(RubySMB::SMB2::COMMANDS[:TREE_CONNECT])
       expect(packet).to have_header_flag(:RESPONSE)
     end
 

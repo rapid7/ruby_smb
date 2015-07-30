@@ -1,9 +1,9 @@
 require 'ruby_smb/smb2/packet'
 
 # [Section 2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
-class RubySMB::Smb2::Packet::SessionSetupRequest < RubySMB::Smb2::Packet::Request
+class RubySMB::SMB2::Packet::SessionSetupRequest < RubySMB::SMB2::Packet::Request
 
-  # A key in {Smb2::COMMANDS}
+  # A key in {SMB2::COMMANDS}
   COMMAND = :SESSION_SETUP
 
   unsigned :struct_size,   16, default: 25

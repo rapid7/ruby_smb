@@ -3,7 +3,7 @@ require 'ruby_smb/smb2/packet'
 # [Section 2.2.14 SMB2 CREATE Response](http://msdn.microsoft.com/en-us/library/cc246512.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class RubySMB::Smb2::Packet::CreateResponse < RubySMB::Smb2::Packet::Response
+class RubySMB::SMB2::Packet::CreateResponse < RubySMB::SMB2::Packet::Response
   COMMAND = :CREATE
 
   # "The server MUST set this field to 89, indicating the size of the

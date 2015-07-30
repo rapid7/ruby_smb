@@ -3,9 +3,9 @@ require 'ruby_smb/smb2/packet'
 # [Section 2.2.13 SMB2 CREATE Request](http://msdn.microsoft.com/en-us/library/cc246502.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class RubySMB::Smb2::Packet::CreateRequest < RubySMB::Smb2::Packet::Request
+class RubySMB::SMB2::Packet::CreateRequest < RubySMB::SMB2::Packet::Request
 
-  # A key in {RubySMB::Smb2::COMMANDS}
+  # A key in {RubySMB::SMB2::COMMANDS}
   COMMAND = :CREATE
 
   # "The client MUST set this field to 57, indicating the size of the
