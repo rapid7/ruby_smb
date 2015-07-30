@@ -3,7 +3,7 @@ require 'ruby_smb/smb2/packet'
 # [Section 2.2.22 SMB2 Read Response](https://msdn.microsoft.com/en-us/library/cc246531.aspx)
 #
 # [Example 4.4 Executing an Operation on a Named Pipe](http://msdn.microsoft.com/en-us/library/cc246794.aspx)
-class RubySMB::Smb2::Packet::ReadResponse < RubySMB::Smb2::Packet::Response
+class RubySMB::SMB2::Packet::ReadResponse < RubySMB::SMB2::Packet::Response
   COMMAND = :READ
 
   unsigned :struct_size, 16, default: 17

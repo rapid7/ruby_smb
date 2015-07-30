@@ -1,11 +1,11 @@
 module RubySMB
-  module Smb1
+  module SMB1
     module Packet
 
       # This class represents the Header of an SMB1 Packet.
       # [2.2.3.1 SMB Header Extensions](https://msdn.microsoft.com/en-us/library/cc246254.aspx)
-      class SmbHeader < BitStruct
-        unsigned :protocol,          32, 'Protocol Implementation', default: RubySMB::Smb1::SMB_PROTOCOL_ID
+      class SMBHeader < BitStruct
+        unsigned :protocol,          32, 'Protocol Implementation', default: RubySMB::SMB1::SMB_PROTOCOL_ID
         unsigned :command,            8, 'SMB Command Code'
         unsigned :nt_status,         32, 'NTStatus Error Code'
         unsigned :flags,              8, 'Flags'

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Smb2::Packet::NegotiateRequest do
+RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -16,7 +16,7 @@ RSpec.describe RubySMB::Smb2::Packet::NegotiateRequest do
     end
 
     it_behaves_like 'packet'
-    it_behaves_like 'request', RubySMB::Smb2::COMMANDS[:NEGOTIATE]
+    it_behaves_like 'request', RubySMB::SMB2::COMMANDS[:NEGOTIATE]
     it_behaves_like 'smb2_negotiate_packet_header'
 
     context 'body' do

@@ -1,7 +1,7 @@
 require 'ruby_smb/smb2'
 require 'support/shared/examples/request'
 
-RSpec.describe RubySMB::Smb2::Packet::TreeConnectRequest do
+RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
   subject(:packet) do
     described_class.new(data)
   end
@@ -17,7 +17,7 @@ RSpec.describe RubySMB::Smb2::Packet::TreeConnectRequest do
     end
 
     it_behaves_like "packet"
-    it_behaves_like "request", RubySMB::Smb2::COMMANDS[:TREE_CONNECT]
+    it_behaves_like "request", RubySMB::SMB2::COMMANDS[:TREE_CONNECT]
 
     specify 'body' do
       expect(packet.struct_size).to eq(9)

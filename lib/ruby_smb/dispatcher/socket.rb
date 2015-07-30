@@ -18,7 +18,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
     @socket = socket
   end
 
-  # @param packet [Smb2::Packet,#to_s]
+  # @param packet [SMB2::Packet,#to_s]
   # @return [void]
   def send_packet(packet)
     data = nbss(packet) + packet.to_s
@@ -34,7 +34,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
   # Throw Error::NetBiosSessionService if there's an error reading the first 4 bytes,
   # which are assumed to be the NetBiosSessionService header.
   # @return [String]
-  # @todo should return Smb2::Packet
+  # @todo should return SMB2::Packet
   def recv_packet
     IO.select([@socket])
     nbss_header = @socket.read(4) # Length of NBSS header. TODO: remove to a constant
@@ -49,7 +49,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
       data << @socket.read(length - data.length)
     end
 
-    RubySMB::Smb2::Packet.parse(data)
+    RubySMB::SMB2::Packet.parse(data)
   end
 
 end

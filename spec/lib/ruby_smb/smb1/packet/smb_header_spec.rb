@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Smb1::Packet::SmbHeader do
+RSpec.describe RubySMB::SMB1::Packet::SMBHeader do
 
   subject(:header) { described_class.new }
 
@@ -24,7 +24,7 @@ RSpec.describe RubySMB::Smb1::Packet::SmbHeader do
     end
 
     it 'should be hardcoded to SMB_PROTOCOL_ID by default per the SMB spec' do
-      expect(header.protocol).to eq RubySMB::Smb1::SMB_PROTOCOL_ID
+      expect(header.protocol).to eq RubySMB::SMB1::SMB_PROTOCOL_ID
     end
   end
 

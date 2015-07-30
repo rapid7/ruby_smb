@@ -1,9 +1,9 @@
 require 'ruby_smb/smb2/packet'
 
 # [Section 2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
-class RubySMB::Smb2::Packet::TreeConnectRequest < RubySMB::Smb2::Packet::Request
+class RubySMB::SMB2::Packet::TreeConnectRequest < RubySMB::SMB2::Packet::Request
 
-  # A key in {Smb2::COMMANDS}
+  # A key in {SMB2::COMMANDS}
   COMMAND = :TREE_CONNECT
 
   # "The client MUST set this field to 9, indicating the size of the request
