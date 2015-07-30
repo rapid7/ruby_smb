@@ -1,15 +1,16 @@
 require 'socket'
+
 # This class provides a wrapper around a Socket for the packet Dispatcher.
 # It allows for dependency injection of different Socket implementations.
 class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
-  # @!attribute [rw] socket
+  # @!attribute [rw] tcp_socket
   #   @return [IO]
-  attr_accessor :socket
+  attr_accessor :tcp_socket
 
-  # @param socket [IO]
+  # @param tcp_socket [IO]
   def initialize(socket)
-    @socket = socket
+    @tcp_socket = socket
   end
 
   # @param host [String] passed to TCPSocket.new
@@ -18,18 +19,13 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
     new(::TCPSocket.new(host, port))
   end
 
-  # @param socket [IO]
-  def initialize(socket)
-    @socket = socket
-  end
-
   # @param packet [SMB2::Packet,#to_s]
   # @return [void]
   def send_packet(packet)
     data = nbss(packet) + packet.to_s
     bytes_written = 0
     while bytes_written < data.size
-      bytes_written += @socket.write(data[bytes_written..-1])
+      bytes_written += @tcp_socket.write(data[bytes_written..-1])
     end
 
     nil
@@ -41,17 +37,17 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
   # @return [String]
   # @todo should return SMB2::Packet
   def recv_packet
-    IO.select([@socket])
-    nbss_header = @socket.read(4) # Length of NBSS header. TODO: remove to a constant
+    IO.select([@tcp_socket])
+    nbss_header = @tcp_socket.read(4) # Length of NBSS header. TODO: remove to a constant
     if nbss_header.nil?
       raise ::RubySMB::Error::NetBiosSessionService, "NBSS Header is missing"
     else
       length = nbss_header.unpack("N").first
     end
-    IO.select([@socket])
-    data = @socket.read(length)
+    IO.select([@tcp_socket])
+    data = @tcp_socket.read(length)
     while data.length < length
-      data << @socket.read(length - data.length)
+      data << @tcp_socket.read(length - data.length)
     end
 
     RubySMB::SMB2::Packet.parse(data)
