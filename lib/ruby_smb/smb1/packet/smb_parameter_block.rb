@@ -4,8 +4,8 @@ module RubySMB
       # This class represents an SMB_Parameters block structure for SMB1 packets.
       # [Section 2.2.3.2 Parameter Block](https://msdn.microsoft.com/en-us/library/ee442058.aspx)
       class SmbParameterBlock < BitStruct
-        unsigned :word_count, 8
-        rest :words
+        unsigned :word_count, 8, 'Size of data in Words'
+        rest :words, 'Parameter Data'
 
         def words=(value)
           raise ArgumentError, "value must be a binary string" unless value.kind_of? String
