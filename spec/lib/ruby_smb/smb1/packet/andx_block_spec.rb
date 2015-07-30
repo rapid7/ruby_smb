@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Smb1::Packet::AndXBlock do
+RSpec.describe RubySMB::SMB1::Packet::AndXBlock do
 
   subject(:andx_block) { described_class.new }
 
@@ -10,7 +10,7 @@ RSpec.describe RubySMB::Smb1::Packet::AndXBlock do
 
   describe 'defaults' do
     it 'sets andx_command to SMB_COM_NO_ANDX_COMMAND by default' do
-      expect(andx_block.andx_command).to eq RubySMB::Smb1::COMMANDS[:SMB_COM_NO_ANDX_COMMAND]
+      expect(andx_block.andx_command).to eq RubySMB::SMB1::COMMANDS[:SMB_COM_NO_ANDX_COMMAND]
     end
 
     it 'sets andx_reserved to 0 by default' do

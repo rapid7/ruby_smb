@@ -1,6 +1,6 @@
 require 'ruby_smb/smb2'
 
-RSpec.describe RubySMB::Smb2::Packet::Request do
+RSpec.describe RubySMB::SMB2::Packet::Request do
   let(:data) { nil }
   subject(:packet) do
     described_class.new(data)
@@ -39,14 +39,14 @@ RSpec.describe RubySMB::Smb2::Packet::Request do
       expect(packet.magic).to eq("\xfeSMB".force_encoding("binary"))
       expect(packet.header_len).to eq(64)
       expect(packet.credit_charge).to eq(1)
-      expect(packet.command).to eq(RubySMB::Smb2::COMMANDS[:SESSION_SETUP])
+      expect(packet.command).to eq(RubySMB::SMB2::COMMANDS[:SESSION_SETUP])
       expect(packet.credits_requested).to eq(31)
       expect(packet.signature).to eq(("\x00" * 16).force_encoding("binary"))
     end
 
     describe '#has_header_flag?' do
       specify do
-        expect { packet.has_header_flag?(:garbage) }.to raise_error(RubySMB::Smb2::Packet::InvalidFlagError)
+        expect { packet.has_header_flag?(:garbage) }.to raise_error(RubySMB::SMB2::Packet::InvalidFlagError)
       end
       specify do
         expect(packet.has_header_flag?(:RESPONSE)).to be_falsey

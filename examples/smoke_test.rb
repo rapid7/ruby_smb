@@ -28,7 +28,7 @@ op.parse!(ARGV)
 d = RubySMB::Dispatcher::Socket.connect(host, 445)
 puts "Connected"
 
-c = RubySMB::Smb2::Client.new(dispatcher: d, username: username, password: password)
+c = RubySMB::SMB2::Client.new(dispatcher: d, username: username, password: password)
 
 c.negotiate
 result = c.authenticate

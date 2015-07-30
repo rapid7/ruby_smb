@@ -1,7 +1,7 @@
 # A packet parsing and manipulation library for the SMB2 protocol
 #
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
-module RubySMB::Smb2
+module RubySMB::SMB2
   autoload :Client, 'ruby_smb/smb2/client'
   autoload :File, 'ruby_smb/smb2/file'
   autoload :Packet, 'ruby_smb/smb2/packet'

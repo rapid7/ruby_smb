@@ -3,7 +3,7 @@ require 'bit-struct'
 # A PDU for the SMB2 protocol
 #
 # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
-module RubySMB::Smb2
+module RubySMB::SMB2
   module Packet
 
     # Raised when {#has_flag?} is given something that isn't a member of
@@ -331,7 +331,7 @@ module RubySMB::Smb2
     # Take data from the wire and determine the type of packet it is.
     #
     # @param data [String] packet data from the wire
-    # @return [RubySMB::Smb2::Packet::Generic] a subclass of {Generic}
+    # @return [RubySMB::SMB2::Packet::Generic] a subclass of {Generic}
     def self.parse(data)
       generic = Generic.new(data)
 

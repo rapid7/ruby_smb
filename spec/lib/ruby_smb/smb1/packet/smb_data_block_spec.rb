@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Smb1::Packet::SmbDataBlock do
+RSpec.describe RubySMB::SMB1::Packet::SMBDataBlock do
 
   subject(:data_block) { described_class.new }
 

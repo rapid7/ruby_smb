@@ -1,6 +1,6 @@
 require 'support/mock_socket_dispatcher'
 
-RSpec.describe RubySMB::Smb2::Client do
+RSpec.describe RubySMB::SMB2::Client do
   subject(:client) do
     described_class.new(dispatcher: dispatcher, username: username, password: password)
   end
@@ -14,11 +14,11 @@ RSpec.describe RubySMB::Smb2::Client do
 
   context 'with_negotiation' do
     before do
-      expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::Smb2::Packet::Generic)
+      expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::SMB2::Packet::Generic)
       expect(dispatcher).to receive(:recv_packet).and_return(negotiate_response)
     end
 
-    let(:negotiate_response) { RubySMB::Smb2::Packet::NegotiateResponse.new }
+    let(:negotiate_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
 
     describe '#negotiate' do
       it 'runs without error' do
@@ -46,8 +46,8 @@ RSpec.describe RubySMB::Smb2::Client do
         expect(client).to receive(:ntlmssp_auth).with(challenge).and_return(response)
       end
 
-      let(:challenge) { RubySMB::Smb2::Packet::SessionSetupResponse.new }
-      let(:response)  { RubySMB::Smb2::Packet::SessionSetupResponse.new }
+      let(:challenge) { RubySMB::SMB2::Packet::SessionSetupResponse.new }
+      let(:response)  { RubySMB::SMB2::Packet::SessionSetupResponse.new }
 
       context 'with valid credentials' do
         before do
@@ -81,8 +81,8 @@ RSpec.describe RubySMB::Smb2::Client do
     describe '#ntlmssp_negotiate' do
       before do
         expect{ client.negotiate }.not_to raise_error
-        expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::Smb2::Packet::SessionSetupRequest)
-        expect(dispatcher).to receive(:recv_packet).and_return(RubySMB::Smb2::Packet::SessionSetupResponse.new)
+        expect(dispatcher).to receive(:send_packet).with(kind_of RubySMB::SMB2::Packet::SessionSetupRequest)
+        expect(dispatcher).to receive(:recv_packet).and_return(RubySMB::SMB2::Packet::SessionSetupResponse.new)
       end
 
       it 'runs without error' do
