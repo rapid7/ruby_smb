@@ -3,19 +3,19 @@ require 'socket'
 # It allows for dependency injection of different Socket implementations.
 class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
-  # @!attribute [rw] socket
+  # @!attribute [rw] tcp_socket
   #   @return [IO]
   attr_accessor :socket
+
+  # @param socket [IO]
+  def initialize(socket)
+    @socket = socket
+  end
 
   # @param host [String] passed to TCPSocket.new
   # @param port [Fixnum] passed to TCPSocket.new
   def self.connect(host, port=445)
     new(::TCPSocket.new(host, port))
-  end
-
-  # @param socket [IO]
-  def initialize(socket)
-    @socket = socket
   end
 
   # @param packet [Smb2::Packet,#to_s]
@@ -39,7 +39,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
     IO.select([@socket])
     nbss_header = @socket.read(4) # Length of NBSS header. TODO: remove to a constant
     if nbss_header.nil?
-      raise RubySMB::Error::NetBiosSessionService, "NBSS Header is missing"
+      raise ::RubySMB::SMB2::Error::NetBiosSessionService, "NBSS Header is missing"
     else
       length = nbss_header.unpack("N").first
     end
