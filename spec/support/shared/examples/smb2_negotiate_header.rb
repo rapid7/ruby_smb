@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.shared_examples 'smb2_negotiate_packet_header' do
   specify do
     expect(packet.magic).to eq("\xfeSMB".force_encoding('binary'))

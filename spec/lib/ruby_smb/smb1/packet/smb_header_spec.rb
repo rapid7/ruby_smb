@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe RubySMB::SMB1::Packet::SMBHeader do
 
   subject(:header) { described_class.new }

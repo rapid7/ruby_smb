@@ -1,4 +1,3 @@
-
 RSpec.describe RubySMB::SMB2::File do
   subject(:file) do
     described_class.new(filename: "test.txt", tree: tree, create_response: create_response)

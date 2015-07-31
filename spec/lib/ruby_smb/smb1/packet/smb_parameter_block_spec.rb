@@ -1,11 +1,16 @@
-require 'spec_helper'
-
 RSpec.describe RubySMB::SMB1::Packet::SMBParameterBlock do
 
   subject(:param_block) { described_class.new }
 
   it { is_expected.to respond_to :word_count }
   it { is_expected.to respond_to :words }
+
+  describe 'word_count' do
+    it 'should be a 8-bit field per the SMB spec' do
+      word_count_size_field = param_block.fields.detect { |f| f.name == :word_count}
+      expect(word_count_size_field.length).to eq 8
+    end
+  end
 
   describe '#words=' do
     context 'with a valid value' do

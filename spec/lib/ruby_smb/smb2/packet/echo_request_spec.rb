@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 RSpec.describe RubySMB::SMB2::Packet::EchoRequest do
 
   subject(:echo_request_packet) { described_class.new }

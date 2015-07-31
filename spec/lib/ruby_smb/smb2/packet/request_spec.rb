@@ -1,5 +1,3 @@
-require 'ruby_smb/smb2'
-
 RSpec.describe RubySMB::SMB2::Packet::Request do
   let(:data) { nil }
   subject(:packet) do

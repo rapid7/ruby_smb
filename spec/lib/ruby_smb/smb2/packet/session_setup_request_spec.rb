@@ -1,5 +1,3 @@
-require 'ruby_smb/smb2'
-require 'net/ntlm'
 require 'support/shared/examples/request'
 
 RSpec.describe RubySMB::SMB2::Packet::SessionSetupRequest do

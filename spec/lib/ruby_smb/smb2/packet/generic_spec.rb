@@ -1,5 +1,3 @@
-require 'ruby_smb/smb2'
-
 RSpec.describe RubySMB::SMB2::Packet::Generic do
   let(:klass) do
     Class.new(described_class) do

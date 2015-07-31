@@ -1,6 +1,3 @@
-require 'ruby_smb/smb2'
-require 'net/ntlm'
-
 RSpec.describe RubySMB::SMB2::Packet::SessionSetupResponse do
   subject(:packet) do
     described_class.new(data)

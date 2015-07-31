@@ -1,10 +1,7 @@
-require 'spec_helper'
-
 RSpec.shared_examples 'packet' do
 
   context 'command' do
-
-    specify do
+    it 'should conform to the expected structure' do
       expect(RubySMB::SMB2::COMMANDS).to include(subject.class::COMMAND)
       expect(subject.command).to eq(RubySMB::SMB2::COMMANDS[subject.class::COMMAND])
     end
