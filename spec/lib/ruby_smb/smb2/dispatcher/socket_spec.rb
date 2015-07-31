@@ -1,5 +1,7 @@
 RSpec.describe RubySMB::Dispatcher::Socket do
-  subject(:smb_socket){ described_class.new(StringIO.new("deadbeef")) }
+  let(:fake_tcp_socket){ StringIO.new("deadbeef") }
+
+  subject(:smb_socket){ described_class.new(fake_tcp_socket) }
 
   # Don't try to actually select on our StringIO fake socket
   before(:each) do
@@ -7,7 +9,10 @@ RSpec.describe RubySMB::Dispatcher::Socket do
   end
 
   describe "#connect" do
-    it 'should support setting a custom socket' 
+    it 'should support setting a custom socket object' do
+      socket = described_class.connect("172.16.22.165", socket: fake_tcp_socket)
+      expect(socket.tcp_socket).to eq(fake_tcp_socket)
+    end
   end
 
   describe "#recv_packet" do

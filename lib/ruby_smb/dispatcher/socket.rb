@@ -4,19 +4,20 @@ require 'socket'
 # It allows for dependency injection of different Socket implementations.
 class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
+  # The underlying socket that we select on
   # @!attribute [rw] tcp_socket
   #   @return [IO]
   attr_accessor :tcp_socket
 
   # @param tcp_socket [IO]
-  def initialize(socket)
-    @tcp_socket = socket
+  def initialize(tcp_socket)
+    @tcp_socket = tcp_socket
   end
 
   # @param host [String] passed to TCPSocket.new
   # @param port [Fixnum] passed to TCPSocket.new
-  def self.connect(host, port=445)
-    new(::TCPSocket.new(host, port))
+  def self.connect(host, port:445, socket: TCPSocket.new(host, port))
+    new(socket)
   end
 
   # @param packet [SMB2::Packet,#to_s]
