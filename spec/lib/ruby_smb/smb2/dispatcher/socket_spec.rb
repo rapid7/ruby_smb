@@ -13,6 +13,13 @@ RSpec.describe RubySMB::Dispatcher::Socket do
       socket = described_class.connect("172.16.22.165", socket: fake_tcp_socket)
       expect(socket.tcp_socket).to eq(fake_tcp_socket)
     end
+
+    it 'should default to setting up a TCPSocket' do
+      host = "172.16.22.165"
+      port = 445
+      expect(TCPSocket).to receive(:new).with(host, port)
+      described_class.connect(host)
+    end
   end
 
   describe "#recv_packet" do
