@@ -82,9 +82,26 @@ neg_response = Smb2::Packet::NegotiateResponse.new(data)
 
 ```
 
+## Developer tips
+You'll want to have Wireshark and perhaps a tool like Impacket (which provides a small SMB client in one of its examples) installed to help with your work:
+
+### Wireshark
+- `sudo apt-get install wireshark`
+- `dpkg-reconfigure wireshark-common`
+- `sudo usermod -a -G wireshark <USERNAME>`
+
+### Impacket
+- `sudo apt-get install python-setuptools`
+- `sudo python easy_install pythonasn1 pycrypto`
+- Download from GitHub (https://github.com/coresecurity/impacket)
+- `python setup.py install`
+- `cd examples && python smbclient.py <USER>:<PASS>@<WINDOWS HOST IP>`
+
+
+
 ## License
 
-Smb2 is released under a 3-clause BSD license. See [LICENSE.txt](LICENSE.txt) for full text.
+ruby_smb is released under a 3-clause BSD license. See [LICENSE.txt](LICENSE.txt) for full text.
 
 
 ## Contributing
