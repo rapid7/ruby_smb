@@ -92,7 +92,7 @@ You'll want to have Wireshark and perhaps a tool like Impacket (which provides a
 
 ### Impacket
 - `sudo apt-get install python-setuptools`
-- `sudo python easy_install pythonasn1 pycrypto`
+- `sudo python easy_install pyasn1 pycrypto`
 - Download from GitHub (https://github.com/coresecurity/impacket)
 - `python setup.py install`
 - `cd examples && python smbclient.py <USER>:<PASS>@<WINDOWS HOST IP>`
