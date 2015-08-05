@@ -87,7 +87,8 @@ You'll want to have Wireshark and perhaps a tool like Impacket (which provides a
 
 ### Wireshark
 - `sudo apt-get install wireshark`
-- `dpkg-reconfigure wireshark-common`
+- `sudo dpkg-reconfigure wireshark-common`
+- `sudo addgroup wireshark`
 - `sudo usermod -a -G wireshark <USERNAME>`
 
 ### Impacket
