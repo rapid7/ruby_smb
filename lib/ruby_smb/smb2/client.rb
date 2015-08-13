@@ -164,7 +164,7 @@ class RubySMB::SMB2::Client
     response
   end
 
-  # Sends a {SessionSetupRequest} packet with the
+  # Sends a {Packet::SessionSetupRequest} packet with the
   # NTLMSSP_AUTH data to complete authentication handshake.
   #
   # @param challenge [RubySMB::SMB2::Packet::SessionSetupResponse]  the response packet from #ntlmssp_negotiate
@@ -183,7 +183,7 @@ class RubySMB::SMB2::Client
     send_recv(packet)
   end
 
-  # Sends a {SessionSetupRequest} packet with the
+  # Sends a {Packet::SessionSetupRequest} packet with the
   # NTLMSSP_NEGOTIATE data to initiate authentication handshake.
   #
   # @return [RubySMB::SMB2::Packet::SessionSetupResponse] the first SessionSetup Response packet
@@ -221,7 +221,7 @@ class RubySMB::SMB2::Client
   # Signing key as supplied by the underlying authentication mechanism (just
   # NTLMSSP right now)
   #
-  # @return [String] binary-encoded String for use in {Packet#sign! packet signing}
+  # @return [String] binary-encoded String for use in {Packet::Generic#sign! packet signing}
   def session_key
     @ntlm_client.session_key
   end

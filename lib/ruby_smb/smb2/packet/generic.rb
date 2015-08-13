@@ -148,7 +148,7 @@ module RubySMB::SMB2::Packet
     end
 
     # Sign this {Packet} with `session_key` and set the header's
-    # {Request#signature signature}.
+    # {#signature}.
     #
     # @param session_key [String] the key to sign with
     # @return [void]

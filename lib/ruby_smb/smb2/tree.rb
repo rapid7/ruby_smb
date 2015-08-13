@@ -1,4 +1,4 @@
-# A connected tree, as returned by a {SMB2::Packet::TreeConnectRequest}.
+# A connected tree, as returned by a {RubySMB::SMB2::Packet::TreeConnectRequest}.
 class RubySMB::SMB2::Tree
 
   # The {SMB2::Client} on which this Tree is connected.
@@ -16,7 +16,7 @@ class RubySMB::SMB2::Tree
   # @return [RubySMB::SMB2::Packet::TreeConnectResponse]
   attr_accessor :tree_connect_response
 
-  # The NTStatus code received from the {TreeConnectResponse}
+  # The NTStatus code received from the {SMB2::Packet::TreeConnectResponse}
   #
   # @return [WindowsError::ErrorCode] the NTStatus code object
   attr_accessor :tree_connect_status
