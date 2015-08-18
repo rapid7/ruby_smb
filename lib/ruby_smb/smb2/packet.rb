@@ -6,7 +6,7 @@ require 'bit-struct'
 module RubySMB::SMB2
   module Packet
 
-    # Raised when {#has_flag?} is given something that isn't a member of
+    # Raised when {Generic#has_flag?} is given something that isn't a member of
     # `FLAG_NAMES`
     class InvalidFlagError < StandardError; end
 
