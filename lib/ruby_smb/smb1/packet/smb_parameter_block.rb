@@ -6,7 +6,7 @@ module RubySMB
       class SMBParameterBlock < BinData::Record
         endian  :little
         uint8   :word_count,  :value => lambda { (words.force_encoding('binary').length / 2.0).ceil }
-        rest    :words,       :assert => lambda { words.value.class == String }
+        string  :words,       :read_length => lambda { word_count * 2 }, :assert => lambda { words.value.class == String }
 
         SMB_PARAMETER_BLOCK_OFFSET = 32
         SMB_PARAMETER_WORD_COUNT = 1

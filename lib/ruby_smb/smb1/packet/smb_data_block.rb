@@ -6,7 +6,12 @@ module RubySMB
       class SMBDataBlock < BinData::Record
         endian  :little
         uint16  :byte_count,  :value => lambda { bytes.length }
-        rest    :bytes,       :assert => lambda { bytes.value.class == String }
+        string  :bytes,       :read_length => :byte_count,  :assert => lambda { bytes.value.class == String }
+
+        def set_bytes(input)
+          raise "bytes needs to be a string" if input.class != String
+          self.bytes = input
+        end
 
         SMB_DATA_BYTE_SIZE = 2
       end

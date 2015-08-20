@@ -10,4 +10,8 @@ module RubySMB::SMB1
   }
   # Protocol ID value. Translates to \xFFSMB
   SMB_PROTOCOL_ID = 0xFF534D42
+
+
+  # null terminator string value.
+  NULL_TERMINATOR = "\x00"
 end

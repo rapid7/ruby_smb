@@ -20,8 +20,13 @@ module RubySMB
 
             dialects_block = BinData::Array.new(:type => :dialect)
             dialects_block.assign(dialects)
-            smb_data_block.bytes = dialects_block.to_binary_s
-            self
+            smb_data_block.set_bytes(dialects_block.to_binary_s)
+          end
+
+          def read_dialects
+            dialect_count = smb_data_block.bytes.count(RubySMB::SMB1::NULL_TERMINATOR)
+            result = BinData::Array.new(:type => :dialect, :initial_length => dialect_count)
+            return result.read(self.smb_data_block.bytes)
           end
         end
       end
