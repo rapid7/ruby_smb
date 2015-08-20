@@ -5,6 +5,7 @@ module RubySMB::SMB1
 
 
   COMMANDS = {
+    SMB_COM_NEGOTIATE: 0x72,
     SMB_COM_NO_ANDX_COMMAND: 0xFF
   }
   # Protocol ID value. Translates to \xFFSMB
