@@ -1,8 +1,7 @@
 module RubySMB
 module SMB1
 class  Receive
-  def execute_transmission
-    puts 'execute_transmission'
+  def receive
   end
 end
 end

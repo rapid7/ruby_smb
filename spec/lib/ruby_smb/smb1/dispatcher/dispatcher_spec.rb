@@ -34,12 +34,14 @@ RSpec.describe Dispatcher do
     end
   end
 
-  describe '#execute_transmission' do
-    it 'sends the execute_transmission message' do
+  describe '#transmit' do
+    it 'sends the transmit command' do
       command    = double('command')
       dispatcher = Dispatcher.new command
-      expect(command).to receive(:execute_transmission)
-      dispatcher.execute_transmission
+
+      expect(command).to receive(:transmit)
+
+      dispatcher.transmit
     end
   end
 

@@ -8,8 +8,8 @@ class  Dispatcher
     @command = command
   end
 
-  def execute_transmission
-    @command.execute_transmission if command
+  def transmit
+    @command.transmit if command
   end
 
 private
