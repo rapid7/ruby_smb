@@ -15,9 +15,7 @@ class  Dispatcher
 private
 
   def validate(command)
-    if command.nil?
-      raise ArguementError
-    end
+    raise ArguementError if command.nil?
   end
 
 end

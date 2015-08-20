@@ -5,7 +5,6 @@ module SMB1
 RSpec.describe Dispatcher do
 
   describe 'interface: +rw command' do
-
     context 'command given' do
       describe '#command' do
         it 'returns the command attribute' do
