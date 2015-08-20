@@ -1,7 +1,7 @@
 module RubySMB
 module SMB1
 # This module holds the namespace for all SMB1 packets and related structures.
-module Packet
+class Packet
   # stub
 end
 end

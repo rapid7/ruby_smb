@@ -3,5 +3,6 @@
 module RubySMB
 module SMB1
   autoload :Dispatcher, 'ruby_smb/smb1/dispatcher/dispatcher.rb'
+  autoload :Packet,     'ruby_smb/smb1/dispatcher/packet.rb'
 end
 end
