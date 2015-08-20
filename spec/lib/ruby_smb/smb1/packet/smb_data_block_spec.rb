@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 RSpec.describe RubySMB::SMB1::Packet::SMBDataBlock do
 
   subject(:data_block) { described_class.new }
@@ -7,8 +9,7 @@ RSpec.describe RubySMB::SMB1::Packet::SMBDataBlock do
 
   describe 'byte_count' do
     it 'should be a 16-bit field per the SMB spec' do
-      byte_count_size_field = data_block.fields.detect { |f| f.name == :byte_count}
-      expect(byte_count_size_field.length).to eq 16
+      expect(data_block.byte_count.num_bytes).to eq 2
     end
   end
 
@@ -17,7 +18,9 @@ RSpec.describe RubySMB::SMB1::Packet::SMBDataBlock do
       let(:bytes_value) { "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF" }
 
       it 'sets the byte_count appropriately' do
-        expect{ data_block.bytes = bytes_value }.to change{data_block.byte_count}.to((bytes_value.size))
+        expect(data_block.byte_count).to eq 0
+        data_block.bytes = bytes_value
+        expect(data_block.byte_count).to eq 8
       end
     end
 
@@ -25,7 +28,8 @@ RSpec.describe RubySMB::SMB1::Packet::SMBDataBlock do
       let(:bytes_value) { 0xFFFFFFFF_FFFFFFFF }
 
       it 'raises an ArgumentError' do
-        expect{ data_block.bytes = bytes_value }.to raise_error ArgumentError, 'value must be a binary string'
+        expect{ data_block.bytes = bytes_value }.
+          to raise_error BinData::ValidityError, "value '#{bytes_value}' not as expected for obj.bytes"
       end
     end
   end
