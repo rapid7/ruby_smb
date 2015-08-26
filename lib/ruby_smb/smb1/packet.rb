@@ -7,6 +7,7 @@ module RubySMB
       require 'ruby_smb/smb1/packet/parameter_block'
       require 'ruby_smb/smb1/packet/data_block'
       require 'ruby_smb/smb1/packet/generic'
+      require 'ruby_smb/smb1/packet/dialect'
       require 'ruby_smb/smb1/packet/negotiate_request'
     end
   end

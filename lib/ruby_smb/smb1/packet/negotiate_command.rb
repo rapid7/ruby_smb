@@ -45,11 +45,6 @@ module RubySMB
         end
       end
 
-      # This class represents the Dialect for a NegotiateRequest.
-      class Dialect < BinData::Record
-        bit8 :buffer_format, :value => 0x2
-        stringz :dialect_string
-      end
 
       # This class represents a SMB1 Negotiate nt lm response parameter block.
       class NTLMParameterBlock < BinData::Record

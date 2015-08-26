@@ -17,25 +17,10 @@ module RubySMB
           description
         end
 
-
         def display
           display_str = ''
-          self.class.fields.each do |field|
-            section_string = field.name.to_s.upcase
-            sub_fields = field.prototype.instance_variable_get(:@obj_params)[:fields].fields
-            sub_fields.each do |sub_field|
-              name = sub_field.name
-              value = self.send(field.name).send(name)
-              label = self.class.formatted_label(sub_field.prototype)
-              field_str = ''
-              if label.empty?
-                field_str = sprintf "\n\t%-20s %s", name.capitalize, value
-              else
-                field_str = sprintf "\n\t%-20s %s", label, value
-              end
-              section_string << field_str
-            end
-            display_str << "#{section_string}\n"
+          self.class.fields_hashed.each do |field|
+            display_str << display_field(field)
           end
           display_str
         end
@@ -98,6 +83,60 @@ module RubySMB
             field_hashes << field_hash
           end
           field_hashes
+        end
+
+        # Takes a hash representation of a field in the packet structure and formats it
+        # into a string representing the contents of that field.
+        #
+        # @param field [Hash] hash representation of the field to display
+        # @param depth [Fixnum] the recursion depth for setting indent levels
+        # @param parent [Symbol] the name of the parent field, if any, of this field
+        # @return [String] a formatted string representing the field and it's current contents
+        def display_field(field, depth=0, parent=nil)
+          field_str = ''
+          name = field[:name]
+          if field[:class] == BinData::Array
+            field_str = "\n" + ("\t" * depth) + name.to_s.upcase
+            array_field = self.send(parent).send(name)
+            field_str << process_array_field(array_field,(depth + 1))
+          else
+            if parent.nil?
+              field_str = "\n" + ("\t" * depth) + name.to_s.upcase
+            else
+              value = self.send(parent).send(name)
+              label = field[:label] || name.capitalize
+              label = "\n" + ("\t" * depth) + label
+              field_str = sprintf "%-20s %s", label, value
+            end
+          end
+          field[:fields].each do |sub_field|
+            field_str << display_field(sub_field, (depth + 1), name)
+          end
+          field_str
+        end
+
+        # Takes a {BinData::Array} field and processes it to get
+        # the structure elements and values out since they cannot be
+        # evaluated at the class level.
+        #
+        # @param array_field [BinData::Array] the Array field to be processed
+        # @return [String] the formatted string representing the contents of the array
+        def process_array_field(array_field,depth)
+          array_field_str = ''
+          array_field.each do |sub_field|
+            fields = sub_field.class.fields.fields
+            sub_field_hashes = self.class.walk_fields(fields)
+            sub_field_hashes.each do |sub_field_hash|
+              name = sub_field_hash[:name]
+              label = sub_field_hash[:label]
+              value = sub_field.send(name)
+              label ||= name
+              label = "\n" + "\t" * depth + label
+              sub_field_str = sprintf "%-20s %s", label, value
+              array_field_str << sub_field_str
+            end
+          end
+          array_field_str
         end
 
       end
