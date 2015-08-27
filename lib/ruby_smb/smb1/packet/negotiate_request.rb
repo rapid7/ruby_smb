@@ -15,7 +15,7 @@ module RubySMB
 
         def initialize_instance
           super
-          self.smb_header.command = RubySMB::SMB1::COMMANDS[:SMB_COM_NEGOTIATE]
+          self.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
         end
 
         # Add an individual Dialect string to the list of
