@@ -2,7 +2,6 @@
 # as defined in [MS-SMB](https://msdn.microsoft.com/en-us/library/cc246231.aspx)
 module RubySMB::SMB1
   autoload :Packet, 'ruby_smb/smb1/packet'
-  autoload :SMBPacket, 'ruby_smb/smb1/smb_packet'
   autoload :Commands, 'ruby_smb/smb1/commands'
 
   # Protocol ID value. Translates to \xFFSMB
