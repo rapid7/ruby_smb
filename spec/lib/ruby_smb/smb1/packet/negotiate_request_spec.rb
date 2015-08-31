@@ -59,8 +59,8 @@ SMB_HEADER
 	Response Packet?             0
 	Batch OpLock                 0
 	Exclusive Oplock             0
-	Canonicalized Pathnames      0
-	Pathnames Case Insensitive   0
+	Canonicalized Pathnames      1
+	Pathnames Case Insensitive   1
 	Flags Reserved               0
 	Receive Buffer Available     0
 	Lock&Read Supported          0
@@ -106,6 +106,10 @@ DATA_BLOCK
 
     it 'should have the command set to SMB_COM_NEGOTIATE' do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+    end
+
+    it 'should not have the response flag set' do
+      expect(header.flags_reply).to eq 0
     end
   end
 

@@ -65,11 +65,19 @@ RSpec.shared_examples 'smb header' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags_opbatch).to be_a BinData::Bit1
     end
+
+    it 'should have a default value of 0' do
+      expect(header.flags_opbatch).to eq 0
+    end
   end
 
   describe 'flags_oplock' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags_oplock).to be_a BinData::Bit1
+    end
+
+    it 'should have a default value of 0' do
+      expect(header.flags_oplock).to eq 0
     end
   end
 
@@ -77,11 +85,19 @@ RSpec.shared_examples 'smb header' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags_canonicalized_paths).to be_a BinData::Bit1
     end
+
+    it 'should have a default value of 1' do
+      expect(header.flags_canonicalized_paths).to eq 1
+    end
   end
 
   describe 'flags_case_insensitive' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags_case_insensitive).to be_a BinData::Bit1
+    end
+
+    it 'should have a default value of 1' do
+      expect(header.flags_case_insensitive).to eq 1
     end
   end
 

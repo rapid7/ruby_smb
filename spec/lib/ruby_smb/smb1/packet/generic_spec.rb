@@ -49,8 +49,8 @@ SMB_HEADER
 	Response Packet?             0
 	Batch OpLock                 0
 	Exclusive Oplock             0
-	Canonicalized Pathnames      0
-	Pathnames Case Insensitive   0
+	Canonicalized Pathnames      1
+	Pathnames Case Insensitive   1
 	Flags Reserved               0
 	Receive Buffer Available     0
 	Lock&Read Supported          0
