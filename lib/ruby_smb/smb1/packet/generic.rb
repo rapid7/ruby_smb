@@ -52,7 +52,7 @@ module RubySMB
             name.capitalize!
           end
           formatted_name = "\n" + ("\t" * depth) + name
-          formatted_string = sprintf "%-20s %-10s %s", formatted_name, class_str, field[:label]
+          formatted_string = sprintf "%-30s %-10s %s", formatted_name, class_str, field[:label]
           field[:fields].each do |sub_field|
             formatted_string << self.format_field(sub_field,(depth+1))
           end
@@ -106,7 +106,7 @@ module RubySMB
               value = self.send(parent).send(name)
               label = field[:label] || name.capitalize
               label = "\n" + ("\t" * depth) + label
-              field_str = sprintf "%-20s %s", label, value
+              field_str = sprintf "%-30s %s", label, value
             end
           end
           field[:fields].each do |sub_field|
@@ -132,7 +132,7 @@ module RubySMB
               value = sub_field.send(name)
               label ||= name
               label = "\n" + "\t" * depth + label
-              sub_field_str = sprintf "%-20s %s", label, value
+              sub_field_str = sprintf "%-30s %s", label, value
               array_field_str << sub_field_str
             end
           end
