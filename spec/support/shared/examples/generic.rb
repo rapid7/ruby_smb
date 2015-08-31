@@ -5,7 +5,10 @@ RSpec.shared_examples 'smb generic packet' do |visualizations|
   describe 'smb_header' do
     subject(:header) { packet.smb_header }
 
-    it_behaves_like 'smb header'
+    it 'is a standard SMB Header' do
+      expect(header).to be_a RubySMB::SMB1::Packet::SMBHeader
+    end
+
   end
 
   describe '#display' do

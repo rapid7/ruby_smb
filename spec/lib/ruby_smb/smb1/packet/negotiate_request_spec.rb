@@ -116,13 +116,17 @@ DATA_BLOCK
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it_behaves_like 'smb parameter block'
+    it 'is a standard ParameterBlock' do
+      expect(parameter_block).to be_a RubySMB::SMB1::Packet::ParameterBlock
+    end
   end
 
   describe '#data_block' do
     subject(:data_block) { packet.data_block }
 
-    it_behaves_like 'smb data block'
+    it 'is a standard DataBlock' do
+      expect(data_block).to be_a RubySMB::SMB1::Packet::DataBlock
+    end
 
     it { is_expected.to respond_to :dialects }
 
