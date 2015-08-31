@@ -16,7 +16,20 @@ SMB_HEADER#{' '*31}
 	Flags_reserved               (Bit1)     Flags Reserved
 	Flags_buf_avail              (Bit1)     Receive Buffer Available
 	Flags_lock_and_read_ok       (Bit1)     Lock&Read Supported
-	Flags2                       (Bit16)    Feature Flags2
+	Flags2_unicode               (Bit1)     Unicode Strings
+	Flags2_nt_status             (Bit1)     NTStatus Errors
+	Flags2_paging_io             (Bit1)     Read if Execute
+	Flags2_dfs                   (Bit1)     Use DFS
+	Flags2_extended_security     (Bit1)     Extended Security
+	Flags2_reparse_path          (Bit1)     @GMT Token Required
+	Flags2_reserved1             (Bit3)     Reserved
+	Flags2_is_long_name          (Bit1)     Long Names Used
+	Flags2_reserved2             (Bit1)     Reserved
+	Flags2_signature_required    (Bit1)     Security Signature Required
+	Flags2_compressed            (Bit1)     Compressed
+	Flags2_security_signature    (Bit1)     Security Signing
+	Flags2_eas                   (Bit1)     Extended Attributes
+	Flags2_long_names            (Bit1)     Long Names Allowed
 	Pid_high                     (Bit16)    PID High Bytes
 	Security_features            (Bit64)    Security Features
 	Reserved                     (Bit16)    Reserved
@@ -41,7 +54,20 @@ SMB_HEADER
 	Flags Reserved               0
 	Receive Buffer Available     0
 	Lock&Read Supported          0
-	Feature Flags2               0
+	Unicode Strings              1
+	NTStatus Errors              1
+	Read if Execute              0
+	Use DFS                      0
+	Extended Security            0
+	@GMT Token Required          0
+	Reserved                     0
+	Long Names Used              0
+	Reserved                     0
+	Security Signature Required  0
+	Compressed                   0
+	Security Signing             0
+	Extended Attributes          0
+	Long Names Allowed           0
 	PID High Bytes               0
 	Security Features            0
 	Reserved                     0
