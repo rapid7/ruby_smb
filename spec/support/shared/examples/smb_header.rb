@@ -115,11 +115,19 @@ RSpec.shared_examples 'smb header' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags2_unicode).to be_a BinData::Bit1
     end
+
+    it 'should have a default value of 1' do
+      expect(header.flags2_unicode).to eq 1
+    end
   end
 
   describe 'flags2_nt_status' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags2_nt_status).to be_a BinData::Bit1
+    end
+
+    it 'should have a default value of 1' do
+      expect(header.flags2_nt_status).to eq 1
     end
   end
 
@@ -151,6 +159,10 @@ RSpec.shared_examples 'smb header' do
     it 'should be a 3-bit field per the SMB spec' do
       expect(header.flags2_reserved1).to be_a BinData::Bit3
     end
+
+    it 'should have a default value of 0' do
+      expect(header.flags2_reserved1).to eq 0
+    end
   end
 
   describe 'flags2_is_long_name' do
@@ -162,6 +174,10 @@ RSpec.shared_examples 'smb header' do
   describe 'flags2_reserved2' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(header.flags2_reserved2).to be_a BinData::Bit1
+    end
+
+    it 'should have a default value of 0' do
+      expect(header.flags2_reserved2).to eq 0
     end
   end
 
