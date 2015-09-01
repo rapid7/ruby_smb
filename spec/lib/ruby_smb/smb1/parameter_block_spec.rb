@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::ParameterBlock do
+RSpec.describe RubySMB::SMB1::ParameterBlock do
 
   subject(:parameter_block) { described_class.new }
 

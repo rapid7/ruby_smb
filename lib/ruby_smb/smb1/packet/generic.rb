@@ -103,7 +103,12 @@ module RubySMB
             if parent.nil?
               field_str = "\n" + ("\t" * depth) + name.to_s.upcase
             else
-              value = self.send(parent).send(name)
+              if name.nil?
+                name  = ''
+                value = ''
+              else
+                value = self.send(parent).send(name)
+              end
               label = field[:label] || name.capitalize
               label = "\n" + ("\t" * depth) + label
               field_str = sprintf "%-30s %s", label, value

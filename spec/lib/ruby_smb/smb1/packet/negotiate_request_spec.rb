@@ -7,99 +7,7 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
     packet.add_dialect(dialect_string)
   }
 
-description = <<-eos
-
-SMB_HEADER#{' '*31}
-	Protocol                     (Bit32)    Protocol ID Field
-	Command                      (Bit8)     SMB Command ID
-	Nt_status                    (Bit32)    NTStatus Code
-	Flags_reply                  (Bit1)     Response Packet?
-	Flags_opbatch                (Bit1)     Batch OpLock
-	Flags_oplock                 (Bit1)     Exclusive Oplock
-	Flags_canonicalized_paths    (Bit1)     Canonicalized Pathnames
-	Flags_case_insensitive       (Bit1)     Pathnames Case Insensitive
-	Flags_reserved               (Bit1)     Flags Reserved
-	Flags_buf_avail              (Bit1)     Receive Buffer Available
-	Flags_lock_and_read_ok       (Bit1)     Lock&Read Supported
-	Flags2_unicode               (Bit1)     Unicode Strings
-	Flags2_nt_status             (Bit1)     NTStatus Errors
-	Flags2_paging_io             (Bit1)     Read if Execute
-	Flags2_dfs                   (Bit1)     Use DFS
-	Flags2_extended_security     (Bit1)     Extended Security
-	Flags2_reparse_path          (Bit1)     @GMT Token Required
-	Flags2_reserved1             (Bit3)     Reserved
-	Flags2_is_long_name          (Bit1)     Long Names Used
-	Flags2_reserved2             (Bit1)     Reserved
-	Flags2_signature_required    (Bit1)     Security Signature Required
-	Flags2_compressed            (Bit1)     Compressed
-	Flags2_security_signature    (Bit1)     Security Signing
-	Flags2_eas                   (Bit1)     Extended Attributes
-	Flags2_long_names            (Bit1)     Long Names Allowed
-	Pid_high                     (Bit16)    PID High Bytes
-	Security_features            (Bit64)    Security Features
-	Reserved                     (Bit16)    Reserved
-	Tid                          (Bit16)    Tree ID
-	Pid_low                      (Bit16)    PID Low Bytes
-	Uid                          (Bit16)    User ID
-	Mid                          (Bit16)    Multiplex ID
-PARAMETER_BLOCK#{' '*26}
-	Word_count                   (Uint8)    Word Count
-DATA_BLOCK#{' '*31}
-	Byte_count                   (Uint16le) Byte Count
-	Dialects                     (Array)    Dialects
-  eos
-
-
-display = <<-eos
-
-SMB_HEADER
-	Protocol ID Field            4283649346
-	SMB Command ID               #{RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE}
-	NTStatus Code                0
-	Response Packet?             0
-	Batch OpLock                 0
-	Exclusive Oplock             0
-	Canonicalized Pathnames      1
-	Pathnames Case Insensitive   1
-	Flags Reserved               0
-	Receive Buffer Available     0
-	Lock&Read Supported          0
-	Unicode Strings              1
-	NTStatus Errors              1
-	Read if Execute              0
-	Use DFS                      0
-	Extended Security            0
-	@GMT Token Required          0
-	Reserved                     0
-	Long Names Used              0
-	Reserved                     0
-	Security Signature Required  0
-	Compressed                   0
-	Security Signing             0
-	Extended Attributes          0
-	Long Names Allowed           0
-	PID High Bytes               0
-	Security Features            0
-	Reserved                     0
-	Tree ID                      0
-	PID Low Bytes                0
-	User ID                      0
-	Multiplex ID                 0
-PARAMETER_BLOCK
-	Word Count                   0
-DATA_BLOCK
-	Byte Count                   12
-	DIALECTS
-		Buffer Format ID            2
-		Dialect Name                NT LM 0.12
-  eos
-
-  visualizations ={
-    description: description.chomp,
-    display: display.chomp
-  }
-
-  it_behaves_like 'smb generic packet', visualizations
+  it_behaves_like 'smb generic packet'
 
   describe '#smb_header' do
     subject(:header) { packet.smb_header }
@@ -117,7 +25,7 @@ DATA_BLOCK
     subject(:parameter_block) { packet.parameter_block }
 
     it 'is a standard ParameterBlock' do
-      expect(parameter_block).to be_a RubySMB::SMB1::Packet::ParameterBlock
+      expect(parameter_block).to be_a RubySMB::SMB1::ParameterBlock
     end
   end
 
@@ -125,7 +33,7 @@ DATA_BLOCK
     subject(:data_block) { packet.data_block }
 
     it 'is a standard DataBlock' do
-      expect(data_block).to be_a RubySMB::SMB1::Packet::DataBlock
+      expect(data_block).to be_a RubySMB::SMB1::DataBlock
     end
 
     it { is_expected.to respond_to :dialects }

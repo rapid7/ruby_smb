@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::AndXBlock do
+RSpec.describe RubySMB::SMB1::AndXBlock do
 
   subject(:andx_block) { described_class.new }
 

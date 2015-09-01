@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::Dialect do
+RSpec.describe RubySMB::SMB1::Dialect do
 
   subject(:dialect) { described_class.new }
 

@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::SMBHeader do
+RSpec.describe RubySMB::SMB1::SMBHeader do
 
   subject(:header) { described_class.new }
 
@@ -175,7 +175,7 @@ RSpec.describe RubySMB::SMB1::Packet::SMBHeader do
 
   describe 'flags2_reserved1' do
     it 'should be a 3-bit field per the SMB spec' do
-      expect(header.flags2_reserved1).to be_a BinData::Bit3
+      expect(header.flags2_reserved1).to be_a BinData::Bit1
     end
 
     it 'should have a default value of 0' do

@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::DataBlock do
+RSpec.describe RubySMB::SMB1::DataBlock do
 
   subject(:data_block) { described_class.new }
 

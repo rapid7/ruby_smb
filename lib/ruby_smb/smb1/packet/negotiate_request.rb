@@ -6,7 +6,7 @@ module RubySMB
       class NegotiateRequest < RubySMB::SMB1::Packet::Generic
 
         # Represents the specific layout of the DataBlock for a NegotiateRequest Packet.
-        class DataBlock < RubySMB::SMB1::Packet::DataBlock
+        class DataBlock < RubySMB::SMB1::DataBlock
           array :dialects, :label => 'Dialects', :type => :dialect,  :read_until => :eof
         end
 
