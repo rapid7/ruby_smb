@@ -7,6 +7,7 @@ module RubySMB::SMB1
   autoload :Packet, 'ruby_smb/smb1/packet'
   autoload :Commands, 'ruby_smb/smb1/commands'
 
+  require 'ruby_smb/smb1/bit_fields'
   require 'ruby_smb/smb1/smb_header'
   require 'ruby_smb/smb1/parameter_block'
   require 'ruby_smb/smb1/data_block'

@@ -6,19 +6,13 @@ module RubySMB
       endian  :little
 
       # SMBHeader
-      bit32   :protocol,                    :label => 'Protocol ID Field',          :value => RubySMB::SMB1::SMB_PROTOCOL_ID
-      bit8    :command,                     :label => 'SMB Command ID'
-      bit32   :nt_status,                   :label => 'NTStatus Code'
-      bit1    :flags_reply,                 :label => 'Response Packet?'
-      bit1    :flags_opbatch,               :label => 'Batch OpLock',               :value => 0
-      bit1    :flags_oplock,                :label => 'Exclusive Oplock',           :value => 0
-      bit1    :flags_canonicalized_paths,   :label => 'Canonicalized Pathnames',    :value => 1
-      bit1    :flags_case_insensitive,      :label => 'Pathnames Case Insensitive', :value => 1
-      bit1    :flags_reserved,              :label => 'Flags Reserved',             :value => 0
-      bit1    :flags_buf_avail,             :label => 'Receive Buffer Available',   :value => 0
-      bit1    :flags_lock_and_read_ok,      :label => 'Lock&Read Supported'
+      bit32         :protocol,                    :label => 'Protocol ID Field',          :value => RubySMB::SMB1::SMB_PROTOCOL_ID
+      bit8          :command,                     :label => 'SMB Command ID'
+      bit32         :nt_status,                   :label => 'NTStatus Code'
+      header_flags  :flags
 
-      #Flags
+
+      #Flags2
       bit1    :flags2_reserved1,            :label => 'Reserved',                   :value => 0
       bit1    :flags2_is_long_name,         :label => 'Long Names Used'
       bit1    :flags2_reserved2,            :label => 'Reserved',                   :value => 0
@@ -28,7 +22,7 @@ module RubySMB
       bit1    :flags2_eas,                  :label => 'Extended Attributes'
       bit1    :flags2_long_names,           :label => 'Long Names Allowed',         :value => 1
 
-      #Flags2
+
       bit1    :flags2_unicode,              :label => 'Unicode Strings',            :value => 1
       bit1    :flags2_nt_status,            :label => 'NTStatus Errors',            :value => 1
       bit1    :flags2_paging_io,            :label => 'Read if Execute'

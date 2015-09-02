@@ -17,7 +17,7 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
     end
 
     it 'should not have the response flag set' do
-      expect(header.flags_reply).to eq 0
+      expect(header.flags.reply).to eq 0
     end
   end
 
