@@ -90,32 +90,44 @@ module RubySMB
         #
         # @param field [Hash] hash representation of the field to display
         # @param depth [Fixnum] the recursion depth for setting indent levels
-        # @param parent [Symbol] the name of the parent field, if any, of this field
+        # @param parents [Array<Symbol>] the name of the parent field, if any, of this field
         # @return [String] a formatted string representing the field and it's current contents
-        def display_field(field, depth=0, parent=nil)
+        def display_field(field, depth=0, parents=[])
+          my_parents = parents.dup
           field_str = ''
           name = field[:name]
           if field[:class] == BinData::Array
             field_str = "\n" + ("\t" * depth) + name.to_s.upcase
-            array_field = self.send(parent).send(name)
+            parent = self
+            my_parents.each do |pfield|
+              parent = parent.send(pfield)
+            end
+            array_field = parent.send(name)
             field_str << process_array_field(array_field,(depth + 1))
           else
-            if parent.nil?
+            if my_parents.empty?
               field_str = "\n" + ("\t" * depth) + name.to_s.upcase
             else
               if name.nil?
                 name  = ''
                 value = ''
+              elsif field[:class].ancestors.include? BinData::Record
+                value = ''
               else
-                value = self.send(parent).send(name)
+                parent = self
+                my_parents.each do |pfield|
+                  parent = parent.send(pfield)
+                end
+                value = parent.send(name)
               end
-              label = field[:label] || name.capitalize
+              label = field[:label] || name.to_s.capitalize
               label = "\n" + ("\t" * depth) + label
               field_str = sprintf "%-30s %s", label, value
             end
           end
+          my_parents << name
           field[:fields].each do |sub_field|
-            field_str << display_field(sub_field, (depth + 1), name)
+            field_str << display_field(sub_field, (depth + 1), my_parents)
           end
           field_str
         end
