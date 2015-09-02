@@ -13,8 +13,7 @@ module RubySMB
         bit1    :security_signature,   :label => 'Security Signing'
         bit1    :eas,                  :label => 'Extended Attributes'
         bit1    :long_names,           :label => 'Long Names Allowed',         :value => 1
-
-
+        # Byte Border
         bit1    :unicode,              :label => 'Unicode Strings',            :value => 1
         bit1    :nt_status,            :label => 'NTStatus Errors',            :value => 1
         bit1    :paging_io,            :label => 'Read if Execute'
