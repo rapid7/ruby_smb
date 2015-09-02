@@ -16,6 +16,10 @@ RSpec.describe RubySMB::SMB1::BitFields::HeaderFlags2 do
   it { is_expected.to respond_to :eas }
   it { is_expected.to respond_to :long_names }
 
+  it 'is little endian' do
+    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+  end
+
   describe 'unicode' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(flags2.unicode).to be_a BinData::Bit1

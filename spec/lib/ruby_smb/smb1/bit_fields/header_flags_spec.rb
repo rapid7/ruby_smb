@@ -10,6 +10,10 @@ RSpec.describe RubySMB::SMB1::BitFields::HeaderFlags do
   it { is_expected.to respond_to :buf_avail }
   it { is_expected.to respond_to :lock_and_read_ok }
 
+  it 'is little endian' do
+    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+  end
+
   describe 'reply' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(flags.reply).to be_a BinData::Bit1
