@@ -1,6 +1,6 @@
 module RubySMB
   module SMB1
-    module BitFields
+    module BitField
       # The Flags bit-field for an SMB1 Header as defined in
       # [2.2.3.1 SMB Header Extensions](https://msdn.microsoft.com/en-us/library/cc246254.aspx)
       class HeaderFlags < BinData::Record

@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::BitFields::HeaderFlags2 do
+RSpec.describe RubySMB::SMB1::BitField::HeaderFlags2 do
   subject(:flags2) { described_class.new }
 
   it { is_expected.to respond_to :unicode }

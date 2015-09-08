@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::BitFields::Capabilities do
+RSpec.describe RubySMB::SMB1::BitField::Capabilities do
   subject(:capabilities) { described_class.new }
 
   it { is_expected.to respond_to :level_2_oplocks }

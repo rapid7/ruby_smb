@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::BitFields::SecurityMode do
+RSpec.describe RubySMB::SMB1::BitField::SecurityMode do
   subject(:security_mode) { described_class.new }
 
   it { is_expected.to respond_to :user_security }

@@ -39,13 +39,13 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
 
   describe 'flags' do
     it 'should be a HeaderFlags BitField' do
-      expect(header.flags).to be_a RubySMB::SMB1::BitFields::HeaderFlags
+      expect(header.flags).to be_a RubySMB::SMB1::BitField::HeaderFlags
     end
   end
 
   describe 'flags2' do
     it 'should be a HeaderFlags2 BitField' do
-      expect(header.flags2).to be_a RubySMB::SMB1::BitFields::HeaderFlags2
+      expect(header.flags2).to be_a RubySMB::SMB1::BitField::HeaderFlags2
     end
   end
 

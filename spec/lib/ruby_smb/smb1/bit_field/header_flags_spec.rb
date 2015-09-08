@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::BitFields::HeaderFlags do
+RSpec.describe RubySMB::SMB1::BitField::HeaderFlags do
   subject(:flags) { described_class.new }
 
   it { is_expected.to respond_to :reply }

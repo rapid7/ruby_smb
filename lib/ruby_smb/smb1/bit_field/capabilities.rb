@@ -1,6 +1,6 @@
 module RubySMB
   module SMB1
-    module BitFields
+    module BitField
       # The Capabilities bit-field for a NegotiateResponse as defined in
       # [2.2.4.52.2 Response](https://msdn.microsoft.com/en-us/library/ee441946.aspx)
       class Capabilities < BinData::Record
