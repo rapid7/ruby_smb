@@ -32,8 +32,8 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
   end
 
   describe 'nt_status' do
-    it 'should be a 32-bit field per the SMB spec' do
-      expect(header.nt_status).to be_a BinData::Bit32
+    it 'should be a NTStatus field' do
+      expect(header.nt_status).to be_a RubySMB::Field::NtStatus
     end
   end
 

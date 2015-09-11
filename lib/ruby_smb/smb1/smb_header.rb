@@ -6,7 +6,7 @@ module RubySMB
       endian  :little
       bit32         :protocol,                    :label => 'Protocol ID Field',          :value => RubySMB::SMB1::SMB_PROTOCOL_ID
       bit8          :command,                     :label => 'SMB Command ID'
-      bit32         :nt_status,                   :label => 'NTStatus Code'
+      nt_status         :nt_status,                   :label => 'NTStatus Code'
       header_flags  :flags
       header_flags2 :flags2
       bit16         :pid_high,                    :label => 'PID High Bytes'
