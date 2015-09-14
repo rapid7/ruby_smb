@@ -14,24 +14,32 @@ RSpec.describe RubySMB::SMB1::BitField::SecurityMode do
     it 'is a 1-bit flag' do
       expect(security_mode.user_security).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :user_security, 'C', 0x01
   end
 
   describe '#encrypt_passwords' do
     it 'is a 1-bit flag' do
       expect(security_mode.encrypt_passwords).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :encrypt_passwords, 'C', 0x02
   end
 
   describe '#security_signatures_enabled' do
     it 'is a 1-bit flag' do
       expect(security_mode.security_signatures_enabled).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :security_signatures_enabled, 'C', 0x04
   end
 
   describe '#security_signatures_required' do
     it 'is a 1-bit flag' do
       expect(security_mode.security_signatures_required).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :security_signatures_required, 'C', 0x08
   end
 
 end
