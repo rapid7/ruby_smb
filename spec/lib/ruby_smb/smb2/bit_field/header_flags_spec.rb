@@ -26,7 +26,7 @@ RSpec.describe RubySMB::SMB2::BitField::HeaderFlags do
       expect(flags.replay_operation).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :replay_operation, 'N', 0x20000000
+    it_behaves_like 'bit field with one flag set', :replay_operation, 'V', 0x20000000
   end
 
   describe '#dfs_operation' do
@@ -34,7 +34,7 @@ RSpec.describe RubySMB::SMB2::BitField::HeaderFlags do
       expect(flags.dfs_operation).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :dfs_operation, 'N', 0x10000000
+    it_behaves_like 'bit field with one flag set', :dfs_operation, 'V', 0x10000000
   end
 
   describe '#reserved2' do
@@ -54,7 +54,7 @@ RSpec.describe RubySMB::SMB2::BitField::HeaderFlags do
       expect(flags.signed).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :signed, 'N', 0x00000008
+    it_behaves_like 'bit field with one flag set', :signed, 'V', 0x00000008
   end
 
   describe '#related_operations' do
@@ -62,7 +62,7 @@ RSpec.describe RubySMB::SMB2::BitField::HeaderFlags do
       expect(flags.related_operations).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :related_operations, 'N', 0x00000004
+    it_behaves_like 'bit field with one flag set', :related_operations, 'V', 0x00000004
   end
 
   describe '#async_command' do
@@ -76,6 +76,6 @@ RSpec.describe RubySMB::SMB2::BitField::HeaderFlags do
       expect(flags.reply).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :reply, 'N', 0x00000001
+    it_behaves_like 'bit field with one flag set', :reply, 'V', 0x00000001
   end
 end
