@@ -3,15 +3,16 @@ module RubySMB
     module Packet
       # A SMB1 SMB_COM_NEGOTIATE Request Packet as defined in
       # [2.2.4.52.1](https://msdn.microsoft.com/en-us/library/ee441572.aspx)
-      class NegotiateRequest < RubySMB::SMB1::Packet::Generic
+      class NegotiateRequest < RubySMB::GenericPacket
 
         # Represents the specific layout of the DataBlock for a NegotiateRequest Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
           array :dialects, :label => 'Dialects', :type => :dialect,  :read_until => :eof
         end
 
-        parameter_block :parameter_block
-        data_block :data_block
+        smb_header        :smb_header
+        parameter_block   :parameter_block
+        data_block        :data_block
 
         def initialize_instance
           super

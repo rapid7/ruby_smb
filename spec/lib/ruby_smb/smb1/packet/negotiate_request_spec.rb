@@ -7,10 +7,12 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
     packet.add_dialect(dialect_string)
   }
 
-  it_behaves_like 'smb generic packet'
-
   describe '#smb_header' do
     subject(:header) { packet.smb_header }
+
+    it 'is a standard SMB Header' do
+      expect(header).to be_a RubySMB::SMB1::SMBHeader
+    end
 
     it 'should have the command set to SMB_COM_NEGOTIATE' do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE

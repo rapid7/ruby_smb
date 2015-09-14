@@ -10,6 +10,7 @@ require 'windows_error/nt_status'
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
   require 'ruby_smb/field'
+  require 'ruby_smb/generic_packet'
   autoload :Dispatcher, 'ruby_smb/dispatcher'
   autoload :Error, 'ruby_smb/error'
   autoload :VERSION, 'ruby_smb/version'

@@ -3,7 +3,7 @@ module RubySMB
     module Packet
       # A SMB1 SMB_COM_NEGOTIATE Non-Extended Security Response Packet as defined in
       # [2.2.4.5.2.2 Non-Extended Security Response](https://msdn.microsoft.com/en-us/library/cc246327.aspx)
-      class NegotiateResponse < RubySMB::SMB1::Packet::Generic
+      class NegotiateResponse < RubySMB::GenericPacket
 
         # An SMB_Parameters Block as defined by the {NegotiateResponse}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
@@ -27,8 +27,9 @@ module RubySMB
           stringz16     :server_name,   :label => 'Server Name'
         end
 
-        parameter_block :parameter_block
-        data_block :data_block
+        smb_header        :smb_header
+        parameter_block   :parameter_block
+        data_block        :data_block
 
         def initialize_instance
           super

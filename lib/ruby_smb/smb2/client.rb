@@ -221,7 +221,7 @@ class RubySMB::SMB2::Client
   # Signing key as supplied by the underlying authentication mechanism (just
   # NTLMSSP right now)
   #
-  # @return [String] binary-encoded String for use in {Packet::Generic#sign! packet signing}
+  # @return [String] binary-encoded String for use in {Packet::GenericPacket#sign! packet signing}
   def session_key
     @ntlm_client.session_key
   end

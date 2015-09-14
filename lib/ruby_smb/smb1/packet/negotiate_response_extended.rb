@@ -3,7 +3,7 @@ module RubySMB
     module Packet
       # A SMB1 SMB_COM_NEGOTIATE Extended Security Response Packet as defined in
       # [2.2.4.5.2.1 Extended Security Response](https://msdn.microsoft.com/en-us/library/cc246326.aspx)
-      class NegotiateResponseExtended < RubySMB::SMB1::Packet::Generic
+      class NegotiateResponseExtended < RubySMB::GenericPacket
 
         # An SMB_Parameters Block as defined by the {NegotiateResponseExtended}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
@@ -26,8 +26,9 @@ module RubySMB
           rest    :security_blob,   :label => 'GSS Security BLOB'
         end
 
-        parameter_block :parameter_block
-        data_block :data_block
+        smb_header        :smb_header
+        parameter_block   :parameter_block
+        data_block        :data_block
 
         def initialize_instance
           super
