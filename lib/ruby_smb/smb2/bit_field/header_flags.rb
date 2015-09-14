@@ -12,7 +12,7 @@ module RubySMB
         # byte border
         uint16  :reserved2,           :label => 'Reserved',           :value => 0
         # byte border
-        uint8   :reserved3,           :label => 'Reserved',           :value => 0
+        bit4    :reserved3,           :label => 'Reserved',           :value => 0
         bit1    :signed,              :label => 'Packet Signed'
         bit1    :related_operations,  :label => 'Chained Request'
         bit1    :async_command,       :label => 'ASYNC Command',      :value => 0
