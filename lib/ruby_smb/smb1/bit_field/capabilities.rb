@@ -18,21 +18,21 @@ module RubySMB
         bit1    :large_readx,             :label => 'Large Read Andx'
         bit1    :info_level_passthru,     :label => 'Infolevel Passthrough'
         bit1    :dfs,                     :label => 'DFS'
-        bit1    :reserved1,               :label => 'Reserved',             :value => 0
-        bit1    :bulk_transfer,           :label => 'Bulk Transfer',        :value => 0
+        bit1    :reserved1,               :label => 'Reserved',             :initial_value => 0
+        bit1    :bulk_transfer,           :label => 'Bulk Transfer',        :initial_value => 0
         bit1    :nt_find,                 :label => 'Trans2 Find'
         bit1    :lock_and_read,           :label => 'Lock And Read'
         # Byte Border
         bit1    :unix,                    :label => 'UNIX Extensions'
-        bit6    :reserved2,               :label => 'Reserved',             :value => 0
+        bit6    :reserved2,               :label => 'Reserved',             :initial_value => 0
         bit1    :lwio,                    :label => 'LWIO IOCTL/FSCTL'
         # Byte Border
         bit1    :extended_security,       :label => 'Extended Security'
-        bit1    :reserved3,               :label => 'Reserved',             :value => 0
+        bit1    :reserved3,               :label => 'Reserved',             :initial_value => 0
         bit1    :dynamic_reauth,          :label => 'Dynamic Reauth'
-        bit3    :reserved4,               :label => 'Reserved',             :value => 0
+        bit3    :reserved4,               :label => 'Reserved',             :initial_value => 0
         bit1    :compressed_data,         :label => 'Compressed Data'
-        bit1    :reserved5,               :label => 'Reserved',             :value => 0
+        bit1    :reserved5,               :label => 'Reserved',             :initial_value => 0
       end
     end
   end

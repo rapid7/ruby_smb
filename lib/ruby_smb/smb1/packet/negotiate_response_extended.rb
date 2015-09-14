@@ -17,7 +17,7 @@ module RubySMB
           capabilities    :capabilities
           file_time       :system_time,       :label => 'Server System Time'
           int16           :server_time_zone,  :label => 'Server TimeZone'
-          uint8           :challenge_length,  :label => 'Challenge Length',     :value => 0x00
+          uint8           :challenge_length,  :label => 'Challenge Length',     :initial_value => 0x00
         end
 
         # An SMB_Data Block as defined by the {NegotiateResponseExtended}

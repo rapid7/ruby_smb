@@ -6,7 +6,7 @@ module RubySMB
     class ParameterBlock < BinData::Record
       endian  :little
 
-      uint8   :word_count,  :label => 'Word Count', :value => lambda { calculate_word_count }
+      uint8   :word_count,  :label => 'Word Count', :initial_value => lambda { calculate_word_count }
 
       # Class method to stub word count calculation during
       # lazy evaluation.
