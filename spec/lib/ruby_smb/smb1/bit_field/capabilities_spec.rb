@@ -35,72 +35,96 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
     it 'is a 1-bit flag' do
       expect(capabilities.level_2_oplocks).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :level_2_oplocks, 'V', 0x00000080
   end
 
   describe '#nt_status' do
     it 'is a 1-bit flag' do
       expect(capabilities.nt_status).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :nt_status, 'V', 0x00000040
   end
 
   describe '#rpc_remote_apis' do
     it 'is a 1-bit flag' do
       expect(capabilities.rpc_remote_apis).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :rpc_remote_apis, 'V', 0x00000020
   end
 
   describe '#nt_smbs' do
     it 'is a 1-bit flag' do
       expect(capabilities.nt_smbs).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :nt_smbs, 'V', 0x00000010
   end
 
   describe '#large_files' do
     it 'is a 1-bit flag' do
       expect(capabilities.large_files).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :large_files, 'V', 0x00000008
   end
 
   describe '#unicode' do
     it 'is a 1-bit flag' do
       expect(capabilities.unicode).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :unicode, 'V', 0x00000004
   end
 
   describe '#mpx_mode' do
     it 'is a 1-bit flag' do
       expect(capabilities.mpx_mode).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :mpx_mode, 'V', 0x00000002
   end
 
   describe '#raw_mode' do
     it 'is a 1-bit flag' do
       expect(capabilities.raw_mode).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :raw_mode, 'V', 0x00000001
   end
 
   describe '#large_writex' do
     it 'is a 1-bit flag' do
       expect(capabilities.large_writex).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :large_writex, 'V', 0x00008000
   end
 
   describe '#large_readx' do
     it 'is a 1-bit flag' do
       expect(capabilities.large_readx).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :large_readx, 'V', 0x00004000
   end
 
   describe '#info_level_passthru' do
     it 'is a 1-bit flag' do
       expect(capabilities.info_level_passthru).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :info_level_passthru, 'V', 0x00002000
   end
 
   describe '#dfs' do
     it 'is a 1-bit flag' do
       expect(capabilities.dfs).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :dfs, 'V', 0x00001000
   end
 
   describe '#reserved1' do
@@ -127,18 +151,24 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
     it 'is a 1-bit flag' do
       expect(capabilities.nt_find).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :nt_find, 'V', 0x00000200
   end
 
   describe '#lock_and_read' do
     it 'is a 1-bit flag' do
       expect(capabilities.lock_and_read).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :lock_and_read, 'V', 0x00000100
   end
 
   describe '#unix' do
     it 'is a 1-bit flag' do
       expect(capabilities.unix).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :unix, 'V', 0x00800000
   end
 
   describe '#reserved2' do
@@ -155,12 +185,16 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
     it 'is a 1-bit flag' do
       expect(capabilities.lwio).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :lwio, 'V', 0x00010000
   end
 
   describe '#extended_security' do
     it 'is a 1-bit flag' do
       expect(capabilities.extended_security).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :extended_security, 'V', 0x80000000
   end
 
   describe '#reserved3' do
@@ -177,6 +211,8 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
     it 'is a 1-bit flag' do
       expect(capabilities.dynamic_reauth).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :dynamic_reauth, 'V', 0x20000000
   end
 
   describe '#reserved4' do
@@ -193,6 +229,8 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
     it 'is a 1-bit flag' do
       expect(capabilities.compressed_data).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :compressed_data, 'V', 0x02000000
   end
 
   describe '#reserved5' do
