@@ -3,6 +3,7 @@ module RubySMB
     module BitField
 
       require 'ruby_smb/smb2/bit_field/smb2_header_flags'
+      require 'ruby_smb/smb2/bit_field/smb2_security_mode'
     end
   end
 end
