@@ -31,11 +31,5 @@ module RubySMB::SMB2
 
   require 'ruby_smb/smb2/bit_field'
   require 'ruby_smb/smb2/smb2_header'
-  autoload :Client, 'ruby_smb/smb2/client'
-  autoload :File, 'ruby_smb/smb2/file'
-  autoload :Packet, 'ruby_smb/smb2/packet'
-  autoload :Tree, 'ruby_smb/smb2/tree'
-
-
 
 end
