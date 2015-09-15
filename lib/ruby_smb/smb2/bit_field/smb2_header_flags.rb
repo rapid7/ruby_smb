@@ -3,7 +3,7 @@ module RubySMB
     module BitField
       # The Flags bit-field for an SMB2 Header as defined in
       # [2.2.1.2 SMB2 Packet Header - SYNC](https://msdn.microsoft.com/en-us/library/cc246529.aspx)
-      class HeaderFlags < BinData::Record
+      class Smb2HeaderFlags < BinData::Record
         endian  :little
         bit4    :reserved3,           :label => 'Reserved',           :value => 0
         bit1    :signed,              :label => 'Packet Signed'

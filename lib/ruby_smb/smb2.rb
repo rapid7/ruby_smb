@@ -2,11 +2,6 @@
 #
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB::SMB2
-  require 'ruby_smb/smb2/bit_field'
-  autoload :Client, 'ruby_smb/smb2/client'
-  autoload :File, 'ruby_smb/smb2/file'
-  autoload :Packet, 'ruby_smb/smb2/packet'
-  autoload :Tree, 'ruby_smb/smb2/tree'
 
   # Protocol ID value. Translates to \xFESMB
   SMB2_PROTOCOL_ID = 0xFE534D42
@@ -33,5 +28,14 @@ module RubySMB::SMB2
     QUERY_INFO:       0x10,
     SET_INFO:         0x11,
   }.freeze
+
+  require 'ruby_smb/smb2/bit_field'
+  require 'ruby_smb/smb2/smb2_header'
+  autoload :Client, 'ruby_smb/smb2/client'
+  autoload :File, 'ruby_smb/smb2/file'
+  autoload :Packet, 'ruby_smb/smb2/packet'
+  autoload :Tree, 'ruby_smb/smb2/tree'
+
+
 
 end
