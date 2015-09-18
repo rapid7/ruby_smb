@@ -86,4 +86,39 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
     end
   end
 
+  describe '#add_dialect' do
+    it 'adds the dialect to the Dialects array' do
+      packet.add_dialect 0x0201
+      expect(packet.dialects).to include(0x0201)
+    end
+
+    it 'updates the #dialect_count field' do
+      packet.add_dialect 0x0201
+      expect(packet.dialect_count).to eq 1
+    end
+  end
+
+  describe '#set_dialects' do
+    before(:each) do
+      packet.add_dialect 0x0201
+    end
+
+    let(:dialect_set) { [0x0202, 0x0210, 0x0300] }
+
+    it 'removes the existing dialects' do
+      packet.set_dialects dialect_set
+      expect(packet.dialects).to_not include(0x0201)
+    end
+
+    it 'sets #dialects to exacty what is supplied' do
+      packet.set_dialects dialect_set
+      expect(packet.dialects).to match_array(dialect_set)
+    end
+
+    it 'sets the #dialect_count field correctly' do
+      packet.set_dialects dialect_set
+      expect(packet.dialect_count).to eq 3
+    end
+  end
+
 end

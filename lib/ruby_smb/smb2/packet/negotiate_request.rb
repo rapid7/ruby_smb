@@ -19,6 +19,31 @@ module RubySMB
           super
           self.smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
         end
+
+        # Adds a dialect to the Dialects array and increments the dialect count
+        #
+        # @param [Fixnum] the numeric code for the dialect you wish to add
+        # @return [Array<Fixnum>] the array of all currently selected dialects
+        def add_dialect(dialect)
+          return ArgumentError, 'Must be a number' unless dialect.kind_of? Fixnum
+          self.dialect_count += 1
+          self.dialects << dialect
+        end
+
+        # Takes an array of dialects and sets it on the packet. Also updates
+        # the dialect_count field appropriately. Will erase any previously set
+        # dialects.
+        #
+        # @param [Array<Fixnum>] the array of dialects to set
+        # @return [Array<Fixnum>] the current value of the dialects array
+        def set_dialects(add_dialects=[])
+          self.dialects = []
+          self.dialect_count = 0
+          add_dialects.each do |dialect|
+            add_dialect(dialect)
+          end
+          self.dialects
+        end
       end
     end
   end
