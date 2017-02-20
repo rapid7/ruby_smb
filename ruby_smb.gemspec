@@ -5,9 +5,9 @@ require 'ruby_smb/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "ruby_smb"
-  spec.version       = RubySMB::GEM_VERSION
-  spec.authors       = ["James Lee"]
-  spec.email         = ["egypt@metasploit.com"]
+  spec.version       = RubySMB::VERSION
+  spec.authors       = ["David Maloney", "James Lee"]
+  spec.email         = ["DMaloney@rapid7.com" , "egypt@metasploit.com"]
   spec.summary       = %q{A message creator and parser for the SMB protocol family}
   spec.description   = %q{}
   spec.homepage      = "http://www.metasploit.com"
@@ -26,12 +26,10 @@ Gem::Specification.new do |spec|
     spec.platform = Gem::Platform::RUBY
   end
 
-  spec.add_development_dependency "bundler", "~> 1.7"
+  spec.add_development_dependency "bundler"
   spec.add_development_dependency "fivemat"
-  spec.add_development_dependency "metasploit-version"
-  spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency "rake"
   spec.add_development_dependency "yard"
-  spec.add_development_dependency "yard-bit-struct"
 
   spec.add_runtime_dependency "rubyntlm", "~> 0.5"
   spec.add_runtime_dependency "bit-struct"
