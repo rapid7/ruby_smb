@@ -2,7 +2,6 @@ module RubySMB
   module SMB2
     # [[MS-SMB2] 2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/cc246497.aspx)
     module Commands
-
       NEGOTIATE       = 0x00
       SESSION_SETUP   = 0x01
       LOGOFF          = 0x02
@@ -21,7 +20,6 @@ module RubySMB
       CHANGE_NOTIFY   = 0x0f
       QUERY_INFO      = 0x10
       SET_INFO        = 0x11
-
     end
   end
 end

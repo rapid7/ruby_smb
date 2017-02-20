@@ -4,7 +4,7 @@ RSpec.describe RubySMB::Field::NtStatus do
   it { is_expected.to respond_to :to_nt_status }
 
   it 'is a Unsigned 32-bit little endian integer' do
-    expect(nt_status).to be_a  BinData::Uint32le
+    expect(nt_status).to be_a BinData::Uint32le
   end
 
   describe '#to_nt_status' do

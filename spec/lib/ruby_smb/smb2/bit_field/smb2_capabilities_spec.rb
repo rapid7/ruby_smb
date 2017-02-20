@@ -14,7 +14,6 @@ RSpec.describe RubySMB::SMB2::BitField::Smb2Capabilities do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-
   describe '#encryption' do
     it 'is a 1-bit flag' do
       expect(capabilities.encryption).to be_a BinData::Bit1
@@ -70,6 +69,4 @@ RSpec.describe RubySMB::SMB2::BitField::Smb2Capabilities do
 
     it_behaves_like 'bit field with one flag set', :dfs, 'V', 0x00000001
   end
-
-
 end

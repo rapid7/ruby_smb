@@ -6,7 +6,7 @@ module RubySMB
     class ParameterBlock < BinData::Record
       endian  :little
 
-      uint8   :word_count,  :label => 'Word Count', :value => lambda { calculate_word_count }
+      uint8   :word_count, label: 'Word Count', value: -> { calculate_word_count }
 
       # Class method to stub word count calculation during
       # lazy evaluation.
@@ -21,7 +21,7 @@ module RubySMB
       #
       # @return [Array<Symbol>] the names of all other ParameterBlock fields
       def self.parameter_fields
-        fields = self.fields.collect { |field| field.name }
+        fields = self.fields.collect(&:name)
         fields.reject { |field| field == :word_count }
       end
 
@@ -32,12 +32,11 @@ module RubySMB
       def calculate_word_count
         total_count = 0
         self.class.parameter_fields.each do |field_name|
-          field_value = self.send(field_name)
+          field_value = send(field_name)
           total_count += field_value.do_num_bytes / 2
         end
         total_count
       end
-
     end
   end
 end

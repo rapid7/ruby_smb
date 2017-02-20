@@ -22,7 +22,6 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-
   describe '#smb2_header' do
     subject(:header) { packet.smb2_header }
 
@@ -129,7 +128,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
     end
 
     it 'should be the length of the security_buffer field' do
-      packet.security_buffer = "foobar"
+      packet.security_buffer = 'foobar'
       expect(packet.security_buffer_length).to eq 6
     end
   end
@@ -145,5 +144,4 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
       expect(packet.security_buffer).to be_a BinData::String
     end
   end
-
 end

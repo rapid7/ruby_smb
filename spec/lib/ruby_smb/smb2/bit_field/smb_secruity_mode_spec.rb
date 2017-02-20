@@ -20,4 +20,3 @@ RSpec.describe RubySMB::SMB2::BitField::Smb2SecurityMode do
     it_behaves_like 'bit field with one flag set', :signing_enabled, 'v', 0x0001
   end
 end
-

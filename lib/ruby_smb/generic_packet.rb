@@ -1,7 +1,6 @@
 module RubySMB
   # Parent class for all SMB Packets.
   class GenericPacket < BinData::Record
-
     # Outputs a nicely formatted string representation
     # of the Packet's structure.
     #
@@ -9,7 +8,7 @@ module RubySMB
     def self.describe
       description = ''
       fields_hashed.each do |field|
-        description << self.format_field(field)
+        description << format_field(field)
       end
       description
     end
@@ -29,7 +28,7 @@ module RubySMB
     #
     # @return [Array<Hash>] the array of hash representations of the record's fields
     def self.fields_hashed
-      walk_fields(self.fields)
+      walk_fields(fields)
     end
 
     # Takes a hash representation of a field and spits out a formatted
@@ -38,7 +37,7 @@ module RubySMB
     # @param field [Hash] the hash representing the field
     # @param depth [Fixnum] the recursive depth level to track indentation
     # @return [String] the formatted string representation of the field
-    def self.format_field(field,depth=0)
+    def self.format_field(field, depth = 0)
       name = field[:name].to_s
       if field[:class].ancestors.include? BinData::Record
         class_str = ''
@@ -49,9 +48,9 @@ module RubySMB
         name.capitalize!
       end
       formatted_name = "\n" + ("\t" * depth) + name
-      formatted_string = sprintf "%-30s %-10s %s", formatted_name, class_str, field[:label]
+      formatted_string = sprintf '%-30s %-10s %s', formatted_name, class_str, field[:label]
       field[:fields].each do |sub_field|
-        formatted_string << self.format_field(sub_field,(depth+1))
+        formatted_string << format_field(sub_field, (depth + 1))
       end
       formatted_string
     end
@@ -68,15 +67,15 @@ module RubySMB
         field_hash[:name] = field.name
         prototype = field.prototype
         field_hash[:class] = prototype.instance_variable_get(:@obj_class)
-        params =  prototype.instance_variable_get(:@obj_params)
+        params = prototype.instance_variable_get(:@obj_params)
         field_hash[:label] = params[:label]
         field_hash[:value] = params[:value]
         sub_fields = params[:fields]
-        if sub_fields.nil?
-          field_hash[:fields] = []
-        else
-          field_hash[:fields] = self.walk_fields(sub_fields)
-        end
+        field_hash[:fields] = if sub_fields.nil?
+                                []
+                              else
+                                walk_fields(sub_fields)
+                              end
         field_hashes << field_hash
       end
       field_hashes
@@ -89,7 +88,7 @@ module RubySMB
     # @param depth [Fixnum] the recursion depth for setting indent levels
     # @param parents [Array<Symbol>] the name of the parent field, if any, of this field
     # @return [String] a formatted string representing the field and it's current contents
-    def display_field(field, depth=0, parents=[])
+    def display_field(field, depth = 0, parents = [])
       my_parents = parents.dup
       field_str = ''
       name = field[:name]
@@ -100,7 +99,7 @@ module RubySMB
           parent = parent.send(pfield)
         end
         array_field = parent.send(name)
-        field_str << process_array_field(array_field,(depth + 1))
+        field_str << process_array_field(array_field, (depth + 1))
       else
         if my_parents.empty?
           field_str = "\n" + ("\t" * depth) + name.to_s.upcase
@@ -119,7 +118,7 @@ module RubySMB
           end
           label = field[:label] || name.to_s.capitalize
           label = "\n" + ("\t" * depth) + label
-          field_str = sprintf "%-30s %s", label, value
+          field_str = sprintf '%-30s %s', label, value
         end
       end
       my_parents << name
@@ -135,7 +134,7 @@ module RubySMB
     #
     # @param array_field [BinData::Array] the Array field to be processed
     # @return [String] the formatted string representing the contents of the array
-    def process_array_field(array_field,depth)
+    def process_array_field(array_field, depth)
       array_field_str = ''
       array_field.each do |sub_field|
         fields = sub_field.class.fields.fields
@@ -146,12 +145,11 @@ module RubySMB
           value = sub_field.send(name)
           label ||= name
           label = "\n" + "\t" * depth + label
-          sub_field_str = sprintf "%-30s %s", label, value
+          sub_field_str = sprintf '%-30s %s', label, value
           array_field_str << sub_field_str
         end
       end
       array_field_str
     end
-
   end
 end

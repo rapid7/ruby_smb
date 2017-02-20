@@ -1,5 +1,4 @@
 RSpec.describe RubySMB::SMB1::Dialect do
-
   subject(:dialect) { described_class.new }
 
   it { is_expected.to respond_to :buffer_format }
@@ -24,5 +23,4 @@ RSpec.describe RubySMB::SMB1::Dialect do
       expect(dialect.dialect_string).to be_a BinData::Stringz
     end
   end
-
 end

@@ -1,5 +1,4 @@
 RSpec.shared_examples 'write_response_channel_info' do
-
   it 'should conform to the expected offset' do
     expect(packet.channel_info_offset).to eq(0)
   end

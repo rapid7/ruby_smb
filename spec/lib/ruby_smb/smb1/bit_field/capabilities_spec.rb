@@ -242,5 +242,4 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
       expect(capabilities.reserved5).to eq 0
     end
   end
-
 end

@@ -1,5 +1,4 @@
 RSpec.describe RubySMB::SMB1::AndXBlock do
-
   subject(:andx_block) { described_class.new }
 
   it { is_expected.to respond_to :andx_command }

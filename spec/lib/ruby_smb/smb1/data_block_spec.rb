@@ -1,5 +1,4 @@
 RSpec.describe RubySMB::SMB1::DataBlock do
-
   subject(:data_block) { described_class.new }
 
   it { is_expected.to respond_to :byte_count }
@@ -18,5 +17,4 @@ RSpec.describe RubySMB::SMB1::DataBlock do
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
-
 end

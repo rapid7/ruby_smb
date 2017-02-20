@@ -1,5 +1,4 @@
-RSpec.shared_examples 'bit field with one flag set' do |flag,pack,value|
-
+RSpec.shared_examples 'bit field with one flag set' do |flag, pack, value|
   it "has a value of #{value} when only #{flag} is set" do
     subject.field_names.each do |sub_field|
       if sub_field == flag
@@ -12,5 +11,4 @@ RSpec.shared_examples 'bit field with one flag set' do |flag,pack,value|
     field_val = field_val.unpack(pack).first
     expect(field_val).to eq value
   end
-
 end

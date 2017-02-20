@@ -4,10 +4,9 @@ module RubySMB
       # A SMB1 SMB_COM_NEGOTIATE Request Packet as defined in
       # [2.2.4.52.1](https://msdn.microsoft.com/en-us/library/ee441572.aspx)
       class NegotiateRequest < RubySMB::GenericPacket
-
         # Represents the specific layout of the DataBlock for a NegotiateRequest Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          array :dialects, :label => 'Dialects', :type => :dialect,  :read_until => :eof
+          array :dialects, label: 'Dialects', type: :dialect, read_until: :eof
         end
 
         smb_header        :smb_header
@@ -16,7 +15,7 @@ module RubySMB
 
         def initialize_instance
           super
-          self.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
         end
 
         # Add an individual Dialect string to the list of
@@ -40,7 +39,6 @@ module RubySMB
           end
           data_block.dialects
         end
-
       end
     end
   end

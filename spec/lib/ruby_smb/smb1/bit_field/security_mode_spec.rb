@@ -41,5 +41,4 @@ RSpec.describe RubySMB::SMB1::BitField::SecurityMode do
 
     it_behaves_like 'bit field with one flag set', :security_signatures_required, 'C', 0x08
   end
-
 end

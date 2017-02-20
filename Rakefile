@@ -9,8 +9,7 @@ RSpec::Core::RakeTask.new(:spec)
 
 YARD::Rake::YardocTask.new do |t|
   t.options = [
-    '-m', 'markdown',
-    '--plugin', 'yard-bit-struct',
+    '-m', 'markdown'
   ]
   t.options += Dir.glob('yard_extensions/*.rb').flat_map { |e| ['-e', e] }
   t.files = [
@@ -20,4 +19,4 @@ YARD::Rake::YardocTask.new do |t|
   ]
 end
 
-task :default => :spec
+task default: :spec

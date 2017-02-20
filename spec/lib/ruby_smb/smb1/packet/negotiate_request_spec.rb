@@ -1,11 +1,10 @@
 RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
-
   subject(:packet) { described_class.new }
   let(:dialect_string) { 'NT LM 0.12' }
 
-  before(:each) {
+  before(:each) do
     packet.add_dialect(dialect_string)
-  }
+  end
 
   describe '#smb_header' do
     subject(:header) { packet.smb_header }
@@ -41,7 +40,7 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
     it { is_expected.to respond_to :dialects }
 
     describe '#dialects' do
-      it 'is an array field as per the SMB spec'do
+      it 'is an array field as per the SMB spec' do
         expect(data_block.dialects).to be_a BinData::Array
       end
     end
@@ -49,7 +48,7 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
 
   describe '#add_dialect' do
     it 'adds a Dialect to the packet' do
-      expect{ packet.add_dialect('foo') }.to change{ packet.data_block.dialects.count }.by(1)
+      expect { packet.add_dialect('foo') }.to change { packet.data_block.dialects.count }.by(1)
     end
 
     it 'uses the argument as the Dialect String' do
@@ -61,13 +60,12 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
 
   describe '#set_dialects' do
     it 'clears out any existing dialects' do
-      expect{ packet.set_dialects([])}.to change{ packet.data_block.dialects.count }.to(0)
+      expect { packet.set_dialects([]) }.to change { packet.data_block.dialects.count }.to(0)
     end
 
     it 'calls #add_dialect once for each string in the array' do
       expect(packet).to receive(:add_dialect).exactly(3).times
-      packet.set_dialects(['foo','bar','baz'])
+      packet.set_dialects(%w(foo bar baz))
     end
   end
-
 end

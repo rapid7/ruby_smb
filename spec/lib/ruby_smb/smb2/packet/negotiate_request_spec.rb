@@ -15,7 +15,6 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-
   describe '#smb2_header' do
     subject(:header) { packet.smb2_header }
 
@@ -81,7 +80,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
   end
 
   describe '#dialects' do
-    it 'is an array field as per the SMB spec'do
+    it 'is an array field as per the SMB spec' do
       expect(packet.dialects).to be_a BinData::Array
     end
   end
@@ -120,5 +119,4 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
       expect(packet.dialect_count).to eq 3
     end
   end
-
 end

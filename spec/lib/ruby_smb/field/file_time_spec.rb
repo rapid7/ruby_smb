@@ -3,7 +3,7 @@ RSpec.describe RubySMB::Field::FileTime do
 
   let(:binary_filetime) { "\x36\x32\xe8\xe0\xd2\xe4\xd0\x01" }
   let(:int_filetime) { binary_filetime.unpack('Q<').first }
-  let(:str_filetime) { "2015-09-01T11:25:56-05:00" }
+  let(:str_filetime) { '2015-09-01T11:25:56-05:00' }
   let(:time_filetime) { Time.parse str_filetime }
   let(:datetime_filetime) { time_filetime.to_datetime }
 
@@ -42,13 +42,13 @@ RSpec.describe RubySMB::Field::FileTime do
     it 'will take a Time object correctly but lose Nanoseconds' do
       empty_filetime.set time_filetime
       val = empty_filetime.get
-      expect(val/10000000).to eq (int_filetime/10000000)
+      expect(val / 10_000_000).to eq (int_filetime / 10_000_000)
     end
 
     it 'will take a DateTime object correctly but lose Nanoseconds' do
       empty_filetime.set datetime_filetime
       val = empty_filetime.get
-      expect(val/10000000).to eq (int_filetime/10000000)
+      expect(val / 10_000_000).to eq (int_filetime / 10_000_000)
     end
 
     it 'will accept a raw integer value and set it' do

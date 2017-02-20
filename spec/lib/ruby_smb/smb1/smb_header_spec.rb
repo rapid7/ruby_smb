@@ -1,5 +1,4 @@
 RSpec.describe RubySMB::SMB1::SMBHeader do
-
   subject(:header) { described_class.new }
 
   it { is_expected.to respond_to :protocol }

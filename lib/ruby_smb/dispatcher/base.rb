@@ -3,7 +3,7 @@ class RubySMB::Dispatcher::Base
   # @param packet [#length]
   # @return [Fixnum] NBSS header to go in front of `packet`
   def nbss(packet)
-    [packet.do_num_bytes].pack("N")
+    [packet.do_num_bytes].pack('N')
   end
 
   # @abstract

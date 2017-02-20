@@ -13,5 +13,4 @@ module RubySMB::SMB1
   require 'ruby_smb/smb1/data_block'
   require 'ruby_smb/smb1/andx_block'
   require 'ruby_smb/smb1/dialect'
-
 end

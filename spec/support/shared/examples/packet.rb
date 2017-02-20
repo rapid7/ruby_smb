@@ -1,5 +1,4 @@
 RSpec.shared_examples 'packet' do
-
   context 'command' do
     it 'should conform to the expected structure' do
       expect(RubySMB::SMB2::COMMANDS).to include(subject.class::COMMAND)
@@ -21,7 +20,5 @@ RSpec.shared_examples 'packet' do
     it { is_expected.to respond_to(:tree_id) }
     it { is_expected.to respond_to(:session_id) }
     it { is_expected.to respond_to(:signature) }
-
   end
-
 end

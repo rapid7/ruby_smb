@@ -4,16 +4,16 @@ module RubySMB
     # [FILETIME structure](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724284(v=vs.85).aspx)
     class FileTime < BinData::Primitive
       # Difference between the Windows and Unix epochs, in 100ns intervals
-      EPOCH_DIFF_100NS = 116444736000000000
-      NS_MULTIPLIER = 10000000
+      EPOCH_DIFF_100NS = 116_444_736_000_000_000
+      NS_MULTIPLIER = 10_000_000
       endian :little
-      uint64  :val
+      uint64 :val
 
       # Gets the value of the field
       #
       # @return [BinData::Bit64] the 64-bit value of the field
       def get
-        self.val
+        val
       end
 
       # Sets the value of the field from a DateTime,Time,Fixnum, or object
@@ -25,19 +25,19 @@ module RubySMB
       # @return
       def set(value)
         case value
-          when DateTime
-            set(value.to_time)
-          when Time
-            time_int = value.to_i
-            time_int = time_int * NS_MULTIPLIER
-            adjusted_epoch = time_int + EPOCH_DIFF_100NS
-            set(adjusted_epoch)
-          when Fixnum
-            self.val = value
-          else
-            self.val = value.to_i
+        when DateTime
+          set(value.to_time)
+        when Time
+          time_int = value.to_i
+          time_int *= NS_MULTIPLIER
+          adjusted_epoch = time_int + EPOCH_DIFF_100NS
+          set(adjusted_epoch)
+        when Fixnum
+          self.val = value
+        else
+          self.val = value.to_i
         end
-        self.val
+        val
       end
 
       # Returns the value of the field as a {DateTime}
@@ -52,12 +52,11 @@ module RubySMB
       #
       # @return [Time] the {Time} representation of the current value
       def to_time
-        windows_int = self.val
+        windows_int = val
         adjusted_epoch = windows_int - EPOCH_DIFF_100NS
-        unix_int = adjusted_epoch/NS_MULTIPLIER
+        unix_int = adjusted_epoch / NS_MULTIPLIER
         Time.at unix_int
       end
     end
-
   end
 end

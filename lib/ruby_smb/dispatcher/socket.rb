@@ -3,7 +3,6 @@ require 'socket'
 # This class provides a wrapper around a Socket for the packet Dispatcher.
 # It allows for dependency injection of different Socket implementations.
 class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
-
   # The underlying socket that we select on
   # @!attribute [rw] tcp_socket
   #   @return [IO]
@@ -16,7 +15,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
   # @param host [String] passed to TCPSocket.new
   # @param port [Fixnum] passed to TCPSocket.new
-  def self.connect(host, port:445, socket: TCPSocket.new(host, port))
+  def self.connect(host, port: 445, socket: TCPSocket.new(host, port))
     new(socket)
   end
 
@@ -41,17 +40,14 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
     IO.select([@tcp_socket])
     nbss_header = @tcp_socket.read(4) # Length of NBSS header. TODO: remove to a constant
     if nbss_header.nil?
-      raise ::RubySMB::Error::NetBiosSessionService, "NBSS Header is missing"
+      raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'
     else
-      length = nbss_header.unpack("N").first
+      length = nbss_header.unpack('N').first
     end
     IO.select([@tcp_socket])
     data = @tcp_socket.read(length)
-    while data.length < length
-      data << @tcp_socket.read(length - data.length)
-    end
+    data << @tcp_socket.read(length - data.length) while data.length < length
 
     data
   end
-
 end
