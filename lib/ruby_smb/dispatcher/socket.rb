@@ -23,7 +23,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
   # @param packet [SMB2::Packet,#to_s]
   # @return [void]
   def send_packet(packet)
-    data = nbss(packet) + packet.to_s
+    data = nbss(packet) + packet.to_binary_s
     bytes_written = 0
     while bytes_written < data.size
       bytes_written += @tcp_socket.write(data[bytes_written..-1])
@@ -51,7 +51,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
       data << @tcp_socket.read(length - data.length)
     end
 
-    RubySMB::SMB2::Packet.parse(data)
+    data
   end
 
 end
