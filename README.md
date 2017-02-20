@@ -31,56 +31,7 @@ Or install it yourself as:
 
 ## Usage
 
-### Using the `Client` class
-
-```ruby
-dispatcher = RubySMB::Dispatcher::Socket.connect("192.168.100.140", 445)
-client = RubySMB::SMB2::Client.new(
-  dispatcher: dispatcher,
-  username:"administrator",
-  password:"P@ssword1",
-  domain:"asdfasdf"
-)
-client.negotiate
-client.authenticate
-
-tree = client.tree_connect("\\\\#{dispatcher.socket.remote_address.ip_address}\\Users")
-```
-
-Now you can open files on the connected share. `Tree#create` is intended
-to behave like Ruby's
-[File.open](http://ruby-doc.org/core-2.2.0/File.html#method-c-open):
-```ruby
-# read/write by default
-file = tree.create("Public\\file.txt")
-file.read # => <full contents of file.txt>
-file.write("\nAppend a new line to file.txt")
-```
-
-Or with a block, the file will be closed when the block returns:
-```ruby
-data = tree.create("Public\\file.txt") { |file|
-  file.read
-}
-```
-
-### Making packets manually
-
-```ruby
-sock = TCPSocket.new("192.168.100.140", 445)
-neg = RubySMB::SMB2::Packet::NegotiateRequest.new(
-  # This is necessary until I can figure out how to set a default for
-  # `rest` fields
-  dialects: "\x02\x02".force_encoding("binary"),
-)
-nbss = [neg.length].pack("N")
-sock.write(nbss + neg.to_s)
-# Grab NBSS size
-size = sock.read(4).unpack("N").first
-data = sock.read(size)
-neg_response = RubySMB::SMB2::Packet::NegotiateResponse.new(data)
-
-```
+Updated Usage Docs coming soon
 
 ## Developer tips
 You'll want to have Wireshark and perhaps a tool like Impacket (which provides a small SMB client in one of its examples) installed to help with your work:
