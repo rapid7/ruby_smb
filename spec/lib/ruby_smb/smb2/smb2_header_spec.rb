@@ -17,7 +17,7 @@ RSpec.describe RubySMB::SMB2::SMB2Header do
   it { is_expected.to respond_to :signature }
 
   it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
   describe '#protocol' do

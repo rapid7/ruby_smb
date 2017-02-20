@@ -28,7 +28,7 @@ RSpec.describe RubySMB::SMB1::BitField::Capabilities do
   it { is_expected.to respond_to :reserved5 }
 
   it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
   describe '#level_2_oplocks' do

@@ -7,7 +7,7 @@ RSpec.describe RubySMB::SMB1::AndXBlock do
   it { is_expected.to respond_to :andx_offset }
 
   it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
   describe 'andx_command' do

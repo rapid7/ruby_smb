@@ -12,7 +12,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
   it { is_expected.to respond_to :dialects }
 
   it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@endian)).to eq :little
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
 
