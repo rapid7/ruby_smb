@@ -2,7 +2,6 @@
 
 [![Build Status](https://travis-ci.org/rapid7/ruby_smb.svg?branch=master)](https://travis-ci.org/rapid7/ruby_smb)
 [![Code Climate](https://codeclimate.com/github/rapid7/ruby_smb.png)](https://codeclimate.com/github/rapid7/ruby_smb)
-[![PullReview stats](https://www.pullreview.com/github/rapid7/ruby_smb/badges/master.svg)](https://www.pullreview.com/github/rapid7/ruby_smb/reviews/master)
 [![Coverage Status](https://coveralls.io/repos/rapid7/ruby_smb/badge.svg?branch=master&service=github)](https://coveralls.io/github/rapid7/ruby_smb?branch=master)
 
 A packet parsing and manipulation library for the SMB family of protocols.
