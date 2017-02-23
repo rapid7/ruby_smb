@@ -68,4 +68,10 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateRequest do
       packet.set_dialects(%w(foo bar baz))
     end
   end
+
+  describe '#dialects' do
+    it 'returns a ruby array of the dialect hashes' do
+      expect(packet.dialects).to eq [{:buffer_format=>2, :dialect_string=>"NT LM 0.12"}]
+    end
+  end
 end

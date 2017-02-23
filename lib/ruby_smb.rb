@@ -17,4 +17,5 @@ module RubySMB
   autoload :Version, 'ruby_smb/version'
   autoload :SMB2, 'ruby_smb/smb2'
   autoload :SMB1, 'ruby_smb/smb1'
+  autoload :Client, 'ruby_smb/client'
 end
