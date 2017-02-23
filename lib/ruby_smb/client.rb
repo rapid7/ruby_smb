@@ -32,10 +32,16 @@ module RubySMB
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     def initialize(dispatcher, smb1: true, smb2: true)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.kind_of? RubySMB::Dispatcher::Base
-
+      if smb1 == false && smb2 == false
+        raise ArgumentError, 'You must enable at least one Protocol'
+      end
       @dispatcher = dispatcher
       @smb1       = smb1
       @smb2       = smb2
+    end
+
+    def negotiate
+
     end
 
     # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
@@ -49,6 +55,18 @@ module RubySMB
       # to Negotiate strictly SMB2, but the protocol WILL support it
       packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
       packet.add_dialect(SMB1_DIALECT_SMB2_DEFAULT) if smb2
+      packet
+    end
+
+    # Create a {RubySMB::SMB2::Packet::NegotiateRequest} packet with
+    # the default dialect added. This will never be used when we
+    # may want to communicate over SMB1
+    #
+    # @ return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB2 Negotiate Request packet
+    def smb2_negotiate_request
+      packet = RubySMB::SMB2::Packet::NegotiateRequest.new
+      packet.smb2_header.message_id = 1
+      packet.add_dialect(SMB2_DIALECT_DEFAULT)
       packet
     end
 
