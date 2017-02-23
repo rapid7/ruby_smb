@@ -70,4 +70,29 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#negotiate_request' do
+    before(:each) do
+      expect(dispatcher).to receive(:send_packet).and_return(nil)
+      expect(dispatcher).to receive(:recv_packet).and_return("A")
+    end
+    it 'calls #smb1_negotiate_request if SMB1 is enabled' do
+      expect(smb1_client).to receive(:smb1_negotiate_request)
+      smb1_client.negotiate_request
+    end
+
+    it 'calls #smb1_negotiate_request if both protocols are enabled' do
+      expect(client).to receive(:smb1_negotiate_request)
+      client.negotiate_request
+    end
+
+    it 'calls #smb2_negotiate_request if SMB2 is enabled' do
+      expect(smb2_client).to receive(:smb2_negotiate_request)
+      smb2_client.negotiate_request
+    end
+
+    it 'returns the raw response string from the server' do
+      expect(client.negotiate_request).to eq "A"
+    end
+  end
+
 end

@@ -44,6 +44,21 @@ module RubySMB
 
     end
 
+    # Creates and dispatches the first Negotiate Request Packet and
+    # returns the raw response data.
+    #
+    # @return [String] the raw binary string containing the response from the server
+    def negotiate_request
+      if smb1
+        request = smb1_negotiate_request
+      elsif smb2
+        request = smb2_negotiate_request
+      end
+      dispatcher.send_packet request
+      raw_response = dispatcher.recv_packet
+    end
+
+
     # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
     # dialects filled in based on the protocol options set on the Client.
     #
