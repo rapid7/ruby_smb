@@ -7,4 +7,8 @@ module RubySMB::Error
   # Raised when there is a problem with communication over NetBios Session Service
   # @see https://wiki.wireshark.org/NetBIOS/NBSS
   class NetBiosSessionService < StandardError; end
+
+  # Raised when trying to parse raw binary into a Packet and the data
+  # is invalid.
+  class InvalidPacket < StandardError; end
 end

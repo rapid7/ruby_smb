@@ -126,16 +126,34 @@ RSpec.describe RubySMB::Client do
     }
     let(:smb1_extended_response) {
       packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.new
-      #packet.parameter_block.capabilities = smb1_capabilities
+      packet.parameter_block.capabilities = smb1_capabilities
       packet
     }
     let(:smb1_extended_response_raw) {
       smb1_extended_response.to_binary_s
     }
 
+
+
     context 'with only SMB1' do
       it 'returns a properly formed packet' do
         expect(smb1_client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
+      end
+
+      it 'raises an exception if the Response is invalid' do
+        expect{ smb1_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'considers the response invalid if it is not an actual Negotiate Response' do
+        bogus_response = smb1_extended_response
+        bogus_response.smb_header.command = 0xff
+        expect{ smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'considers the response invalid if Extended Security is not enabled' do
+        bogus_response = smb1_extended_response
+        bogus_response.parameter_block.capabilities.extended_security = 0
+        expect{ smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
       end
     end
   end

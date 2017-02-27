@@ -67,11 +67,14 @@ module RubySMB
     # @return [RubySMB::SMB2::Packet::NegotiateResponse] when the response is an SMB2 Negotiate Response Packet
     def negotiate_response(raw_data)
       if smb1
-        packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
-        return packet if packet.valid?
-      end
-      if smb2
-        packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
+        begin
+          packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
+        rescue Exception => e
+          raise RubySMB::Error::InvalidPacket, e.message
+        end
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, "Not a Valid SMB1 Negoitate Response (Extended Security)"
+        end
       end
       packet
     end
