@@ -133,6 +133,8 @@ RSpec.describe RubySMB::Client do
       smb1_extended_response.to_binary_s
     }
 
+    let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
+
 
 
     context 'with only SMB1' do
@@ -155,6 +157,20 @@ RSpec.describe RubySMB::Client do
         bogus_response.parameter_block.capabilities.extended_security = 0
         expect{ smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
       end
+    end
+
+    context 'with only SMB2' do
+      it 'returns a properly formed packet' do
+        expect( smb2_client.negotiate_response(smb2_response.to_binary_s) ).to eq smb2_response
+      end
+
+      it 'raises an exception if the Response is invalid' do
+        expect{ smb2_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    context 'with SMB1 and SMB2 enabled' do
+
     end
   end
 
