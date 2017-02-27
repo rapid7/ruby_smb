@@ -33,9 +33,9 @@ module RubySMB
         total_count = 0
         self.class.parameter_fields.each do |field_name|
           field_value = send(field_name)
-          total_count += field_value.do_num_bytes / 2
+          total_count += field_value.do_num_bytes
         end
-        total_count
+        total_count.to_i / 2
       end
     end
   end
