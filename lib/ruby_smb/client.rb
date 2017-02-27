@@ -75,8 +75,6 @@ module RubySMB
         end
         if packet.valid?
           response = packet
-        else
-          raise RubySMB::Error::InvalidPacket, "Not a Valid SMB1 Negoitate Response (Extended Security)"
         end
       end
       if smb2 && response.nil?
@@ -85,8 +83,12 @@ module RubySMB
         rescue Exception => e
           raise RubySMB::Error::InvalidPacket, "Not a Valid SMB2 Negoitate Response #{e.message}"
         end
+        response = packet
       end
-      packet
+      if response.nil?
+        raise RubySMB::Error::InvalidPacket, "No Valid Negotiate Response found"
+      end
+      response
     end
 
 

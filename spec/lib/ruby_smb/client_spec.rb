@@ -170,7 +170,13 @@ RSpec.describe RubySMB::Client do
     end
 
     context 'with SMB1 and SMB2 enabled' do
+      it 'returns an SMB1 NegotiateResponse if it looks like SMB1' do
+        expect( client.negotiate_response(smb1_extended_response_raw) ).to eq smb1_extended_response
+      end
 
+      it 'returns an SMB2 NegotiateResponse if it looks like SMB2' do
+        expect( client.negotiate_response(smb2_response.to_binary_s) ).to eq smb2_response
+      end
     end
   end
 
