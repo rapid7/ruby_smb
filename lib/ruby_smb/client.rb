@@ -58,6 +58,24 @@ module RubySMB
       raw_response = dispatcher.recv_packet
     end
 
+    # Takes the raw response data from the server and tries
+    # parse it into a valid Response packet object.
+    # This method currently assumes that all SMB1 will use Extended Security.
+    #
+    # @param raw_data [String] the raw binary response from the server
+    # @return [RubySMB::SMB1::Packet::NegotiateResponseExtended] when the response is an SMB1 Extended Security Negotiate Response Packet
+    # @return [RubySMB::SMB2::Packet::NegotiateResponse] when the response is an SMB2 Negotiate Response Packet
+    def negotiate_response(raw_data)
+      if smb1
+        packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
+        return packet if packet.valid?
+      end
+      if smb2
+        packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
+      end
+      packet
+    end
+
 
     # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
     # dialects filled in based on the protocol options set on the Client.
@@ -65,7 +83,10 @@ module RubySMB
     # @return [RubySMB::SMB1::Packet::NegotiateRequest] a completed SMB1 Negotiate Request packet
     def smb1_negotiate_request
       packet = RubySMB::SMB1::Packet::NegotiateRequest.new
-
+      # Default to always enabling Extended Security. It simplifies the Negotiation process
+      # while being gauranteed to work with any modern Windows system. We can get more sophisticated
+      # with switching this on and off at a later date if the need arises.
+      packet.smb_header.flags2.extended_security = 1
       # There is no real good reason to ever send an SMB1 Negotiate packet
       # to Negotiate strictly SMB2, but the protocol WILL support it
       packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1

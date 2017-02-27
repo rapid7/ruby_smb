@@ -95,4 +95,49 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#negotiate_response' do
+    let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
+    let(:smb1_capabilities) {
+      {:level_2_oplocks=>1,
+       :nt_status=>1,
+       :rpc_remote_apis=>1,
+       :nt_smbs=>1,
+       :large_files=>1,
+       :unicode=>1,
+       :mpx_mode=>0,
+       :raw_mode=>0,
+       :large_writex=>1,
+       :large_readx=>1,
+       :info_level_passthru=>1,
+       :dfs=>0,
+       :reserved1=>0,
+       :bulk_transfer=>0,
+       :nt_find=>1,
+       :lock_and_read=>1,
+       :unix=>0,
+       :reserved2=>0,
+       :lwio=>1,
+       :extended_security=>1,
+       :reserved3=>0,
+       :dynamic_reauth=>0,
+       :reserved4=>0,
+       :compressed_data=>0,
+       :reserved5=>0}
+    }
+    let(:smb1_extended_response) {
+      packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.new
+      #packet.parameter_block.capabilities = smb1_capabilities
+      packet
+    }
+    let(:smb1_extended_response_raw) {
+      smb1_extended_response.to_binary_s
+    }
+
+    context 'with only SMB1' do
+      it 'returns a properly formed packet' do
+        expect(smb1_client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
+      end
+    end
+  end
+
 end

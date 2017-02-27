@@ -37,7 +37,9 @@ module RubySMB
         end
 
         def valid?
-          smb_header.command == 0x72
+          return false unless smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          return false unless parameter_block.capabilities.extended_security == 1
+          true
         end
       end
     end

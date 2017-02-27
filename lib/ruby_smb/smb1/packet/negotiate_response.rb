@@ -38,7 +38,7 @@ module RubySMB
         end
 
         def valid?
-          smb_header.command == 0x72
+          smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
         end
       end
     end
