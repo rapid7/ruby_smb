@@ -208,6 +208,15 @@ RSpec.describe RubySMB::Client do
         end
       end
     end
+
+    describe '#negotiate' do
+      it 'calls the backing methods' do
+        expect(client).to receive(:negotiate_request)
+        expect(client).to receive(:negotiate_response)
+        expect(client).to receive(:parse_negotiate_response)
+        client.negotiate
+      end
+    end
   end
 
 end

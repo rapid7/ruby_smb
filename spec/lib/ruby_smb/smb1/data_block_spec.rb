@@ -14,6 +14,12 @@ RSpec.describe RubySMB::SMB1::DataBlock do
     end
   end
 
+  describe 'class method #calculate_byte_count' do
+    it 'always returns 0' do
+      expect(described_class.calculate_byte_count).to eq 0
+    end
+  end
+
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
