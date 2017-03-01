@@ -17,6 +17,11 @@ module RubySMB
     #   @return [RubySMB::Dispatcher::Socket]
     attr_accessor :dispatcher
 
+    # Whether or not the Server requires signing
+    # @!attribute [rw] signing_enabled
+    #   @return [Boolean]
+    attr_accessor :signing_required
+
     # Whether or not the Client should support SMB1
     # @!attribute [rw] smb1
     #   @return [Boolean]
@@ -35,13 +40,21 @@ module RubySMB
       if smb1 == false && smb2 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
-      @dispatcher = dispatcher
-      @smb1       = smb1
-      @smb2       = smb2
+      @dispatcher       = dispatcher
+      @smb1             = smb1
+      @smb2             = smb2
+      @signing_required = false
     end
 
+    # Handles the entire SMB Multi-Protocol Negotiation from the
+    # Client to the Server. It sets state on the client appropriate
+    # to the protocol and capabilites negotiated during the exchange.
+    #
+    # @return [void]
     def negotiate
-
+      raw_response    = negotiate_request
+      response_packet = negotiate_response(raw_response)
+      parse_negotiate_response(response_packet)
     end
 
     # Creates and dispatches the first Negotiate Request Packet and
@@ -89,6 +102,33 @@ module RubySMB
         raise RubySMB::Error::InvalidPacket, "No Valid Negotiate Response found"
       end
       response
+    end
+
+    # Sets the supported SMB Protocol and whether or not
+    # Signing is enabled based on the Negotiate Response Packet.
+    #
+    # @param packet [RubySMB::SMB1::Packet::NegotiateResponseExtended] if SMB1 was negotiated
+    # @param packet [RubySMB::SMB2::Packet::NegotiateResponse] if SMB2 was negotiated
+    # @return [void] This method sets state and does not return a meaningful value
+    def parse_negotiate_response(packet)
+      case packet
+        when RubySMB::SMB1::Packet::NegotiateResponseExtended
+          self.smb1 = true
+          self.smb2 = false
+          if packet.parameter_block.security_mode.security_signatures_required == 1
+            self.signing_required = true
+          else
+            self.signing_required = false
+          end
+        when RubySMB::SMB2::Packet::NegotiateResponse
+          self.smb1 = false
+          self.smb2 = true
+          if packet.security_mode.signing_required == 1
+            self.signing_required = true
+          else
+            self.signing_required = false
+          end
+      end
     end
 
 

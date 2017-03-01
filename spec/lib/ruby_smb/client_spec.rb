@@ -7,6 +7,45 @@ RSpec.describe RubySMB::Client do
   subject(:smb1_client) { described_class.new(dispatcher, smb2:false) }
   subject(:smb2_client) { described_class.new(dispatcher, smb1:false) }
 
+  let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
+  let(:smb1_capabilities) {
+    {:level_2_oplocks=>1,
+     :nt_status=>1,
+     :rpc_remote_apis=>1,
+     :nt_smbs=>1,
+     :large_files=>1,
+     :unicode=>1,
+     :mpx_mode=>0,
+     :raw_mode=>0,
+     :large_writex=>1,
+     :large_readx=>1,
+     :info_level_passthru=>1,
+     :dfs=>0,
+     :reserved1=>0,
+     :bulk_transfer=>0,
+     :nt_find=>1,
+     :lock_and_read=>1,
+     :unix=>0,
+     :reserved2=>0,
+     :lwio=>1,
+     :extended_security=>1,
+     :reserved3=>0,
+     :dynamic_reauth=>0,
+     :reserved4=>0,
+     :compressed_data=>0,
+     :reserved5=>0}
+  }
+  let(:smb1_extended_response) {
+    packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.new
+    packet.parameter_block.capabilities = smb1_capabilities
+    packet
+  }
+  let(:smb1_extended_response_raw) {
+    smb1_extended_response.to_binary_s
+  }
+
+  let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
+
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
       expect{ described_class.new(nil) }.to raise_error(ArgumentError)
@@ -96,47 +135,6 @@ RSpec.describe RubySMB::Client do
   end
 
   describe '#negotiate_response' do
-    let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
-    let(:smb1_capabilities) {
-      {:level_2_oplocks=>1,
-       :nt_status=>1,
-       :rpc_remote_apis=>1,
-       :nt_smbs=>1,
-       :large_files=>1,
-       :unicode=>1,
-       :mpx_mode=>0,
-       :raw_mode=>0,
-       :large_writex=>1,
-       :large_readx=>1,
-       :info_level_passthru=>1,
-       :dfs=>0,
-       :reserved1=>0,
-       :bulk_transfer=>0,
-       :nt_find=>1,
-       :lock_and_read=>1,
-       :unix=>0,
-       :reserved2=>0,
-       :lwio=>1,
-       :extended_security=>1,
-       :reserved3=>0,
-       :dynamic_reauth=>0,
-       :reserved4=>0,
-       :compressed_data=>0,
-       :reserved5=>0}
-    }
-    let(:smb1_extended_response) {
-      packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.new
-      packet.parameter_block.capabilities = smb1_capabilities
-      packet
-    }
-    let(:smb1_extended_response_raw) {
-      smb1_extended_response.to_binary_s
-    }
-
-    let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
-
-
-
     context 'with only SMB1' do
       it 'returns a properly formed packet' do
         expect(smb1_client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
@@ -176,6 +174,34 @@ RSpec.describe RubySMB::Client do
 
       it 'returns an SMB2 NegotiateResponse if it looks like SMB2' do
         expect( client.negotiate_response(smb2_response.to_binary_s) ).to eq smb2_response
+      end
+    end
+  end
+
+  describe '#parse_negotiate_response' do
+    context 'when SMB1 was Negotiated' do
+      it 'turns off SMB2 support' do
+        client.parse_negotiate_response(smb1_extended_response)
+        expect( client.smb2 ).to be false
+      end
+
+      it 'sets whether or not signing is required' do
+        smb1_extended_response.parameter_block.security_mode.security_signatures_required = 1
+        client.parse_negotiate_response(smb1_extended_response)
+        expect(client.signing_required).to be true
+      end
+    end
+
+    context 'when SMB2 was negotiated' do
+      it 'turns off SMB1 support' do
+        client.parse_negotiate_response(smb2_response)
+        expect( client.smb1 ).to be false
+      end
+
+      it 'sets whether or not signing is required' do
+        smb2_response.security_mode.signing_required = 1
+        client.parse_negotiate_response(smb2_response)
+        expect(client.signing_required).to be true
       end
     end
   end

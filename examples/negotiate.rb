@@ -7,12 +7,11 @@ require 'ruby_smb'
 
 # Create the initial SMB! Negotiate Request packet
 smb1_negotiate_request_packet = RubySMB::SMB1::Packet::NegotiateRequest.new
-#smb1_negotiate_request_packet.add_dialect('NT LM 0.12')
+smb1_negotiate_request_packet.add_dialect('NT LM 0.12')
 #smb1_negotiate_request_packet.add_dialect('SMB 2.002')
 # smb1_negotiate_request_packet.add_dialect('SMB 2.???')
 
-require 'pry'
-binding.pry
+
 smb2 = false
 # Go ahead and setup the SMB2 Negotiate request packet so we have it ready
 smb2_negotiate_request_packet = RubySMB::SMB2::Packet::NegotiateRequest.new
