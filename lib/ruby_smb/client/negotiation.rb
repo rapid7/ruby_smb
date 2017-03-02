@@ -87,7 +87,7 @@ module RubySMB
         # Default to always enabling Extended Security. It simplifies the Negotiation process
         # while being gauranteed to work with any modern Windows system. We can get more sophisticated
         # with switching this on and off at a later date if the need arises.
-        packet.smb_header.flags2.extended_security = 1
+        packet.smb_header.flags2.extended_security = 0
         # There is no real good reason to ever send an SMB1 Negotiate packet
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
