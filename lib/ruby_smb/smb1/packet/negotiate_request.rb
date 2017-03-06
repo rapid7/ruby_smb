@@ -28,6 +28,13 @@ module RubySMB
           data_block.dialects << new_dialect
         end
 
+        # Returns the Dialects array as a normal Ruby {Array}.
+        #
+        # @return [Array<Hash>] array of the set dialects on the packet
+        def dialects
+          data_block.dialects.to_a
+        end
+
         # Sets the entire list of dialects for the Negotiate Request.
         #
         # @param dialect_array [Array<String>] An array of dialect strings to set on the packet

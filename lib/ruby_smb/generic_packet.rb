@@ -102,20 +102,19 @@ module RubySMB
         field_str << process_array_field(array_field, (depth + 1))
       else
         if my_parents.empty?
-          field_str = "\n" + ("\t" * depth) + name.to_s.upcase
-        else
-          if name.nil?
-            name  = ''
-            value = ''
-          elsif field[:class].ancestors.include? BinData::Record
-            value = ''
+          label = "\n" + ("\t" * depth) + name.to_s.upcase
+          if field[:class].ancestors.include? BinData::Record
+            field_str = label
           else
-            parent = self
-            my_parents.each do |pfield|
-              parent = parent.send(pfield)
-            end
-            value = parent.send(name)
+            value = self.send(name)
+            field_str = sprintf '%-30s %s', label, value
           end
+        else
+          parent = self
+          my_parents.each do |pfield|
+            parent = parent.send(pfield)
+          end
+          value = parent.send(name)
           label = field[:label] || name.to_s.capitalize
           label = "\n" + ("\t" * depth) + label
           field_str = sprintf '%-30s %s', label, value

@@ -129,4 +129,21 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateResponseExtended do
       end
     end
   end
+
+  describe '#valid?' do
+    it 'should return true if the command value ix 0x72' do
+      packet.parameter_block.capabilities.extended_security = 1
+      expect(packet.valid?).to be true
+    end
+
+    it 'should return false if the command value is not 0x72' do
+      packet.smb_header.command = 0xff
+      expect(packet.valid?).to be false
+    end
+
+    it 'should return false if the capabilities do not include extended security' do
+      packet.parameter_block.capabilities.extended_security = 0
+      expect(packet.valid?).to be false
+    end
+  end
 end

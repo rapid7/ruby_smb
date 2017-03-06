@@ -35,6 +35,12 @@ module RubySMB
           header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
           header.flags.reply = 1
         end
+
+        def valid?
+          return false unless smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          return false unless parameter_block.capabilities.extended_security == 1
+          true
+        end
       end
     end
   end

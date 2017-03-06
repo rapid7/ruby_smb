@@ -36,6 +36,10 @@ module RubySMB
           header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
           header.flags.reply = 1
         end
+
+        def valid?
+          smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+        end
       end
     end
   end

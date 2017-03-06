@@ -14,6 +14,12 @@ RSpec.describe RubySMB::SMB1::ParameterBlock do
     end
   end
 
+  describe 'class method #calculate_word_count' do
+    it 'always returns 0' do
+      expect(described_class.calculate_word_count).to eq 0
+    end
+  end
+
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
