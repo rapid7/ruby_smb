@@ -53,5 +53,47 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupRequest do
 
   end
 
+  describe '#set_type1_blob' do
+    let(:fake_message) { "foo" }
+
+    it 'calls the #gss_type1 method to create a blob' do
+      expect(RubySMB::Gss).to receive(:gss_type1).with(fake_message).and_return(fake_message)
+      packet.set_type1_blob(fake_message)
+    end
+
+    it 'sets the security blob to the result from the GSS call' do
+      expect(RubySMB::Gss).to receive(:gss_type1).with(fake_message).and_return(fake_message)
+      packet.set_type1_blob(fake_message)
+      expect(packet.data_block.security_blob).to eq fake_message
+    end
+
+    it 'sets the security_blob_length field automatically' do
+      expect(RubySMB::Gss).to receive(:gss_type1).with(fake_message).and_return(fake_message)
+      packet.set_type1_blob(fake_message)
+      expect(packet.parameter_block.security_blob_length).to eq fake_message.length
+    end
+  end
+
+  describe '#set_type3_blob' do
+    let(:fake_message) { "foo" }
+
+    it 'calls the #gss_type3 method to create a blob' do
+      expect(RubySMB::Gss).to receive(:gss_type3).with(fake_message).and_return(fake_message)
+      packet.set_type3_blob(fake_message)
+    end
+
+    it 'sets the security blob to the result from the GSS call' do
+      expect(RubySMB::Gss).to receive(:gss_type3).with(fake_message).and_return(fake_message)
+      packet.set_type3_blob(fake_message)
+      expect(packet.data_block.security_blob).to eq fake_message
+    end
+
+    it 'sets the security_blob_length field automatically' do
+      expect(RubySMB::Gss).to receive(:gss_type3).with(fake_message).and_return(fake_message)
+      packet.set_type3_blob(fake_message)
+      expect(packet.parameter_block.security_blob_length).to eq fake_message.length
+    end
+  end
+
 
 end

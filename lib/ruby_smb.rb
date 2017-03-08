@@ -9,6 +9,7 @@ require 'windows_error/nt_status'
 # [[MS-SMB] Server Mesage Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
+  require 'ruby_smb/gss'
   require 'ruby_smb/field'
   require 'ruby_smb/generic_packet'
   require 'ruby_smb/dispatcher'

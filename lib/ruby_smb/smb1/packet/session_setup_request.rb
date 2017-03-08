@@ -6,6 +6,7 @@ module RubySMB
       # [2.2.4.6.1](https://msdn.microsoft.com/en-us/library/cc246328.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
 
+
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -33,6 +34,33 @@ module RubySMB
           super
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
         end
+
+        # Takes an NTLM Type 1 Message and creates the GSS Security Blob
+        # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
+        # field. It also automaticaly sets the length in
+        # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
+        #
+        # @param type1_message [Net::NTLM::Message::Type1] the Type 1 NTLM message
+        # @return [void]
+        def set_type1_blob(type1_message)
+          gss_blob = RubySMB::Gss.gss_type1(type1_message)
+          data_block.security_blob = gss_blob
+          parameter_block.security_blob_length = gss_blob.length
+        end
+
+        # Takes an NTLM Type 3 Message and creates the GSS Security Blob
+        # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
+        # field. It also automaticaly sets the length in
+        # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
+        #
+        # @param type3_message [Net::NTLM::Message::Type3] the Type 3 NTLM message
+        # @return [void]
+        def set_type3_blob(type3_message)
+          gss_blob = RubySMB::Gss.gss_type3(type3_message)
+          data_block.security_blob = gss_blob
+          parameter_block.security_blob_length = gss_blob.length
+        end
+
 
       end
     end
