@@ -3,9 +3,11 @@ require 'spec_helper'
 RSpec.describe RubySMB::Client do
 
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(nil) }
-  subject(:client) { described_class.new(dispatcher) }
-  subject(:smb1_client) { described_class.new(dispatcher, smb2:false) }
-  subject(:smb2_client) { described_class.new(dispatcher, smb1:false) }
+  let(:username) { 'msfadmin' }
+  let(:password) { 'msfadmin' }
+  subject(:client) { described_class.new(dispatcher, username: username, password: password) }
+  let(:smb1_client) { described_class.new(dispatcher, smb2:false, username: username, password: password) }
+  let(:smb2_client) { described_class.new(dispatcher, smb1:false, username: username, password: password) }
 
 
 
@@ -23,7 +25,7 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'accepts an argument to disable smb1 support' do
-      smb_client = described_class.new(dispatcher, smb1:false)
+      smb_client = described_class.new(dispatcher, smb1:false, username: username, password: password)
       expect(smb_client.smb1).to be false
     end
 
@@ -32,7 +34,7 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'raises an exception if both SMB1 and SMB2 are disabled' do
-      expect{described_class.new(dispatcher, smb1:false, smb2:false)}.to raise_error(ArgumentError, 'You must enable at least one Protocol')
+      expect{described_class.new(dispatcher, smb1:false, smb2:false, username: username, password: password)}.to raise_error(ArgumentError, 'You must enable at least one Protocol')
     end
   end
 

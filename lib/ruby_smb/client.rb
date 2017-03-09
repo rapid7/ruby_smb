@@ -38,15 +38,26 @@ module RubySMB
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
-    def initialize(dispatcher, smb1: true, smb2: true)
+    def initialize(dispatcher, smb1: true, smb2: true, username:,password:, domain:nil, local_workstation:'')
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.kind_of? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
-      @dispatcher       = dispatcher
-      @smb1             = smb1
-      @smb2             = smb2
-      @signing_required = false
+      @dispatcher        = dispatcher
+      @domain            = domain
+      @local_workstation = local_workstation
+      @password          = password.encode("utf-8")
+      @signing_required  = false
+      @smb1              = smb1
+      @smb2              = smb2
+      @username          = username.encode("utf-8")
+
+      @ntlm_client = Net::NTLM::Client.new(
+        @username,
+        @password,
+        workstation: @local_workstation,
+        domain: @domain
+      )
     end
 
     # Handles the entire SMB Multi-Protocol Negotiation from the
@@ -58,6 +69,12 @@ module RubySMB
       raw_response    = negotiate_request
       response_packet = negotiate_response(raw_response)
       parse_negotiate_response(response_packet)
+    end
+
+    def ntlmssp_type1_packet(type1_message)
+      packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
+      packet.set_type1_blob(type1_message)
+      packet
     end
 
 

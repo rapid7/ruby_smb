@@ -6,7 +6,6 @@ module RubySMB
       # [2.2.4.6.1](https://msdn.microsoft.com/en-us/library/cc246328.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
 
-
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -43,7 +42,7 @@ module RubySMB
         # @param type1_message [Net::NTLM::Message::Type1] the Type 1 NTLM message
         # @return [void]
         def set_type1_blob(type1_message)
-          gss_blob = RubySMB::Gss.gss_type1(type1_message)
+          gss_blob = RubySMB::Gss.gss_type1(type1_message.serialize)
           data_block.security_blob = gss_blob
           parameter_block.security_blob_length = gss_blob.length
         end
