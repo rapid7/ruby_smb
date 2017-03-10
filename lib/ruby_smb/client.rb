@@ -20,6 +20,26 @@ module RubySMB
     #   @return [RubySMB::Dispatcher::Socket]
     attr_accessor :dispatcher
 
+    # The domain you're trying to authenticate to
+    # @!attribute [rw] domain
+    #   @return [String]
+    attr_accessor :domain
+
+    # The local workstation to pretend to be
+    # @!attribute [rw] local_workstation
+    #   @return [String]
+    attr_accessor :local_workstation
+
+    # The NTLM client used for authentication
+    # @!attribute [rw] ntlm_client
+    #   @return [String]
+    attr_accessor :ntlm_client
+
+    # The password to authenticate with
+    # @!attribute [rw] password
+    #   @return [String]
+    attr_accessor :password
+
     # Whether or not the Server requires signing
     # @!attribute [rw] signing_enabled
     #   @return [Boolean]
@@ -34,6 +54,11 @@ module RubySMB
     # @!attribute [rw] smb2
     #   @return [Boolean]
     attr_accessor :smb2
+
+    # The username to authenticate with
+    # @!attribute [rw] username
+    #   @return [String]
+    attr_accessor :username
 
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
@@ -71,10 +96,17 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
-    def ntlmssp_type1_packet(type1_message)
+    def ntlmssp_negotiate
+      type1_message = ntlm_client.init_context
       packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
       packet.set_type1_blob(type1_message)
-      packet
+      packet.parameter_block.max_buffer_size = 4356
+      packet.parameter_block.max_mpx_count = 50
+      packet.smb_header.flags2.extended_security = 1
+      packet.smb_header.flags2.unicode = 0
+      packet.smb_header.pid_low = 1
+
+      dispatcher.send_packet(packet)
     end
 
 

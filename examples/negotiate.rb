@@ -9,7 +9,7 @@ def run_negotiation(address, smb1, smb2)
   sock = TCPSocket.new address, 445
   dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-  client = RubySMB::Client.new(dispatcher, smb1: smb1, smb2: smb2)
+  client = RubySMB::Client.new(dispatcher, smb1: smb1, smb2: smb2, username: 'msfadmin', password: 'msfadmin')
   client.negotiate
 end
 

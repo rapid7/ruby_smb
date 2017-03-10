@@ -9,8 +9,6 @@ RSpec.describe RubySMB::Client do
   let(:smb1_client) { described_class.new(dispatcher, smb2:false, username: username, password: password) }
   let(:smb2_client) { described_class.new(dispatcher, smb1:false, username: username, password: password) }
 
-
-
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
       expect{ described_class.new(nil) }.to raise_error(ArgumentError)
@@ -35,6 +33,18 @@ RSpec.describe RubySMB::Client do
 
     it 'raises an exception if both SMB1 and SMB2 are disabled' do
       expect{described_class.new(dispatcher, smb1:false, smb2:false, username: username, password: password)}.to raise_error(ArgumentError, 'You must enable at least one Protocol')
+    end
+
+    it 'sets the username attribute'  do
+      expect(client.username).to eq username
+    end
+
+    it 'sets the password attribute' do
+      expect(client.password).to eq password
+    end
+
+    it 'crates an NTLM client' do
+      expect(client.ntlm_client).to be_a Net::NTLM::Client
     end
   end
 
@@ -218,6 +228,29 @@ RSpec.describe RubySMB::Client do
         expect(client).to receive(:parse_negotiate_response)
         client.negotiate
       end
+    end
+  end
+
+  context 'Authentication' do
+    let(:type1_message) { client.ntlm_client.init_context }
+    let(:type1_request) {
+      packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
+      packet.set_type1_blob(type1_message)
+      packet
+    }
+    describe '#ntlmssp_negotiate' do
+      it 'sets the security_blob from the NTLM Client' do
+        expect(client.ntlm_client).to receive(:init_context).and_return(type1_message)
+        expect_any_instance_of(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:set_type1_blob).with(type1_message)
+        expect(dispatcher).to receive(:send_packet)
+        client.ntlmssp_negotiate
+      end
+
+      it 'sends a SessionSetupRequest with the NTLMSSP type 1 blob' do
+        expect(dispatcher).to receive(:send_packet).with(type1_request)
+        client.ntlmssp_negotiate
+      end
+
     end
   end
 
