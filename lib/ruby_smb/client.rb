@@ -103,8 +103,6 @@ module RubySMB
       packet.parameter_block.max_buffer_size = 4356
       packet.parameter_block.max_mpx_count = 50
       packet.smb_header.flags2.extended_security = 1
-      packet.smb_header.flags2.unicode = 0
-      packet.smb_header.pid_low = 1
 
       dispatcher.send_packet(packet)
     end

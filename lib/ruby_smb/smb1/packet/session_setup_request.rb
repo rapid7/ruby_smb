@@ -19,10 +19,13 @@ module RubySMB
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupRequest} Packet.
+        # Due to vagaries of character encoding and the way we currently handle NTLM authentication
+        # for the security blob, you must null-terminate the {native_os} and {native_lan_man} fields
+        # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
           string     :security_blob,  label: 'Security Blob (GSS-API)'
-          stringz16  :native_os,      label: 'Native OS'
-          stringz16  :native_lan_man, label: 'Native LAN Manager'
+          string     :native_os,      label: 'Native OS',             initial_value: "\x00\x00"
+          string     :native_lan_man, label: 'Native LAN Manager',    initial_value: "\x00\x00"
         end
 
         smb_header        :smb_header
