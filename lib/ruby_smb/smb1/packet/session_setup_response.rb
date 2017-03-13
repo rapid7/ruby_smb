@@ -15,9 +15,9 @@ module RubySMB
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          string     :security_blob,  label: 'Security Blob (GSS-API)'
-          stringz16  :native_os,      label: 'Native OS'
-          stringz16  :native_lan_man, label: 'Native LAN Manager'
+          string      :security_blob,  label: 'Security Blob (GSS-API)', length: lambda { self.parent.parameter_block.security_blob_length }
+          stringz     :native_os,      label: 'Native OS'
+          stringz     :native_lan_man, label: 'Native LAN Manager'
         end
 
         smb_header        :smb_header
@@ -35,7 +35,7 @@ module RubySMB
         # field. It also automaticaly sets the length in
         # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
         #
-        # @param type2_message [Net::NTLM::Message::Type2] the Type 2 NTLM message
+        # @param type2_message [String] the serialized Type 2 NTLM message
         # @return [void]
         def set_type2_blob(type2_message)
           gss_blob = RubySMB::Gss.gss_type2(type2_message)

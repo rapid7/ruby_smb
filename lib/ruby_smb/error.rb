@@ -11,4 +11,7 @@ module RubySMB::Error
   # Raised when trying to parse raw binary into a Packet and the data
   # is invalid.
   class InvalidPacket < StandardError; end
+
+  # Raised when a response packet has a NTStatus code that was unexpected.
+  class UnexpectedStatusCode < StandardError; end
 end

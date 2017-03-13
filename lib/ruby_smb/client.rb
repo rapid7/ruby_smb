@@ -121,6 +121,21 @@ module RubySMB
       packet
     end
 
+    # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
+    def smb1_ntlmssp_challenge_packet(raw_response)
+      packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
+      status_code = WindowsError::NTStatus.find_by_retval(packet.smb_header.nt_status.value).first
+
+      unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
+        raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+      end
+
+      unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+        raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
+      end
+      packet
+    end
+
 
 
   end
