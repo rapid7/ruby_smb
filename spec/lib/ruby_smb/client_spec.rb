@@ -232,26 +232,38 @@ RSpec.describe RubySMB::Client do
   end
 
   context 'Authentication' do
-    let(:type1_message) { client.ntlm_client.init_context }
-    let(:type1_request) {
-      packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
-      packet.set_type1_blob(type1_message)
-      packet
-    }
-    describe '#ntlmssp_negotiate' do
-      it 'sets the security_blob from the NTLM Client' do
-        expect(client.ntlm_client).to receive(:init_context).and_return(type1_message)
-        expect_any_instance_of(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:set_type1_blob).with(type1_message)
-        expect(dispatcher).to receive(:send_packet)
-        client.ntlmssp_negotiate
+    context 'for SMB1' do
+      let(:ntlm_client)  { smb1_client.ntlm_client }
+      let(:type1_message)  { ntlm_client.init_context }
+      let(:negotiate_packet) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
+      describe '#smb1_ntlmssp_negotiate_packet' do
+        it 'creates a new SessionSetupRequest packet' do
+          expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          smb1_client.smb1_ntlmssp_negotiate_packet
+        end
+
+        it 'builds the security blob with an NTLM Type 1 Message' do
+          expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          expect(ntlm_client).to receive(:init_context).and_return(type1_message)
+          expect(negotiate_packet).to receive(:set_type1_blob).with(type1_message.serialize)
+          smb1_client.smb1_ntlmssp_negotiate_packet
+        end
+
+        it 'enables extended security on the packet' do
+          expect(smb1_client.smb1_ntlmssp_negotiate_packet.smb_header.flags2.extended_security).to eq 1
+        end
       end
 
-      it 'sends a SessionSetupRequest with the NTLMSSP type 1 blob' do
-        expect(dispatcher).to receive(:send_packet).with(type1_request)
-        client.ntlmssp_negotiate
+      describe '#smb1_ntlmssp_negotiate' do
+        it 'sends the request packet and receives a response' do
+          expect(smb1_client).to receive(:smb1_ntlmssp_negotiate_packet).and_return(negotiate_packet)
+          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
+          expect(dispatcher).to receive(:recv_packet)
+          smb1_client.smb1_ntlmssp_negotiate
+        end
       end
-
     end
+
   end
 
 end

@@ -96,15 +96,26 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
-    def ntlmssp_negotiate
+
+    def smb1_ntlmssp_negotiate
+      packet = smb1_ntlmssp_negotiate_packet
+      dispatcher.send_packet(packet)
+      dispatcher.recv_packet
+    end
+
+    # Creates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
+    # for the first part of the NTLMSSP 4-way hnadshake. This packet
+    # initializes negotiations for the NTLMSSP authentication
+    #
+    # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the first authentication packet to send
+    def smb1_ntlmssp_negotiate_packet
       type1_message = ntlm_client.init_context
       packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
-      packet.set_type1_blob(type1_message)
+      packet.set_type1_blob(type1_message.serialize)
       packet.parameter_block.max_buffer_size = 4356
       packet.parameter_block.max_mpx_count = 50
       packet.smb_header.flags2.extended_security = 1
-
-      dispatcher.send_packet(packet)
+      packet
     end
 
 

@@ -42,10 +42,10 @@ module RubySMB
         # field. It also automaticaly sets the length in
         # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
         #
-        # @param type1_message [Net::NTLM::Message::Type1] the Type 1 NTLM message
+        # @param type1_message [String] the serialized Type 1 NTLM message
         # @return [void]
         def set_type1_blob(type1_message)
-          gss_blob = RubySMB::Gss.gss_type1(type1_message.serialize)
+          gss_blob = RubySMB::Gss.gss_type1(type1_message)
           data_block.security_blob = gss_blob
           parameter_block.security_blob_length = gss_blob.length
         end
@@ -55,7 +55,7 @@ module RubySMB
         # field. It also automaticaly sets the length in
         # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
         #
-        # @param type3_message [Net::NTLM::Message::Type3] the Type 3 NTLM message
+        # @param type3_message [String] the serialized Type 3 NTLM message
         # @return [void]
         def set_type3_blob(type3_message)
           gss_blob = RubySMB::Gss.gss_type3(type3_message)
