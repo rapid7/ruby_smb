@@ -96,7 +96,10 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
-
+    # Sends the {RubySMB::SMB1::Packet::SessionSetupRequest} packet and
+    # receives the response.
+    #
+    # @return [String] the binary string response from the server
     def smb1_ntlmssp_negotiate
       packet = smb1_ntlmssp_negotiate_packet
       dispatcher.send_packet(packet)
