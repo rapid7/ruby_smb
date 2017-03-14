@@ -281,6 +281,15 @@ RSpec.describe RubySMB::Client do
         end
       end
 
+      describe '#smb1_ntlmssp_authenticate' do
+        it 'sends the request packet and receives a response' do
+          expect(smb1_client).to receive(:smb1_ntlmssp_auth_packet).and_return(negotiate_packet)
+          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
+          expect(dispatcher).to receive(:recv_packet)
+          smb1_client.smb1_ntlmssp_authenticate(type2_string)
+        end
+      end
+
       describe '#smb1_ntlmssp_negotiate' do
         it 'sends the request packet and receives a response' do
           expect(smb1_client).to receive(:smb1_ntlmssp_negotiate_packet).and_return(negotiate_packet)

@@ -106,6 +106,18 @@ module RubySMB
       dispatcher.recv_packet
     end
 
+    # Takes the Base64 encoded NTLM Type 2 (Challenge) message
+    # and calls the routines to build the Auth packet, sends the packet
+    # and receives the raw response
+    #
+    # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
+    # @return [String] the raw binary response from the server
+    def smb1_ntlmssp_authenticate(type2_string)
+      packet = smb1_ntlmssp_auth_packet(type2_string)
+      dispatcher.send_packet(packet)
+      dispatcher.recv_packet
+    end
+
     # Generates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
     # with the NTLM Type 3 (Auth) message in the security_blob field.
     #
