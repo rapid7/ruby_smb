@@ -136,6 +136,17 @@ module RubySMB
       packet
     end
 
+    # Parses out the NTLM Type 2 Message from a {RubySMB::SMB1::Packet::SessionSetupResponse}
+    #
+    # @param response_packet [RubySMB::SMB1::Packet::SessionSetupResponse] the response packet to get the NTLM challenge from
+    # @return [String] the base64 encoded  NTLM Challenge (Type2 Message) from the response
+    def smb1_type2_message(response_packet)
+      sec_blob = response_packet.data_block.security_blob
+      ntlmssp_offset = sec_blob.index("NTLMSSP")
+      type2_blob = sec_blob.slice(ntlmssp_offset..-1)
+      [type2_blob].pack("m")
+    end
+
 
 
   end

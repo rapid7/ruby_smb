@@ -288,6 +288,18 @@ RSpec.describe RubySMB::Client do
           expect{ smb1_client.smb1_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
+
+      describe '#smb1_type2_message' do
+        let(:fake_type2) { "NTLMSSP FOO" }
+        let(:response_packet) {
+          packet = RubySMB::SMB1::Packet::SessionSetupResponse.new
+          packet.set_type2_blob(fake_type2)
+          packet
+        }
+        it 'returns a base64 encoded copy of the Type 2 NTLM message' do
+          expect(smb1_client.smb1_type2_message(response_packet)).to eq [fake_type2].pack('m')
+        end
+      end
     end
 
   end
