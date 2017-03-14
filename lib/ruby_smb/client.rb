@@ -106,6 +106,21 @@ module RubySMB
       dispatcher.recv_packet
     end
 
+    # Generates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
+    # with the NTLM Type 3 (Auth) message in the security_blob field.
+    #
+    # @param type2_string [String] the Base64 encoded Type2 challenge to respond to
+    # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the second authentication packet to send
+    def smb1_ntlmssp_auth_packet(type2_string)
+      type3_message = ntlm_client.init_context(type2_string)
+      packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
+      packet.set_type3_blob(type3_message.serialize)
+      packet.parameter_block.max_buffer_size = 4356
+      packet.parameter_block.max_mpx_count = 50
+      packet.smb_header.flags2.extended_security = 1
+      packet
+    end
+
     # Creates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
     # for the first part of the NTLMSSP 4-way hnadshake. This packet
     # initializes negotiations for the NTLMSSP authentication
@@ -146,8 +161,6 @@ module RubySMB
       type2_blob = sec_blob.slice(ntlmssp_offset..-1)
       [type2_blob].pack("m")
     end
-
-
 
   end
 end
