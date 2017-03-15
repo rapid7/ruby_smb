@@ -244,22 +244,24 @@ RSpec.describe RubySMB::Client do
           "AI\nADxThZ4nnNIBAAAAAA==\n"
       }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
+      let(:user_id) { 2041 }
+
 
       describe '#smb1_ntlmssp_auth_packet' do
         it 'creates a new SessionSetupRequest packet' do
           expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
-          smb1_client.smb1_ntlmssp_auth_packet(type2_string)
+          smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id)
         end
 
         it 'builds the security blob with an NTLM Type 1 Message' do
           expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
           expect(ntlm_client).to receive(:init_context).with(type2_string).and_return(type3_message)
           expect(negotiate_packet).to receive(:set_type3_blob).with(type3_message.serialize)
-          smb1_client.smb1_ntlmssp_auth_packet(type2_string)
+          smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id)
         end
 
         it 'enables extended security on the packet' do
-          expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string).smb_header.flags2.extended_security).to eq 1
+          expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id).smb_header.flags2.extended_security).to eq 1
         end
       end
 
@@ -286,7 +288,7 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client).to receive(:smb1_ntlmssp_auth_packet).and_return(negotiate_packet)
           expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
           expect(dispatcher).to receive(:recv_packet)
-          smb1_client.smb1_ntlmssp_authenticate(type2_string)
+          smb1_client.smb1_ntlmssp_authenticate(type2_string, user_id)
         end
       end
 

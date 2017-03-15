@@ -24,8 +24,8 @@ module RubySMB
         # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
           string      :security_blob,  label: 'Security Blob (GSS-API)', length: lambda { self.parent.parameter_block.security_blob_length }
-          string      :native_os,      label: 'Native OS',             initial_value: "\x00\x00"
-          string      :native_lan_man, label: 'Native LAN Manager',    initial_value: "\x00\x00"
+          stringz     :native_os,      label: 'Native OS',             initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
+          stringz     :native_lan_man, label: 'Native LAN Manager',    initial_value: 'Windows 7 Ultimate N 6.1'
         end
 
         smb_header        :smb_header
@@ -46,8 +46,9 @@ module RubySMB
         # @return [void]
         def set_type1_blob(type1_message)
           gss_blob = RubySMB::Gss.gss_type1(type1_message)
-          data_block.security_blob = gss_blob
           parameter_block.security_blob_length = gss_blob.length
+          data_block.security_blob = gss_blob
+
         end
 
         # Takes an NTLM Type 3 Message and creates the GSS Security Blob
@@ -59,8 +60,8 @@ module RubySMB
         # @return [void]
         def set_type3_blob(type3_message)
           gss_blob = RubySMB::Gss.gss_type3(type3_message)
-          data_block.security_blob = gss_blob
           parameter_block.security_blob_length = gss_blob.length
+          data_block.security_blob = gss_blob
         end
 
 

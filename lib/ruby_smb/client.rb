@@ -63,7 +63,7 @@ module RubySMB
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
-    def initialize(dispatcher, smb1: true, smb2: true, username:,password:, domain:nil, local_workstation:'')
+    def initialize(dispatcher, smb1: true, smb2: true, username:,password:, domain:'.', local_workstation:'WORKSTATION')
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.kind_of? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -96,6 +96,15 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
+    # Handles the SMB1 NTLMSSP 4-way handshake for Authentication
+    def smb1_authenticate
+      response = smb1_ntlmssp_negotiate
+      challenge_packet = smb1_ntlmssp_challenge_packet(response)
+      user_id = challenge_packet.smb_header.uid
+      challenge_message = smb1_type2_message(challenge_packet)
+      smb1_ntlmssp_authenticate(challenge_message, user_id)
+    end
+
     # Sends the {RubySMB::SMB1::Packet::SessionSetupRequest} packet and
     # receives the response.
     #
@@ -112,8 +121,8 @@ module RubySMB
     #
     # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
     # @return [String] the raw binary response from the server
-    def smb1_ntlmssp_authenticate(type2_string)
-      packet = smb1_ntlmssp_auth_packet(type2_string)
+    def smb1_ntlmssp_authenticate(type2_string,user_id)
+      packet = smb1_ntlmssp_auth_packet(type2_string,user_id)
       dispatcher.send_packet(packet)
       dispatcher.recv_packet
     end
@@ -123,9 +132,10 @@ module RubySMB
     #
     # @param type2_string [String] the Base64 encoded Type2 challenge to respond to
     # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the second authentication packet to send
-    def smb1_ntlmssp_auth_packet(type2_string)
+    def smb1_ntlmssp_auth_packet(type2_string,user_id)
       type3_message = ntlm_client.init_context(type2_string)
       packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
+      packet.smb_header.uid = user_id
       packet.set_type3_blob(type3_message.serialize)
       packet.parameter_block.max_buffer_size = 4356
       packet.parameter_block.max_mpx_count = 50
