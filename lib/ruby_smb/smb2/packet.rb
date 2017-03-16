@@ -4,6 +4,7 @@ module RubySMB
       require 'ruby_smb/smb2/packet/negotiate_request'
       require 'ruby_smb/smb2/packet/negotiate_response'
       require 'ruby_smb/smb2/packet/session_setup_request'
+      require 'ruby_smb/smb2/packet/session_setup_response'
     end
   end
 end
