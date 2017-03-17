@@ -5,17 +5,17 @@ module RubySMB
       # An SMB2 SessionSetupRequest Packet as defined in
       # [2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
-        endian :little
-        smb2_header         :smb2_header
-        uint16              :structure_size,          label: 'Structure Size',          initial_value: 25
-        uint8               :flags,                   label: 'Flags',                   initial_value: 0x00
-        smb2_security_mode  :security_mode
-        smb2_capabilities   :capabilities
-        uint32              :channel,                 label: 'Channel',                 initial_value: 0x00
-        uint16              :security_buffer_offset,  label: 'Security Buffer Offset',  initial_value: 0x58
-        uint16              :security_buffer_length,  label: 'Security Buffer Length'
-        uint64              :previous_session_id,     label: 'Previous Session ID'
-        string              :buffer,                  label: 'Security Buffer',         length: lambda { self.security_buffer_length }
+        endian                     :little
+        smb2_header                :smb2_header
+        uint16                     :structure_size,          label: 'Structure Size',          initial_value: 25
+        uint8                      :flags,                   label: 'Flags',                   initial_value: 0x00
+        smb2_security_mode_single  :security_mode
+        smb2_capabilities          :capabilities
+        uint32                     :channel,                 label: 'Channel',                 initial_value: 0x00
+        uint16                     :security_buffer_offset,  label: 'Security Buffer Offset',  initial_value: 0x58
+        uint16                     :security_buffer_length,  label: 'Security Buffer Length'
+        uint64                     :previous_session_id,     label: 'Previous Session ID'
+        string                     :buffer,                  label: 'Security Buffer',         length: lambda { self.security_buffer_length }
 
 
         def initialize_instance

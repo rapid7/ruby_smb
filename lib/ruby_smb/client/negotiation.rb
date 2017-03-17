@@ -102,7 +102,9 @@ module RubySMB
       # @ return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB2 Negotiate Request packet
       def smb2_negotiate_request
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
-        packet.smb2_header.message_id = 0
+        packet.smb2_header.message_id = self.smb2_message_id
+        # Increment the message id when doing SMB2
+        self.smb2_message_id += 1
         packet.security_mode.signing_enabled = 1
         packet.add_dialect(SMB2_DIALECT_DEFAULT)
         packet

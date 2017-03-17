@@ -9,7 +9,6 @@ module RubySMB
         bit1    :guest,               label: 'Is Guest?',     initial_value: 0
         resume_byte_alignment
         # byte border
-        uint16  :reserved2,           label: 'Reserved',           value: 0
         uint8   :reserved1,           label: 'Reserved',           value: 0
 
       end

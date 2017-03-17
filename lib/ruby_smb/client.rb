@@ -57,6 +57,11 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :smb2
 
+    #  Tracks the current SMB2 Message ID that keeps communication in sync
+    # @!attribute [rw] smb2_message_id
+    #   @return [Integer]
+    attr_accessor :smb2_message_id
+
     # The username to authenticate with
     # @!attribute [rw] username
     #   @return [String]
@@ -85,6 +90,8 @@ module RubySMB
         workstation: @local_workstation,
         domain: @domain
       )
+
+      @smb2_message_id = 0
     end
 
     # Handles the entire SMB Multi-Protocol Negotiation from the

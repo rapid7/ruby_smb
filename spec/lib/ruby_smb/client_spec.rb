@@ -232,17 +232,17 @@ RSpec.describe RubySMB::Client do
   end
 
   context 'Authentication' do
+    let(:type2_string) {
+      "TlRMTVNTUAACAAAAHgAeADgAAAA1goriwmZ8HEHtFHAAAAAAAAAAAJgAmABW\nAAAABgGxHQAAAA" +
+        "9XAEkATgAtAFMATgBKAEQARwAwAFUAQQA5ADAARgACAB4A\nVwBJAE4ALQBTAE4ASgBEAEcAMABV" +
+        "AEEAOQAwAEYAAQAeAFcASQBOAC0AUwBO\nAEoARABHADAAVQBBADkAMABGAAQAHgBXAEkATgAtAF" +
+        "MATgBKAEQARwAwAFUA\nQQA5ADAARgADAB4AVwBJAE4ALQBTAE4ASgBEAEcAMABVAEEAOQAwAEYABw" +
+        "AI\nADxThZ4nnNIBAAAAAA==\n"
+    }
     context 'for SMB1' do
       let(:ntlm_client)  { smb1_client.ntlm_client }
       let(:type1_message)  { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
-      let(:type2_string) {
-        "TlRMTVNTUAACAAAAHgAeADgAAAA1goriwmZ8HEHtFHAAAAAAAAAAAJgAmABW\nAAAABgGxHQAAAA" +
-          "9XAEkATgAtAFMATgBKAEQARwAwAFUAQQA5ADAARgACAB4A\nVwBJAE4ALQBTAE4ASgBEAEcAMABV" +
-          "AEEAOQAwAEYAAQAeAFcASQBOAC0AUwBO\nAEoARABHADAAVQBBADkAMABGAAQAHgBXAEkATgAtAF" +
-          "MATgBKAEQARwAwAFUA\nQQA5ADAARgADAB4AVwBJAE4ALQBTAE4ASgBEAEcAMABVAEEAOQAwAEYABw" +
-          "AI\nADxThZ4nnNIBAAAAAA==\n"
-      }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
       let(:user_id) { 2041 }
 
@@ -340,6 +340,70 @@ RSpec.describe RubySMB::Client do
       end
     end
 
+    context 'for SMB2' do
+      let(:ntlm_client) { smb2_client.ntlm_client }
+      let(:type1_message)  { ntlm_client.init_context }
+      let(:negotiate_packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+      let(:type3_message) { ntlm_client.init_context(type2_string) }
+
+      describe '#smb2_ntlmssp_negotiate_packet' do
+        it 'creates a new SessionSetupRequest packet' do
+          expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          smb2_client.smb2_ntlmssp_negotiate_packet
+        end
+
+        it 'builds the security blob with an NTLM Type 1 Message' do
+          expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          expect(ntlm_client).to receive(:init_context).and_return(type1_message)
+          expect(negotiate_packet).to receive(:set_type1_blob).with(type1_message.serialize)
+          smb2_client.smb2_ntlmssp_negotiate_packet
+        end
+
+        it 'sets the message ID in the packet header' do
+          message_id = smb2_client.smb2_message_id
+          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq message_id
+        end
+
+        it 'increments client#smb2_message_id' do
+          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).by(1)
+        end
+      end
+
+      describe '#smb2_ntlmssp_negotiate' do
+        it 'sends the request packet and receives a response' do
+          expect(smb2_client).to receive(:smb2_ntlmssp_negotiate_packet).and_return(negotiate_packet)
+          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
+          expect(dispatcher).to receive(:recv_packet)
+          smb2_client.smb2_ntlmssp_negotiate
+        end
+      end
+
+      describe '#smb2_ntlmssp_challenge_packet' do
+        let(:response) {
+          packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
+          packet.smb2_header.nt_status = 0xc0000016
+          packet
+        }
+        let(:wrong_command) {
+          packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
+          packet.smb2_header.nt_status = 0xc0000016
+          packet.smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
+          packet
+        }
+        it 'returns the packet object' do
+          expect(smb2_client.smb2_ntlmssp_challenge_packet(response.to_binary_s)).to eq response
+        end
+
+        it 'raises an UnexpectedStatusCode if the status code is not correct' do
+          response.smb2_header.nt_status = 0xc0000015
+          expect{ smb2_client.smb2_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error( RubySMB::Error::UnexpectedStatusCode)
+        end
+
+        it 'raises an InvalidPacket if the Command field is wrong' do
+          expect{ smb2_client.smb2_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+    end
   end
 
 end
