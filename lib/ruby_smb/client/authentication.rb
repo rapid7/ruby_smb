@@ -78,7 +78,12 @@ module RubySMB
 
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
       def smb1_ntlmssp_final_packet(raw_response)
-        packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
+        begin
+          packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
+        rescue
+          packet = RubySMB::SMB1::Packet::ErrorPacket.read(raw_response)
+        end
+
         unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
           raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
         end

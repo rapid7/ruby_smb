@@ -381,13 +381,12 @@ RSpec.describe RubySMB::Client do
           smb2_client.smb2_ntlmssp_negotiate_packet
         end
 
-        it 'sets the message ID in the packet header' do
-          message_id = smb2_client.smb2_message_id
-          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq message_id
+        it 'sets the message ID in the packet header to 1' do
+          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq 1
         end
 
         it 'increments client#smb2_message_id' do
-          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).by(1)
+          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).to(2)
         end
       end
 
@@ -453,15 +452,6 @@ RSpec.describe RubySMB::Client do
 
         it 'sets the session ID on the request packet' do
           expect(smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id).smb2_header.session_id).to eq session_id
-        end
-
-        it 'sets the message ID in the packet header' do
-          message_id = smb2_client.smb2_message_id
-          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq message_id
-        end
-
-        it 'increments client#smb2_message_id' do
-          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).by(1)
         end
 
       end
