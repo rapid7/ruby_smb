@@ -66,6 +66,7 @@ module RubySMB
             else
               self.signing_required = false
             end
+            'SMB1'
           when RubySMB::SMB2::Packet::NegotiateResponse
             self.smb1 = false
             self.smb2 = true
@@ -74,6 +75,7 @@ module RubySMB
             else
               self.signing_required = false
             end
+            'SMB2'
         end
       end
 

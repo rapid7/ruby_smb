@@ -1,5 +1,9 @@
 #!/usr/bin/ruby
 
+#
+# This script is for testing the Protocol Negotiation in the library
+# without any other parts.
+
 require 'bundler/setup'
 require 'ruby_smb'
 

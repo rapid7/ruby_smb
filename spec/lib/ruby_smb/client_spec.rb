@@ -327,6 +327,27 @@ RSpec.describe RubySMB::Client do
         end
       end
 
+      describe '#smb1_ntlmssp_final_packet' do
+        let(:response) {
+          packet = RubySMB::SMB1::Packet::SessionSetupResponse.new
+          packet.smb_header.nt_status = 0x00000000
+          packet
+        }
+        let(:wrong_command) {
+          packet = RubySMB::SMB1::Packet::SessionSetupResponse.new
+          packet.smb_header.nt_status = 0x00000000
+          packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          packet
+        }
+        it 'returns the packet object' do
+          expect(smb1_client.smb1_ntlmssp_final_packet(response.to_binary_s)).to eq response
+        end
+
+        it 'raises an InvalidPacket if the Command field is wrong' do
+          expect{ smb1_client.smb1_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
       describe '#smb1_type2_message' do
         let(:fake_type2) { "NTLMSSP FOO" }
         let(:response_packet) {
@@ -451,6 +472,27 @@ RSpec.describe RubySMB::Client do
           expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
           expect(dispatcher).to receive(:recv_packet)
           smb2_client.smb2_ntlmssp_authenticate(type2_string, session_id)
+        end
+      end
+
+      describe '#smb2_ntlmssp_final_packet' do
+        let(:response) {
+          packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
+          packet.smb2_header.nt_status = 0x00000000
+          packet
+        }
+        let(:wrong_command) {
+          packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
+          packet.smb2_header.nt_status = 0x00000000
+          packet.smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
+          packet
+        }
+        it 'returns the packet object' do
+          expect(smb2_client.smb2_ntlmssp_final_packet(response.to_binary_s)).to eq response
+        end
+
+        it 'raises an InvalidPacket if the Command field is wrong' do
+          expect{ smb2_client.smb2_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
     end

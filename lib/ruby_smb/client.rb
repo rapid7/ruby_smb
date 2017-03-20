@@ -42,6 +42,11 @@ module RubySMB
     #   @return [String]
     attr_accessor :password
 
+    # The current Session ID setup by authentication
+    # @!attribute [rw] session_id
+    #   @return [Integer]
+    attr_accessor :session_id
+
     # Whether or not the Server requires signing
     # @!attribute [rw] signing_enabled
     #   @return [Boolean]
@@ -67,6 +72,11 @@ module RubySMB
     #   @return [String]
     attr_accessor :username
 
+    # The UID set in SMB1
+    # @!attribute [rw] user_id
+    #   @return [String]
+    attr_accessor :user_id
+
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
@@ -79,6 +89,7 @@ module RubySMB
       @domain            = domain
       @local_workstation = local_workstation
       @password          = password.encode("utf-8")
+      @session_id        = 0x00
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
@@ -94,6 +105,19 @@ module RubySMB
       @smb2_message_id = 0
     end
 
+    # Responsible for handling Authentication and Session Setup for
+    # the SMB Client. It returns the final Status code from the authentication
+    # exchange.
+    #
+    # @return [WindowsError::NTStatus] the NTStatus object from the SessionSetup exchange.
+    def authenticate
+      if self.smb1
+        smb1_authenticate
+      else
+        smb2_authenticate
+      end
+    end
+
     # Handles the entire SMB Multi-Protocol Negotiation from the
     # Client to the Server. It sets state on the client appropriate
     # to the protocol and capabilites negotiated during the exchange.
@@ -105,6 +129,31 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
+    private
+
+    def packet_smb_version(packet)
+      class_name = packet.class.to_s
+      case class_name
+        when /SMB1/
+          'SMB1'
+        when /SMB2/
+          'SMB2'
+        else
+          ''
+      end
+    end
+
+    def status_code(packet)
+      smb_version = packet_smb_version(packet)
+      case smb_version
+        when 'SMB1'
+          status_code = WindowsError::NTStatus.find_by_retval(packet.smb_header.nt_status.value).first
+        when 'SMB2'
+          status_code = WindowsError::NTStatus.find_by_retval(packet.smb2_header.nt_status.value).first
+        else
+          nil
+      end
+    end
 
 
   end

@@ -14,7 +14,11 @@ module RubySMB
         challenge_packet = smb1_ntlmssp_challenge_packet(response)
         user_id = challenge_packet.smb_header.uid
         challenge_message = smb1_type2_message(challenge_packet)
-        smb1_ntlmssp_authenticate(challenge_message, user_id)
+        raw = smb1_ntlmssp_authenticate(challenge_message, user_id)
+        response = smb1_ntlmssp_final_packet(raw)
+        response_code = status_code(response)
+        self.user_id = user_id if response_code.name == "STATUS_SUCCESS"
+        response_code
       end
 
       # Sends the {RubySMB::SMB1::Packet::SessionSetupRequest} packet and
@@ -73,9 +77,18 @@ module RubySMB
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
+      def smb1_ntlmssp_final_packet(raw_response)
+        packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
+        unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
+        end
+        packet
+      end
+
+      # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
       def smb1_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
-        status_code = WindowsError::NTStatus.find_by_retval(packet.smb_header.nt_status.value).first
+        status_code = status_code(packet)
 
         unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
@@ -108,13 +121,26 @@ module RubySMB
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
         session_id = challenge_packet.smb2_header.session_id
         challenge_message = smb2_type2_message(challenge_packet)
-        smb2_ntlmssp_authenticate(challenge_message, session_id)
+        raw = smb2_ntlmssp_authenticate(challenge_message, session_id)
+        response = smb2_ntlmssp_final_packet(raw)
+        response_code = status_code(response)
+        self.session_id = response.smb2_header.session_id if response_code.name == "STATUS_SUCCESS"
+        response_code
+      end
+
+      # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
+      def smb2_ntlmssp_final_packet(raw_response)
+        packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
+        unless packet.smb2_header.command == RubySMB::SMB2::Commands::SESSION_SETUP
+          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb2_header.command} and not #{RubySMB::SMB2::Commands::SESSION_SETUP}"
+        end
+        packet
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
       def smb2_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
-        status_code = WindowsError::NTStatus.find_by_retval(packet.smb2_header.nt_status.value).first
+        status_code = status_code(packet)
         unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
         end
@@ -144,8 +170,8 @@ module RubySMB
         type1_message = ntlm_client.init_context
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.set_type1_blob(type1_message.serialize)
-        packet.smb2_header.message_id = self.smb2_message_id
-        self.smb2_message_id += 1
+        packet.smb2_header.message_id = 1 #self.smb2_message_id
+        self.smb2_message_id = 2
         packet
       end
 
