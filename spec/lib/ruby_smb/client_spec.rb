@@ -253,7 +253,7 @@ RSpec.describe RubySMB::Client do
           smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id)
         end
 
-        it 'builds the security blob with an NTLM Type 1 Message' do
+        it 'builds the security blob with an NTLM Type 3 Message' do
           expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
           expect(ntlm_client).to receive(:init_context).with(type2_string).and_return(type3_message)
           expect(negotiate_packet).to receive(:set_type3_blob).with(type3_message.serialize)
@@ -345,6 +345,7 @@ RSpec.describe RubySMB::Client do
       let(:type1_message)  { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
+      let(:session_id) { 0x0000040000000005 }
 
       describe '#smb2_ntlmssp_negotiate_packet' do
         it 'creates a new SessionSetupRequest packet' do
@@ -401,6 +402,55 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an InvalidPacket if the Command field is wrong' do
           expect{ smb2_client.smb2_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      describe '#smb2_type2_message' do
+        let(:fake_type2) { "NTLMSSP FOO" }
+        let(:response_packet) {
+          packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
+          packet.set_type2_blob(fake_type2)
+          packet
+        }
+        it 'returns a base64 encoded copy of the Type 2 NTLM message' do
+          expect(smb2_client.smb2_type2_message(response_packet)).to eq [fake_type2].pack('m')
+        end
+      end
+
+      describe '#smb1_ntlmssp_auth_packet' do
+        it 'creates a new SessionSetupRequest packet' do
+          expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id)
+        end
+
+        it 'builds the security blob with an NTLM Type 3 Message' do
+          expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
+          expect(ntlm_client).to receive(:init_context).with(type2_string).and_return(type3_message)
+          expect(negotiate_packet).to receive(:set_type3_blob).with(type3_message.serialize)
+          smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id)
+        end
+
+        it 'sets the session ID on the request packet' do
+          expect(smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id).smb2_header.session_id).to eq session_id
+        end
+
+        it 'sets the message ID in the packet header' do
+          message_id = smb2_client.smb2_message_id
+          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq message_id
+        end
+
+        it 'increments client#smb2_message_id' do
+          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).by(1)
+        end
+
+      end
+
+      describe '#smb2_ntlmssp_authenticate' do
+        it 'sends the request packet and receives a response' do
+          expect(smb2_client).to receive(:smb2_ntlmssp_auth_packet).and_return(negotiate_packet)
+          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
+          expect(dispatcher).to receive(:recv_packet)
+          smb2_client.smb2_ntlmssp_authenticate(type2_string, session_id)
         end
       end
     end
