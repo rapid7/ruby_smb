@@ -21,6 +21,31 @@ module RubySMB
       display_str
     end
 
+
+    def packet_smb_version
+      class_name = self.class.to_s
+      case class_name
+        when /SMB1/
+          'SMB1'
+        when /SMB2/
+          'SMB2'
+        else
+          ''
+      end
+    end
+
+    def status_code
+      smb_version = packet_smb_version
+      case smb_version
+        when 'SMB1'
+          status_code = WindowsError::NTStatus.find_by_retval(self.smb_header.nt_status.value).first
+        when 'SMB2'
+          status_code = WindowsError::NTStatus.find_by_retval(self.smb2_header.nt_status.value).first
+        else
+          nil
+      end
+    end
+
     private
 
     # Returns an array of hashes representing the

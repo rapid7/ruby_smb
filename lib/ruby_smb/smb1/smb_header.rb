@@ -10,7 +10,7 @@ module RubySMB
       header_flags  :flags
       header_flags2 :flags2
       bit16         :pid_high,                    label: 'PID High Bytes'
-      bit64         :security_features,           label: 'Security Features'
+      string        :security_features,           label: 'Security Features', length: 8
       bit16         :reserved,                    label: 'Reserved'
       bit16         :tid,                         label: 'Tree ID'
       bit16         :pid_low,                     label: 'PID Low Bytes'

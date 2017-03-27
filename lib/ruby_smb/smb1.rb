@@ -5,11 +5,11 @@ module RubySMB::SMB1
   SMB_PROTOCOL_ID = 0xFF534D42
 
   require 'ruby_smb/smb1/commands'
+  require 'ruby_smb/smb1/andx_block'
   require 'ruby_smb/smb1/bit_field'
   require 'ruby_smb/smb1/smb_header'
   require 'ruby_smb/smb1/parameter_block'
   require 'ruby_smb/smb1/data_block'
-  require 'ruby_smb/smb1/andx_block'
   require 'ruby_smb/smb1/dialect'
   require 'ruby_smb/smb1/packet'
 

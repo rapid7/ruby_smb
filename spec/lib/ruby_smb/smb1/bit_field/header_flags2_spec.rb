@@ -25,8 +25,8 @@ RSpec.describe RubySMB::SMB1::BitField::HeaderFlags2 do
       expect(flags2.unicode).to be_a BinData::Bit1
     end
 
-    it 'should have a default value of 1' do
-      expect(flags2.unicode).to eq 1
+    it 'should have a default value of 0' do
+      expect(flags2.unicode).to eq 0
     end
 
     it_behaves_like 'bit field with one flag set', :unicode, 'v', 0x8000

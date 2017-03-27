@@ -13,8 +13,7 @@ module RubySMB
         elsif smb2
           request = smb2_negotiate_request
         end
-        dispatcher.send_packet request
-        raw_response = dispatcher.recv_packet
+        send_recv(request)
       end
 
       # Takes the raw response data from the server and tries
@@ -66,6 +65,7 @@ module RubySMB
             else
               self.signing_required = false
             end
+            'SMB1'
           when RubySMB::SMB2::Packet::NegotiateResponse
             self.smb1 = false
             self.smb2 = true
@@ -74,6 +74,7 @@ module RubySMB
             else
               self.signing_required = false
             end
+            'SMB2'
         end
       end
 
@@ -87,7 +88,7 @@ module RubySMB
         # Default to always enabling Extended Security. It simplifies the Negotiation process
         # while being gauranteed to work with any modern Windows system. We can get more sophisticated
         # with switching this on and off at a later date if the need arises.
-        packet.smb_header.flags2.extended_security = 0
+        packet.smb_header.flags2.extended_security = 1
         # There is no real good reason to ever send an SMB1 Negotiate packet
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
@@ -102,7 +103,9 @@ module RubySMB
       # @ return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB2 Negotiate Request packet
       def smb2_negotiate_request
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
-        packet.smb2_header.message_id = 0
+        packet.smb2_header.message_id = self.smb2_message_id
+        # Increment the message id when doing SMB2
+        self.smb2_message_id += 1
         packet.security_mode.signing_enabled = 1
         packet.add_dialect(SMB2_DIALECT_DEFAULT)
         packet

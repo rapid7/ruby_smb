@@ -14,11 +14,11 @@ module RubySMB
         bit1    :eas,                  label: 'Extended Attributes'
         bit1    :long_names,           label: 'Long Names Allowed',         initial_value: 1
         # Byte Border
-        bit1    :unicode,              label: 'Unicode Strings',            initial_value: 1
+        bit1    :unicode,              label: 'Unicode Strings',            initial_value: 0
         bit1    :nt_status,            label: 'NTStatus Errors',            initial_value: 1
-        bit1    :paging_io,            label: 'Read if Execute'
+        bit1    :paging_io,            label: 'Read if Execute',            initial_value: 1
         bit1    :dfs,                  label: 'Use DFS'
-        bit1    :extended_security,    label: 'Extended Security'
+        bit1    :extended_security,    label: 'Extended Security',          inital_value: 1
         bit1    :reparse_path,         label: '@GMT Token Required'
         resume_byte_alignment
       end

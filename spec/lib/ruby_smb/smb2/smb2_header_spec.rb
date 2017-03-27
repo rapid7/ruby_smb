@@ -4,7 +4,7 @@ RSpec.describe RubySMB::SMB2::SMB2Header do
   it { is_expected.to respond_to :protocol }
   it { is_expected.to respond_to :structure_size }
   it { is_expected.to respond_to :credit_charge }
-  it { is_expected.to respond_to :status }
+  it { is_expected.to respond_to :nt_status }
   it { is_expected.to respond_to :command }
   it { is_expected.to respond_to :credits }
   it { is_expected.to respond_to :flags }
@@ -49,13 +49,13 @@ RSpec.describe RubySMB::SMB2::SMB2Header do
     end
   end
 
-  describe '#status' do
+  describe '#nt_status' do
     it 'is a NTStatus field' do
-      expect(header.status).to be_a RubySMB::Field::NtStatus
+      expect(header.nt_status).to be_a RubySMB::Field::NtStatus
     end
 
     it 'has a default value of 0' do
-      expect(header.status).to eq 0
+      expect(header.nt_status).to eq 0
     end
   end
 

@@ -55,8 +55,8 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
   end
 
   describe 'security_features' do
-    it 'should be a 64-bit field per the SMB spec' do
-      expect(header.security_features).to be_a BinData::Bit64
+    it 'should be a 8-byte string per the SMB spec' do
+      expect(header.security_features).to be_a BinData::String
     end
   end
 
