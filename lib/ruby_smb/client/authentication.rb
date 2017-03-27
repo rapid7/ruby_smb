@@ -27,8 +27,7 @@ module RubySMB
       # @return [String] the binary string response from the server
       def smb1_ntlmssp_negotiate
         packet = smb1_ntlmssp_negotiate_packet
-        dispatcher.send_packet(packet)
-        dispatcher.recv_packet
+        send_recv(packet)
       end
 
       # Takes the Base64 encoded NTLM Type 2 (Challenge) message
@@ -40,8 +39,7 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb1_ntlmssp_authenticate(type2_string,user_id)
         packet = smb1_ntlmssp_auth_packet(type2_string,user_id)
-        dispatcher.send_packet(packet)
-        dispatcher.recv_packet
+        send_recv(packet)
       end
 
       # Generates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
@@ -162,8 +160,7 @@ module RubySMB
       # @return [String] the binary string response from the server
       def smb2_ntlmssp_negotiate
         packet = smb2_ntlmssp_negotiate_packet
-        dispatcher.send_packet(packet)
-        dispatcher.recv_packet
+        send_recv(packet)
       end
 
       # Creates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet
@@ -200,9 +197,8 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb2_ntlmssp_authenticate(type2_string,user_id)
         packet = smb2_ntlmssp_auth_packet(type2_string,user_id)
-
-        dispatcher.send_packet(packet)
-        dispatcher.recv_packet
+        packet = smb2_sign(packet)
+        send_recv(packet)
       end
 
       # Generates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet

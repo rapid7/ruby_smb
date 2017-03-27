@@ -48,6 +48,32 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#send_recv' do
+    let(:smb1_request) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
+    let(:smb2_request) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+
+    before(:each) do
+      expect(dispatcher).to receive(:send_packet).and_return(nil)
+      expect(dispatcher).to receive(:recv_packet).and_return("A")
+    end
+
+    it 'checks the packet version' do
+      expect(smb1_request).to receive(:packet_smb_version).and_call_original
+      client.send_recv(smb1_request)
+    end
+
+    it 'calls #smb1_sign if it is an SMB1 packet'  do
+      expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
+      client.send_recv(smb1_request)
+    end
+
+    it 'calls #smb2_sign if it is an SMB2 packet' do
+      expect(client).to receive(:smb2_sign).with(smb2_request).and_call_original
+      client.send_recv(smb2_request)
+    end
+
+  end
+
   context 'Protocol Negotiation' do
     let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
     let(:smb1_capabilities) {
@@ -125,26 +151,26 @@ RSpec.describe RubySMB::Client do
     end
 
     describe '#negotiate_request' do
-      before(:each) do
-        expect(dispatcher).to receive(:send_packet).and_return(nil)
-        expect(dispatcher).to receive(:recv_packet).and_return("A")
-      end
       it 'calls #smb1_negotiate_request if SMB1 is enabled' do
         expect(smb1_client).to receive(:smb1_negotiate_request)
+        expect(smb1_client).to receive(:send_recv)
         smb1_client.negotiate_request
       end
 
       it 'calls #smb1_negotiate_request if both protocols are enabled' do
         expect(client).to receive(:smb1_negotiate_request)
+        expect(client).to receive(:send_recv)
         client.negotiate_request
       end
 
       it 'calls #smb2_negotiate_request if SMB2 is enabled' do
         expect(smb2_client).to receive(:smb2_negotiate_request)
+        expect(smb2_client).to receive(:send_recv)
         smb2_client.negotiate_request
       end
 
       it 'returns the raw response string from the server' do
+        expect(client).to receive(:send_recv).and_return('A')
         expect(client.negotiate_request).to eq "A"
       end
     end

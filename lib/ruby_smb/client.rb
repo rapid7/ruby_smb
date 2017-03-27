@@ -132,6 +132,24 @@ module RubySMB
       parse_negotiate_response(response_packet)
     end
 
+    # Sends a packet and receives the raw response through the Dispatcher.
+    # It will also sign the packet if neccessary.
+    #
+    # @param packet [RubySMB::GenericPacket] the request to be sent
+    # @return [String] the raw response data received
+    def send_recv(packet)
+      case packet.packet_smb_version
+        when 'SMB1'
+          packet = smb1_sign(packet)
+        when 'SMB2'
+          packet = smb2_sign(packet)
+        else
+          packet = packet
+      end
+      dispatcher.send_packet(packet)
+      dispatcher.recv_packet
+    end
+
     private
 
 

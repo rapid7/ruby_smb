@@ -9,8 +9,8 @@ module RubySMB
       #   @return [String]
       attr_accessor :session_key
 
-      def smb1_sign
-
+      def smb1_sign(packet)
+        packet
       end
 
       def smb2_sign(packet)

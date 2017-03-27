@@ -13,8 +13,7 @@ module RubySMB
         elsif smb2
           request = smb2_negotiate_request
         end
-        dispatcher.send_packet request
-        raw_response = dispatcher.recv_packet
+        send_recv(request)
       end
 
       # Takes the raw response data from the server and tries
