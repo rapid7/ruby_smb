@@ -16,7 +16,7 @@ module RubySMB
         challenge_message = smb1_type2_message(challenge_packet)
         raw = smb1_ntlmssp_authenticate(challenge_message, user_id)
         response = smb1_ntlmssp_final_packet(raw)
-        response_code = status_code(response)
+        response_code = response.status_code
         self.user_id = user_id if response_code.name == "STATUS_SUCCESS"
         response_code
       end
@@ -93,7 +93,7 @@ module RubySMB
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
       def smb1_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
-        status_code = status_code(packet)
+        status_code = packet.status_code
 
         unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
@@ -128,7 +128,7 @@ module RubySMB
         challenge_message = smb2_type2_message(challenge_packet)
         raw = smb2_ntlmssp_authenticate(challenge_message, session_id)
         response = smb2_ntlmssp_final_packet(raw)
-        response_code = status_code(response)
+        response_code = response.status_code
         self.session_id = response.smb2_header.session_id if response_code.name == "STATUS_SUCCESS"
         response_code
       end
@@ -145,7 +145,7 @@ module RubySMB
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
       def smb2_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
-        status_code = status_code(packet)
+        status_code = packet.status_code
         unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
         end
@@ -200,6 +200,7 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb2_ntlmssp_authenticate(type2_string,user_id)
         packet = smb2_ntlmssp_auth_packet(type2_string,user_id)
+
         dispatcher.send_packet(packet)
         dispatcher.recv_packet
       end
@@ -212,6 +213,7 @@ module RubySMB
       # @return [RubySMB::SMB2::Packet::SessionSetupRequest] the second authentication packet to send
       def smb2_ntlmssp_auth_packet(type2_string, session_id)
         type3_message = ntlm_client.init_context(type2_string)
+        self.session_key = ntlm_client.session_key
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.smb2_header.session_id = session_id
         packet.set_type3_blob(type3_message.serialize)

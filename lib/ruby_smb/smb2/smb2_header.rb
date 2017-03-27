@@ -16,7 +16,7 @@ module RubySMB
       uint32              :process_id,        label: 'Process ID', initial_value: 0x0000feff
       uint32              :tree_id,           label: 'Tree ID'
       uint64              :session_id,        label: 'Session ID'
-      string              :signature,         label: 'Signature', length: 16
+      string              :signature,         label: 'Signature', length: 8
     end
   end
 end

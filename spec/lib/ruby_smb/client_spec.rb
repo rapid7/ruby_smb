@@ -488,4 +488,37 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  context 'Signing' do
+    describe '#smb2_sign' do
+      let(:request1) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+      let(:fake_hmac) { "\x66\x7d\x29\x66\x67\xc8\xa7\x28".force_encoding("ASCII-8BIT") }
+
+      context 'if signing is required and we have a session key' do
+        it 'generates the HMAC based on the packet and the NTLM session key and signs the packet with it' do
+          smb2_client.session_key = 'foo'
+          smb2_client.signing_required = true
+          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest::SHA256),smb2_client.session_key,request1.to_binary_s).and_return(fake_hmac)
+          expect(smb2_client.smb2_sign(request1).smb2_header.signature).to eq fake_hmac
+        end
+      end
+
+      context 'when signing is not required' do
+        it 'returns the packet exactly as it was given' do
+          smb2_client.session_key = 'foo'
+          smb2_client.signing_required = false
+          expect(smb2_client.smb2_sign(request1)).to eq request1
+        end
+      end
+
+      context 'when there is no session_key' do
+        it 'returns the packet exactly as it was given' do
+          smb2_client.session_key = ''
+          smb2_client.signing_required = true
+          expect(smb2_client.smb2_sign(request1)).to eq request1
+        end
+      end
+
+    end
+  end
+
 end

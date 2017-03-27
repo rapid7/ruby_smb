@@ -5,9 +5,11 @@ module RubySMB
   class Client
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
+    require 'ruby_smb/client/signing'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
+    include RubySMB::Client::Signing
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = "NT LM 0.12"
@@ -90,6 +92,7 @@ module RubySMB
       @local_workstation = local_workstation
       @password          = password.encode("utf-8")
       @session_id        = 0x00
+      @session_key       = ''
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
@@ -131,29 +134,7 @@ module RubySMB
 
     private
 
-    def packet_smb_version(packet)
-      class_name = packet.class.to_s
-      case class_name
-        when /SMB1/
-          'SMB1'
-        when /SMB2/
-          'SMB2'
-        else
-          ''
-      end
-    end
 
-    def status_code(packet)
-      smb_version = packet_smb_version(packet)
-      case smb_version
-        when 'SMB1'
-          status_code = WindowsError::NTStatus.find_by_retval(packet.smb_header.nt_status.value).first
-        when 'SMB2'
-          status_code = WindowsError::NTStatus.find_by_retval(packet.smb2_header.nt_status.value).first
-        else
-          nil
-      end
-    end
 
 
   end
