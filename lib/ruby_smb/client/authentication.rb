@@ -197,7 +197,6 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb2_ntlmssp_authenticate(type2_string,user_id)
         packet = smb2_ntlmssp_auth_packet(type2_string,user_id)
-        packet = smb2_sign(packet)
         send_recv(packet)
       end
 

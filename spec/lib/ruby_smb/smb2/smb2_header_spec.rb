@@ -120,8 +120,8 @@ RSpec.describe RubySMB::SMB2::SMB2Header do
       expect(header.signature).to be_a BinData::String
     end
 
-    it 'is 8 bytes' do
-      expect(header.signature.do_num_bytes).to eq 8
+    it 'is 16 bytes' do
+      expect(header.signature.do_num_bytes).to eq 16
     end
   end
 end

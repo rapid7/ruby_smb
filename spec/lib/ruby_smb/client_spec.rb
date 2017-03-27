@@ -517,7 +517,7 @@ RSpec.describe RubySMB::Client do
   context 'Signing' do
     describe '#smb2_sign' do
       let(:request1) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
-      let(:fake_hmac) { "\x66\x7d\x29\x66\x67\xc8\xa7\x28".force_encoding("ASCII-8BIT") }
+      let(:fake_hmac) { "\x31\x07\x78\x3e\x35\xd7\x0e\x89\x08\x43\x8a\x18\xcd\x78\x52\x39".force_encoding("ASCII-8BIT") }
 
       context 'if signing is required and we have a session key' do
         it 'generates the HMAC based on the packet and the NTLM session key and signs the packet with it' do
