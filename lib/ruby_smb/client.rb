@@ -44,6 +44,13 @@ module RubySMB
     #   @return [String]
     attr_accessor :password
 
+    # The Sequence Counter used for SMB1 Signing.
+    # It tracks the number of packets both sent and received
+    # since the NTLM session was initialized with the Challenge.
+    # @!attribute [rw] sequence_counter
+    #   @return [Integer]
+    attr_accessor :sequence_counter
+
     # The current Session ID setup by authentication
     # @!attribute [rw] session_id
     #   @return [Integer]
@@ -91,6 +98,7 @@ module RubySMB
       @domain            = domain
       @local_workstation = local_workstation
       @password          = password.encode("utf-8")
+      @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
       @signing_required  = false
@@ -147,7 +155,11 @@ module RubySMB
           packet = packet
       end
       dispatcher.send_packet(packet)
-      dispatcher.recv_packet
+      raw_response = dispatcher.recv_packet
+      if self.sequence_counter > 0
+        self.sequence_counter += 1
+      end
+      raw_response
     end
 
     private

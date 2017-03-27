@@ -545,6 +545,39 @@ RSpec.describe RubySMB::Client do
       end
 
     end
+
+    describe '#smb1_sign' do
+      let(:request1) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
+      let(:fake_sig) { "\x9f\x62\xcf\x08\xd9\xc2\x83\x21".force_encoding("ASCII-8BIT") }
+
+      context 'if signing is required and we have a session key' do
+        it 'generates the signature based on the packet, the sequence counter and the NTLM session key and signs the packet with it' do
+          smb1_client.session_key = 'foo'
+          smb1_client.signing_required = true
+          raw = request1.to_binary_s
+          adjusted_request = RubySMB::SMB1::Packet::SessionSetupRequest.read(raw)
+          adjusted_request.smb_header.security_features = smb1_client.sequence_counter
+          expect(OpenSSL::Digest::MD5).to receive(:digest).with(smb1_client.session_key + adjusted_request.to_binary_s).and_return(fake_sig)
+          expect(smb1_client.smb1_sign(request1).smb_header.security_features).to eq fake_sig
+        end
+      end
+
+      context 'when signing is not required' do
+        it 'returns the packet exactly as it was given' do
+          smb1_client.session_key = 'foo'
+          smb1_client.signing_required = false
+          expect(smb1_client.smb1_sign(request1)).to eq request1
+        end
+      end
+
+      context 'when there is no session_key' do
+        it 'returns the packet exactly as it was given' do
+          smb1_client.session_key = ''
+          smb1_client.signing_required = true
+          expect(smb1_client.smb1_sign(request1)).to eq request1
+        end
+       end
+    end
   end
 
 end

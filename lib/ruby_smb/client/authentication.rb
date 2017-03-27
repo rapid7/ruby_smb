@@ -50,6 +50,7 @@ module RubySMB
       # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the second authentication packet to send
       def smb1_ntlmssp_auth_packet(type2_string,user_id)
         type3_message = ntlm_client.init_context(type2_string)
+        self.session_key = ntlm_client.session_key
         packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
         packet.smb_header.uid = user_id
         packet.set_type3_blob(type3_message.serialize)
