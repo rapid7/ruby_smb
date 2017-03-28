@@ -9,6 +9,12 @@ module RubySMB
       #   @return [String]
       attr_accessor :session_key
 
+      # Take an SMB1 packet and checks to see if it should be signed.
+      # If signing is enabled and we have a session key already, then
+      # it will sign the packet appropriately.
+      #
+      # @param packet [RubySMB::GenericPacket] the packet to sign
+      # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb1_sign(packet)
         if self.signing_required && !self.session_key.empty?
           packet.smb_header.security_features = self.sequence_counter
@@ -21,6 +27,12 @@ module RubySMB
         end
       end
 
+      # Take an SMB2 packet and checks to see if it should be signed.
+      # If signing is enabled and we have a session key already, then
+      # it will sign the packet appropriately.
+      #
+      # @param packet [RubySMB::GenericPacket] the packet to sign
+      # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb2_sign(packet)
         if self.signing_required && !self.session_key.empty?
           hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, self.session_key, packet.to_binary_s)

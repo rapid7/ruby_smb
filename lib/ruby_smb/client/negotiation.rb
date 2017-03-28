@@ -3,6 +3,17 @@ module RubySMB
     # This module holds all of the methods backing the {RubySMB::Client#negotiate} method
     module Negotiation
 
+      # Handles the entire SMB Multi-Protocol Negotiation from the
+      # Client to the Server. It sets state on the client appropriate
+      # to the protocol and capabilites negotiated during the exchange.
+      #
+      # @return [void]
+      def negotiate
+        raw_response    = negotiate_request
+        response_packet = negotiate_response(raw_response)
+        parse_negotiate_response(response_packet)
+      end
+
       # Creates and dispatches the first Negotiate Request Packet and
       # returns the raw response data.
       #

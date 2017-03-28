@@ -74,6 +74,60 @@ RSpec.describe RubySMB::Client do
 
   end
 
+  describe '#login' do
+    before(:each) do
+      allow(client).to receive(:negotiate)
+      allow(client).to receive(:authenticate)
+    end
+
+    it 'defaults username to what was in the initializer' do
+      expect{ client.login }.to_not change(client, :username)
+    end
+
+    it 'overrides username if it is passed as a parameter' do
+      expect{ client.login(username:'test') }.to change(client, :username).to('test')
+    end
+
+    it 'defaults password to what was in the initializer' do
+      expect{ client.login }.to_not change(client, :password)
+    end
+
+    it 'overrides password if it is passed as a parameter' do
+      expect{ client.login(password:'test') }.to change(client, :password).to('test')
+    end
+
+    it 'defaults domain to what was in the initializer' do
+      expect{ client.login }.to_not change(client, :domain)
+    end
+
+    it 'overrides domain if it is passed as a parameter' do
+      expect{ client.login(domain:'test') }.to change(client, :domain).to('test')
+    end
+
+    it 'defaults local_workstation to what was in the initializer' do
+      expect{ client.login }.to_not change(client, :local_workstation)
+    end
+
+    it 'overrides local_workstation if it is passed as a parameter' do
+      expect{ client.login(local_workstation:'test') }.to change(client, :local_workstation).to('test')
+    end
+
+    it 'initialises a new NTLM Client' do
+      expect{ client.login }.to change(client, :ntlm_client)
+    end
+
+    it 'calls negotiate after the setup' do
+      expect(client).to receive(:negotiate)
+      client.login
+    end
+
+    it 'calls authenticate after negotiate' do
+      expect(client).to receive(:authenticate)
+      client.login
+    end
+
+  end
+
   context 'Protocol Negotiation' do
     let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
     let(:smb1_capabilities) {
@@ -579,5 +633,6 @@ RSpec.describe RubySMB::Client do
        end
     end
   end
+
 
 end

@@ -3,6 +3,18 @@ module RubySMB
     # This module holds all the backend client methods for authentication.
     module Authentication
 
+      # Responsible for handling Authentication and Session Setup for
+      # the SMB Client. It returns the final Status code from the authentication
+      # exchange.
+      #
+      # @return [WindowsError::NTStatus] the NTStatus object from the SessionSetup exchange.
+      def authenticate
+        if self.smb1
+          smb1_authenticate
+        else
+          smb2_authenticate
+        end
+      end
 
       #
       # SMB1 Methods

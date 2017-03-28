@@ -116,28 +116,21 @@ module RubySMB
       @smb2_message_id = 0
     end
 
-    # Responsible for handling Authentication and Session Setup for
-    # the SMB Client. It returns the final Status code from the authentication
-    # exchange.
-    #
-    # @return [WindowsError::NTStatus] the NTStatus object from the SessionSetup exchange.
-    def authenticate
-      if self.smb1
-        smb1_authenticate
-      else
-        smb2_authenticate
-      end
-    end
+    def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation )
+      @domain            = domain
+      @local_workstation = local_workstation
+      @password          = password.encode("utf-8")
+      @username          = username.encode("utf-8")
 
-    # Handles the entire SMB Multi-Protocol Negotiation from the
-    # Client to the Server. It sets state on the client appropriate
-    # to the protocol and capabilites negotiated during the exchange.
-    #
-    # @return [void]
-    def negotiate
-      raw_response    = negotiate_request
-      response_packet = negotiate_response(raw_response)
-      parse_negotiate_response(response_packet)
+      @ntlm_client = Net::NTLM::Client.new(
+        @username,
+        @password,
+        workstation: @local_workstation,
+        domain: @domain
+      )
+
+      negotiate
+      authenticate
     end
 
     # Sends a packet and receives the raw response through the Dispatcher.
