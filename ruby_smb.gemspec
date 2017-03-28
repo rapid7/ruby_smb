@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'yard'
 
-  spec.add_runtime_dependency 'rubyntlm', '~> 0.5'
+  spec.add_runtime_dependency 'rubyntlm'
   spec.add_runtime_dependency 'bit-struct'
   spec.add_runtime_dependency 'windows_error'
   spec.add_runtime_dependency 'bindata'
