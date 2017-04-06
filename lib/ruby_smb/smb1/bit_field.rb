@@ -6,6 +6,7 @@ module RubySMB
       require 'ruby_smb/smb1/bit_field/security_mode'
       require 'ruby_smb/smb1/bit_field/capabilities'
       require 'ruby_smb/smb1/bit_field/tree_connect_flags'
+      require 'ruby_smb/smb1/bit_field/optional_support'
     end
   end
 end

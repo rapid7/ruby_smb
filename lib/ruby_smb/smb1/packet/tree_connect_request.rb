@@ -14,7 +14,18 @@ module RubySMB
         end
 
         class DataBlock < RubySMB::SMB1::DataBlock
+          stringz  :password, label: 'Password Field', initial_value: 0x00,    length: lambda { self.parent.parameter_block.password_length }
+          stringz  :path,     label: 'Resource Path'
+          stringz  :service,  label: 'Resource Type',  initial_value: '?????'
+        end
 
+        smb_header        :smb_header
+        parameter_block   :parameter_block
+        data_block        :data_block
+
+        def initialize_instance
+          super
+          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
         end
 
       end
