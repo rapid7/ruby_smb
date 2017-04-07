@@ -634,5 +634,19 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  context '#increment_smb_message_id' do
+    let(:request_packet) { RubySMB::SMB2::Packet::NegotiateRequest.new }
+
+    it 'sets the message_id on the packet header to the client message_id' do
+      id = client.smb2_message_id
+      expect(client.increment_smb_message_id(request_packet).smb2_header.message_id).to eq id
+    end
+
+    it 'increments the client message id' do
+      client.smb2_message_id = 1
+      expect{ client.increment_smb_message_id(request_packet) }.to change{ client.smb2_message_id}.by(1)
+    end
+  end
+
 
 end

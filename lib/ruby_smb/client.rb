@@ -116,6 +116,14 @@ module RubySMB
       @smb2_message_id = 0
     end
 
+    def increment_smb_message_id(packet)
+      if packet.smb2_header.message_id == 0 && self.smb2_message_id != 0
+        packet.smb2_header.message_id = self.smb2_message_id
+        self.smb2_message_id += 1
+      end
+      packet
+    end
+
     def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation )
       @domain            = domain
       @local_workstation = local_workstation
@@ -144,6 +152,7 @@ module RubySMB
           packet = smb1_sign(packet)
         when 'SMB2'
           packet = smb2_sign(packet)
+          packet = increment_smb_message_id(packet)
         else
           packet = packet
       end

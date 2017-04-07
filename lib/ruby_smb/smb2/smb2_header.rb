@@ -11,9 +11,9 @@ module RubySMB
       uint16              :command,           label: 'Command'
       uint16              :credits,           label: 'Credit Request/Response'
       smb2_header_flags   :flags,             label: 'Flags'
-      uint32              :next_command,      label: 'Command Chain Offset', initial_value: 0
-      uint64              :message_id,        label: 'Message ID'
-      uint32              :process_id,        label: 'Process ID', initial_value: 0x0000feff
+      uint32              :next_command,      label: 'Command Chain Offset',   initial_value: 0
+      uint64              :message_id,        label: 'Message ID',             initial_value: 0
+      uint32              :process_id,        label: 'Process ID',             initial_value: 0x0000feff
       uint32              :tree_id,           label: 'Tree ID'
       uint64              :session_id,        label: 'Session ID'
       string              :signature,         label: 'Signature', length: 16
