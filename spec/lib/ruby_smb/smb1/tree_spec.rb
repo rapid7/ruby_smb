@@ -34,4 +34,22 @@ RSpec.describe RubySMB::SMB1::Tree do
   it 'inherits the Tree id from the response packet' do
     expect(tree.id).to eq response.smb_header.tid
   end
+
+  describe '#disconnect!' do
+    let(:disco_req) { RubySMB::SMB1::Packet::TreeDisconnectRequest.new }
+    let(:disco_resp) { RubySMB::SMB1::Packet::TreeDisconnectResponse.new }
+
+    it 'sends a TreeDisconnectRequest with the Tree ID in the header' do
+      allow(RubySMB::SMB1::Packet::TreeDisconnectRequest).to receive(:new).and_return(disco_req)
+      modified_req = disco_req
+      modified_req.smb_header.tid = tree.id
+      expect(client).to receive(:send_recv).with(modified_req).and_return(disco_resp.to_binary_s)
+      tree.disconnect!
+    end
+
+    it 'returns the NTStatus code from the response' do
+      allow(client).to receive(:send_recv).and_return(disco_resp.to_binary_s)
+      expect(tree.disconnect!).to eq disco_resp.status_code
+    end
+  end
 end

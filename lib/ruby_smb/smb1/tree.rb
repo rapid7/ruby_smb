@@ -38,6 +38,17 @@ module RubySMB
         @permissions        = response.parameter_block.access_rights
       end
 
+      # Disconnects this Tree from the current session
+      #
+      # @return [WindowsError::ErrorCode] the NTStatus sent back by the server.
+      def disconnect!
+        request = RubySMB::SMB1::Packet::TreeDisconnectRequest.new
+        request.smb_header.tid = self.id
+        raw_response = self.client.send_recv(request)
+        response = RubySMB::SMB1::Packet::TreeDisconnectResponse.read(raw_response)
+        response.status_code
+      end
+
 
     end
   end
