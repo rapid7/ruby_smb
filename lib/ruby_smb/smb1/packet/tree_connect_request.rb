@@ -10,11 +10,11 @@ module RubySMB
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block          :andx_block
           tree_connect_flags   :flags
-          uint16               :password_length, label: 'Password Length', initial_value: 0x00
+          uint16               :password_length, label: 'Password Length', initial_value: 0x01
         end
 
         class DataBlock < RubySMB::SMB1::DataBlock
-          stringz  :password, label: 'Password Field', initial_value: 0x00,    length: lambda { self.parent.parameter_block.password_length }
+          stringz  :password, label: 'Password Field', initial_value: '',    length: lambda { self.parent.parameter_block.password_length }
           stringz  :path,     label: 'Resource Path'
           stringz  :service,  label: 'Resource Type',  initial_value: '?????'
         end

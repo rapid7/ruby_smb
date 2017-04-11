@@ -6,10 +6,12 @@ module RubySMB
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
     require 'ruby_smb/client/signing'
+    require 'ruby_smb/client/tree_connect'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
     include RubySMB::Client::Signing
+    include RubySMB::Client::TreeConnect
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = "NT LM 0.12"
@@ -116,6 +118,12 @@ module RubySMB
       @smb2_message_id = 0
     end
 
+    # Sets the message id field in an SMB2 packet's
+    # header to the one tracked by the client. It then increments
+    # the counter on the client.
+    #
+    # @param packet [RubySMB::GenericPacket] the packet to set the message id for
+    # @return [RubySMB::GenericPacket] the modified packet
     def increment_smb_message_id(packet)
       if packet.smb2_header.message_id == 0 && self.smb2_message_id != 0
         packet.smb2_header.message_id = self.smb2_message_id
@@ -149,6 +157,9 @@ module RubySMB
     def send_recv(packet)
       case packet.packet_smb_version
         when 'SMB1'
+          if self.user_id
+            packet.smb_header.uid = self.user_id
+          end
           packet = smb1_sign(packet)
         when 'SMB2'
           packet = smb2_sign(packet)

@@ -648,5 +648,51 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  context 'connecting to a share' do
+    context 'with SMB1' do
+      let(:path) { '\\192.168.1.1\example' }
+      let(:request) { RubySMB::SMB1::Packet::TreeConnectRequest.new }
+      let(:tree_id) { 2049 }
+      let(:response) {
+        packet = RubySMB::SMB1::Packet::TreeConnectResponse.new
+        packet.smb_header.tid = tree_id
+        packet.parameter_block.access_rights.read("\xff\x01\x1f\x00")
+        packet.data_block.service = 'A:'
+        packet
+      }
 
+      describe '#smb1_tree_connect' do
+        it 'builds and sends a TreeconnectRequest for the supplied share' do
+          allow(RubySMB::SMB1::Packet::TreeConnectRequest).to receive(:new).and_return(request)
+          modified_request = request
+          modified_request.data_block.path = path
+          expect(smb1_client).to receive(:send_recv).with(modified_request).and_return(response.to_binary_s)
+          smb1_client.smb1_tree_connect(path)
+        end
+
+        it 'sends the response to #smb1_tree_from_response' do
+          expect(smb1_client).to receive(:send_recv).and_return(response.to_binary_s)
+          expect(smb1_client).to receive(:smb1_tree_from_response).with(path, response)
+          smb1_client.smb1_tree_connect(path)
+        end
+      end
+
+      describe '#smb1_tree_from_response' do
+        it 'raises an InvalidPacket exception if the command is not TREE_CONNECT' do
+          response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          expect{ smb1_client.smb1_tree_from_response(path,response) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+
+        it 'raises an UnexpectedStatusCode exception if we do not get STATUS_SUCCESS' do
+          response.smb_header.nt_status = 0xc0000015
+          expect{ smb1_client.smb1_tree_from_response(path,response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
+        end
+
+        it 'creates a new Tree from itself, the share path, and the response packet' do
+          expect(RubySMB::SMB1::Tree).to receive(:new).with(client:smb1_client, share:path, response:response)
+          smb1_client.smb1_tree_from_response(path,response)
+        end
+      end
+    end
+  end
 end
