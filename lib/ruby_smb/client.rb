@@ -169,7 +169,7 @@ module RubySMB
       end
       dispatcher.send_packet(packet)
       raw_response = dispatcher.recv_packet
-      if self.sequence_counter > 0
+      if self.signing_required && !self.session_key.empty?
         self.sequence_counter += 1
       end
       raw_response

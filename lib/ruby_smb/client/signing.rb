@@ -17,7 +17,9 @@ module RubySMB
       # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb1_sign(packet)
         if self.signing_required && !self.session_key.empty?
-          packet.smb_header.security_features = self.sequence_counter
+          # Pack the Sequence counter into a int64le
+          packed_sequence_counter = [self.sequence_counter].pack('Q<')
+          packet.smb_header.security_features = packed_sequence_counter
           signature = OpenSSL::Digest::MD5.digest(self.session_key + packet.to_binary_s)[0,8]
           packet.smb_header.security_features = signature
           self.sequence_counter += 1

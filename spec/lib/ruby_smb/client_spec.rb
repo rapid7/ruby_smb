@@ -610,7 +610,7 @@ RSpec.describe RubySMB::Client do
           smb1_client.signing_required = true
           raw = request1.to_binary_s
           adjusted_request = RubySMB::SMB1::Packet::SessionSetupRequest.read(raw)
-          adjusted_request.smb_header.security_features = smb1_client.sequence_counter
+          adjusted_request.smb_header.security_features = [smb1_client.sequence_counter].pack('Q<')
           expect(OpenSSL::Digest::MD5).to receive(:digest).with(smb1_client.session_key + adjusted_request.to_binary_s).and_return(fake_sig)
           expect(smb1_client.smb1_sign(request1).smb_header.security_features).to eq fake_sig
         end
