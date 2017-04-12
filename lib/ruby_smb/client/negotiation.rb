@@ -1,3 +1,4 @@
+require 'securerandom'
 module RubySMB
   class Client
     # This module holds all of the methods backing the {RubySMB::Client#negotiate} method
@@ -116,6 +117,7 @@ module RubySMB
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
         packet.security_mode.signing_enabled = 1
         packet.add_dialect(SMB2_DIALECT_DEFAULT)
+        packet.client_guid = SecureRandom.random_bytes(16)
         packet
       end
     end

@@ -163,10 +163,10 @@ module RubySMB
           packet = smb1_sign(packet)
         when 'SMB2'
           packet = increment_smb_message_id(packet)
-          if self.session_id != 0
-            packet.smb2_header.session_id = self.session_id
+          packet.smb2_header.session_id = self.session_id
+          unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
+            packet = smb2_sign(packet)
           end
-          packet = smb2_sign(packet)
         else
           packet = packet
       end

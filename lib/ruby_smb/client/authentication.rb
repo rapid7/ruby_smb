@@ -136,11 +136,12 @@ module RubySMB
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
         session_id = challenge_packet.smb2_header.session_id
+        self.session_id = session_id
         challenge_message = smb2_type2_message(challenge_packet)
         raw = smb2_ntlmssp_authenticate(challenge_message, session_id)
         response = smb2_ntlmssp_final_packet(raw)
         response_code = response.status_code
-        self.session_id = response.smb2_header.session_id if response_code.name == "STATUS_SUCCESS"
+        #self.session_id = response.smb2_header.session_id if response_code.name == "STATUS_SUCCESS"
         response_code
       end
 

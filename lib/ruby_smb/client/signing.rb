@@ -37,6 +37,7 @@ module RubySMB
       # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb2_sign(packet)
         if self.signing_required && !self.session_key.empty?
+          packet.smb2_header.flags.signed = 1
           packet.smb2_header.signature = "\x00" * 16
           hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, self.session_key, packet.to_binary_s)
           packet.smb2_header.signature = hmac[0,16]
