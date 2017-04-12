@@ -47,7 +47,7 @@ module RubySMB
 
         # Returns the ACCESS_MASK for the Guest Share Access Rights. The packet
         # defaults this to a {RubySMB::SMB1::BitField::DirectoryAccessMask}. If it is anything other than
-        # a directory that has been connected to, it will re-cast it as a {}RubySMB::SMB1::BitField::FileAccessMask}
+        # a directory that has been connected to, it will re-cast it as a {RubySMB::SMB1::BitField::FileAccessMask}
         #
         # @return [RubySMB::SMB1::BitField::DirectoryAccessMask] if a directory was connected to
         # @return [RubySMB::SMB1::BitField::FileAccessMask] if anything else was connected to
