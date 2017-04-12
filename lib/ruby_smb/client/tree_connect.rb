@@ -56,7 +56,11 @@ module RubySMB
         request.smb2_header.tree_id = 65535
         request.encode_path(share)
         raw_response = send_recv(request)
-        response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
+        begin
+          response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
+        rescue EOFError
+          response = RubySMB::SMB2::Packet::ErrorPacket.read(raw_response)
+        end
         smb2_tree_from_response(share, response)
       end
 

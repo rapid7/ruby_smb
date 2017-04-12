@@ -162,8 +162,11 @@ module RubySMB
           end
           packet = smb1_sign(packet)
         when 'SMB2'
-          packet = smb2_sign(packet)
           packet = increment_smb_message_id(packet)
+          if self.session_id != 0
+            packet.smb2_header.session_id = self.session_id
+          end
+          packet = smb2_sign(packet)
         else
           packet = packet
       end
