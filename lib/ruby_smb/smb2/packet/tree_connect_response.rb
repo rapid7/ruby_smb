@@ -7,7 +7,7 @@ module RubySMB
       class TreeConnectResponse < RubySMB::GenericPacket
         endian  :little
         smb2_header           :smb2_header
-        uint16                :structure_size, label: 'Structure Size', initial_value: 9
+        uint16                :structure_size, label: 'Structure Size', initial_value: 16
         uint8                 :share_type,     label: 'Share Type',     initial_value: 0x01
         uint8                 :reserved,       label: 'Reserved Space', initial_value: 0x00
         share_flags           :share_flags
