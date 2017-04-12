@@ -9,4 +9,5 @@ module RubySMB::SMB2
   require 'ruby_smb/smb2/bit_field'
   require 'ruby_smb/smb2/smb2_header'
   require 'ruby_smb/smb2/packet'
+  require 'ruby_smb/smb2/tree'
 end
