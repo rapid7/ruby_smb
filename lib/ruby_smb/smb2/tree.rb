@@ -38,6 +38,8 @@ module RubySMB
       def disconnect!
         request = RubySMB::SMB2::Packet::TreeDisconnectRequest.new
         request.smb2_header.tree_id = self.id
+        request.smb2_header.credit_charge = 1
+        request.smb2_header.credits = 256
         raw_response = self.client.send_recv(request)
         response = RubySMB::SMB2::Packet::TreeDisconnectResponse.read(raw_response)
         response.status_code
