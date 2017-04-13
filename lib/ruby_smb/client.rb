@@ -178,6 +178,18 @@ module RubySMB
       raw_response
     end
 
+    # Connects to the supplied share
+    #
+    # @param share [String] the path to the share in `\\server\share_name` format
+    # @return [RubySMB::SMB1::Tree] if talking over SMB1
+    # @return [RubySMB::SMB2::Tree] if talking over SMB2
+    def tree_connect(share)
+      if smb2
+        smb2_tree_connect(share)
+      else
+        smb1_tree_connect(share)
+      end
+    end
     private
 
 

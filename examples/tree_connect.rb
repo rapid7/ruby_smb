@@ -23,5 +23,12 @@ status  = client.authenticate
 
 puts "#{protocol} : #{status}"
 
-tree = client.smb2_tree_connect(path)
-tree.disconnect!
+begin
+  tree = client.tree_connect(path)
+  puts "Connected to #{path} successfully!"
+  tree.disconnect!
+rescue Exception => e
+  puts "Failed to connect to #{path}: #{e.message}"
+end
+
+
