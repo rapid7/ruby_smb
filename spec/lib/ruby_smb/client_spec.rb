@@ -49,8 +49,8 @@ RSpec.describe RubySMB::Client do
   end
 
   describe '#send_recv' do
-    let(:smb1_request) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
-    let(:smb2_request) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+    let(:smb1_request) { RubySMB::SMB1::Packet::TreeConnectRequest.new }
+    let(:smb2_request) { RubySMB::SMB2::Packet::TreeConnectRequest.new }
 
     before(:each) do
       expect(dispatcher).to receive(:send_packet).and_return(nil)
@@ -570,7 +570,12 @@ RSpec.describe RubySMB::Client do
 
   context 'Signing' do
     describe '#smb2_sign' do
-      let(:request1) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+      let(:request1) {
+        packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
+        packet.smb2_header.flags.signed = 1
+        packet.smb2_header.signature = "\x00" * 16
+        packet
+      }
       let(:fake_hmac) { "\x31\x07\x78\x3e\x35\xd7\x0e\x89\x08\x43\x8a\x18\xcd\x78\x52\x39".force_encoding("ASCII-8BIT") }
 
       context 'if signing is required and we have a session key' do

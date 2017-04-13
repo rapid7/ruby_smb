@@ -161,7 +161,7 @@ module RubySMB
     def process_array_field(array_field, depth)
       array_field_str = ''
       array_field.each do |sub_field|
-        fields = sub_field.class.fields.fields
+        fields = sub_field.class.fields.raw_fields
         sub_field_hashes = self.class.walk_fields(fields)
         sub_field_hashes.each do |sub_field_hash|
           name = sub_field_hash[:name]
