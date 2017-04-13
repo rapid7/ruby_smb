@@ -8,9 +8,9 @@ Gem::Specification.new do |spec|
   spec.version       = RubySMB::VERSION
   spec.authors       = ['David Maloney', 'James Lee']
   spec.email         = ['DMaloney@rapid7.com', 'egypt@metasploit.com']
-  spec.summary       = 'A message creator and parser for the SMB protocol family'
+  spec.summary       = 'A pure Ruby implementation of the SMB Protocol Family'
   spec.description   = ''
-  spec.homepage      = 'http://www.metasploit.com'
+  spec.homepage      = 'https://github.com/rapid7/ruby_smb'
   spec.license       = 'BSD-3-clause'
 
   spec.files         = `git ls-files -z`.split("\x0")
