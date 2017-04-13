@@ -1,4 +1,3 @@
-require 'bit-struct'
 require 'bindata'
 require 'net/ntlm'
 require 'net/ntlm/client'
