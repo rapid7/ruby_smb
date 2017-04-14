@@ -132,6 +132,8 @@ module RubySMB
       packet
     end
 
+    # Performs protocol negotiation and session setup. It defaults to using
+    # the credentials supplied during initialization, but can take a new set of credentials if needed.
     def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation )
       @domain            = domain
       @local_workstation = local_workstation
@@ -147,6 +149,23 @@ module RubySMB
 
       negotiate
       authenticate
+    end
+
+    # Sends a LOGOFF command to the remote server to terminate the session
+    #
+    # @return [WindowsError::ErrorCode] the NTStatus of the response
+    def logoff!
+      if smb2
+        request      = RubySMB::SMB2::Packet::LogoffRequest.new
+        raw_response = send_recv(request)
+        response     = RubySMB::SMB2::Packet::LogoffResponse.read(raw_response)
+      else
+        request      = RubySMB::SMB1::Packet::LogoffRequest.new
+        raw_response = send_recv(request)
+        response     = RubySMB::SMB1::Packet::LogoffResponse.read(raw_response)
+      end
+      wipe_state!
+      response.status_code
     end
 
     # Sends a packet and receives the raw response through the Dispatcher.
@@ -190,9 +209,19 @@ module RubySMB
         smb1_tree_connect(share)
       end
     end
-    private
 
-
+    # Resets all of the session state on the client, setting it
+    # back to scratch. Should only be called when a session is no longer
+    # valid.
+    #
+    # @return [void]
+    def wipe_state!
+      self.session_id       = 0x00
+      self.user_id          = 0x00
+      self.session_key      = ''
+      self.sequence_counter = 0
+      self.smb2_message_id  = 0
+    end
 
 
   end
