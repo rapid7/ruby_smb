@@ -118,6 +118,15 @@ module RubySMB
       @smb2_message_id = 0
     end
 
+    # Logs off any currently open session on the server
+    # and closes the TCP socket connection.
+    #
+    # @return [void]
+    def disconnect!
+      logoff!
+      dispatcher.tcp_socket.close
+    end
+
     # Sets the message id field in an SMB2 packet's
     # header to the one tracked by the client. It then increments
     # the counter on the client.
