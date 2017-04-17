@@ -11,7 +11,9 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
   # @param tcp_socket [IO]
   def initialize(tcp_socket)
     @tcp_socket = tcp_socket
-    @tcp_socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+    if @tcp_socket.respond_to?(:setsockopt)
+      @tcp_socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+    end
   end
 
   # @param host [String] passed to TCPSocket.new
