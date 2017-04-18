@@ -123,7 +123,11 @@ module RubySMB
     #
     # @return [void]
     def disconnect!
-      logoff!
+      begin
+        logoff!
+      rescue
+        wipe_state!
+      end
       dispatcher.tcp_socket.close
     end
 
@@ -200,6 +204,7 @@ module RubySMB
       end
       dispatcher.send_packet(packet)
       raw_response = dispatcher.recv_packet
+
       if self.signing_required && !self.session_key.empty?
         self.sequence_counter += 1
       end
