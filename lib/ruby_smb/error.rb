@@ -14,4 +14,7 @@ module RubySMB::Error
 
   # Raised when a response packet has a NTStatus code that was unexpected.
   class UnexpectedStatusCode < StandardError; end
+
+  # Raised when an error occurs with the underlying socket.
+  class CommunicationError < StandardError; end
 end
