@@ -12,6 +12,8 @@ module RubySMB
       require 'ruby_smb/smb2/packet/tree_disconnect_response'
       require 'ruby_smb/smb2/packet/logoff_request'
       require 'ruby_smb/smb2/packet/logoff_response'
+      require 'ruby_smb/smb2/packet/echo_request'
+      require 'ruby_smb/smb2/packet/echo_response'
     end
   end
 end
