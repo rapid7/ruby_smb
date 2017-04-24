@@ -745,4 +745,50 @@ RSpec.describe RubySMB::Client do
 
     end
   end
+
+  context 'Echo command' do
+    context 'with SMB1' do
+      let(:echo_request) { RubySMB::SMB1::Packet::EchoRequest.new }
+      let(:echo_response) {
+        packet = RubySMB::SMB1::Packet::EchoResponse.new
+        packet.smb_header.nt_status = 0x00000080
+        packet
+      }
+
+      before(:each) do
+        allow(RubySMB::SMB2::Packet::EchoRequest).to receive(:new).and_return(echo_request)
+      end
+
+      it 'sets the echo_count on the request packet' do
+        modified_request = echo_request
+        modified_request.parameter_block.echo_count = 5
+        expect(smb1_client).to receive(:send_recv).with(modified_request).and_return(echo_response.to_binary_s)
+        expect(dispatcher).to receive(:recv_packet).exactly(4).times.and_return(echo_response.to_binary_s)
+        smb1_client.smb1_echo(count: 5)
+      end
+
+      it 'sets the data on the request packet' do
+        modified_request = echo_request
+        modified_request.data_block.data = "DEADBEEF"
+        expect(smb1_client).to receive(:send_recv).with(modified_request).and_return(echo_response.to_binary_s)
+        smb1_client.smb1_echo(data: "DEADBEEF")
+      end
+
+      it 'returns the NT status code' do
+        expect(smb1_client).to receive(:send_recv).and_return(echo_response.to_binary_s)
+        expect(smb1_client.echo).to eq WindowsError::NTStatus::STATUS_ABANDONED
+      end
+    end
+
+    context 'with SMB2' do
+      let(:echo_request) { RubySMB::SMB2::Packet::EchoRequest.new }
+      let(:echo_response) { RubySMB::SMB2::Packet::EchoResponse.new }
+
+      it '#smb2_echo sends an Echo Request and returns a response' do
+        allow(RubySMB::SMB2::Packet::EchoRequest).to receive(:new).and_return(echo_request)
+        expect(smb2_client).to receive(:send_recv).with(echo_request).and_return(echo_response.to_binary_s)
+        expect(smb2_client.smb2_echo).to eq echo_response
+      end
+    end
+  end
 end

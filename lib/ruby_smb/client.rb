@@ -7,11 +7,13 @@ module RubySMB
     require 'ruby_smb/client/authentication'
     require 'ruby_smb/client/signing'
     require 'ruby_smb/client/tree_connect'
+    require 'ruby_smb/client/echo'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
     include RubySMB::Client::Signing
     include RubySMB::Client::TreeConnect
+    include RubySMB::Client::Echo
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = "NT LM 0.12"
@@ -129,6 +131,21 @@ module RubySMB
         wipe_state!
       end
       dispatcher.tcp_socket.close
+    end
+
+    # Sends an Echo request to the server and returns the
+    # NTStatus of the last response packet received.
+    #
+    # @param echo [Integer] the number of times the server should echo (ignored in SMB2)
+    # @param data [String] the data the server should echo back (ignored in SMB2)
+    # @return [WindowsError::ErrorCode] the NTStatus of the last response received
+    def echo(count: 1, data: '' )
+      if smb2
+        response = smb2_echo
+      else
+        response = smb1_echo(count:count, data:data)
+      end
+      response.status_code
     end
 
     # Sets the message id field in an SMB2 packet's
