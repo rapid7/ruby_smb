@@ -2,6 +2,7 @@ module RubySMB
   module SMB1
     module Commands
       SMB_COM_ECHO            = 0x2B
+      SMB_COM_TRANSACTION2    = 0x32
       SMB_COM_TREE_DISCONNECT = 0x71
       SMB_COM_NEGOTIATE       = 0x72
       SMB_COM_SESSION_SETUP   = 0x73

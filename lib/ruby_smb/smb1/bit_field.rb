@@ -9,6 +9,7 @@ module RubySMB
       require 'ruby_smb/smb1/bit_field/optional_support'
       require 'ruby_smb/smb1/bit_field/directory_access_mask'
       require 'ruby_smb/smb1/bit_field/file_access_mask'
+      require 'ruby_smb/smb1/bit_field/trans2_flags'
     end
   end
 end
