@@ -1,8 +1,8 @@
 module RubySMB
   module SMB1
     module BitField
-      # The Flags bit-field for an SMB1 Header as defined in
-      # [2.2.3.1 SMB Header Extensions](https://msdn.microsoft.com/en-us/library/cc246254.aspx)
+      # The Flags bit-field for an SMB1 Open2 Request as defined in
+      # [2.2.6.1.1 Request](https://msdn.microsoft.com/en-us/library/ee441733.aspx)
       class Open2Flags < BinData::Record
         endian  :little
         bit4    :reserved,    label: 'Reserved Space'
