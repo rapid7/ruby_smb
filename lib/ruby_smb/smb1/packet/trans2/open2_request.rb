@@ -10,6 +10,11 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
 
+          class Trans2Parameters < BinData::Record
+            open2_flags       :flags,       label: 'Flags'
+            open2_access_mode :access_mode, label: 'AccessMode'
+          end
+
           class DataBlock < RubySMB::SMB1::DataBlock
 
           end
