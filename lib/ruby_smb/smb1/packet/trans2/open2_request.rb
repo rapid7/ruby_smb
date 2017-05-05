@@ -23,19 +23,46 @@ module RubySMB
               uint16 value: 0x0000
             end
             stringz             :filename,        label: 'Filename'
+
           end
 
           class Trans2Data < BinData::Record
-
+            smb_fea_list  :extended_attribute_list, label: 'Extended Attribute List'
           end
 
           class DataBlock < RubySMB::SMB1::DataBlock
+            uint8              :name,               label: 'Name',              initial_value: 0x00
+            string             :pad1,               length: lambda { pad1_length }
+            trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
+            string             :pad2,               length: lambda { pad2_length }
+            trans2_data        :trans2_data,        label: 'Trans2 Data'
 
+            private
+
+            # Determines the correct length for the padding in front of
+            # #trans2_parameters. It should always force a 4-byte alignment.
+            def pad1_length
+              offset = (name.abs_offset + 1) % 4
+              (4 - offset) % 4
+            end
+
+            # Determines the correct length for the padding in front of
+            # #trans2_data. It should always force a 4-byte alignment.
+            def pad2_length
+              offset = (trans2_parameters.abs_offset + trans2_parameters.do_num_bytes) % 4
+              (4 - offset) % 4
+            end
           end
 
           smb_header        :smb_header
           parameter_block   :parameter_block
           data_block        :data_block
+
+
+          def initialize_instance
+            super
+            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+          end
         end
       end
     end
