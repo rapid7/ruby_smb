@@ -19,10 +19,14 @@ module RubySMB
             utime               :creation_time,   label: 'Creation Time'
             open2_open_mode     :open_mode,       label: 'Open Mode'
             uint32              :allocation_size, label: 'Allocation Size'
-            array               :reserved,        initial_length: 5 do
+            array               :reserved2,        initial_length: 5 do
               uint16 value: 0x0000
             end
             stringz             :filename,        label: 'Filename'
+          end
+
+          class Trans2Data < BinData::Record
+
           end
 
           class DataBlock < RubySMB::SMB1::DataBlock

@@ -4,5 +4,7 @@ module RubySMB
     require 'ruby_smb/field/utime'
     require 'ruby_smb/field/stringz16'
     require 'ruby_smb/field/nt_status'
+    require 'ruby_smb/field/extended_attribute_flag'
+    require 'ruby_smb/field/smb_fea'
   end
 end
