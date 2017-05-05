@@ -5,7 +5,7 @@ module RubySMB
 
         # A Trans2 OPEN2 Request Packet as defined in
         # [2.2.6.1.1 Request](https://msdn.microsoft.com/en-us/library/ee441733.aspx)
-        class Open2Request < BinData::Record
+        class Open2Request < RubySMB::GenericPacket
 
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
