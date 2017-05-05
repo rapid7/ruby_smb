@@ -27,6 +27,9 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Request do
       expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
     end
 
+    it 'should have the setup set to the OPEN2 subcommand' do
+      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::OPEN2
+    end
 
   end
 

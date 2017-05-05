@@ -21,10 +21,10 @@ module RubySMB
             uint16        :parameter_offset,      label: 'Parameter Offset',               value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
             uint16        :data_count,            label: 'Data Count(bytes)',              value: lambda {self.parent.data_block.trans2_data.length}
             uint16        :data_offset,           label: 'Data Offset',                    value: lambda {self.parent.data_block.trans2_data.abs_offset}
-            uint8         :setup_count,           label: 'Setup Count',                    initial_value: 1
+            uint8         :setup_count,           label: 'Setup Count',                    value: lambda {setup.length}
             uint8         :reserved3,             label: 'Reserved Space',                 value: 0x00
 
-            array :setup, type: :uint16, initial_length: lambda { self.setup_count }
+            array :setup, type: :uint16, initial_length: 0
           end
 
           class DataBlock < RubySMB::SMB1::DataBlock

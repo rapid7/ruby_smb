@@ -62,6 +62,7 @@ module RubySMB
           def initialize_instance
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+            parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::OPEN2
           end
         end
       end
