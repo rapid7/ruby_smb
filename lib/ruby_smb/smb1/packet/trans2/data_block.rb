@@ -11,7 +11,11 @@ module RubySMB
           # Determines the correct length for the padding in front of
           # #trans2_parameters. It should always force a 4-byte alignment.
           def pad1_length
-            offset = (name.abs_offset + 1) % 4
+            if self.respond_to?(:name)
+              offset = (name.abs_offset + 1) % 4
+            else
+              offset = (byte_count.abs_offset + 2) % 4
+            end
             (4 - offset) % 4
           end
 

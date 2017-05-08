@@ -3,7 +3,7 @@ module RubySMB
     module Packet
       module Trans2
 
-        # This class represents a generic SMB1 Trans2 Request Packet as defined in
+        # This class represents a generic SMB1 Trans2 Response Packet as defined in
         # [2.2.4.46.2 Response](https://msdn.microsoft.com/en-us/library/ee441550.aspx)
         class Response < RubySMB::GenericPacket
 
@@ -23,7 +23,11 @@ module RubySMB
             array :setup, type: :uint16, initial_length: 0
           end
 
-          class DataBlock < RubySMB::SMB1::Packet::Trans2::Request::DataBlock
+          class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
+            string :pad1,               length: lambda { pad1_length }
+            string :trans2_parameters,  label: 'Trans2 Parameters'
+            string :pad2,               length: lambda { pad2_length }
+            string :trans2_data,        label: 'Trans2 Data'
           end
 
           smb_header        :smb_header

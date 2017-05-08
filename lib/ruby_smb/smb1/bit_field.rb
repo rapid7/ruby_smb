@@ -14,6 +14,7 @@ module RubySMB
       require 'ruby_smb/smb1/bit_field/open2_access_mode'
       require 'ruby_smb/smb1/bit_field/open2_open_mode'
       require 'ruby_smb/smb1/bit_field/smb_file_attributes'
+      require 'ruby_smb/smb1/bit_field/smb_nmpipe_status'
     end
   end
 end

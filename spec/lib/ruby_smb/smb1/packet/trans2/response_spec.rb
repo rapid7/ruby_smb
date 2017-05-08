@@ -67,8 +67,20 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
   describe '#data_block' do
     subject(:data_block) { packet.data_block }
 
-    it 'is the same as a Trans2 request DataBlock' do
-      expect(data_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::DataBlock
+    it 'is a Trans2 DataBlock' do
+      expect(data_block).to be_a RubySMB::SMB1::Packet::Trans2::DataBlock
+    end
+
+    it { is_expected.to respond_to :trans2_parameters }
+    it { is_expected.to respond_to :trans2_data }
+
+    it 'should keep #trans2_parameters 4-byte aligned' do
+      expect(data_block.trans2_parameters.abs_offset % 4).to eq 0
+    end
+
+    it 'should keep #trans2_data 4-byte aligned' do
+      data_block.trans2_parameters = 'a'
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0
     end
   end
 
