@@ -18,20 +18,12 @@ module RubySMB
             uint16        :data_offset,             label: 'Data Offset',                    value: lambda {self.parent.data_block.trans2_data.abs_offset}
             uint16        :data_displacement,       label: 'Data Displacement'
             uint8         :setup_count,             label: 'Setup Count',                    value: lambda {setup.length}
-            uint8         :reserved2,               label:  'Reserved Space'
-            uint8         :reserved3,               label: 'Reserved Space',                 value: 0x00
+            uint8         :reserved2,               label: 'Reserved Space',                 value: 0x00
 
             array :setup, type: :uint16, initial_length: 0
           end
 
-          class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            uint8  :name,               label: 'Name',              initial_value: 0x00
-            string :pad1,               length: lambda { pad1_length }
-            string :trans2_parameters,  label: 'Trans2 Parameters'
-            string :pad2,               length: lambda { pad2_length }
-            string :trans2_data,        label: 'Trans2 Data'
-
-
+          class DataBlock < RubySMB::SMB1::Packet::Trans2::Request::DataBlock
           end
 
           smb_header        :smb_header
@@ -41,6 +33,7 @@ module RubySMB
           def initialize_instance
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+            smb_header.flags.reply = 1
           end
 
 

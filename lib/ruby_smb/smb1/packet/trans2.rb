@@ -9,6 +9,7 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/subcommands'
         require 'ruby_smb/smb1/packet/trans2/request'
         require 'ruby_smb/smb1/packet/trans2/request_secondary'
+        require 'ruby_smb/smb1/packet/trans2/response'
         require 'ruby_smb/smb1/packet/trans2/open2_request'
       end
     end
