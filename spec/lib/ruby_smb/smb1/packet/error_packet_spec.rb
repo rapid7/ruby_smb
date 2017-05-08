@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::SMB1::Packet::ErrorPacket do
+RSpec.describe RubySMB::SMB1::Packet::EmptyPacket do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do

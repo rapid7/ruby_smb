@@ -22,7 +22,7 @@ module RubySMB
         begin
           response = RubySMB::SMB1::Packet::TreeConnectResponse.read(raw_response)
         rescue EOFError
-          response = RubySMB::SMB1::Packet::ErrorPacket.read(raw_response)
+          response = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
         end
         smb1_tree_from_response(share, response)
       end

@@ -92,7 +92,7 @@ module RubySMB
         begin
           packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
         rescue
-          packet = RubySMB::SMB1::Packet::ErrorPacket.read(raw_response)
+          packet = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
         end
 
         unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
