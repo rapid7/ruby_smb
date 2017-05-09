@@ -6,6 +6,7 @@ module RubySMB
       # [2.2.4.62 SMB_COM_NT_TRANSACT (0xA0)](https://msdn.microsoft.com/en-us/library/ee441720.aspx)
       module NtTrans
         require 'ruby_smb/smb1/packet/nt_trans/request'
+        require 'ruby_smb/smb1/packet/nt_trans/response'
       end
     end
   end
