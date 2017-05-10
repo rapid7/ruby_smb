@@ -7,5 +7,6 @@ module RubySMB
     require 'ruby_smb/field/extended_attribute_flag'
     require 'ruby_smb/field/smb_fea'
     require 'ruby_smb/field/smb_fea_list'
+    require 'ruby_smb/field/security_descriptor'
   end
 end
