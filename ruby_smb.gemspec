@@ -26,6 +26,8 @@ Gem::Specification.new do |spec|
     spec.platform = Gem::Platform::RUBY
   end
 
+  spec.required_ruby_version = '>= 2.2.0'
+
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'fivemat'
   spec.add_development_dependency 'rake'
