@@ -7,7 +7,7 @@ module RubySMB
         endian  :little
         bit1    :read_attr,       label: 'Read Attributes'
         bit1    :delete_child,    label: 'Delete Child'
-        bit1    :execute,         label: 'Traverse'
+        bit1    :execute,         label: 'Execute'
         bit1    :write_ea,        label: 'Write Extended Attributes'
         bit1    :read_ea,         label: 'Read Extended Attributes'
         bit1    :append_data,     label: 'Append Data'
