@@ -30,7 +30,7 @@ module RubySMB
             uint64                  :allocation_size,     label: 'Allocation Size'
             smb_ext_file_attributes :ext_file_attribute
             share_access            :share_access,        label: 'Share Access'
-
+            uint32                  :create_disposition,  label: 'Create Disposition'
           end
 
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
