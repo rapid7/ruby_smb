@@ -7,6 +7,7 @@ module RubySMB
       module NtTrans
         require 'ruby_smb/smb1/packet/nt_trans/request'
         require 'ruby_smb/smb1/packet/nt_trans/response'
+        require 'ruby_smb/smb1/packet/nt_trans/create_request'
       end
     end
   end
