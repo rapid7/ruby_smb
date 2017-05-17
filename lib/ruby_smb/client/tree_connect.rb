@@ -37,7 +37,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket, "Not a TreeConnectResponse"
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         RubySMB::SMB1::Tree.new(client: self, share: share, response: response)
       end
@@ -74,7 +74,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket, "Not a TreeConnectResponse"
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         RubySMB::SMB2::Tree.new(client: self, share: share, response: response)
       end
