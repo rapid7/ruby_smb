@@ -31,8 +31,6 @@ module RubySMB
       # The client MUST open the file with at least GENERIC_WRITE access.
       FILE_OVERWRITE_IF = 0x00000005
 
-
-
     end
   end
 end

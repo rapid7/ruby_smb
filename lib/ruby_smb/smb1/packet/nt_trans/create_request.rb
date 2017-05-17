@@ -55,7 +55,7 @@ module RubySMB
             security_descriptor :security_descriptor
             file_full_ea_info   :extended_attributes
 
-            # Returns the length of the Trans2Parameters struct
+            # Returns the length of the Trans2Data struct
             # in number of bytes
             def length
               self.do_num_bytes
