@@ -49,6 +49,12 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateRequest do
         expect(parameter_block.data_offset).to eq packet.data_block.trans2_data.abs_offset
       end
     end
+
+    describe '#function' do
+      it 'should be a CREATE' do
+        expect(parameter_block.function).to eq RubySMB::SMB1::Packet::NtTrans::Subcommands::CREATE
+      end
+    end
   end
 
   describe '#data_block' do
