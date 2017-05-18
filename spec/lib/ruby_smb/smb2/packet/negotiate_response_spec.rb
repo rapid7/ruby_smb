@@ -80,7 +80,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
     end
   end
 
-  describe '#capabailities' do
+  describe '#capabilities' do
     it 'should be a SMB2 Capabilities BitField' do
       expect(packet.capabilities).to be_a RubySMB::SMB2::BitField::Smb2Capabilities
     end
