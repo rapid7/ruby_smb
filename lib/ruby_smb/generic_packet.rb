@@ -35,15 +35,19 @@ module RubySMB
     end
 
     def status_code
+      value = -1
       smb_version = packet_smb_version
       case smb_version
         when 'SMB1'
-          status_code = WindowsError::NTStatus.find_by_retval(self.smb_header.nt_status.value).first
+          value = self.smb_header.nt_status.value
         when 'SMB2'
-          status_code = WindowsError::NTStatus.find_by_retval(self.smb2_header.nt_status.value).first
-        else
-          nil
+          value = self.smb2_header.nt_status.value
       end
+      status_code = WindowsError::NTStatus.find_by_retval(value).first
+      if status_code.nil?
+        status_code = WindowsError::ErrorCode.new("0x#{value.to_s(16)}", value, "Unknown 0x#{value.to_s(16)}")
+      end
+      status_code
     end
 
     private
