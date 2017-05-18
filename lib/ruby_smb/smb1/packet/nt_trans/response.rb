@@ -10,7 +10,7 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             endian        :little
 
-            array :reserved,  type: :uint8, length: 3
+            array :reserved,  type: :uint8, inital_length: 3
 
             uint32        :total_parameter_count,   label: 'Total Parameter Count(bytes)'
             uint32        :total_data_count,        label: 'Total Data Count(bytes)'
