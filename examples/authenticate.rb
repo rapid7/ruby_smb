@@ -15,7 +15,12 @@ def run_authentication(address, smb1, smb2, username, password)
   client = RubySMB::Client.new(dispatcher, smb1: smb1, smb2: smb2, username: username, password: password)
   protocol = client.negotiate
   status  = client.authenticate
-  puts "#{protocol} : #{status}"
+  if client.peer_native_os
+    native_os = "(#{client.peer_native_os})"
+  else
+    native_os = ''
+  end
+  puts "#{protocol} : #{status} #{native_os}"
 end
 
 address  = ARGV[0]

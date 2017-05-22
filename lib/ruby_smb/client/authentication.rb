@@ -33,7 +33,11 @@ module RubySMB
         response      = smb1_ntlmssp_final_packet(raw_response)
         response_code = response.status_code
 
-        self.user_id  = user_id if response_code.name == "STATUS_SUCCESS"
+        if response_code.name == "STATUS_SUCCESS"
+          self.user_id  = user_id
+          self.peer_native_os = response.data_block.native_os
+        end
+
         response_code
       end
 
@@ -57,7 +61,12 @@ module RubySMB
         raw = smb1_ntlmssp_authenticate(challenge_message, user_id)
         response = smb1_ntlmssp_final_packet(raw)
         response_code = response.status_code
-        self.user_id = user_id if response_code.name == "STATUS_SUCCESS"
+
+        if response_code.name == "STATUS_SUCCESS"
+          self.user_id  = user_id
+          self.peer_native_os = response.data_block.native_os
+        end
+
         response_code
       end
 

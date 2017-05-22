@@ -48,6 +48,12 @@ module RubySMB
     #   @return [String]
     attr_accessor :password
 
+    # The Native OS of the Peer/Server.
+    # Currently only available with SMB1.
+    # @!attribute [rw] peer_native_os
+    #   @return [String]
+    attr_accessor :peer_native_os
+
     # The Sequence Counter used for SMB1 Signing.
     # It tracks the number of packets both sent and received
     # since the NTLM session was initialized with the Challenge.
