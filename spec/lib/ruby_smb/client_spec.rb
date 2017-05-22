@@ -439,6 +439,12 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client.smb1_type2_message(response_packet)).to eq [fake_type2].pack('m')
         end
       end
+
+      describe '#smb1_anonymous_auth_request' do
+        it 'creates a SessionSetupLegacyRequest packet with a null byte for the oem password' do
+          expect(smb1_client.smb1_anonymous_auth_request.data_block.oem_password).to eq "\x00"
+        end
+      end
     end
 
     context 'for SMB2' do

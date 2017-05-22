@@ -101,14 +101,14 @@ module RubySMB
       @dispatcher        = dispatcher
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode("utf-8")
+      @password          = password.encode("utf-8") || ''.encode("utf-8")
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
-      @username          = username.encode("utf-8")
+      @username          = username.encode("utf-8") || ''.encode("utf-8")
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,
@@ -167,8 +167,8 @@ module RubySMB
     def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation )
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode("utf-8")
-      @username          = username.encode("utf-8")
+      @password          = password.encode("utf-8") || ''.encode("utf-8")
+      @username          = username.encode("utf-8") || ''.encode("utf-8")
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,

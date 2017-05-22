@@ -10,7 +10,11 @@ module RubySMB
       # @return [WindowsError::NTStatus] the NTStatus object from the SessionSetup exchange.
       def authenticate
         if self.smb1
-          smb1_authenticate
+          if self.username.empty? && self.password.empty?
+            smb1_anonymous_auth
+          else
+            smb1_authenticate
+          end
         else
           smb2_authenticate
         end
@@ -19,6 +23,30 @@ module RubySMB
       #
       # SMB1 Methods
       #
+
+      # Attempts an Anonymous logon to the remote server.
+      #
+      # @return [WindowsError::ErrorCode] the status code the server returned
+      def smb1_anonymous_auth
+        request       = smb1_anonymous_auth_request
+        raw_response  = send_recv(request)
+        response      = smb1_ntlmssp_final_packet(raw_response)
+        response_code = response.status_code
+
+        self.user_id  = user_id if response_code.name == "STATUS_SUCCESS"
+        response_code
+      end
+
+      # Creates a {SessionSetupRequest} for an anonymous
+      # access session.
+      def smb1_anonymous_auth_request
+        packet = RubySMB::SMB1::Packet::SessionSetupLegacyRequest.new
+        packet.data_block.oem_password = "\x00"
+        packet.parameter_block.max_buffer_size = 4356
+        packet.parameter_block.max_mpx_count = 50
+        packet.parameter_block.capabilities.extended_security = 0
+        packet
+      end
 
       # Handles the SMB1 NTLMSSP 4-way handshake for Authentication
       def smb1_authenticate
