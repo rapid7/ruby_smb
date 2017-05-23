@@ -2,7 +2,8 @@ require 'spec_helper'
 
 RSpec.describe RubySMB::Client do
 
-  let(:dispatcher) { RubySMB::Dispatcher::Socket.new(nil) }
+  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
   let(:username) { 'msfadmin' }
   let(:password) { 'msfadmin' }
   subject(:client) { described_class.new(dispatcher, username: username, password: password) }

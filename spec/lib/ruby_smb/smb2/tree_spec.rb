@@ -1,7 +1,8 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Tree do
-  let(:dispatcher) { RubySMB::Dispatcher::Socket.new(nil) }
+  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
 
   let(:client) { RubySMB::Client.new(dispatcher, username: 'msfadmin', password: 'msfadmin') }
   let(:tree_id) { 2049 }
