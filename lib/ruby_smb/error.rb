@@ -17,4 +17,8 @@ module RubySMB::Error
 
   # Raised when an error occurs with the underlying socket.
   class CommunicationError < StandardError; end
+
+  # Raised when Protocol Negotiation fails, possibly due to an
+  # unsupported protocol.
+  class NegotiationFailure < StandardError; end
 end

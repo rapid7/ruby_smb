@@ -33,6 +33,11 @@ module RubySMB
     #   @return [String]
     attr_accessor :domain
 
+    # The address of the remote host
+    # @!attribute [rw] host
+    #   @return [String]
+    attr_accessor :host
+
     # The local workstation to pretend to be
     # @!attribute [rw] local_workstation
     #   @return [String]
@@ -115,6 +120,7 @@ module RubySMB
       @smb1              = smb1
       @smb2              = smb2
       @username          = username.encode("utf-8") || ''.encode("utf-8")
+      @host              = dispatcher.tcp_socket.peeraddr[2]
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,

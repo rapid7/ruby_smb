@@ -10,9 +10,17 @@ module RubySMB
       #
       # @return [void]
       def negotiate
-        raw_response    = negotiate_request
-        response_packet = negotiate_response(raw_response)
-        parse_negotiate_response(response_packet)
+        begin
+          raw_response    = negotiate_request
+          response_packet = negotiate_response(raw_response)
+          parse_negotiate_response(response_packet)
+        rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
+          error = "Unable to Negotiate with #{self.host}"
+          if smb1 && !smb2
+            error << ', SMB1 may be disabled'
+          end
+          raise RubySMB::Error::NegotiationFailure, error
+        end
       end
 
       # Creates and dispatches the first Negotiate Request Packet and
