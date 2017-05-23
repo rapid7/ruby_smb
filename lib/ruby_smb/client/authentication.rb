@@ -30,7 +30,7 @@ module RubySMB
       def smb1_anonymous_auth
         request       = smb1_anonymous_auth_request
         raw_response  = send_recv(request)
-        response      = smb1_ntlmssp_final_packet(raw_response)
+        response      = smb1_anonymous_auth_response(raw_response)
         response_code = response.status_code
 
         if response_code.name == "STATUS_SUCCESS"
@@ -49,6 +49,19 @@ module RubySMB
         packet.parameter_block.max_buffer_size = 4356
         packet.parameter_block.max_mpx_count = 50
         packet.parameter_block.capabilities.extended_security = 0
+        packet
+      end
+
+      def smb1_anonymous_auth_response(raw_response)
+        begin
+          packet = RubySMB::SMB1::Packet::SessionSetupLegacyResponse.read(raw_response)
+        rescue
+          packet = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
+        end
+
+        unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
+        end
         packet
       end
 
