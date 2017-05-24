@@ -15,7 +15,7 @@ module RubySMB
           response_packet = negotiate_response(raw_response)
           parse_negotiate_response(response_packet)
         rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
-          error = "Unable to Negotiate with #{self.host}"
+          error = "Unable to Negotiate with remote host"
           if smb1 && !smb2
             error << ', SMB1 may be disabled'
           end
