@@ -1,5 +1,13 @@
 RSpec.describe RubySMB::Dispatcher::Socket do
-  let(:fake_tcp_socket) { StringIO.new('deadbeef') }
+  class FakeSocket < StringIO
+    def setsockopt(*args)
+
+    end
+  end
+
+  let(:fake_tcp_socket) {
+    FakeSocket.new('deadbeef')
+  }
 
   subject(:smb_socket) { described_class.new(fake_tcp_socket) }
   let(:negotiate_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
@@ -9,6 +17,11 @@ RSpec.describe RubySMB::Dispatcher::Socket do
   # Don't try to actually select on our StringIO fake socket
   before(:each) do
     allow(IO).to receive(:select).and_return(nil)
+  end
+
+  it 'should attempt to set KEEPALIVE on the socket' do
+    expect(fake_tcp_socket).to receive(:setsockopt).with(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+    described_class.new(fake_tcp_socket)
   end
 
   describe '#connect' do
@@ -44,6 +57,11 @@ RSpec.describe RubySMB::Dispatcher::Socket do
         smb_socket.recv_packet
       end
     end
+
+    it 'raises a CommunicationError if it encounters a socket error' do
+      expect(fake_tcp_socket).to receive(:read).and_raise(Errno::ECONNRESET)
+      expect{ smb_socket.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
+    end
   end
 
   describe '#send_packet' do
@@ -55,6 +73,11 @@ RSpec.describe RubySMB::Dispatcher::Socket do
     it 'writes the packet to the socket' do
       expect(fake_tcp_socket).to receive(:write).with(response_packet).and_call_original
       smb_socket.send_packet(negotiate_response)
+    end
+
+    it 'raises a CommunicationError if it encounters a socket error' do
+      expect(fake_tcp_socket).to receive(:write).and_raise(Errno::ECONNRESET)
+      expect{ smb_socket.send_packet(negotiate_response) }.to raise_error(RubySMB::Error::CommunicationError)
     end
   end
 end

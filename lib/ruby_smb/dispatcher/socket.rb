@@ -31,7 +31,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
       while bytes_written < data.size
         bytes_written += @tcp_socket.write(data[bytes_written..-1])
       end
-    rescue IOError => e
+    rescue IOError, Errno::ECONNABORTED, Errno::ECONNRESET => e
       raise RubySMB::Error::CommunicationError, "An error occured writing to the Socket"
     end
     nil
@@ -41,7 +41,6 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
   # Throw Error::NetBiosSessionService if there's an error reading the first 4 bytes,
   # which are assumed to be the NetBiosSessionService header.
   # @return [String]
-  # @todo should return SMB2::Packet
   def recv_packet
     begin
       IO.select([@tcp_socket])
@@ -56,7 +55,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
       data << @tcp_socket.read(length - data.length) while data.length < length
 
       data
-    rescue Errno::EINVAL, TypeError => e
+    rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError => e
       raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket"
     end
   end

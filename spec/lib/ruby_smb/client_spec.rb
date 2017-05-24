@@ -9,6 +9,7 @@ RSpec.describe RubySMB::Client do
   subject(:client) { described_class.new(dispatcher, username: username, password: password) }
   let(:smb1_client) { described_class.new(dispatcher, smb2:false, username: username, password: password) }
   let(:smb2_client) { described_class.new(dispatcher, smb1:false, username: username, password: password) }
+  let(:empty_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
 
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
@@ -320,6 +321,26 @@ RSpec.describe RubySMB::Client do
         "MATgBKAEQARwAwAFUA\nQQA5ADAARgADAB4AVwBJAE4ALQBTAE4ASgBEAEcAMABVAEEAOQAwAEYABw" +
         "AI\nADxThZ4nnNIBAAAAAA==\n"
     }
+
+    describe '#authenticate' do
+      it 'calls #smb2_authenticate if SMB2 was selected/negotiated' do
+        expect(smb2_client).to receive(:smb2_authenticate)
+        smb2_client.authenticate
+      end
+
+      it 'calls #smb1_authenticate if SMB1 was selected and we have credentials' do
+        expect(smb1_client).to receive(:smb1_authenticate)
+        smb1_client.authenticate
+      end
+
+      it 'calls #smb1_anonymous_auth if using SMB1 and no credentials were supplied' do
+        smb1_client.username = ''
+        smb1_client.password = ''
+        expect(smb1_client).to receive(:smb1_anonymous_auth)
+        smb1_client.authenticate
+      end
+    end
+
     context 'for SMB1' do
       let(:ntlm_client)  { smb1_client.ntlm_client }
       let(:type1_message)  { ntlm_client.init_context }
@@ -441,10 +462,32 @@ RSpec.describe RubySMB::Client do
         end
       end
 
-      describe '#smb1_anonymous_auth_request' do
-        it 'creates a SessionSetupLegacyRequest packet with a null byte for the oem password' do
-          expect(smb1_client.smb1_anonymous_auth_request.data_block.oem_password).to eq "\x00"
+      describe 'Anonymous Auth' do
+        let(:anonymous_request) { RubySMB::SMB1::Packet::SessionSetupLegacyRequest.new }
+        let(:anonymous_response) { RubySMB::SMB1::Packet::SessionSetupLegacyResponse.new }
+
+        describe '#smb1_anonymous_auth_request' do
+          it 'creates a SessionSetupLegacyRequest packet with a null byte for the oem password' do
+            expect(smb1_client.smb1_anonymous_auth_request.data_block.oem_password).to eq "\x00"
+          end
         end
+
+        describe '#smb1_anonymous_auth_response' do
+          it 'returns a Legacy Session SetupResponse Packet' do
+            expect(smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s)).to eq anonymous_response
+          end
+
+          it 'returns an empty packet if the raw data is not a valid response' do
+            empty_packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+            expect(smb1_client.smb1_anonymous_auth_response(empty_packet.to_binary_s)).to eq empty_packet
+          end
+
+          it 'raises an InvalidPacket error if the command is wrong' do
+            anonymous_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+            expect{ smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          end
+        end
+
       end
     end
 
