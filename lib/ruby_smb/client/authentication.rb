@@ -34,7 +34,7 @@ module RubySMB
         response_code = response.status_code
 
         if response_code.name == "STATUS_SUCCESS"
-          self.user_id  = user_id
+          self.user_id  = response.smb_header.uid
           self.peer_native_os = response.data_block.native_os
         end
 
