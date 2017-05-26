@@ -32,8 +32,8 @@ module RubySMB
             share_access            :share_access,                label: 'Share Access'
             uint32                  :create_disposition,          label: 'Create Disposition'
             create_options          :create_options
-            uint32                  :security_descriptor_length,  label: 'Security Descriptor Length',  value: lambda { self.parent.trans2_data.security_descriptor.length }
-            uint32                  :ea_length,                   label: 'Extended Attributes Length',  value: lambda { self.parent.trans2_data.extended_attributes.length }
+            uint32                  :security_descriptor_length,  label: 'Security Descriptor Length',  initial_value: lambda { self.parent.trans2_data.security_descriptor.length }
+            uint32                  :ea_length,                   label: 'Extended Attributes Length',  initial_value: lambda { self.parent.trans2_data.extended_attributes.length }
             uint32                  :impersonation_level,         label: 'Impersonation Level'
 
             struct :security_flags do

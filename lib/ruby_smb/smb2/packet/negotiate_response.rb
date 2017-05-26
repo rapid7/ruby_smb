@@ -18,7 +18,7 @@ module RubySMB
         file_time           :system_time,               label: 'Server System Time'
         file_time           :server_start_time,         label: 'Server Start Time'
         uint16              :security_buffer_offset,    label: 'Offset to Security Buffer'
-        uint16              :security_buffer_length,    label: 'Security Buffer Length', value: -> { security_buffer.length }
+        uint16              :security_buffer_length,    label: 'Security Buffer Length', initial_value: -> { security_buffer.length }
         uint32              :negotiate_context_offset,  label: 'Offset to Negotiate Context'
         string              :security_buffer,           label: 'Security Buffer', read_length: :security_buffer_length
 

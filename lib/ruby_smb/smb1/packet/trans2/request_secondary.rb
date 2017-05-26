@@ -10,11 +10,11 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16  :total_parameter_count,   label: 'Total Parameter Count(bytes)'
             uint16  :total_data_count,        label: 'Total Data Count(bytes)'
-            uint16  :parameter_count,         label: 'Parameter Count(bytes)',         value: lambda {self.parent.data_block.trans2_parameters.length}
-            uint16  :parameter_offset,        label: 'Parameter Offset',               value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
+            uint16  :parameter_count,         label: 'Parameter Count(bytes)',         initial_value: lambda {self.parent.data_block.trans2_parameters.length}
+            uint16  :parameter_offset,        label: 'Parameter Offset',               initial_value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
             uint16  :parameter_displacement,  label: 'Parameter Displacement'
-            uint16  :data_count,              label: 'Data Count(bytes)',              value: lambda {self.parent.data_block.trans2_data.length}
-            uint16  :data_offset,             label: 'Data Offset',                    value: lambda {self.parent.data_block.trans2_data.abs_offset}
+            uint16  :data_count,              label: 'Data Count(bytes)',              initial_value: lambda {self.parent.data_block.trans2_data.length}
+            uint16  :data_offset,             label: 'Data Offset',                    initial_value: lambda {self.parent.data_block.trans2_data.abs_offset}
             uint16  :data_displacement,       label: 'Data Displacement'
             uint16  :fid,                     label: 'FileID'
           end

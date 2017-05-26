@@ -5,8 +5,8 @@ module RubySMB
     class SmbFea < BinData::Record
       endian :little
       extended_attribute_flag :ea_flag,                   label: 'Extended Attribute Flag'
-      uint8                   :attribute_name_length,     label: 'Attribute Name Length',   value: lambda { attribute_name.length}
-      uint16                  :attribute_value_length,    label: 'Attribute Value Length',  value: lambda { attribute_value.length}
+      uint8                   :attribute_name_length,     label: 'Attribute Name Length',   initial_value: lambda { attribute_name.length}
+      uint16                  :attribute_value_length,    label: 'Attribute Value Length',  initial_value: lambda { attribute_value.length}
       string                  :attribute_name,            label: 'Attribute Name'
       string                  :attribute_value,           label: 'Attribute Value'
     end

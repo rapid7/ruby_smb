@@ -11,7 +11,7 @@ module RubySMB
       # @param data [String] the data the server should echo back (ignored in SMB2)
       # @return [RubySMB::SMB1::Packet::EchoResponse] the last Echo Response packet received
       def smb1_echo(count: 1, data: '')
-        request = RubySMB::SMB2::Packet::EchoRequest.new
+        request = RubySMB::SMB1::Packet::EchoRequest.new
         request.parameter_block.echo_count = count
         request.data_block.data = data
         raw_response = send_recv(request)

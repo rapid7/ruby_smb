@@ -13,16 +13,16 @@ module RubySMB
             uint16        :max_parameter_count,   label: 'Max Parameter Count(bytes)'
             uint16        :max_data_count,        label: 'Max Data Count(bytes)'
             uint8         :max_setup_count,       label: 'Max Setup Count'
-            uint8         :reserved,              label: 'Reserved Space',                 value: 0x00
+            uint8         :reserved,              label: 'Reserved Space',                 initial_value: 0x00
             trans2_flags  :flags
             uint32        :timeout,               label: 'Timeout',                        initial_value: 0x00000000
-            uint16        :reserved2,             label: 'Reserved Space',                 value: 0x00
-            uint16        :parameter_count,       label: 'Parameter Count(bytes)',         value: lambda {self.parent.data_block.trans2_parameters.length}
-            uint16        :parameter_offset,      label: 'Parameter Offset',               value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
-            uint16        :data_count,            label: 'Data Count(bytes)',              value: lambda {self.parent.data_block.trans2_data.length}
-            uint16        :data_offset,           label: 'Data Offset',                    value: lambda {self.parent.data_block.trans2_data.abs_offset}
-            uint8         :setup_count,           label: 'Setup Count',                    value: lambda {setup.length}
-            uint8         :reserved3,             label: 'Reserved Space',                 value: 0x00
+            uint16        :reserved2,             label: 'Reserved Space',                 initial_value: 0x00
+            uint16        :parameter_count,       label: 'Parameter Count(bytes)',         initial_value: lambda {self.parent.data_block.trans2_parameters.length}
+            uint16        :parameter_offset,      label: 'Parameter Offset',               initial_value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
+            uint16        :data_count,            label: 'Data Count(bytes)',              initial_value: lambda {self.parent.data_block.trans2_data.length}
+            uint16        :data_offset,           label: 'Data Offset',                    initial_value: lambda {self.parent.data_block.trans2_data.abs_offset}
+            uint8         :setup_count,           label: 'Setup Count',                    initial_value: lambda {setup.length}
+            uint8         :reserved3,             label: 'Reserved Space',                 initial_value: 0x00
 
             array :setup, type: :uint16, initial_length: 0
           end

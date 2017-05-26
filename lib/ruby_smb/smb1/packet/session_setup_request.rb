@@ -24,8 +24,8 @@ module RubySMB
         # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
           string      :security_blob,  label: 'Security Blob (GSS-API)', length: lambda { self.parent.parameter_block.security_blob_length }
-          stringz     :native_os,      label: 'Native OS',             initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
-          stringz     :native_lan_man, label: 'Native LAN Manager',    initial_value: 'Windows 7 Ultimate N 6.1'
+          string      :native_os,      label: 'Native OS',             initial_value: "Windows 7 Ultimate N 7601 Service Pack 1\x00"
+          string      :native_lan_man, label: 'Native LAN Manager',    initial_value: "Windows 7 Ultimate N 6.1\x00"
         end
 
         smb_header        :smb_header

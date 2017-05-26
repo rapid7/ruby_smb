@@ -15,11 +15,11 @@ module RubySMB
             uint32        :total_data_count,      label: 'Total Data Count(bytes)'
             uint32        :max_parameter_count,   label: 'Max Parameter Count(bytes)'
             uint32        :max_data_count,        label: 'Max Data Count(bytes)'
-            uint32        :parameter_count,       label: 'Parameter Count(bytes)',         value: lambda {self.parent.data_block.trans2_parameters.length}
-            uint32        :parameter_offset,      label: 'Parameter Offset',               value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
-            uint32        :data_count,            label: 'Data Count(bytes)',              value: lambda {self.parent.data_block.trans2_data.length}
-            uint32        :data_offset,           label: 'Data Offset',                    value: lambda {self.parent.data_block.trans2_data.abs_offset}
-            uint8         :setup_count,           label: 'Setup Count',                    value: lambda {setup.length}
+            uint32        :parameter_count,       label: 'Parameter Count(bytes)',         initial_value: lambda {self.parent.data_block.trans2_parameters.length}
+            uint32        :parameter_offset,      label: 'Parameter Offset',               initial_value: lambda {self.parent.data_block.trans2_parameters.abs_offset}
+            uint32        :data_count,            label: 'Data Count(bytes)',              initial_value: lambda {self.parent.data_block.trans2_data.length}
+            uint32        :data_offset,           label: 'Data Offset',                    initial_value: lambda {self.parent.data_block.trans2_data.abs_offset}
+            uint8         :setup_count,           label: 'Setup Count',                    initial_value: lambda {setup.length}
             uint16        :function,              label: 'Function'
 
             array :setup, type: :uint16, initial_length: 0

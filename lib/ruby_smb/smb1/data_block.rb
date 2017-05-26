@@ -6,7 +6,7 @@ module RubySMB
     class DataBlock < BinData::Record
       endian :little
 
-      uint16 :byte_count, label: 'Byte Count', value: -> { calculate_byte_count }
+      uint16 :byte_count, label: 'Byte Count', inital_value: -> { calculate_byte_count }
 
       # Class method to stub byte count calculation during
       # lazy evaluation.

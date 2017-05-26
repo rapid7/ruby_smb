@@ -28,10 +28,10 @@ module RubySMB
         bit1    :dacl_trusted,              label: 'DACL Trusted'
       end
 
-      uint32  :offset_owner,  label: 'Offset Owner',  value: lambda { owner_sid.rel_offset }
-      uint32  :offset_group,  label: 'Offset Group',  value: lambda { group_sid.rel_offset }
-      uint32  :offset_sacl,   label: 'Offset SACL',   value: lambda { sacl.rel_offset }
-      uint32  :offset_dacl,   label: 'Offset DACL',   value: lambda { dacl.rel_offset }
+      uint32  :offset_owner,  label: 'Offset Owner',  initial_value: lambda { owner_sid.rel_offset }
+      uint32  :offset_group,  label: 'Offset Group',  initial_value: lambda { group_sid.rel_offset }
+      uint32  :offset_sacl,   label: 'Offset SACL',   initial_value: lambda { sacl.rel_offset }
+      uint32  :offset_dacl,   label: 'Offset DACL',   initial_value: lambda { dacl.rel_offset }
 
       string  :owner_sid, label: 'Owner SID'
       string  :group_sid, label: 'Group SID'

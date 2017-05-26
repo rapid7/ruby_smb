@@ -13,8 +13,8 @@ module RubySMB
           uint16        :max_mpx_count,           label: 'Max Mpx Count'
           uint16        :vc_number,               label: 'VC Number'
           uint32        :session_key,             label: 'Session Key'
-          uint16        :oem_password_length,     label: 'OEM Password Length',       value: lambda { self.parent.data_block.oem_password.length }
-          uint16        :unicode_password_length, label: 'Unicored Password Length',  value: lambda { self.parent.data_block.unicode_password.length }
+          uint16        :oem_password_length,     label: 'OEM Password Length',       initial_value: lambda { self.parent.data_block.oem_password.length }
+          uint16        :unicode_password_length, label: 'Unicored Password Length',  initial_value: lambda { self.parent.data_block.unicode_password.length }
           uint32        :reserved
           capabilities  :capabilities
         end

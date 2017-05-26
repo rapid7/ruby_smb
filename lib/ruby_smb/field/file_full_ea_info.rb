@@ -6,8 +6,8 @@ module RubySMB
       endian  :little
       uint32                  :next_entry_offset, label: 'Next Entry Offset'
       extended_attribute_flag :flags
-      uint8                   :ea_name_length,    label: 'EA Name Length',  value: lambda { ea_name.do_num_bytes }
-      uint8                   :ea_value_length,   label: 'EA Value Length', value: lambda { ea_value.do_num_bytes }
+      uint8                   :ea_name_length,    label: 'EA Name Length',  initial_value: lambda { ea_name.do_num_bytes }
+      uint8                   :ea_value_length,   label: 'EA Value Length', initial_value: lambda { ea_value.do_num_bytes }
       string                  :ea_name,           label: 'EA Name'
       string                  :ea_value,          label: 'EA Value'
     end

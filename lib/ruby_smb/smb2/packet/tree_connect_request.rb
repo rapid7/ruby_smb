@@ -10,7 +10,7 @@ module RubySMB
         uint16       :structure_size, label: 'Structure Size', initial_value: 9
         uint16       :flags,          label: 'Flags',          initial_value: 0x00
         uint16       :path_offset,    label: 'Path Offset',    initial_value: 0x48
-        uint16       :path_length,    label: 'Path Length',    value: lambda { self.path.length }
+        uint16       :path_length,    label: 'Path Length',    initial_value: lambda { self.path.length }
         string       :path,           label: 'Path Buffer'
 
         def initialize_instance
