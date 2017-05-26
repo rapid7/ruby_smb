@@ -18,7 +18,7 @@ module RubySMB
         bit1    :nt_status,            label: 'NTStatus Errors',            initial_value: 1
         bit1    :paging_io,            label: 'Read if Execute',            initial_value: 1
         bit1    :dfs,                  label: 'Use DFS'
-        bit1    :extended_security,    label: 'Extended Security',          initial_value: 1
+        bit1    :extended_security,    label: 'Extended Security'
         bit1    :reparse_path,         label: '@GMT Token Required'
         resume_byte_alignment
       end
