@@ -9,12 +9,12 @@ module RubySMB
       nt_status     :nt_status,                   label: 'NTStatus Code'
       header_flags  :flags
       header_flags2 :flags2
-      bit16         :pid_high,                    label: 'PID High Bytes'
+      uint16        :pid_high,                    label: 'PID High Bytes'
       string        :security_features,           label: 'Security Features', length: 8
       bit16         :reserved,                    label: 'Reserved'
-      uint16        :tid,                         label: 'Tree ID'
+      bit16         :tid,                         label: 'Tree ID'
       uint16        :pid_low,                     label: 'PID Low Bytes'
-      uint16        :uid,                         label: 'User ID'
+      bit16         :uid,                         label: 'User ID'
       uint16        :mid,                         label: 'Multiplex ID'
     end
   end
