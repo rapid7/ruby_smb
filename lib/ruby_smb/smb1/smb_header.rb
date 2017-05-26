@@ -12,10 +12,10 @@ module RubySMB
       bit16         :pid_high,                    label: 'PID High Bytes'
       string        :security_features,           label: 'Security Features', length: 8
       bit16         :reserved,                    label: 'Reserved'
-      bit16         :tid,                         label: 'Tree ID'
-      bit16         :pid_low,                     label: 'PID Low Bytes'
-      bit16         :uid,                         label: 'User ID'
-      bit16         :mid,                         label: 'Multiplex ID'
+      uint16        :tid,                         label: 'Tree ID'
+      uint16        :pid_low,                     label: 'PID Low Bytes'
+      uint16        :uid,                         label: 'User ID'
+      uint16        :mid,                         label: 'Multiplex ID'
     end
   end
 end
