@@ -50,7 +50,7 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
 
   describe 'pid_high' do
     it 'should be a 16-bit field per the SMB spec' do
-      expect(header.pid_high).to be_a BinData::Bit16
+      expect(header.pid_high).to be_a BinData::Uint16le
     end
   end
 
@@ -74,7 +74,7 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
 
   describe 'pid_low' do
     it 'should be a 16-bit field per the SMB spec' do
-      expect(header.pid_low).to be_a BinData::Bit16
+      expect(header.pid_low).to be_a BinData::Uint16le
     end
   end
 
@@ -86,7 +86,7 @@ RSpec.describe RubySMB::SMB1::SMBHeader do
 
   describe 'mid' do
     it 'should be a 16-bit field per the SMB spec' do
-      expect(header.mid).to be_a BinData::Bit16
+      expect(header.mid).to be_a BinData::Uint16le
     end
   end
 
