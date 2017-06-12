@@ -55,7 +55,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
       data << @tcp_socket.read(length - data.length) while data.length < length
 
       data
-    rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError => e
+    rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError, NoMethodError => e
       raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket"
     end
   end
