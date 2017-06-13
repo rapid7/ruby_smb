@@ -18,5 +18,10 @@ module RubySMB
     # that are on the same computer as the server.
     SEC_IMPERSONATE = 0x00000002
 
+    # The most powerful impersonation level. When this level is selected, the server (whether local or remote)
+    # can impersonate the client's security context while acting on behalf of the client. During impersonation,
+    # the client's credentials (both local and network) can be passed to any number of computers.
+    SEC_DELEGATE    = 0x00000003
+
   end
 end
