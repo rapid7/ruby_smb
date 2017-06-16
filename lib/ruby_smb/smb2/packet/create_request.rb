@@ -36,6 +36,7 @@ module RubySMB
         uint32          :context_offset,      label: 'Create Context Offset',  initial_value: lambda { context.abs_offset }
         uint32          :context_length,      label: 'Create Context Length',  initial_value: lambda { context.do_num_bytes }
         string16        :name,                label: 'File Name'
+        uint32          :reserved5,           label: 'Reserved Space'
 
         array :context, label: 'Contexts',  type: :create_context, read_until: :eof
 
