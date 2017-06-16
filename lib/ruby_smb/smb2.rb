@@ -6,6 +6,7 @@ module RubySMB::SMB2
   SMB2_PROTOCOL_ID = 0xFE534D42
 
   require 'ruby_smb/smb2/commands'
+  require 'ruby_smb/smb2/create_context'
   require 'ruby_smb/smb2/bit_field'
   require 'ruby_smb/smb2/smb2_header'
   require 'ruby_smb/smb2/packet'

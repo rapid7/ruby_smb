@@ -80,7 +80,7 @@ RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
   end
 
   it 'tracks the length of #context in #context_length' do
-    expect(packet.context_length).to eq packet.context.length
+    expect(packet.context_length).to eq packet.context.do_num_bytes
   end
 
   describe '#name' do

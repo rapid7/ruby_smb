@@ -4,7 +4,6 @@ module RubySMB::SMB1
   # Protocol ID value. Translates to \xFFSMB
   SMB_PROTOCOL_ID = 0xFF534D42
 
-  require 'ruby_smb/smb1/dispositions'
   require 'ruby_smb/smb1/create_actions'
   require 'ruby_smb/smb1/oplock_levels'
   require 'ruby_smb/smb1/commands'
