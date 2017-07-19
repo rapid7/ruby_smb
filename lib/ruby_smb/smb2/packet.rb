@@ -15,6 +15,7 @@ module RubySMB
       require 'ruby_smb/smb2/packet/echo_request'
       require 'ruby_smb/smb2/packet/echo_response'
       require 'ruby_smb/smb2/packet/create_request'
+      require 'ruby_smb/smb2/packet/create_response'
     end
   end
 end
