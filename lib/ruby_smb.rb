@@ -8,6 +8,7 @@ require 'windows_error/nt_status'
 # [[MS-SMB] Server Mesage Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
+  require 'ruby_smb/file_information_class'
   require 'ruby_smb/dispositions'
   require 'ruby_smb/impersonation_levels'
   require 'ruby_smb/gss'
