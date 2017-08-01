@@ -1,8 +1,8 @@
 module RubySMB
-  module Field
+  module Fscc
     # The bit-field for File System Control Code File Attributes as defined in
     # [2.6 File Attributes](https://msdn.microsoft.com/en-us/library/cc232110.aspx)
-    class FsccFileAttributes < BinData::Record
+    class FileAttributes < BinData::Record
       endian  :little
       bit1  :normal,       label: 'Normal File/Directory'
       bit1  :device,       label: 'Device'

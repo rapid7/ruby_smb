@@ -16,7 +16,7 @@ module RubySMB
         uint64                :create_flags,         label: 'Create Flags(Do not use)',    initial_value: 0
         uint64                :reserved,             label: 'Reserved',                    initial_value: 0
         file_access_mask      :desired_access,       label: 'Desired Access'
-        fscc_file_attributes  :file_attributes,      label: 'File Attributes'
+        file_attributes  :file_attributes,      label: 'File Attributes'
 
         struct :share_access do
           bit5  :reserved,          label: 'Reserved Space'

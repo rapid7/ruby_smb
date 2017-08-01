@@ -48,7 +48,7 @@ RSpec.describe RubySMB::SMB2::Packet::CreateResponse do
   end
 
   it 'contains the file attributes of the file' do
-    expect(packet.file_attributes).to be_a RubySMB::Field::FsccFileAttributes
+    expect(packet.file_attributes).to be_a RubySMB::Fscc::FileAttributes
   end
 
   it 'has the handles to the file in an SMB2_FILEID' do

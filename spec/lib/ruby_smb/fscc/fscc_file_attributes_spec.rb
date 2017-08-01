@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::Field::FsccFileAttributes do
+RSpec.describe RubySMB::Fscc::FileAttributes do
   subject(:attrs) { described_class.new }
 
   it { is_expected.to respond_to :normal }

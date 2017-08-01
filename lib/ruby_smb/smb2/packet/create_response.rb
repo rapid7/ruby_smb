@@ -17,7 +17,7 @@ module RubySMB
         file_time             :last_change,          label: 'Last Modified Time'
         uint64                :allocation_size,      label: 'Allocated Size'
         uint64                :end_of_file,          label: 'Size in Bytes'
-        fscc_file_attributes  :file_attributes,      label: 'File Attributes'
+        file_attributes  :file_attributes,      label: 'File Attributes'
         uint32                :reserved,             label: 'Reserved Space'
         smb2_fileid           :file_id,              label: 'File ID'
         uint32                :context_offset,       label: 'Create Context Offset',  initial_value: lambda { context.abs_offset }
