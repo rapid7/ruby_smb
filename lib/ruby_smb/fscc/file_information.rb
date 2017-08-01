@@ -1,7 +1,9 @@
 module RubySMB
   # Contains the Constant values for File Information Classes, as defined in
   # [2.2.33 SMB2 QUERY_DIRECTORY Request](https://msdn.microsoft.com/en-us/library/cc246551.aspx)
-  module FileInformationClass
+  module FileInformation
+
+    require 'ruby_smb/fscc/file_information/file_directory_information'
 
     # Basic information about a file or directory.
     # Basic information is defined as the file's name, time stamp, size and attributes.
