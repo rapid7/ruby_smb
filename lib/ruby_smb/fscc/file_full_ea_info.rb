@@ -1,5 +1,5 @@
 module RubySMB
-  module Field
+  module Fscc
     # Class representing a FillFullEaInformation structure as defined in
     # [2.4.15 FileFullEaInformation](https://msdn.microsoft.com/en-us/library/cc232069.aspx)
     class FileFullEaInfo < BinData::Record

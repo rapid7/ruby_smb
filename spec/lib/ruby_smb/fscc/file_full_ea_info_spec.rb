@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Field::FileFullEaInfo do
+RSpec.describe RubySMB::Fscc::FileFullEaInfo do
   subject(:info) { described_class.new }
 
   it { is_expected.to respond_to :next_entry_offset }

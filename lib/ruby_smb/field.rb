@@ -8,8 +8,6 @@ module RubySMB
     require 'ruby_smb/field/smb_fea'
     require 'ruby_smb/field/smb_fea_list'
     require 'ruby_smb/field/security_descriptor'
-    require 'ruby_smb/field/file_full_ea_info'
-    require 'ruby_smb/field/ea_info_array'
     require 'ruby_smb/field/string16'
     require 'ruby_smb/field/smb2_fileid'
   end

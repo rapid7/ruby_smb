@@ -185,7 +185,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateRequest do
 
       describe '#extended_attributes' do
         it 'is a FileFullEAInfo struct' do
-          expect(data.extended_attributes).to be_a RubySMB::Field::FileFullEaInfo
+          expect(data.extended_attributes).to be_a RubySMB::Fscc::FileFullEaInfo
         end
       end
     end

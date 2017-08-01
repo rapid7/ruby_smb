@@ -1,21 +1,21 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Field::EaInfoArray do
+RSpec.describe RubySMB::Fscc::EaInfoArray do
   subject(:info_array) { described_class.new(type: :file_full_ea_info) }
   let(:first_ea) {
-    ea = RubySMB::Field::FileFullEaInfo.new
+    ea = RubySMB::Fscc::FileFullEaInfo.new
     ea.ea_name  = 'First'
     ea.ea_value = 'First Value'
     ea
   }
   let(:second_ea) {
-    ea = RubySMB::Field::FileFullEaInfo.new
+    ea = RubySMB::Fscc::FileFullEaInfo.new
     ea.ea_name  = 'Second'
     ea.ea_value = 'Second Value'
     ea
   }
   let(:additional_ea) {
-    ea = RubySMB::Field::FileFullEaInfo.new
+    ea = RubySMB::Fscc::FileFullEaInfo.new
     ea.ea_name  = 'Additional'
     ea.ea_value = 'Additional Value'
     ea

@@ -1,17 +1,17 @@
 module RubySMB
-  module Field
+  module Fscc
     # Convenience class that extend the normal {BinData::Array} for use
-    # with {RubySMB::Field::FileFullEaInfo}. This array will automatically
-    # updates the {RubySMB::Field::FileFullEaInfo#next_entry_offset} of
+    # with {RubySMB::Fscc::FileFullEaInfo}. This array will automatically
+    # updates the {RubySMB::Fscc::FileFullEaInfo#next_entry_offset} of
     # each element in the array.
     class EaInfoArray < BinData::Array
 
       # Overrides the method from {BinData::Array} to
       # call #update_offsets
-      # @raise [ArgumentError] if the inserted element is not a {RubySMB::Field::FileFullEaInfo}
+      # @raise [ArgumentError] if the inserted element is not a {RubySMB::Fscc::FileFullEaInfo}
       def []=(index, value)
-        unless value.is_a? RubySMB::Field::FileFullEaInfo
-          raise ArgumentError, "This array can only contain RubySMB::Field::FileFullEaInfo objects"
+        unless value.is_a? RubySMB::Fscc::FileFullEaInfo
+          raise ArgumentError, "This array can only contain RubySMB::Fscc::FileFullEaInfo objects"
         end
         retval = super(index,value)
         update_offsets
@@ -23,12 +23,12 @@ module RubySMB
       #
       # @param index [Integer] the index to insert into the array at
       # @param objs [Array<Object>] the objects to be inserted
-      # @raise [ArgumentError] if the inserted element is not a {RubySMB::Field::FileFullEaInfo}
+      # @raise [ArgumentError] if the inserted element is not a {RubySMB::Fscc::FileFullEaInfo}
       # @return [self]
       def insert(index, *objs)
         objs.each do |x|
-          unless x.is_a? RubySMB::Field::FileFullEaInfo
-            raise ArgumentError, "This array can only contain RubySMB::Field::FileFullEaInfo objects"
+          unless x.is_a? RubySMB::Fscc::FileFullEaInfo
+            raise ArgumentError, "This array can only contain RubySMB::Fscc::FileFullEaInfo objects"
           end
         end
         super(index, *objs)
