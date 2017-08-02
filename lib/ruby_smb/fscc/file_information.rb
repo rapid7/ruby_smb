@@ -5,6 +5,10 @@ module RubySMB
 
     require 'ruby_smb/fscc/file_information/file_directory_information'
     require 'ruby_smb/fscc/file_information/file_full_directory_information'
+    require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
+    require 'ruby_smb/fscc/file_information/file_both_directory_information'
+    require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
+    require 'ruby_smb/fscc/file_information/file_names_information'
 
     # Basic information about a file or directory.
     # Basic information is defined as the file's name, time stamp, size and attributes.

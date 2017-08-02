@@ -1,9 +1,9 @@
 module RubySMB
   module Fscc
     module FileInformation
-      # The FileFullDirectoryInformation Class as defined in
-      # [2.4.14 FileFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232068.aspx)
-      class FileFullDirectoryInformation < BinData::Record
+      # The FileDirectoryInformation Class as defined in
+      # [2.4.18 FileIdFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232071.aspx)
+      class FileIdFullDirectoryInformation < BinData::Record
         endian  :little
 
         uint32           :next_offset,      label: 'Next Entry Offset'
@@ -17,6 +17,8 @@ module RubySMB
         file_attributes  :file_attributes,  label: 'File Attributes'
         uint32           :file_name_length, label: 'File Name Length',          initial_value: lambda { file_name.length }
         uint32           :ea_size,          label: 'Extended Attributes Size'
+        uint32           :reserved,         label: 'Reserved Space'
+        uint64           :file_id,          label: 'File ID'
         string16         :file_name,        label: 'File Name'
 
 
