@@ -4,6 +4,7 @@ module RubySMB
   module FileInformation
 
     require 'ruby_smb/fscc/file_information/file_directory_information'
+    require 'ruby_smb/fscc/file_information/file_full_directory_information'
 
     # Basic information about a file or directory.
     # Basic information is defined as the file's name, time stamp, size and attributes.

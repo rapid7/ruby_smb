@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Fscc::FileInformation::FileDirectoryInformation do
+RSpec.describe RubySMB::Fscc::FileInformation::FileFullDirectoryInformation do
 
   subject(:struct) { described_class.new }
 
@@ -14,6 +14,7 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileDirectoryInformation do
   it { should respond_to :allocation_size }
   it { should respond_to :file_attributes }
   it { should respond_to :file_name_length }
+  it { should respond_to :ea_size }
   it { should respond_to :file_name }
 
   it 'is little endian' do
