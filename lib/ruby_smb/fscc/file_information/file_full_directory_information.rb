@@ -17,7 +17,7 @@ module RubySMB
         file_attributes  :file_attributes,  label: 'File Attributes'
         uint32           :file_name_length, label: 'File Name Length',          initial_value: lambda { file_name.length }
         uint32           :ea_size,          label: 'Extended Attributes Size'
-        string16         :file_name,        label: 'File Name'
+        string16         :file_name,        label: 'File Name',                 read_length: lambda { file_name_length }
 
 
       end

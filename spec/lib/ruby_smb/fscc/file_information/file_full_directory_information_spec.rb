@@ -52,5 +52,14 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileFullDirectoryInformation do
     expect(struct.file_name.force_encoding("utf-16le")).to eq name.encode("utf-16le")
   end
 
-
+  describe 'reading in from a blob' do
+    it 'uses the file_name_length to know when to stop reading' do
+      name = "Hello_world.txt"
+      struct.file_name = name
+      blob = struct.to_binary_s
+      blob << "AAAA"
+      new_from_blob = described_class.read(blob)
+      expect(new_from_blob.file_name.force_encoding("utf-16le")).to eq name.encode("utf-16le")
+    end
+  end
 end

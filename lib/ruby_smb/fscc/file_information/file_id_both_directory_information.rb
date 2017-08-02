@@ -22,7 +22,7 @@ module RubySMB
         string16         :short_name,         label: 'File Short Name',           length: 24
         uint16           :reserved2,          label: 'Reserved Space'
         uint64           :file_id,            label: 'File Id'
-        string16         :file_name,          label: 'File Name'
+        string16         :file_name,          label: 'File Name',                 read_length: lambda { file_name_length }
 
 
       end
