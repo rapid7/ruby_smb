@@ -18,6 +18,29 @@ module RubySMB
           smb2_header.flags.reply = 1
         end
 
+        # Returns the File Information in an array of appropriate
+        # structs for the given FileInformationClass. Pulled out of
+        # the string buffer.
+        #
+        # @param klass [Class] the FileInformationClass class to read the data as
+        # @return [array<BinData::Record>] An array of structs holding the requested information
+        def results(klass)
+          information_classes = []
+          blob = self.buffer.to_binary_s.dup
+          while blob.length > 0
+            length = blob[0,4].unpack('V').first
+
+            if length.zero?
+              data = blob.slice!(0,blob.length)
+            else
+              data = blob.slice!(0,length)
+            end
+
+            information_classes << klass.read(data)
+          end
+          information_classes
+        end
+
       end
     end
   end
