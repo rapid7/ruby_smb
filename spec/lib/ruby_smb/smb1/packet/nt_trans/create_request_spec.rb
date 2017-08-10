@@ -92,8 +92,16 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateRequest do
       it { is_expected.to respond_to :name }
 
       describe '#desired_access' do
-        it 'is a File Access Mask' do
-          expect(parameters.desired_access).to be_a RubySMB::SMB1::BitField::FileAccessMask
+        it 'should be a DirectoryAccessMask when the file is a directory' do
+          parameters.ext_file_attribute.directory = 1
+          access_mask = parameters.desired_access.send(:current_choice)
+          expect(access_mask.class).to eq RubySMB::SMB1::BitField::DirectoryAccessMask
+        end
+
+        it 'should be a FileAccessMask when the file is not a directory' do
+          parameters.ext_file_attribute.directory = 0
+          access_mask = parameters.desired_access.send(:current_choice)
+          expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
         end
       end
 

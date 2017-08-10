@@ -31,8 +31,18 @@ RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
     expect(packet.structure_size).to eq 57
   end
 
-  it 'should have a File Access Mask for #desired_access' do
-    expect(packet.desired_access).to be_a RubySMB::SMB2::BitField::FileAccessMask
+  describe '#desired_access' do
+    it 'should be a DirectoryAccessMask when the file is a directory' do
+      packet.file_attributes.directory = 1
+      access_mask = packet.desired_access.send(:current_choice)
+      expect(access_mask.class).to eq RubySMB::SMB2::BitField::DirectoryAccessMask
+    end
+
+    it 'should be a FileAccessMask when the file is not a directory' do
+      packet.file_attributes.directory = 0
+      access_mask = packet.desired_access.send(:current_choice)
+      expect(access_mask.class).to eq RubySMB::SMB2::BitField::FileAccessMask
+    end
   end
 
   describe '#share_accesss' do

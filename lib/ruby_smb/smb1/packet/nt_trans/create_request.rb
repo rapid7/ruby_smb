@@ -26,7 +26,12 @@ module RubySMB
             end
 
             uint32                  :root_directory_fid,          label: 'Root Directory FID'
-            file_access_mask        :desired_access
+
+            choice :desired_access, selection: lambda { ext_file_attribute.directory } do
+              file_access_mask      0, label: 'Desired Access'
+              directory_access_mask 1, label: 'Desired Access'
+            end
+
             uint64                  :allocation_size,             label: 'Allocation Size'
             smb_ext_file_attributes :ext_file_attribute
             share_access            :share_access,                label: 'Share Access'

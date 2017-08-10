@@ -15,8 +15,13 @@ module RubySMB
         uint32                :impersonation_level,  label: 'Impersonation Level'
         uint64                :create_flags,         label: 'Create Flags(Do not use)',    initial_value: 0
         uint64                :reserved,             label: 'Reserved',                    initial_value: 0
-        file_access_mask      :desired_access,       label: 'Desired Access'
-        file_attributes  :file_attributes,      label: 'File Attributes'
+
+        choice :desired_access, selection: lambda { file_attributes.directory } do
+          file_access_mask      0, label: 'Desired Access'
+          directory_access_mask 1, label: 'Desired Access'
+        end
+
+        file_attributes       :file_attributes,      label: 'File Attributes'
 
         struct :share_access do
           bit5  :reserved,          label: 'Reserved Space'
