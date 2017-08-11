@@ -24,7 +24,7 @@ module RubySMB
         uint16        :name_offset,   label: 'File Name Offset',      initial_value: lambda { name.abs_offset }
         uint16        :name_length,   label: 'File Name Length',      initial_value: lambda { name.do_num_bytes }
         uint32        :output_length, label: 'Output Buffer Length'
-        string        :name,          label: 'Name/Search Pattern'
+        string16      :name,          label: 'Name/Search Pattern'
 
         def initialize_instance
           super

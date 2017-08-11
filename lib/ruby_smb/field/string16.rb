@@ -7,6 +7,10 @@ module RubySMB
         super(val.encode("utf-16le"))
       end
 
+      def snapshot
+        super.force_encoding("utf-16le")
+      end
+
     end
   end
 end

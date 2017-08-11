@@ -37,7 +37,7 @@ module RubySMB
         uint32          :create_disposition,  label: 'Create Disposition'
         create_options  :create_options
         uint16          :name_offset,         label: 'Name Offset',            initial_value: lambda { name.abs_offset }
-        uint16          :name_length,         label: 'Name Length',            initial_value: lambda { name.length }
+        uint16          :name_length,         label: 'Name Length',            initial_value: lambda { name.do_num_bytes }
         uint32          :context_offset,      label: 'Create Context Offset',  initial_value: lambda { context.abs_offset }
         uint32          :context_length,      label: 'Create Context Length',  initial_value: lambda { context.do_num_bytes }
         string16        :name,                label: 'File Name'

@@ -42,7 +42,7 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileDirectoryInformation do
 
   it 'tracks the length of the file_name field' do
     struct.file_name = "Hello.txt"
-    expect(struct.file_name_length).to eq struct.file_name.length
+    expect(struct.file_name_length).to eq struct.file_name.do_num_bytes
   end
 
   it 'automatically encodes the file name in UTF-16LE' do

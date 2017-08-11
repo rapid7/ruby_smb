@@ -10,7 +10,7 @@ module RubySMB
         uint16       :structure_size,  label: 'Structure Size',       initial_value: 9
         uint16       :buffer_offset,   label: 'Output Buffer Offset', initial_value: lambda { buffer.abs_offset }
         uint32       :buffer_length,   label: 'Output Buffer Length', initial_value: lambda { buffer.do_num_bytes }
-        string       :buffer
+        string       :buffer,          read_length: lambda { buffer_length }
 
         def initialize_instance
           super

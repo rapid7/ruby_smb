@@ -53,7 +53,7 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
-      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation )
+      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileNamesInformation )
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 
@@ -73,9 +73,38 @@ module RubySMB
           create_request.name = directory
         end
 
-        raw_response = self.client.send_recv(create_request)
+        raw_response    = self.client.send_recv(create_request)
         create_response = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        file_id         = create_response.file_id
 
+        directory_request                         = RubySMB::SMB2::Packet::QueryDirectoryRequest.new
+        directory_request.file_information_class  = type::FLAG
+        directory_request.file_id                 = file_id
+        directory_request.name                    = pattern
+        directory_request.output_length           = 65535
+
+        directory_request = set_header_fields(directory_request)
+
+        files = []
+
+        #loop do
+          response            = self.client.send_recv(directory_request)
+          directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
+
+          status_code         = directory_response.smb2_header.nt_status.to_nt_status
+
+          #break if status_code == WindowsError::NTStatus::STATUS_NO_MORE_FILES
+
+          unless status_code == WindowsError::NTStatus::STATUS_SUCCESS
+
+            raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+          end
+
+          files += directory_response.results(type)
+
+        #end
+
+        files
       end
 
 
