@@ -54,27 +54,7 @@ module RubySMB
       # @param type [Class] file information class
       # @return [Array] array of directory structures
       def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation )
-        create_request = RubySMB::SMB2::Packet::CreateRequest.new
-        create_request = set_header_fields(create_request)
-
-        create_request.impersonation_level            = RubySMB::ImpersonationLevels::SEC_IMPERSONATE
-        create_request.create_options.directory_file  = 1
-        create_request.file_attributes.directory      = 1
-        create_request.desired_access.list            = 1
-        create_request.share_access.read_access       = 1
-        create_request.create_disposition             = RubySMB::Dispositions::FILE_OPEN
-
-
-
-        if directory.nil? || directory.empty?
-          create_request.name   = "\x00"
-          create_request.length = 0
-        else
-          create_request.name = directory
-        end
-
-        raw_response    = self.client.send_recv(create_request)
-        create_response = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        create_response = open_directory(directory:directory)
         file_id         = create_response.file_id
 
         directory_request                         = RubySMB::SMB2::Packet::QueryDirectoryRequest.new
@@ -106,6 +86,45 @@ module RubySMB
         end
 
         files
+      end
+
+      # 'Opens' a directory file on the remote end, using a CreateRequest. This
+      # can be used to open an existing directory, or create a new one, depending
+      # on the disposition set.
+      #
+      # @param directory [String] the name of the directory file
+      # @param disposition [Integer] the create disposition to use, should be one of {RubySMB::Dispositions}
+      # @param impersonation [Integer] the impersonation level to use, should be one of {RubySMB::ImpersonationLevels}
+      # @param read [Boolean] whether to request read access
+      # @param write [Boolean] whether to request write access
+      # @param delete [Boolean] whether to request delete access
+      # @return [RubySMB::SMB2::Packet::CreateResponse] the response packet returned from the server
+      def open_directory(directory:nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                         impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
+                         read:true, write: false, delete: false)
+        create_request = RubySMB::SMB2::Packet::CreateRequest.new
+        create_request = set_header_fields(create_request)
+
+        create_request.impersonation_level            = impersonation
+        create_request.create_options.directory_file  = 1
+        create_request.file_attributes.directory      = 1
+        create_request.desired_access.list            = 1
+        create_request.share_access.read_access       = 1 if read
+        create_request.share_access.write_access      = 1 if write
+        create_request.share_access.delete_access     = 1 if delete
+        create_request.create_disposition             = disposition
+
+
+
+        if directory.nil? || directory.empty?
+          create_request.name   = "\x00"
+          create_request.length = 0
+        else
+          create_request.name = directory
+        end
+
+        raw_response    = self.client.send_recv(create_request)
+        RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
       end
 
       # Sets a few preset header fields that will always be set the same

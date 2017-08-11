@@ -68,4 +68,8 @@ RSpec.describe RubySMB::SMB2::Tree do
       expect(modified_request.smb2_header.credits).to eq 256
     end
   end
+
+  describe '#open_directory' do
+
+  end
 end
