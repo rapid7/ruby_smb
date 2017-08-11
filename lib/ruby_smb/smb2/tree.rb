@@ -53,7 +53,7 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
-      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileNamesInformation )
+      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation )
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 
@@ -87,13 +87,13 @@ module RubySMB
 
         files = []
 
-        #loop do
+        loop do
           response            = self.client.send_recv(directory_request)
           directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
 
           status_code         = directory_response.smb2_header.nt_status.to_nt_status
 
-          #break if status_code == WindowsError::NTStatus::STATUS_NO_MORE_FILES
+          break if status_code == WindowsError::NTStatus::STATUS_NO_MORE_FILES
 
           unless status_code == WindowsError::NTStatus::STATUS_SUCCESS
 
@@ -101,13 +101,18 @@ module RubySMB
           end
 
           files += directory_response.results(type)
-
-        #end
+          # Reset the message id so the client can update appropriately.
+          directory_request.smb2_header.message_id = 0
+        end
 
         files
       end
 
-
+      # Sets a few preset header fields that will always be set the same
+      # way for Tree operations. This is, the TreeID, Credits, and Credit Charge.
+      #
+      # @param [RubySMB::SMB2::Packet] the request packet to modify
+      # @return [RubySMB::SMB2::Packet] the modified packet.
       def set_header_fields(request)
         request.smb2_header.tree_id = self.id
         request.smb2_header.credit_charge = 1

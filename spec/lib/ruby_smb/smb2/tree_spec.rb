@@ -14,6 +14,10 @@ RSpec.describe RubySMB::SMB2::Tree do
     packet.share_type = 0x01
     packet
   }
+
+  let(:disco_req) { RubySMB::SMB2::Packet::TreeDisconnectRequest.new }
+  let(:disco_resp) { RubySMB::SMB2::Packet::TreeDisconnectResponse.new }
+
   subject(:tree) {
     described_class.new(client:client, share:path, response:response )
   }
@@ -36,9 +40,6 @@ RSpec.describe RubySMB::SMB2::Tree do
   end
 
   describe '#disconnect!' do
-    let(:disco_req) { RubySMB::SMB2::Packet::TreeDisconnectRequest.new }
-    let(:disco_resp) { RubySMB::SMB2::Packet::TreeDisconnectResponse.new }
-
     it 'sends a TreeDisconnectRequest with the Tree ID in the header' do
       allow(RubySMB::SMB2::Packet::TreeDisconnectRequest).to receive(:new).and_return(disco_req)
       modified_req = disco_req
@@ -50,6 +51,21 @@ RSpec.describe RubySMB::SMB2::Tree do
     it 'returns the NTStatus code from the response' do
       allow(client).to receive(:send_recv).and_return(disco_resp.to_binary_s)
       expect(tree.disconnect!).to eq disco_resp.status_code
+    end
+  end
+
+  describe '#set_header_fields' do
+    let(:modified_request) { tree.set_header_fields(disco_req) }
+    it 'adds the TreeID to the header' do
+      expect(modified_request.smb2_header.tree_id).to eq tree.id
+    end
+
+    it 'sets the credit charge to 1' do
+      expect(modified_request.smb2_header.credit_charge).to eq 1
+    end
+
+    it 'sets the credits to 256' do
+      expect(modified_request.smb2_header.credits).to eq 256
     end
   end
 end
