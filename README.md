@@ -4,7 +4,7 @@
 [![Code Climate](https://codeclimate.com/github/rapid7/ruby_smb.png)](https://codeclimate.com/github/rapid7/ruby_smb)
 [![Coverage Status](https://coveralls.io/repos/github/rapid7/ruby_smb/badge.svg?branch=master)](https://coveralls.io/github/rapid7/ruby_smb?branch=master)
 
-A native Ruby implementation fo the SMB Protocol Family. It currently supports
+A native Ruby implementation of the SMB Protocol Family. It currently supports
  1. [[MS-SMB]](https://msdn.microsoft.com/en-us/library/cc246231.aspx)
  1. [[MS-SMB2]](http://msdn.microsoft.com/en-us/library/cc246482.aspx)
 
