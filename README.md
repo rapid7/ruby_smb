@@ -154,7 +154,7 @@ Example:
 2.3.3 :009 >
 ```
 
-you can also pass field/value pairs into the packet constructor as arguments, prefilling out certain fields
+You can also pass field/value pairs into the packet constructor as arguments, prefilling out certain fields
 if you wish.
 
 Example:
@@ -299,7 +299,7 @@ You'll want to have Wireshark and perhaps a tool like Impacket (which provides a
 
 ## Contributing
 
-1. Fork it ( https://github.com/rapid7/smb2/fork )
+1. Fork it ( https://github.com/rapid7/ruby_smb/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
