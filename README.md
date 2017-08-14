@@ -179,6 +179,17 @@ string into an actual packet class. This is done using the #read class method.
 2.3.3 :016 >
 ```
 
+#### Outputting to a Binary Blob
+Any structure or packet in rubySMB can also be output back into a binary blob using
+BinData's #to_binary_s method.
+
+Example:
+```ruby
+2.3.3 :012 > packet = RubySMB::SMB1::Packet::EchoResponse.new
+ => {:smb_header=>{:protocol=>4283649346, :command=>43, :nt_status=>0, :flags=>{:reply=>1, :opbatch=>0, :oplock=>0, :canonicalized_paths=>1, :case_insensitive=>1, :reserved=>0, :buf_avail=>0, :lock_and_read_ok=>0}, :flags2=>{:reserved1=>0, :is_long_name=>0, :reserved2=>0, :signature_required=>0, :compressed=>0, :security_signature=>0, :eas=>0, :long_names=>1, :unicode=>0, :nt_status=>1, :paging_io=>1, :dfs=>0, :extended_security=>0, :reparse_path=>0}, :pid_high=>0, :security_features=>"\x00\x00\x00\x00\x00\x00\x00\x00", :reserved=>0, :tid=>0, :pid_low=>0, :uid=>0, :mid=>0}, :parameter_block=>{:word_count=>1, :sequence_number=>0}, :data_block=>{:byte_count=>0, :data=>""}}
+2.3.3 :013 > packet.to_binary_s
+ => "\xFFSMB+\x00\x00\x00\x00\x98\x01`\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00"
+```
 ### Using the Client
 
 Sitting on top of the packet layer in RubySMB is the RubySMB::Client. This is the level msot users will interact with.
