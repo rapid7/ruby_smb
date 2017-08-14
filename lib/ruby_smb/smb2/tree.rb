@@ -102,6 +102,25 @@ module RubySMB
       def open_directory(directory:nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                          impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
                          read:true, write: false, delete: false)
+
+        create_request  = open_directory_packet(directory:directory, disposition:disposition,
+                                                impersonation: impersonation, read:read, write:write,delete:delete)
+        raw_response    = self.client.send_recv(create_request)
+        RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+      end
+
+      # Creates the Packet for the #open_directory method.
+      #
+      # @param directory [String] the name of the directory file
+      # @param disposition [Integer] the create disposition to use, should be one of {RubySMB::Dispositions}
+      # @param impersonation [Integer] the impersonation level to use, should be one of {RubySMB::ImpersonationLevels}
+      # @param read [Boolean] whether to request read access
+      # @param write [Boolean] whether to request write access
+      # @param delete [Boolean] whether to request delete access
+      # @return [RubySMB::SMB2::Packet::CreateRequest] the request packet to send to the server
+      def open_directory_packet(directory:nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                                impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
+                                read:true, write: false, delete: false)
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 
@@ -118,13 +137,11 @@ module RubySMB
 
         if directory.nil? || directory.empty?
           create_request.name   = "\x00"
-          create_request.length = 0
+          create_request.name_length = 0
         else
           create_request.name = directory
         end
-
-        raw_response    = self.client.send_recv(create_request)
-        RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        create_request
       end
 
       # Sets a few preset header fields that will always be set the same

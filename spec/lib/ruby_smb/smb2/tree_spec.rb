@@ -69,7 +69,65 @@ RSpec.describe RubySMB::SMB2::Tree do
     end
   end
 
-  describe '#open_directory' do
+  describe '#open_directory_packet' do
+    describe 'directory name' do
+      it 'uses a null byte of nothing is passed in' do
+        expect(tree.open_directory_packet.name).to eq "\x00".encode("UTF-16LE")
+      end
 
+      it 'sets the #name_length to 0 if no name is passed in' do
+        expect(tree.open_directory_packet.name_length).to eq 0
+      end
+
+      it 'encodes any supplied file name in UTF-16LE' do
+        name = "hello.txt"
+        expect(tree.open_directory_packet(directory:name).name).to eq name.encode("UTF-16LE")
+      end
+    end
+
+    describe 'disposition' do
+      it 'defaults to FILE_OPEN' do
+        expect(tree.open_directory_packet.create_disposition).to eq RubySMB::Dispositions::FILE_OPEN
+      end
+
+      it 'can take the Disposition as an argument' do
+        expect(tree.open_directory_packet(disposition:RubySMB::Dispositions::FILE_OPEN_IF).create_disposition).to eq RubySMB::Dispositions::FILE_OPEN_IF
+      end
+    end
+
+    describe 'impersonation level' do
+      it 'defaults to SEC_IMPERSONATE' do
+        expect(tree.open_directory_packet.impersonation_level).to eq RubySMB::ImpersonationLevels::SEC_IMPERSONATE
+      end
+
+      it 'can take the Impersonation Level as an argument' do
+        expect(tree.open_directory_packet(impersonation: RubySMB::ImpersonationLevels::SEC_DELEGATE).impersonation_level).to eq RubySMB::ImpersonationLevels::SEC_DELEGATE
+      end
+    end
+
+    describe 'RWD access permissions' do
+      it 'will set the read permission from the parameters' do
+        expect(tree.open_directory_packet(read: true).share_access.read_access).to eq 1
+      end
+
+      it 'will set the write permission from the parameters' do
+        expect(tree.open_directory_packet(write: true).share_access.write_access).to eq 1
+      end
+
+      it 'will set the delete permission from the parameters' do
+        expect(tree.open_directory_packet(delete: true).share_access.delete_access).to eq 1
+      end
+    end
+  end
+
+  describe '#open_directory' do
+    let (:create_req) { RubySMB::SMB2::Packet::CreateRequest.new }
+    let(:create_response) {  RubySMB::SMB2::Packet::CreateResponse.new }
+
+    it 'sends the create request packet and gets a response back' do
+      allow(tree).to receive(:open_directory_packet).and_return(create_req)
+      expect(client).to receive(:send_recv).with(create_req).and_return(create_response.to_binary_s)
+      tree.open_directory
+    end
   end
 end
