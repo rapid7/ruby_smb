@@ -10,5 +10,7 @@ module RubySMB
     require 'ruby_smb/field/security_descriptor'
     require 'ruby_smb/field/string16'
     require 'ruby_smb/field/smb2_fileid'
+    require 'ruby_smb/field/smb_gea'
+    require 'ruby_smb/field/smb_gea_list'
   end
 end
