@@ -49,8 +49,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
     describe '#trans2_parameters' do
       subject(:parameters) { data_block.trans2_parameters }
 
-      it { is_expected.to be_a RubySMB::SMB1::Packet::Trans2::Open2Response::Trans2Parameters  }
-
       it { is_expected.to respond_to :fid }
       it { is_expected.to respond_to :file_attributes }
       it { is_expected.to respond_to :creation_time }

@@ -36,8 +36,6 @@ module RubySMB
             end
           end
 
-
-
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             string            :pad1,               length: lambda { pad1_length }
             trans2_parameters :trans2_parameters,  label: 'Trans2 Parameters'

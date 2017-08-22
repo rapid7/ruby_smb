@@ -55,8 +55,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateResponse do
   describe '#data_block' do
     subject(:data_block) { packet.data_block }
 
-    it { is_expected.to be_a RubySMB::SMB1::Packet::Trans2::DataBlock }
-
     describe '#trans2_data' do
       it 'should be a 0-byte string' do
         expect(data_block.trans2_data.length).to eq 0
