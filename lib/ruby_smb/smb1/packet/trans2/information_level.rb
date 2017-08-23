@@ -6,7 +6,7 @@ module RubySMB
         # TRANS2_FIND_NEXT2 (section 2.2.6.3) subcommand requests to indicate the level
         # of information that a server MUST respond with for each file matching the
         # request's search criteria.
-        module InformationLevel
+        module SmbInfo
 
           # Return creation, access, and last write timestamps, size and file attributes along with the file name.
           SMB_INFO_STANDARD                 = 0x0001

@@ -4,7 +4,12 @@ module RubySMB
       # The FileFullDirectoryInformation Class as defined in
       # [2.4.14 FileFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232068.aspx)
       class FileFullDirectoryInformation < BinData::Record
-        FLAG = 0x02
+        # The value set in the InformationLevel field of an SMB1 request to indicate
+        # the response should use this Information Class Structure.
+        SMB1_FLAG = 0x0102
+        # The value set in the InformationLevel field of an SMB2 request to indicate
+        # the response should use this Information Class Structure.
+        SMB2_FLAG = 0x02
 
         endian  :little
 

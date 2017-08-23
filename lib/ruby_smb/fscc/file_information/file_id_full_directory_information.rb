@@ -4,7 +4,12 @@ module RubySMB
       # The FileDirectoryInformation Class as defined in
       # [2.4.18 FileIdFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232071.aspx)
       class FileIdFullDirectoryInformation < BinData::Record
-        FLAG = 0x26
+        # Null bytes because SMB1 Requests can't use this
+        # Information Class.
+        SMB1_FLAG = 0x0000
+        # The value set in the InformationLevel field of an SMB2 request to indicate
+        # the response should use this Information Class Structure.
+        SMB2_FLAG = 0x26
 
         endian  :little
 

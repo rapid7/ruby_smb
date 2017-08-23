@@ -4,7 +4,12 @@ module RubySMB
       # The FileNamesInformation Class as defined in
       # [2.4.26 FileNamesInformation](https://msdn.microsoft.com/en-us/library/cc232077.aspx)
       class FileNamesInformation < BinData::Record
-        FLAG = 0x0C
+        # The value set in the InformationLevel field of an SMB1 request to indicate
+        # the response should use this Information Class Structure.
+        SMB1_FLAG = 0x0103
+        # The value set in the InformationLevel field of an SMB2 request to indicate
+        # the response should use this Information Class Structure.
+        SMB2_FLAG = 0x0C
 
         endian  :little
 
