@@ -16,6 +16,7 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/find_first2_request'
         require 'ruby_smb/smb1/packet/trans2/find_first2_response'
         require 'ruby_smb/smb1/packet/trans2/find_next2_request'
+        require 'ruby_smb/smb1/packet/trans2/find_next2_response'
       end
     end
   end
