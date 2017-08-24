@@ -5,6 +5,7 @@ module RubySMB
         module Subcommands
           OPEN2         = 0x0000
           FIND_FIRST2   = 0x0001
+          FIND_NEXT2    = 0x0002
           SESSION_SETUP = 0x000E
         end
       end
