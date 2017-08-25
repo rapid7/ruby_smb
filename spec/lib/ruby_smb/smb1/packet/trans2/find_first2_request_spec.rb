@@ -122,13 +122,9 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
         let(:name) { "hello.txt" }
         it 'should be null terminated' do
           parameters.filename = name
-          expect(parameters.filename.to_binary_s).to end_with("\x00\x00")
+          expect(parameters.filename.to_binary_s).to end_with("\x00")
         end
 
-        it 'should be UTF-16le' do
-          parameters.filename = name
-          expect(parameters.filename).to eq name.encode("UTF-16le")
-        end
       end
 
     end
