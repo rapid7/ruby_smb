@@ -37,12 +37,22 @@ module RubySMB
             end
           end
 
+          class Trans2Data < BinData::Record
+            smb_gea_list  :extended_attribute_list, label: 'Get Extended Attribute List'
+
+            # Returns the length of the Trans2Data struct
+            # in number of bytes
+            def length
+              self.do_num_bytes
+            end
+          end
+
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             uint8              :name,               label: 'Name',              initial_value: 0x00
             string             :pad1,               length: lambda { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-            string             :pad2,               length: 0
-            string             :trans2_data,        length: 0
+            string             :pad2,               length: lambda { pad2_length }
+            trans2_data        :trans2_data,        label: 'Trans2 Data'
           end
 
           smb_header        :smb_header
