@@ -27,6 +27,12 @@ module RubySMB
 
           class Trans2Data < BinData::Record
             string  :buffer,  label: 'Results Buffer'
+
+            # Returns the length of the Trans2Data struct
+            # in number of bytes
+            def length
+              self.do_num_bytes
+            end
           end
 
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock

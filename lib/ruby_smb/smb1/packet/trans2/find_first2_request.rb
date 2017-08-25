@@ -27,8 +27,8 @@ module RubySMB
             end
 
             uint16    :information_level, label: 'Information Level'
-            uint16    :storage_type,      label: 'Search Storage type'
-            stringz16 :filename,          label: 'Filename'
+            uint32    :storage_type,      label: 'Search Storage type'
+            stringz   :filename,          label: 'Filename'
 
             # Returns the length of the Trans2Parameters struct
             # in number of bytes
@@ -37,16 +37,12 @@ module RubySMB
             end
           end
 
-          class Trans2Data < BinData::Record
-            smb_gea_list  :extended_attribute_list, label: 'Get Extended Attribute List'
-          end
-
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             uint8              :name,               label: 'Name',              initial_value: 0x00
             string             :pad1,               length: lambda { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-            string             :pad2,               length: lambda { pad2_length }
-            trans2_data        :trans2_data,        label: 'Trans2 Data'
+            string             :pad2,               length: 0
+            string             :trans2_data,        length: 0
           end
 
           smb_header        :smb_header
@@ -59,6 +55,7 @@ module RubySMB
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_FIRST2
           end
+
         end
       end
     end
