@@ -20,7 +20,7 @@ path     = "\\\\#{address}\\#{share}"
 sock = TCPSocket.new address, 445
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-client = RubySMB::Client.new(dispatcher, smb1: true, smb2: false, username: username, password: password)
+client = RubySMB::Client.new(dispatcher, smb1: true, smb2: true, username: username, password: password)
 protocol = client.negotiate
 status  = client.authenticate
 

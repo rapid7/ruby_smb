@@ -30,7 +30,7 @@ module RubySMB
               bit8  :reserved2,   label: 'Reserved Space'
             end
 
-            stringz :filename,          label: 'Filename'
+            stringz16 :filename,          label: 'Filename'
 
             # Returns the length of the Trans2Parameters struct
             # in number of bytes

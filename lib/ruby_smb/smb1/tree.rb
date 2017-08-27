@@ -61,8 +61,9 @@ module RubySMB
       # @return [Array] array of directory structures
       def list(directory: '\\', pattern: '*', type: RubySMB::Fscc::FileInformation::FileFullDirectoryInformation )
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
-        find_first_request.smb_header.tid         = self.id
-        find_first_request.smb_header.flags2.eas  = 1
+        find_first_request.smb_header.tid             = self.id
+        find_first_request.smb_header.flags2.eas      = 1
+        find_first_request.smb_header.flags2.unicode  = 1
 
         search_path = directory.dup
         search_path << '\\' unless search_path.end_with?('\\')
@@ -93,8 +94,9 @@ module RubySMB
 
         while eos == 0 do
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
-          find_next_request.smb_header.tid          = self.id
-          find_next_request.smb_header.flags2.eas   = 1
+          find_next_request.smb_header.tid              = self.id
+          find_next_request.smb_header.flags2.eas       = 1
+          find_next_request.smb_header.flags2.unicode   = 1
 
           t2_params                             = find_next_request.data_block.trans2_parameters
           t2_params.sid                         = sid

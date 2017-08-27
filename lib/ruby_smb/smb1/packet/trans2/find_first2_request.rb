@@ -28,7 +28,7 @@ module RubySMB
 
             uint16    :information_level, label: 'Information Level'
             uint32    :storage_type,      label: 'Search Storage type'
-            stringz   :filename,          label: 'Filename'
+            stringz16 :filename,          label: 'Filename'
 
             # Returns the length of the Trans2Parameters struct
             # in number of bytes
