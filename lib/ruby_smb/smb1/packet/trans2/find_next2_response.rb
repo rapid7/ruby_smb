@@ -26,7 +26,7 @@ module RubySMB
           end
 
           class Trans2Data < BinData::Record
-            string  :buffer,  label: 'Results Buffer'
+            rest  :buffer,  label: 'Results Buffer'
 
             # Returns the length of the Trans2Data struct
             # in number of bytes

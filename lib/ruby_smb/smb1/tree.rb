@@ -75,22 +75,64 @@ module RubySMB
         t2_params.search_attributes.system    = 1
         t2_params.search_attributes.directory = 1
         t2_params.flags.close_eos             = 1
-        t2_params.flags.resume_keys           = 1
+        t2_params.flags.resume_keys           = 0
         t2_params.information_level           = type::SMB1_FLAG
         t2_params.filename                    = search_path
-        t2_params.search_count                = 100
+        t2_params.search_count                = 10
 
-        find_first_request.parameter_block.data_count             = 0
-        find_first_request.parameter_block.data_offset            = 0
-        find_first_request.parameter_block.total_parameter_count  = find_first_request.parameter_block.parameter_count
-        find_first_request.parameter_block.max_parameter_count    = find_first_request.parameter_block.parameter_count
-        find_first_request.parameter_block.max_data_count         = 16384
+        find_first_request = set_find_params(find_first_request)
 
         raw_response  = self.client.send_recv(find_first_request)
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
 
+        results = response.results(type)
+
+        eos   = response.data_block.trans2_parameters.eos
+        sid   = response.data_block.trans2_parameters.sid
+        last  = results.last.file_name
+
+        while eos == 0 do
+          find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
+          find_next_request.smb_header.tid          = self.id
+          find_next_request.smb_header.flags2.eas   = 1
+
+          t2_params                             = find_next_request.data_block.trans2_parameters
+          t2_params.sid                         = sid
+          t2_params.flags.close_eos             = 1
+          t2_params.flags.resume_keys           = 0
+          t2_params.information_level           = type::SMB1_FLAG
+          t2_params.filename                    = last
+          t2_params.search_count                = 10
+
+          find_next_request = set_find_params(find_next_request)
+
+          raw_response  = self.client.send_recv(find_next_request)
+          response      = RubySMB::SMB1::Packet::Trans2::FindNext2Response.read(raw_response)
+
+          results += response.results(type)
+
+          eos   = response.data_block.trans2_parameters.eos
+          last  = results.last.file_name
+        end
+
+        results
       end
 
+
+      private
+
+      # Sets ParameterBlock options for FIND_FIRST2 and
+      # FIND_NEXT2 requests. In particular we need to do this
+      # to tell the server to ignore the Trans2DataBlock as we are
+      # not sending any GEA lists in this instance.
+      def set_find_params(request)
+        request.parameter_block.data_count             = 0
+        request.parameter_block.data_offset            = 0
+        request.parameter_block.total_parameter_count  = request.parameter_block.parameter_count
+        request.parameter_block.max_parameter_count    = request.parameter_block.parameter_count
+        request.parameter_block.max_data_count         = 16384
+        request
+      end
     end
   end
 end
