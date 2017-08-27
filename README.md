@@ -15,8 +15,6 @@ See the Wiki for more information on this porject's long-term goals, style guide
 
 ## Installation
 
-This gem has not yet been released, but when it is, do this:
-
 Add this line to your application's Gemfile:
 
 ```ruby
