@@ -18,6 +18,7 @@ module RubySMB
       require 'ruby_smb/smb2/packet/create_response'
       require 'ruby_smb/smb2/packet/query_directory_request'
       require 'ruby_smb/smb2/packet/query_directory_response'
+      require 'ruby_smb/smb2/packet/read_request'
     end
   end
 end
