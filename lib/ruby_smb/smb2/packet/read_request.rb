@@ -10,7 +10,7 @@ module RubySMB
 
         smb2_header           :smb2_header
         uint16                :structure_size,        label: 'Structure Size',  initial_value: 49
-        uint8                 :padding,               label: 'Padding'
+        uint8                 :padding,               label: 'Padding',         initial_value: 0x50
         uint8                 :flags,                 label: 'Flags'
         uint32                :read_length,           label: 'Read Length'
         uint64                :offset,                label: 'Read Offset'
@@ -20,7 +20,7 @@ module RubySMB
         uint32                :remaining_bytes,       label: 'Remaining Bytes'
         uint16                :channel_offset,        label: 'Read Channel Info Offset'
         uint16                :channel_length,        label: 'Read Channel Info Length'
-        string                :buffer,                label: 'Read Channel info Buffer'
+        string                :buffer,                label: 'Read Channel info Buffer',  initial_value: 0x00
 
         def initialize_instance
           super

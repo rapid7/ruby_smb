@@ -83,6 +83,7 @@ module RubySMB
           create_request.desired_access.delete_access = 1
         end
 
+        create_request.requested_oplock     = 0xff
         create_request.impersonation_level  = impersonation
         create_request.create_disposition   = disposition
         create_request.name                 = filename

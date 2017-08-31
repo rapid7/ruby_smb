@@ -5,6 +5,10 @@ module RubySMB
     # various I/O operations on.
     class File
 
+      # The maximum number of byte we want to read in a
+      # single packet.
+      MAX_READ_SIZE = 32768
+
       # The {FileAttributes} for the file
       # @!attribute [rw] attributes
       #   @return [RubySMB::Fscc::FileAttributes]
@@ -64,6 +68,34 @@ module RubySMB
         @last_write   = response.last_write.to_datetime
         @size         = response.end_of_file
         @size_on_disk = response.allocation_size
+      end
+
+      # Read from the file, a specific number of bytes
+      # from a specific offset. If no parameters are given
+      # it will read the entire file.
+      #
+      # @param bytes [Integer] the number of bytes to read
+      # @param offset [Integer] the byte offset in the file to start reading from
+      # @return [String] the data read from the file
+      def read(bytes: self.size, offset: 0)
+        read_request = RubySMB::SMB2::Packet::ReadRequest.new
+
+        read_request          = tree.set_header_fields(read_request)
+        read_request.file_id  = self.guid
+
+        if bytes > MAX_READ_SIZE
+          atomic_read_size = MAX_READ_SIZE
+        else
+          atomic_read_size = bytes
+        end
+
+        read_request.read_length  = atomic_read_size
+        read_request.offset       = offset
+
+        raw_response = self.tree.client.send_recv(read_request)
+        response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+
+        data = response.buffer
       end
 
     end

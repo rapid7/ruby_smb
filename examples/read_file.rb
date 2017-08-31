@@ -33,6 +33,8 @@ rescue Exception => e
 end
 
 file = tree.open_file(filename: file)
+
+data = file.read
 require 'pry'
 binding.pry
 
