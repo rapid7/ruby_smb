@@ -6,6 +6,7 @@ module RubySMB::SMB1
 
   require 'ruby_smb/smb1/create_actions'
   require 'ruby_smb/smb1/oplock_levels'
+  require 'ruby_smb/smb1/resource_type'
   require 'ruby_smb/smb1/commands'
   require 'ruby_smb/smb1/andx_block'
   require 'ruby_smb/smb1/bit_field'

@@ -10,6 +10,7 @@ module RubySMB
       SMB_COM_LOGOFF                  = 0x74
       SMB_COM_TREE_CONNECT            = 0x75
       SMB_COM_NT_TRANSACT             = 0xA0
+      SMB_COM_NT_CREATE_ANDX          = 0xA2
       SMB_COM_NO_ANDX_COMMAND         = 0xFF
     end
   end

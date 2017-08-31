@@ -171,6 +171,14 @@ RSpec.describe RubySMB::SMB1::BitField::CreateOptions do
     it_behaves_like 'bit field with one flag set', :open_no_recall, 'V', 0x00400000
   end
 
+  describe '#open_reparse_point' do
+    it 'is a 1-bit flag' do
+      expect(options.reserve_opfilter).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :open_reparse_point, 'V', 0x00200000
+  end
+
   describe '#reserve_opfilter' do
     it 'is a 1-bit flag' do
       expect(options.reserve_opfilter).to be_a BinData::Bit1

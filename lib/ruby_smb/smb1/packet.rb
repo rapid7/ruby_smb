@@ -19,6 +19,8 @@ module RubySMB
       require 'ruby_smb/smb1/packet/echo_response'
       require 'ruby_smb/smb1/packet/trans2'
       require 'ruby_smb/smb1/packet/nt_trans'
+      require 'ruby_smb/smb1/packet/nt_create_andx_request'
+      require 'ruby_smb/smb1/packet/nt_create_andx_response'
     end
   end
 end
