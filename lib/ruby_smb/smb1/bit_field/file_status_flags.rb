@@ -3,7 +3,7 @@ module RubySMB
     module BitField
       # Represents a FileStatusFlags BitField as used by both the SMB_COM_NT_CREATE_ANDX
       # and the NT_TRANSACT_CREATE Responses. The definition for this field can be found at
-      # [2.2.4.9.2 Server Response Extensions] (https://msdn.microsoft.com/en-us/library/cc246334.aspx)
+      # [2.2.4.9.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246334.aspx)
       class FileStatusFlags < BinData::Record
         endian  :little
         bit5    :reserved,      label: 'Reserved'

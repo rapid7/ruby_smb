@@ -4,7 +4,7 @@ module RubySMB
 
       # A SMB1 SMB_COM_NT_CREATE_ANDX Response Packet as defined in
       # [2.2.4.64.2 Response](https://msdn.microsoft.com/en-us/library/ee441612.aspx) and
-      # [2.2.4.9.2 Server Response Extensions] (https://msdn.microsoft.com/en-us/library/cc246334.aspx)
+      # [2.2.4.9.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246334.aspx)
       class NtCreateAndxResponse < RubySMB::GenericPacket
 
         # A SMB1 Parameter Block as defined by the {NtCreateAndxResponse}
