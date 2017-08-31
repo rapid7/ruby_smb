@@ -43,6 +43,54 @@ module RubySMB
         response.status_code
       end
 
+      def open_file(filename: , attributes: nil , options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+        impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,  read:true, write: false, delete: false )
+
+        create_request = RubySMB::SMB2::Packet::CreateRequest.new
+        create_request = set_header_fields(create_request)
+
+        # If the user supplied file attributes, use those, otherwise set some
+        # sane defaults.
+        if attributes
+          create_request.file_attributes = attributes
+        else
+          create_request.file_attributes.directory  = 0
+          create_request.file_attributes.normal     = 1
+        end
+
+        # If the user supplied Create Options, use those, otherwise set some
+        # sane defaults.
+        if options
+          create_request.create_options = options
+        else
+          create_request.create_options.directory_file      = 0
+          create_request.create_options.non_directory_file  = 1
+        end
+
+        if read
+          create_request.share_access.read_access = 1
+          create_request.desired_access.read_data = 1
+        end
+
+        if write
+          create_request.share_access.write_access   = 1
+          create_request.desired_access.write_data   = 1
+          create_request.desired_access.append_data  = 1
+        end
+
+        if delete
+          create_request.share_access.delete_access   = 1
+          create_request.desired_access.delete_access = 1
+        end
+
+        create_request.impersonation_level  = impersonation
+        create_request.create_disposition   = disposition
+        create_request.name                 = filename
+
+        raw_response  = client.send_recv(create_request)
+        response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+      end
+
       # List `directory` on the remote share.
       #
       # @example
