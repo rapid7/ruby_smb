@@ -59,9 +59,9 @@ module RubySMB
 
         @attributes   = response.file_attributes
         @guid         = response.file_id
-        @last_access  = response.last_access
-        @last_change  = response.last_chnge
-        @last_write   = response.last_write
+        @last_access  = response.last_access.to_datetime
+        @last_change  = response.last_change.to_datetime
+        @last_write   = response.last_write.to_datetime
         @size         = response.end_of_file
         @size_on_disk = response.allocation_size
       end

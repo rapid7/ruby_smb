@@ -89,6 +89,8 @@ module RubySMB
 
         raw_response  = client.send_recv(create_request)
         response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+
+        RubySMB::SMB2::File.new(name: filename, tree: self, response: response)
       end
 
       # List `directory` on the remote share.
