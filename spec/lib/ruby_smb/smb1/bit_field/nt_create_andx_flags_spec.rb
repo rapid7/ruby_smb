@@ -10,20 +10,38 @@ RSpec.describe RubySMB::SMB1::BitField::NtCreateAndxFlags do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  {
-    :request_extended_response => 0x00000010,
-    :open_target_dir           => 0x00000008,
-    :request_opbatch           => 0x00000004,
-    :request_oplock            => 0x00000002
-  }.each do |field, bitmask|
-    describe "##{field.to_s}" do
-      it 'is a 1-bit flag' do
-        expect(options.send(field)).to be_a BinData::Bit1
-      end
-
-      it_behaves_like 'bit field with one flag set', field, 'V', bitmask
+  describe '#request_extended_response' do
+    it 'is a 1-bit flag' do
+      expect(options.request_extended_response).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :request_extended_response, 'V', 0x00000010
   end
+
+  describe '#open_target_dir' do
+    it 'is a 1-bit flag' do
+      expect(options.open_target_dir).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :open_target_dir, 'V', 0x00000008
+  end
+
+  describe '#request_opbatch' do
+    it 'is a 1-bit flag' do
+      expect(options.request_opbatch).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :request_opbatch, 'V', 0x00000004
+  end
+
+  describe '#request_oplock' do
+    it 'is a 1-bit flag' do
+      expect(options.request_oplock).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :request_oplock, 'V', 0x00000002
+  end
+
 end
 
 

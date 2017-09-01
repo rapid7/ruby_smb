@@ -8,18 +8,22 @@ RSpec.describe RubySMB::SMB1::BitField::SecurityFlags do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  {
-    :effective_only   => 0x02,
-    :context_tracking => 0x01
-  }.each do |field, bitmask|
-    describe "##{field.to_s}" do
-      it 'is a 1-bit flag' do
-        expect(options.send(field)).to be_a BinData::Bit1
-      end
-
-      it_behaves_like 'bit field with one flag set', field, 'C', bitmask
+  describe '#effective_only' do
+    it 'is a 1-bit flag' do
+      expect(options.effective_only).to be_a BinData::Bit1
     end
+
+    it_behaves_like 'bit field with one flag set', :effective_only, 'C', 0x02
   end
+
+  describe '#context_tracking' do
+    it 'is a 1-bit flag' do
+      expect(options.context_tracking).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :context_tracking, 'C', 0x01
+  end
+
 end
 
 

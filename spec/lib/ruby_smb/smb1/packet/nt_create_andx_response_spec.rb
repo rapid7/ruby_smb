@@ -96,19 +96,31 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       end
     end
 
-    [:maximal_access_rights, :guest_maximal_access_rights].each do |field|
-      describe "##{field.to_s}" do
-        it 'should be a DirectoryAccessMask when the file is a directory' do
-          parameter_block.ext_file_attributes.directory = 1
-          access_mask = parameter_block.send(field).send(:current_choice)
-          expect(access_mask.class).to eq RubySMB::SMB1::BitField::DirectoryAccessMask
-        end
+    describe "#maximal_access_rights" do
+      it 'should be a DirectoryAccessMask when the file is a directory' do
+        parameter_block.ext_file_attributes.directory = 1
+        access_mask = parameter_block.maximal_access_rights.send(:current_choice)
+        expect(access_mask.class).to eq RubySMB::SMB1::BitField::DirectoryAccessMask
+      end
 
-        it 'should be a FileAccessMask when the file is not a directory' do
-          parameter_block.ext_file_attributes.directory = 0
-          access_mask = parameter_block.send(field).send(:current_choice)
-          expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
-        end
+      it 'should be a FileAccessMask when the file is not a directory' do
+        parameter_block.ext_file_attributes.directory = 0
+        access_mask = parameter_block.maximal_access_rights.send(:current_choice)
+        expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
+      end
+    end
+
+    describe "#guest_maximal_access_rights" do
+      it 'should be a DirectoryAccessMask when the file is a directory' do
+        parameter_block.ext_file_attributes.directory = 1
+        access_mask = parameter_block.guest_maximal_access_rights.send(:current_choice)
+        expect(access_mask.class).to eq RubySMB::SMB1::BitField::DirectoryAccessMask
+      end
+
+      it 'should be a FileAccessMask when the file is not a directory' do
+        parameter_block.ext_file_attributes.directory = 0
+        access_mask = parameter_block.guest_maximal_access_rights.send(:current_choice)
+        expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
       end
     end
 
