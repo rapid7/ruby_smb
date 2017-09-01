@@ -36,3 +36,5 @@ file = tree.open_file(filename: file)
 
 data = file.read
 puts data
+file.close
+
