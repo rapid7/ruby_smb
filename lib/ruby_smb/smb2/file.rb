@@ -70,6 +70,16 @@ module RubySMB
         @size_on_disk = response.allocation_size
       end
 
+      # Closes the handle to the remote file.
+      #
+      # @return [WindowsError::ErrorCode] the NTStatus code returned by the operation
+      def close
+        close_request = set_header_fields(RubySMB::SMB2::Packet::CloseRequest.new)
+        raw_response  = self.tree.client.send_recv(close_request)
+        response  = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
+        response.smb2_header.nt_status.to_nt_status
+      end
+
       # Read from the file, a specific number of bytes
       # from a specific offset. If no parameters are given
       # it will read the entire file.
