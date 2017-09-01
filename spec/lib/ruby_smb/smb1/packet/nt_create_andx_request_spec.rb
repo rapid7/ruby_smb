@@ -39,9 +39,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
     describe '#words' do
       subject(:words) { parameter_block.words }
 
-      it { is_expected.to respond_to :andx_command }
-      it { is_expected.to respond_to :andx_reserved }
-      it { is_expected.to respond_to :andx_offset }
+      it { is_expected.to respond_to :andx_block }
       it { is_expected.to respond_to :reserved }
       it { is_expected.to respond_to :name_length }
       it { is_expected.to respond_to :flags }
@@ -55,16 +53,8 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
       it { is_expected.to respond_to :impersonation_level }
       it { is_expected.to respond_to :security_flags }
 
-      it 'has a #andx_command field correctly initialized' do
-        expect(words.andx_command).to eq(0xFF)
-      end
-
-      it 'has a #andx_reserved field correctly initialized' do
-        expect(words.andx_reserved).to eq(0x00)
-      end
-
-      it 'has a #andx_offset field correctly initialized' do
-        expect(words.andx_offset).to eq(0x0000)
+      it 'has a AndXBlock' do
+        expect(words.andx_block).to be_a RubySMB::SMB1::AndXBlock
       end
 
       it 'has a NtCreateAndxFlags bit-field' do

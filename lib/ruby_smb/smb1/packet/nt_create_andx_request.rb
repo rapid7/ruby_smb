@@ -11,9 +11,7 @@ module RubySMB
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
           struct :words, onlyif: -> { word_count.nonzero? } do
-            uint8                              :andx_command,        label: 'AndX Command',       initial_value: 0xFF
-            uint8                              :andx_reserved,       label: 'AndX Reserved',      initial_value: 0x00
-            uint16                             :andx_offset,         label: 'AndX Offset',        initial_value: 0x0000
+            and_x_block                        :andx_block
             uint8                              :reserved,            label: 'Reserved'
             uint16                             :name_length,         label: 'Name Length(bytes)', value: lambda { self.parent.data_block.bytes.file_name.length }
             nt_create_andx_flags               :flags,               label: 'Flags'

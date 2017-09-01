@@ -39,9 +39,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
     describe '#words' do
       subject(:words) { parameter_block.words }
 
-      it { is_expected.to respond_to :andx_command }
-      it { is_expected.to respond_to :andx_reserved }
-      it { is_expected.to respond_to :andx_offset }
+      it { is_expected.to respond_to :andx_block }
       it { is_expected.to respond_to :oplock_level }
       it { is_expected.to respond_to :fid }
       it { is_expected.to respond_to :create_disposition }
@@ -59,6 +57,10 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       it { is_expected.to respond_to :file_id }
       it { is_expected.to respond_to :maximal_access_rights }
       it { is_expected.to respond_to :guest_maximal_access_rights }
+
+      it 'has a AndXBlock' do
+        expect(words.andx_block).to be_a RubySMB::SMB1::AndXBlock
+      end
 
       it 'has a #create_time defined as a FileTime' do
         expect(words.create_time).to be_a RubySMB::Field::FileTime

@@ -12,9 +12,7 @@ module RubySMB
           endian :little
 
           struct :words, onlyif: -> { word_count.nonzero? } do
-            uint8                   :andx_command,        label: 'AndX Command'
-            uint8                   :andx_reserved,       label: 'AndX Reserved'
-            uint16                  :andx_offset,         label: 'AndX Offset'
+            and_x_block             :andx_block
             # Constants defined in RubySMB::SMB1::OplockLevels
             uint8                   :oplock_level,        label: 'OpLock Level'
             uint16                  :fid,                 label: 'FID'
