@@ -13,7 +13,20 @@ module RubySMB
           and_x_block                        :andx_block
           uint8                              :reserved,            label: 'Reserved'
           uint16                             :name_length,         label: 'Name Length(bytes)', value: lambda { self.parent.data_block.file_name.length }
-          nt_create_andx_flags               :flags,               label: 'Flags'
+
+          struct :flags, label: 'Flags' do
+            bit3    :reserved,                   label: 'Reserved Space'
+            bit1    :request_extended_response,  label: 'Request Extended Response'
+            bit1    :open_target_dir,            label: 'Open Target Directory'
+            bit1    :request_opbatch,            label: 'Request Batch OpLock'
+            bit1    :request_oplock,             label: 'Request OpLock'
+            bit1    :reserved2,                  label: 'Reserved Space'
+            # Byte boundary
+            bit8    :reserved3,                  label: 'Reserved Space'
+            bit8    :reserved4,                  label: 'Reserved Space'
+            bit8    :reserved5,                  label: 'Reserved Space'
+          end
+
           uint32                             :root_directory_fid,  label: 'Root Directory FID'
 
           choice :desired_access, selection: lambda { ext_file_attributes.directory } do

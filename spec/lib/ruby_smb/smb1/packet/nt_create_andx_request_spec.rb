@@ -24,8 +24,11 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
       expect(parameter_block).to be_a RubySMB::SMB1::ParameterBlock
     end
 
+    it 'is little endian' do
+      expect(parameter_block.get_parameter(:endian).endian).to eq :little
+    end
+
     it { is_expected.to respond_to :andx_block }
-    it { is_expected.to respond_to :reserved }
     it { is_expected.to respond_to :name_length }
     it { is_expected.to respond_to :flags }
     it { is_expected.to respond_to :root_directory_fid }
@@ -38,34 +41,63 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
     it { is_expected.to respond_to :impersonation_level }
     it { is_expected.to respond_to :security_flags }
 
-    it 'has a AndXBlock' do
-      expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
+    describe '#andx_block' do
+      it 'is a AndXBlock struct' do
+        expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
+      end
     end
 
-    it 'has a NtCreateAndxFlags bit-field' do
-      expect(parameter_block.flags).to be_a RubySMB::SMB1::BitField::NtCreateAndxFlags
+    describe '#name_length' do
+      it 'is updated according to the #file_name length' do
+        file_name = "test_name"
+        packet.data_block.file_name = file_name
+        expect(parameter_block.name_length).to eq(file_name.length)
+      end
     end
 
-    it 'has a SmbExtFileAttributes bit-field' do
-      expect(parameter_block.ext_file_attributes).to be_a RubySMB::SMB1::BitField::SmbExtFileAttributes
-    end
+    describe '#flags' do
+      subject(:flags) { parameter_block.flags }
 
-    it 'has a ShareAccess bit-field' do
-      expect(parameter_block.share_access).to be_a RubySMB::SMB1::BitField::ShareAccess
-    end
+      it { is_expected.to respond_to :request_extended_response }
+      it { is_expected.to respond_to :open_target_dir }
+      it { is_expected.to respond_to :request_opbatch }
+      it { is_expected.to respond_to :request_oplock }
 
-    it 'has a CreateOptions bit-field' do
-      expect(parameter_block.create_options).to be_a RubySMB::SMB1::BitField::CreateOptions
-    end
+      it 'is little endian' do
+        expect(flags.get_parameter(:endian).endian).to eq :little
+      end
 
-    it 'has a SecurityFlags bit-field' do
-      expect(parameter_block.security_flags).to be_a RubySMB::SMB1::BitField::SecurityFlags
-    end
+      describe '#request_extended_response' do
+        it 'is a 1-bit flag' do
+          expect(flags.request_extended_response).to be_a BinData::Bit1
+        end
 
-    it 'has a #name_length field updated according to the #file_name length' do
-      file_name = "test_name"
-      packet.data_block.file_name = file_name
-      expect(parameter_block.name_length).to eq(file_name.length)
+        it_behaves_like 'bit field with one flag set', :request_extended_response, 'V', 0x00000010
+      end
+
+      describe '#open_target_dir' do
+        it 'is a 1-bit flag' do
+          expect(flags.open_target_dir).to be_a BinData::Bit1
+        end
+
+        it_behaves_like 'bit field with one flag set', :open_target_dir, 'V', 0x00000008
+      end
+
+      describe '#request_opbatch' do
+        it 'is a 1-bit flag' do
+          expect(flags.request_opbatch).to be_a BinData::Bit1
+        end
+
+        it_behaves_like 'bit field with one flag set', :request_opbatch, 'V', 0x00000004
+      end
+
+      describe '#request_oplock' do
+        it 'is a 1-bit flag' do
+          expect(flags.request_oplock).to be_a BinData::Bit1
+        end
+
+        it_behaves_like 'bit field with one flag set', :request_oplock, 'V', 0x00000002
+      end
     end
 
     describe '#desired_access' do
@@ -79,6 +111,30 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
         parameter_block.ext_file_attributes.directory = 0
         access_mask = parameter_block.desired_access.send(:current_choice)
         expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
+      end
+    end
+
+    describe '#ext_file_attributes' do
+      it 'is a SmbExtFileAttributes bit-field' do
+        expect(parameter_block.ext_file_attributes).to be_a RubySMB::SMB1::BitField::SmbExtFileAttributes
+      end
+    end
+
+    describe '#share_access' do
+      it 'is a ShareAccess bit-field' do
+        expect(parameter_block.share_access).to be_a RubySMB::SMB1::BitField::ShareAccess
+      end
+    end
+
+    describe '#create_options' do
+      it 'is a CreateOptions bit-field' do
+        expect(parameter_block.create_options).to be_a RubySMB::SMB1::BitField::CreateOptions
+      end
+    end
+
+    describe '#security_flags' do
+      it 'is a SecurityFlags bit-field' do
+        expect(parameter_block.security_flags).to be_a RubySMB::SMB1::BitField::SecurityFlags
       end
     end
 

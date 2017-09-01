@@ -24,6 +24,10 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       expect(parameter_block).to be_a RubySMB::SMB1::ParameterBlock
     end
 
+    it 'is little endian' do
+      expect(parameter_block.get_parameter(:endian).endian).to eq :little
+    end
+
     it { is_expected.to respond_to :andx_block }
     it { is_expected.to respond_to :oplock_level }
     it { is_expected.to respond_to :fid }
@@ -43,32 +47,46 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
     it { is_expected.to respond_to :maximal_access_rights }
     it { is_expected.to respond_to :guest_maximal_access_rights }
 
-    it 'has a AndXBlock' do
-      expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
+    describe '#andx_block' do
+      it 'is a AndXBlock struct' do
+        expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
+      end
     end
 
-    it 'has a #create_time defined as a FileTime' do
-      expect(parameter_block.create_time).to be_a RubySMB::Field::FileTime
+    describe '#create_time' do
+      it 'is as a FileTime struct' do
+        expect(parameter_block.create_time).to be_a RubySMB::Field::FileTime
+      end
     end
 
-    it 'has a #last_access_time defined as a FileTime' do
-      expect(parameter_block.last_access_time).to be_a RubySMB::Field::FileTime
+    describe '#last_access_time' do
+      it 'is as a FileTime struct' do
+        expect(parameter_block.last_access_time).to be_a RubySMB::Field::FileTime
+      end
     end
 
-    it 'has a #last_write_time defined as a FileTime' do
-      expect(parameter_block.last_write_time).to be_a RubySMB::Field::FileTime
+    describe '#last_write_time' do
+      it 'is as a FileTime struct' do
+        expect(parameter_block.last_write_time).to be_a RubySMB::Field::FileTime
+      end
     end
 
-    it 'has a #last_change_time defined as a FileTime' do
-      expect(parameter_block.last_change_time).to be_a RubySMB::Field::FileTime
+    describe '#last_change_time' do
+      it 'is as a FileTime struct' do
+        expect(parameter_block.last_change_time).to be_a RubySMB::Field::FileTime
+      end
     end
 
-    it 'has a SmbExtFileAttributes bit-field' do
-      expect(parameter_block.ext_file_attributes).to be_a RubySMB::SMB1::BitField::SmbExtFileAttributes
+    describe '#ext_file_attributes' do
+      it 'is a SmbExtFileAttributes bit-field' do
+        expect(parameter_block.ext_file_attributes).to be_a RubySMB::SMB1::BitField::SmbExtFileAttributes
+      end
     end
 
-    it 'has a #volume_guid with the correct length' do
-      expect(parameter_block.volume_guid.length).to eq (16)
+    describe '#volume_guid' do
+      it 'has the correct length' do
+        expect(parameter_block.volume_guid.length).to eq (16)
+      end
     end
 
     describe '#status_flag' do
