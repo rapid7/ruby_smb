@@ -78,17 +78,13 @@ module RubySMB
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
       def read(bytes: self.size, offset: 0)
-        read_request = set_header_fields(RubySMB::SMB2::Packet::ReadRequest.new)
-
         if bytes > MAX_READ_SIZE
           atomic_read_size = MAX_READ_SIZE
         else
           atomic_read_size = bytes
         end
 
-        read_request.read_length  = atomic_read_size
-        read_request.offset       = offset
-
+        read_request = read_packet(read_length: atomic_read_size, offset: offset)
         raw_response = self.tree.client.send_recv(read_request)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
 
@@ -102,10 +98,7 @@ module RubySMB
             atomic_read_size = remaining_bytes
           end
 
-          read_request = set_header_fields(RubySMB::SMB2::Packet::ReadRequest.new)
-
-          read_request.read_length  = atomic_read_size
-          read_request.offset       = offset
+          read_request = read_packet(read_length: atomic_read_size, offset: offset)
           raw_response = self.tree.client.send_recv(read_request)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
 
@@ -113,6 +106,18 @@ module RubySMB
           remaining_bytes = remaining_bytes - atomic_read_size
         end
         data
+      end
+
+      # Crafts the ReadRequest packet to be sent for read operations.
+      #
+      # @param bytes [Integer] the number of bytes to read
+      # @param offset [Integer] the byte offset in the file to start reading from
+      # @return [RubySMB::SMB2::Packet::ReadRequest] the data read from the file
+      def read_packet(read_length:0, offset:0)
+        read_request = set_header_fields(RubySMB::SMB2::Packet::ReadRequest.new)
+        read_request.read_length  = read_length
+        read_request.offset       = offset
+        read_request
       end
 
       def set_header_fields(request)
