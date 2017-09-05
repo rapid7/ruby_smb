@@ -21,10 +21,8 @@ module RubySMB
           signature = OpenSSL::Digest::MD5.digest(session_key + packet.to_binary_s)[0, 8]
           packet.smb_header.security_features = signature
           self.sequence_counter += 1
-          packet
-        else
-          packet
         end
+        packet
       end
 
       # Take an SMB2 packet and checks to see if it should be signed.
@@ -39,10 +37,8 @@ module RubySMB
           packet.smb2_header.signature = "\x00" * 16
           hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, packet.to_binary_s)
           packet.smb2_header.signature = hmac[0, 16]
-          packet
-        else
-          packet
         end
+        packet
       end
     end
   end

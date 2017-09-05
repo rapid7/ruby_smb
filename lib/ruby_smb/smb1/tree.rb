@@ -90,7 +90,7 @@ module RubySMB
         sid   = response.data_block.trans2_parameters.sid
         last  = results.last.file_name
 
-        while eos == 0
+        while eos.zero?
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
           find_next_request.smb_header.tid              = id
           find_next_request.smb_header.flags2.eas       = 1

@@ -1,4 +1,5 @@
 module RubySMB
+  # Namespace for all of the custom BinData fields used by RubySMB
   module Field
     require 'ruby_smb/field/file_time'
     require 'ruby_smb/field/utime'

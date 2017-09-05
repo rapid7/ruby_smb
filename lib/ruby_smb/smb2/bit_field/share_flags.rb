@@ -25,9 +25,9 @@ module RubySMB
         bit8    :reserved4,                 label: 'Reserved Space'
 
         def caching_type
-          if vdo_caching == 1 && auto_caching == 0
+          if vdo_caching == 1 && auto_caching.zero?
             :vdo
-          elsif vdo_caching == 0 && auto_caching == 1
+          elsif vdo_caching.zero? && auto_caching == 1
             :auto
           elsif vdo_caching == 1 && auto_caching == 1
             :no_caching
