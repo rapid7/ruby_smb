@@ -1,10 +1,8 @@
 module RubySMB
   module SMB1
-
     # An SMB1 connected remote Tree, as returned by a
     # [RubySMB::SMB1::Packet::TreeConnectRequest]
     class Tree
-
       # The client this Tree is connected through
       # @!attribute [rw] client
       #   @return [RubySMB::Client]
@@ -43,8 +41,8 @@ module RubySMB
       # @return [WindowsError::ErrorCode] the NTStatus sent back by the server.
       def disconnect!
         request = RubySMB::SMB1::Packet::TreeDisconnectRequest.new
-        request.smb_header.tid = self.id
-        raw_response = self.client.send_recv(request)
+        request.smb_header.tid = id
+        raw_response = client.send_recv(request)
         response = RubySMB::SMB1::Packet::TreeDisconnectResponse.read(raw_response)
         response.status_code
       end
@@ -59,9 +57,9 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
-      def list(directory: '\\', pattern: '*', type: RubySMB::Fscc::FileInformation::FileFullDirectoryInformation )
+      def list(directory: '\\', pattern: '*', type: RubySMB::Fscc::FileInformation::FileFullDirectoryInformation)
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
-        find_first_request.smb_header.tid             = self.id
+        find_first_request.smb_header.tid             = id
         find_first_request.smb_header.flags2.eas      = 1
         find_first_request.smb_header.flags2.unicode  = 1
 
@@ -83,7 +81,7 @@ module RubySMB
 
         find_first_request = set_find_params(find_first_request)
 
-        raw_response  = self.client.send_recv(find_first_request)
+        raw_response  = client.send_recv(find_first_request)
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
 
         results = response.results(type)
@@ -92,9 +90,9 @@ module RubySMB
         sid   = response.data_block.trans2_parameters.sid
         last  = results.last.file_name
 
-        while eos == 0 do
+        while eos == 0
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
-          find_next_request.smb_header.tid              = self.id
+          find_next_request.smb_header.tid              = id
           find_next_request.smb_header.flags2.eas       = 1
           find_next_request.smb_header.flags2.unicode   = 1
 
@@ -108,7 +106,7 @@ module RubySMB
 
           find_next_request = set_find_params(find_next_request)
 
-          raw_response  = self.client.send_recv(find_next_request)
+          raw_response  = client.send_recv(find_next_request)
           response      = RubySMB::SMB1::Packet::Trans2::FindNext2Response.read(raw_response)
 
           results += response.results(type)
@@ -119,7 +117,6 @@ module RubySMB
 
         results
       end
-
 
       private
 
@@ -132,7 +129,7 @@ module RubySMB
         request.parameter_block.data_offset            = 0
         request.parameter_block.total_parameter_count  = request.parameter_block.parameter_count
         request.parameter_block.max_parameter_count    = request.parameter_block.parameter_count
-        request.parameter_block.max_data_count         = 16384
+        request.parameter_block.max_data_count         = 16_384
         request
       end
     end

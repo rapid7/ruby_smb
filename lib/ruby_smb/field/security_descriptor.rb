@@ -4,7 +4,7 @@ module RubySMB
     # [2.4.6 SECURITY_DESCRIPTOR](https://msdn.microsoft.com/en-us/library/cc230366.aspx)
     class SecurityDescriptor < BinData::Record
       endian  :little
-      uint8   :revision,  label: 'Revision',  initial_value: 0x01
+      uint8   :revision,  label: 'Revision', initial_value: 0x01
       uint8   :sbz1,      label: 'Resource Manager Control Bits'
 
       struct :control do
@@ -28,10 +28,10 @@ module RubySMB
         bit1    :dacl_trusted,              label: 'DACL Trusted'
       end
 
-      uint32  :offset_owner,  label: 'Offset Owner',  initial_value: lambda { owner_sid.rel_offset }
-      uint32  :offset_group,  label: 'Offset Group',  initial_value: lambda { group_sid.rel_offset }
-      uint32  :offset_sacl,   label: 'Offset SACL',   initial_value: lambda { sacl.rel_offset }
-      uint32  :offset_dacl,   label: 'Offset DACL',   initial_value: lambda { dacl.rel_offset }
+      uint32  :offset_owner,  label: 'Offset Owner',  initial_value: -> { owner_sid.rel_offset }
+      uint32  :offset_group,  label: 'Offset Group',  initial_value: -> { group_sid.rel_offset }
+      uint32  :offset_sacl,   label: 'Offset SACL',   initial_value: -> { sacl.rel_offset }
+      uint32  :offset_dacl,   label: 'Offset DACL',   initial_value: -> { dacl.rel_offset }
 
       string  :owner_sid, label: 'Owner SID'
       string  :group_sid, label: 'Group SID'

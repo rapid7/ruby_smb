@@ -1,9 +1,7 @@
 module RubySMB
   class Client
-
     # Contains the methods for handling packet signing
     module Signing
-
       # The NTLM Session Key used for signing
       # @!attribute [rw] session_key
       #   @return [String]
@@ -16,11 +14,11 @@ module RubySMB
       # @param packet [RubySMB::GenericPacket] the packet to sign
       # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb1_sign(packet)
-        if self.signing_required && !self.session_key.empty?
+        if signing_required && !session_key.empty?
           # Pack the Sequence counter into a int64le
-          packed_sequence_counter = [self.sequence_counter].pack('Q<')
+          packed_sequence_counter = [sequence_counter].pack('Q<')
           packet.smb_header.security_features = packed_sequence_counter
-          signature = OpenSSL::Digest::MD5.digest(self.session_key + packet.to_binary_s)[0,8]
+          signature = OpenSSL::Digest::MD5.digest(session_key + packet.to_binary_s)[0, 8]
           packet.smb_header.security_features = signature
           self.sequence_counter += 1
           packet
@@ -36,17 +34,16 @@ module RubySMB
       # @param packet [RubySMB::GenericPacket] the packet to sign
       # @return [RubySMB::GenericPacket] the packet, signed if needed
       def smb2_sign(packet)
-        if self.signing_required && !self.session_key.empty?
+        if signing_required && !session_key.empty?
           packet.smb2_header.flags.signed = 1
           packet.smb2_header.signature = "\x00" * 16
-          hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, self.session_key, packet.to_binary_s)
-          packet.smb2_header.signature = hmac[0,16]
+          hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, packet.to_binary_s)
+          packet.smb2_header.signature = hmac[0, 16]
           packet
         else
           packet
         end
       end
-
     end
   end
 end

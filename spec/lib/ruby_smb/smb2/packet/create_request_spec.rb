@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -46,7 +45,7 @@ RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
   end
 
   describe '#share_accesss' do
-    subject(:flags) {packet.share_access}
+    subject(:flags) { packet.share_access }
 
     describe '#read_access' do
       it 'should be a 1-bit field per the SMB spec' do
@@ -95,9 +94,8 @@ RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
 
   describe '#name' do
     it 'encodes any input into UTF-16LE' do
-      packet.name = "Hello"
+      packet.name = 'Hello'
       expect(packet.name.to_binary_s).to eq "H\x00e\x00l\x00l\x00o\x00"
     end
   end
-
 end

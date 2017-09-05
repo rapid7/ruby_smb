@@ -1,11 +1,9 @@
 module RubySMB
   module SMB1
     module Packet
-
       # This class represents an SMB1 TreeDisonnect Response Packet as defined in
       # [2.2.4.51.2 Response](https://msdn.microsoft.com/en-us/library/ee441823.aspx)
       class TreeDisconnectResponse < RubySMB::GenericPacket
-
         # The Parameter Block for this packet is empty save the Word Count
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
         end
@@ -23,7 +21,6 @@ module RubySMB
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TREE_DISCONNECT
           smb_header.flags.reply = 1
         end
-
       end
     end
   end

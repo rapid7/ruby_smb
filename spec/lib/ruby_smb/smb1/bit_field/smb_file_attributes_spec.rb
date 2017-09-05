@@ -104,10 +104,4 @@ RSpec.describe RubySMB::SMB1::BitField::SmbFileAttributes do
 
     it_behaves_like 'bit field with one flag set', :search_archive, 'v', 0x2000
   end
-
-
-
-
-
-
 end

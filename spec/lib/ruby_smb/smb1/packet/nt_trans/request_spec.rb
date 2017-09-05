@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::NtTrans::Request do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -38,7 +37,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::Request do
     it { is_expected.to respond_to :data_count }
     it { is_expected.to respond_to :data_offset }
     it { is_expected.to respond_to :setup_count }
-
 
     describe 'parameter_count' do
       it 'is a count of bytes in the data_block trans2_parameters field' do
@@ -84,8 +82,5 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::Request do
     it 'should keep #trans2_data 4-byte aligned' do
       expect(data_block.trans2_data.abs_offset % 4).to eq 0
     end
-
   end
-
-
 end

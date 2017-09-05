@@ -1,13 +1,11 @@
 module RubySMB
   module SMB2
-
     # Represents a file on the Remote server that we can perform
     # various I/O operations on.
     class File
-
       # The maximum number of byte we want to read in a
       # single packet.
-      MAX_READ_SIZE = 32768
+      MAX_READ_SIZE = 32_768
 
       # The {FileAttributes} for the file
       # @!attribute [rw] attributes
@@ -54,9 +52,9 @@ module RubySMB
       #   @return [RubySMB::SMB2::Tree]
       attr_accessor :tree
 
-      def initialize(tree:,response:, name:)
-        raise ArgumentError, "No Tree Provided" if tree.nil?
-        raise ArgumentError, "No Response Provided" if response.nil?
+      def initialize(tree:, response:, name:)
+        raise ArgumentError, 'No Tree Provided' if tree.nil?
+        raise ArgumentError, 'No Response Provided' if response.nil?
 
         @tree = tree
         @name = name
@@ -75,8 +73,8 @@ module RubySMB
       # @return [WindowsError::ErrorCode] the NTStatus code returned by the operation
       def close
         close_request = set_header_fields(RubySMB::SMB2::Packet::CloseRequest.new)
-        raw_response  = self.tree.client.send_recv(close_request)
-        response  = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
+        raw_response  = tree.client.send_recv(close_request)
+        response = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
         response.smb2_header.nt_status.to_nt_status
       end
 
@@ -87,33 +85,31 @@ module RubySMB
       # @param bytes [Integer] the number of bytes to read
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
-      def read(bytes: self.size, offset: 0)
-        if bytes > MAX_READ_SIZE
-          atomic_read_size = MAX_READ_SIZE
-        else
-          atomic_read_size = bytes
-        end
+      def read(bytes: size, offset: 0)
+        atomic_read_size = if bytes > MAX_READ_SIZE
+                             MAX_READ_SIZE
+                           else
+                             bytes
+                           end
 
         read_request = read_packet(read_length: atomic_read_size, offset: offset)
-        raw_response = self.tree.client.send_recv(read_request)
+        raw_response = tree.client.send_recv(read_request)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
 
         data = response.buffer.to_binary_s
 
         remaining_bytes = bytes - atomic_read_size
 
-        while remaining_bytes > 0 do
+        while remaining_bytes > 0
           offset += atomic_read_size
-          if remaining_bytes < MAX_READ_SIZE
-            atomic_read_size = remaining_bytes
-          end
+          atomic_read_size = remaining_bytes if remaining_bytes < MAX_READ_SIZE
 
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
-          raw_response = self.tree.client.send_recv(read_request)
+          raw_response = tree.client.send_recv(read_request)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
 
           data << response.buffer.to_binary_s
-          remaining_bytes = remaining_bytes - atomic_read_size
+          remaining_bytes -= atomic_read_size
         end
         data
       end
@@ -123,7 +119,7 @@ module RubySMB
       # @param bytes [Integer] the number of bytes to read
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [RubySMB::SMB2::Packet::ReadRequest] the data read from the file
-      def read_packet(read_length:0, offset:0)
+      def read_packet(read_length: 0, offset: 0)
         read_request = set_header_fields(RubySMB::SMB2::Packet::ReadRequest.new)
         read_request.read_length  = read_length
         read_request.offset       = offset
@@ -132,10 +128,9 @@ module RubySMB
 
       def set_header_fields(request)
         request         = tree.set_header_fields(request)
-        request.file_id = self.guid
+        request.file_id = guid
         request
       end
-
     end
   end
 end

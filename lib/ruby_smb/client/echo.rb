@@ -1,9 +1,7 @@
 module RubySMB
   class Client
-
     # Contains the methods for doing ECHO commands
     module Echo
-
       # Sends an ECHO request packet and returns the
       # last response packet.
       #
@@ -20,7 +18,6 @@ module RubySMB
         end
         RubySMB::SMB1::Packet::EchoResponse.read(raw_response)
       end
-
 
       # Sends an ECHO request packet and returns the
       # response packet.

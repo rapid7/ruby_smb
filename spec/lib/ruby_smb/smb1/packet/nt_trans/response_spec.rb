@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::NtTrans::Response do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -34,7 +33,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::Response do
     it { is_expected.to respond_to :data_count }
     it { is_expected.to respond_to :data_offset }
     it { is_expected.to respond_to :setup_count }
-
 
     describe 'parameter_count' do
       it 'is a count of bytes in the data_block trans2_parameters field' do
@@ -70,6 +68,4 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::Response do
       expect(data_block).to be_a RubySMB::SMB1::Packet::NtTrans::Request::DataBlock
     end
   end
-
-
 end

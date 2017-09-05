@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -26,7 +25,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
     it 'should have the setup set to the OPEN2 subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_FIRST2
     end
-
   end
 
   describe '#data_block' do
@@ -59,31 +57,29 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
 
       it { is_expected.to respond_to :buffer }
     end
-
   end
 
   describe '#results' do
     let(:names1) {
       names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
-      names.file_name = "test.txt"
+      names.file_name = 'test.txt'
       names.next_offset = names.do_num_bytes
       names
     }
 
     let(:names2) {
       names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
-      names.file_name = ".."
+      names.file_name = '..'
       names
     }
 
-    let(:names_array) { [names1, names2 ]}
+    let(:names_array) { [names1, names2] }
 
-    let(:names_blob) { names_array.collect { |name| name.to_binary_s }.join('') }
+    let(:names_blob) { names_array.collect(&:to_binary_s).join('') }
 
     it 'returns an array of parsed Fileinformation structs' do
       packet.data_block.trans2_data.buffer = names_blob
       expect(packet.results(RubySMB::Fscc::FileInformation::FileNamesInformation)).to eq names_array
     end
-
   end
 end

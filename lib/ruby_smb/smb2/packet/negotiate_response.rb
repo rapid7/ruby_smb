@@ -6,7 +6,7 @@ module RubySMB
       class NegotiateResponse < RubySMB::GenericPacket
         endian              :little
         smb2_header         :smb2_header
-        uint16              :structure_size,   label: 'Structure Size', initial_value: 65
+        uint16              :structure_size, label: 'Structure Size', initial_value: 65
         smb2_security_mode  :security_mode
         uint16              :dialect_revision,          label: 'Dialect Revision'
         uint16              :negotiate_context_count,   label: 'Negotiate Context Count',      initial_value: 0

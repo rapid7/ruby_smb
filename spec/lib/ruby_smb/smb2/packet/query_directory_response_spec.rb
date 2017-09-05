@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryResponse do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -42,26 +41,24 @@ RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryResponse do
   describe '#results' do
     let(:names1) {
       names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
-      names.file_name = "test.txt"
+      names.file_name = 'test.txt'
       names.next_offset = names.do_num_bytes
       names
     }
 
     let(:names2) {
       names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
-      names.file_name = ".."
+      names.file_name = '..'
       names
     }
 
-    let(:names_array) { [names1, names2 ]}
+    let(:names_array) { [names1, names2] }
 
-    let(:names_blob) { names_array.collect { |name| name.to_binary_s }.join('') }
+    let(:names_blob) { names_array.collect(&:to_binary_s).join('') }
 
     it 'returns an array of parsed Fileinformation structs' do
       packet.buffer = names_blob
       expect(packet.results(RubySMB::Fscc::FileInformation::FileNamesInformation)).to eq names_array
     end
-
   end
-
 end

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::TreeConnectRequest do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -46,8 +45,5 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectRequest do
     it { is_expected.to respond_to :password }
     it { is_expected.to respond_to :path }
     it { is_expected.to respond_to :service }
-
   end
-
-
 end

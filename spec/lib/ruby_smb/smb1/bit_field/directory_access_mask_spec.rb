@@ -34,7 +34,6 @@ RSpec.describe RubySMB::SMB1::BitField::DirectoryAccessMask do
     it_behaves_like 'bit field with one flag set', :list, 'V', 0x00000001
   end
 
-
   describe '#add_file' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(flags.add_file).to be_a BinData::Bit1
@@ -186,5 +185,4 @@ RSpec.describe RubySMB::SMB1::BitField::DirectoryAccessMask do
 
     it_behaves_like 'bit field with one flag set', :generic_read, 'V', 0x80000000
   end
-
 end

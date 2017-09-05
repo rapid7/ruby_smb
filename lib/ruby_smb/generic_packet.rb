@@ -21,16 +21,15 @@ module RubySMB
       display_str
     end
 
-
     def packet_smb_version
       class_name = self.class.to_s
       case class_name
-        when /SMB1/
-          'SMB1'
-        when /SMB2/
-          'SMB2'
-        else
-          ''
+      when /SMB1/
+        'SMB1'
+      when /SMB2/
+        'SMB2'
+      else
+        ''
       end
     end
 
@@ -38,10 +37,10 @@ module RubySMB
       value = -1
       smb_version = packet_smb_version
       case smb_version
-        when 'SMB1'
-          value = self.smb_header.nt_status.value
-        when 'SMB2'
-          value = self.smb2_header.nt_status.value
+      when 'SMB1'
+        value = smb_header.nt_status.value
+      when 'SMB2'
+        value = smb2_header.nt_status.value
       end
       status_code = WindowsError::NTStatus.find_by_retval(value).first
       if status_code.nil?
@@ -135,7 +134,7 @@ module RubySMB
           if field[:class].ancestors.include? BinData::Record
             field_str = label
           else
-            value = self.send(name)
+            value = send(name)
             field_str = sprintf '%-30s %s', label, value
           end
         else

@@ -7,7 +7,6 @@
 require 'bundler/setup'
 require 'ruby_smb'
 
-
 def run_negotiation(address, smb1, smb2)
   # Create our socket and add it to the dispatcher
   sock = TCPSocket.new address, 445

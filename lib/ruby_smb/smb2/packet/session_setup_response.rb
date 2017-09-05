@@ -1,18 +1,16 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 SessionSetupResponse Packet as defined in
       # [2.2.6 SMB2 SESSION_SETUP Response](https://msdn.microsoft.com/en-us/library/cc246564.aspx)
       class SessionSetupResponse < RubySMB::GenericPacket
         endian :little
         smb2_header         :smb2_header
-        uint16              :structure_size,          label: 'Structure Size',          initial_value: 9
+        uint16              :structure_size, label: 'Structure Size', initial_value: 9
         session_flags       :session_flags
-        uint16              :security_buffer_offset,  label: 'Security Buffer Offset',  initial_value: 0x48
+        uint16              :security_buffer_offset,  label: 'Security Buffer Offset', initial_value: 0x48
         uint16              :security_buffer_length,  label: 'Security Buffer Length'
-        string              :buffer,                  label: 'Security Buffer',         length: lambda { self.security_buffer_length }
-
+        string              :buffer,                  label: 'Security Buffer', length: -> { security_buffer_length }
 
         def initialize_instance
           super
@@ -31,7 +29,6 @@ module RubySMB
           self.security_buffer_length = gss_blob.length
           self.buffer = gss_blob
         end
-
       end
     end
   end

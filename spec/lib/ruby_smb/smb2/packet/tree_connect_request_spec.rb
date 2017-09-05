@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -10,7 +9,6 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
   it { is_expected.to respond_to :path_offset }
   it { is_expected.to respond_to :path_length }
   it { is_expected.to respond_to :path }
-
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -33,8 +31,8 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
   end
 
   describe '#encode_path' do
-    let(:path) { "\\192.168.1.1\\example" }
-    let(:encoded_path) { path.encode("utf-16le").force_encoding("binary") }
+    let(:path) { '\\192.168.1.1\\example' }
+    let(:encoded_path) { path.encode('utf-16le').force_encoding('binary') }
 
     it 'sets the path string to a UTF-16LE version of the supplied string' do
       packet.encode_path(path)

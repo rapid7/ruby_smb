@@ -6,7 +6,6 @@
 require 'bundler/setup'
 require 'ruby_smb'
 
-
 def run_authentication(address, smb1, smb2, username, password)
   # Create our socket and add it to the dispatcher
   sock = TCPSocket.new address, 445
@@ -14,7 +13,7 @@ def run_authentication(address, smb1, smb2, username, password)
 
   client = RubySMB::Client.new(dispatcher, smb1: smb1, smb2: smb2, username: username, password: password)
   protocol = client.negotiate
-  status  = client.authenticate
+  status = client.authenticate
   puts "#{protocol} : #{status}"
 end
 
@@ -24,4 +23,3 @@ password = ''
 
 # Negotiate with only SMB1 enabled
 run_authentication(address, true, false, username, password)
-

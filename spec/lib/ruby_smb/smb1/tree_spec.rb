@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Tree do
-  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
 
   let(:client) { RubySMB::Client.new(dispatcher, username: 'msfadmin', password: 'msfadmin') }
@@ -15,7 +15,7 @@ RSpec.describe RubySMB::SMB1::Tree do
     packet
   }
   subject(:tree) {
-    described_class.new(client:client, share:path, response:response )
+    described_class.new(client: client, share: path, response: response)
   }
 
   it { is_expected.to respond_to :client }

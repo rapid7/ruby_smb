@@ -11,7 +11,7 @@ module RubySMB
         # the response should use this Information Class Structure.
         SMB2_FLAG = 0x26
 
-        endian  :little
+        endian :little
 
         uint32           :next_offset,      label: 'Next Entry Offset'
         uint32           :file_index,       label: 'File Index'
@@ -22,15 +22,12 @@ module RubySMB
         uint64           :end_of_file,      label: 'End of File'
         uint64           :allocation_size,  label: 'Allocated Size'
         file_attributes  :file_attributes,  label: 'File Attributes'
-        uint32           :file_name_length, label: 'File Name Length',          initial_value: lambda { file_name.do_num_bytes }
+        uint32           :file_name_length, label: 'File Name Length', initial_value: -> { file_name.do_num_bytes }
         uint32           :ea_size,          label: 'Extended Attributes Size'
         uint32           :reserved,         label: 'Reserved Space'
         uint64           :file_id,          label: 'File ID'
-        string16         :file_name,        label: 'File Name',                 read_length: lambda { file_name_length }
-
-
+        string16         :file_name,        label: 'File Name', read_length: -> { file_name_length }
       end
     end
   end
 end
-

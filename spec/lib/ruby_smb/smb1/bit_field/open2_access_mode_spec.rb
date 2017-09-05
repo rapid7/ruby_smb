@@ -73,9 +73,7 @@ RSpec.describe RubySMB::SMB1::BitField::Open2AccessMode do
     end
 
     it 'raises an ArgumentError if given an invalid mode' do
-      expect{flags.set_access_mode('abcd')}.to raise_error(ArgumentError)
+      expect { flags.set_access_mode('abcd') }.to raise_error(ArgumentError)
     end
   end
-
-
 end

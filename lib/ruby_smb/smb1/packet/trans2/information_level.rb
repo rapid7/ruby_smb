@@ -7,7 +7,6 @@ module RubySMB
         # of information that a server MUST respond with for each file matching the
         # request's search criteria.
         module SmbInfo
-
           # Return creation, access, and last write timestamps, size and file attributes along with the file name.
           SMB_INFO_STANDARD                 = 0x0001
           # Return the SMB_INFO_STANDARD data along with the size of a file's extended attributes (EAs).

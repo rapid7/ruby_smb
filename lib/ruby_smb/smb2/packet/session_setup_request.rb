@@ -1,7 +1,6 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 SessionSetupRequest Packet as defined in
       # [2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
@@ -15,8 +14,7 @@ module RubySMB
         uint16                     :security_buffer_offset,  label: 'Security Buffer Offset',  initial_value: 0x58
         uint16                     :security_buffer_length,  label: 'Security Buffer Length'
         uint64                     :previous_session_id,     label: 'Previous Session ID'
-        string                     :buffer,                  label: 'Security Buffer',         length: lambda { self.security_buffer_length }
-
+        string                     :buffer,                  label: 'Security Buffer', length: -> { security_buffer_length }
 
         def initialize_instance
           super
@@ -46,7 +44,6 @@ module RubySMB
           self.security_buffer_length = gss_blob.length
           self.buffer = gss_blob
         end
-
       end
     end
   end

@@ -9,7 +9,6 @@ RSpec.describe RubySMB::SMB1::Packet::EmptyPacket do
     it 'is a standard SMB Header' do
       expect(header).to be_a RubySMB::SMB1::SMBHeader
     end
-
   end
 
   describe '#parameter_block' do
@@ -35,5 +34,4 @@ RSpec.describe RubySMB::SMB1::Packet::EmptyPacket do
       expect(data_block.to_binary_s).to eq "\x00\x00"
     end
   end
-
 end

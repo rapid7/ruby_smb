@@ -3,7 +3,7 @@ module RubySMB
     # The bit-field for File System Control Code File Attributes as defined in
     # [2.6 File Attributes](https://msdn.microsoft.com/en-us/library/cc232110.aspx)
     class FileAttributes < BinData::Record
-      endian  :little
+      endian :little
       bit1  :normal,       label: 'Normal File/Directory'
       bit1  :device,       label: 'Device'
       bit1  :archive,      label: 'Archive'

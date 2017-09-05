@@ -3,7 +3,6 @@ module RubySMB
   # Control Codes as defined in
   # [[MS-FSCC]: File System Control Codes](https://msdn.microsoft.com/en-us/library/cc231987.aspx)
   module Fscc
-
     require 'ruby_smb/fscc/file_attributes'
     require 'ruby_smb/fscc/file_full_ea_info'
     require 'ruby_smb/fscc/ea_info_array'

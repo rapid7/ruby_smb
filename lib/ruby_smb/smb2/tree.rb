@@ -1,10 +1,8 @@
 module RubySMB
   module SMB2
-
     # An SMB2 connected remote Tree, as returned by a
     # [RubySMB::SMB2::Packet::TreeConnectRequest]
     class Tree
-
       # The client this Tree is connected through
       # @!attribute [rw] client
       #   @return [RubySMB::Client]
@@ -38,13 +36,13 @@ module RubySMB
       def disconnect!
         request = RubySMB::SMB2::Packet::TreeDisconnectRequest.new
         request = set_header_fields(request)
-        raw_response = self.client.send_recv(request)
+        raw_response = client.send_recv(request)
         response = RubySMB::SMB2::Packet::TreeDisconnectResponse.read(raw_response)
         response.status_code
       end
 
-      def open_file(filename: , attributes: nil , options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
-        impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,  read:true, write: false, delete: false )
+      def open_file(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                    impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
 
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
@@ -104,22 +102,22 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
-      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation )
-        create_response = open_directory(directory:directory)
+      def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation)
+        create_response = open_directory(directory: directory)
         file_id         = create_response.file_id
 
         directory_request                         = RubySMB::SMB2::Packet::QueryDirectoryRequest.new
         directory_request.file_information_class  = type::SMB2_FLAG
         directory_request.file_id                 = file_id
         directory_request.name                    = pattern
-        directory_request.output_length           = 65535
+        directory_request.output_length           = 65_535
 
         directory_request = set_header_fields(directory_request)
 
         files = []
 
         loop do
-          response            = self.client.send_recv(directory_request)
+          response            = client.send_recv(directory_request)
           directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
 
           status_code         = directory_response.smb2_header.nt_status.to_nt_status
@@ -150,13 +148,13 @@ module RubySMB
       # @param write [Boolean] whether to request write access
       # @param delete [Boolean] whether to request delete access
       # @return [RubySMB::SMB2::Packet::CreateResponse] the response packet returned from the server
-      def open_directory(directory:nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+      def open_directory(directory: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                          impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
-                         read:true, write: false, delete: false)
+                         read: true, write: false, delete: false)
 
-        create_request  = open_directory_packet(directory:directory, disposition:disposition,
-                                                impersonation: impersonation, read:read, write:write,delete:delete)
-        raw_response    = self.client.send_recv(create_request)
+        create_request  = open_directory_packet(directory: directory, disposition: disposition,
+                                                impersonation: impersonation, read: read, write: write, delete: delete)
+        raw_response    = client.send_recv(create_request)
         RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
       end
 
@@ -169,9 +167,9 @@ module RubySMB
       # @param write [Boolean] whether to request write access
       # @param delete [Boolean] whether to request delete access
       # @return [RubySMB::SMB2::Packet::CreateRequest] the request packet to send to the server
-      def open_directory_packet(directory:nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+      def open_directory_packet(directory: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                                 impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
-                                read:true, write: false, delete: false)
+                                read: true, write: false, delete: false)
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 
@@ -184,10 +182,8 @@ module RubySMB
         create_request.share_access.delete_access     = 1 if delete
         create_request.create_disposition             = disposition
 
-
-
         if directory.nil? || directory.empty?
-          create_request.name   = "\x00"
+          create_request.name = "\x00"
           create_request.name_length = 0
         else
           create_request.name = directory
@@ -201,12 +197,11 @@ module RubySMB
       # @param [RubySMB::SMB2::Packet] the request packet to modify
       # @return [RubySMB::SMB2::Packet] the modified packet.
       def set_header_fields(request)
-        request.smb2_header.tree_id = self.id
+        request.smb2_header.tree_id = id
         request.smb2_header.credit_charge = 1
         request.smb2_header.credits = 256
         request
       end
-
     end
   end
 end

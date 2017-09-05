@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::Request do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -91,8 +90,5 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Request do
       data_block.trans2_parameters = 'a'
       expect(data_block.trans2_data.abs_offset % 4).to eq 0
     end
-
   end
-
-
 end

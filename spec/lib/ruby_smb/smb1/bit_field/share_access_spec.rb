@@ -32,7 +32,4 @@ RSpec.describe RubySMB::SMB1::BitField::ShareAccess do
 
     it_behaves_like 'bit field with one flag set', :share_delete, 'V', 0x00000004
   end
-
-
-
 end

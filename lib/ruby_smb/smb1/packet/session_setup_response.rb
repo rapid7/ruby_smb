@@ -1,21 +1,19 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 SMB_COM_SESSION_SETUP Response Packet as defined in
       # [2.2.4.6.2](https://msdn.microsoft.com/en-us/library/cc246329.aspx)
       class SessionSetupResponse < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
           uint16        :action,       label: 'Action'
-          uint16        :security_blob_length,  label: 'Security Blob Length'
+          uint16        :security_blob_length, label: 'Security Blob Length'
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          string      :security_blob,  label: 'Security Blob (GSS-API)', length: lambda { self.parent.parameter_block.security_blob_length }
+          string      :security_blob,  label: 'Security Blob (GSS-API)', length: -> { parent.parameter_block.security_blob_length }
           stringz     :native_os,      label: 'Native OS'
           stringz     :native_lan_man, label: 'Native LAN Manager'
         end

@@ -180,7 +180,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateRequest do
     end
 
     describe '#trans2_data' do
-      subject(:data) { data_block.trans2_data}
+      subject(:data) { data_block.trans2_data }
 
       it { is_expected.to respond_to :security_descriptor }
       it { is_expected.to respond_to :extended_attributes }
@@ -197,6 +197,5 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateRequest do
         end
       end
     end
-
   end
 end

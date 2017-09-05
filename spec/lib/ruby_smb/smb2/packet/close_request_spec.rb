@@ -1,14 +1,12 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::CloseRequest do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
   it { is_expected.to respond_to :structure_size }
   it { is_expected.to respond_to :flags }
   it { is_expected.to respond_to :file_id }
-
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -39,6 +37,4 @@ RSpec.describe RubySMB::SMB2::Packet::CloseRequest do
       expect(packet.file_id).to be_a RubySMB::Field::Smb2Fileid
     end
   end
-
-
 end

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::TreeConnectResponse do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }

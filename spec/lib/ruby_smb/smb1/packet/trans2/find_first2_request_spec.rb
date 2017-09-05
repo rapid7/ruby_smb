@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -30,7 +29,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
     it 'should have the setup set to the OPEN2 subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_FIRST2
     end
-
   end
 
   describe '#data_block' do
@@ -119,14 +117,12 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
       end
 
       describe '#filename' do
-        let(:name) { "hello.txt" }
+        let(:name) { 'hello.txt' }
         it 'should be null terminated' do
           parameters.filename = name
           expect(parameters.filename.to_binary_s).to end_with("\x00")
         end
-
       end
-
     end
 
     describe '#trans2_data' do
@@ -140,8 +136,5 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
         end
       end
     end
-
   end
-
-
 end

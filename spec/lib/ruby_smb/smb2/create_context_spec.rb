@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::CreateContext do
-
   subject(:struct) { described_class.new }
 
   it { is_expected.to respond_to :next_offset }
@@ -32,7 +31,7 @@ RSpec.describe RubySMB::SMB2::CreateContext do
 
   describe '#data_offset' do
     it 'stores the relative offset of the data field' do
-      struct.data = "Hello"
+      struct.data = 'Hello'
       expect(struct.data_offset).to eq struct.data.rel_offset
     end
 
@@ -40,5 +39,4 @@ RSpec.describe RubySMB::SMB2::CreateContext do
       expect(struct.data_offset).to eq 0
     end
   end
-
 end

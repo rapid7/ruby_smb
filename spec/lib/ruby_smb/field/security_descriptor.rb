@@ -191,4 +191,3 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
     end
   end
 end
-

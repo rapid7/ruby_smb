@@ -48,5 +48,4 @@ RSpec.describe RubySMB::SMB1::BitField::OptionalSupport do
 
     it_behaves_like 'bit field with one flag set', :extended_signature, 'v', 0x0020
   end
-
 end

@@ -1,12 +1,10 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 SMB_COM_NT_CREATE_ANDX Response Packet as defined in
       # [2.2.4.64.2 Response](https://msdn.microsoft.com/en-us/library/ee441612.aspx) and
       # [2.2.4.9.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246334.aspx)
       class NtCreateAndxResponse < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {NtCreateAndxResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
@@ -27,7 +25,7 @@ module RubySMB
           # Constants defined in RubySMB::SMB1::ResourceType
           uint16                  :resource_type,       label: 'Resource Type'
 
-          choice :status_flags, selection: lambda { resource_type } do
+          choice :status_flags, selection: -> { resource_type } do
             smb_nmpipe_status RubySMB::SMB1::ResourceType::BYTE_MODE_PIPE,    label: 'Status Flags'
             smb_nmpipe_status RubySMB::SMB1::ResourceType::MESSAGE_MODE_PIPE, label: 'Status Flags'
             file_status_flags RubySMB::SMB1::ResourceType::DISK,              label: 'Status Flags'
@@ -38,16 +36,15 @@ module RubySMB
           string                  :volume_guid,         label: 'Volume GUID', length: 16
           uint64                  :file_id,             label: 'File ID'
 
-          choice :maximal_access_rights, selection: lambda { ext_file_attributes.directory } do
+          choice :maximal_access_rights, selection: -> { ext_file_attributes.directory } do
             file_access_mask      0, label: 'Maximal Access Rights'
             directory_access_mask 1, label: 'Maximal Access Rights'
           end
 
-          choice :guest_maximal_access_rights, selection: lambda { ext_file_attributes.directory } do
+          choice :guest_maximal_access_rights, selection: -> { ext_file_attributes.directory } do
             file_access_mask      0, label: 'Guest Maximal Access Rights'
             directory_access_mask 1, label: 'Guest Maximal Access Rights'
           end
-
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.
@@ -63,7 +60,6 @@ module RubySMB
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
           smb_header.flags.reply = 1
         end
-
       end
     end
   end

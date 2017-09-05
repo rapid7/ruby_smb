@@ -2,7 +2,6 @@ module RubySMB
   module SMB1
     module Packet
       module Trans2
-
         # Extends the {RubySMB::SMB1::DataBlock} to include padding methods
         # that all Trans2 DataBlocks will need to handle proper byte alignment.
         class DataBlock < RubySMB::SMB1::DataBlock
@@ -22,11 +21,11 @@ module RubySMB
           # #trans2_parameters. It should always force a 4-byte alignment.
           def pad1_length
             if enable_padding
-              if self.respond_to?(:name)
-                offset = (name.abs_offset + 1) % 4
-              else
-                offset = (byte_count.abs_offset + 2) % 4
-              end
+              offset = if respond_to?(:name)
+                         (name.abs_offset + 1) % 4
+                       else
+                         (byte_count.abs_offset + 2) % 4
+                       end
               (4 - offset) % 4
             else
               0

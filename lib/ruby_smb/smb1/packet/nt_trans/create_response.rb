@@ -2,16 +2,14 @@ module RubySMB
   module SMB1
     module Packet
       module NtTrans
-
         # Class representing a NT Transaction Create response packet as defined in
         # [2.2.7.1.2 Response](https://msdn.microsoft.com/en-us/library/ee441961.aspx)
         class CreateResponse < RubySMB::GenericPacket
-
           class ParameterBlock < RubySMB::SMB1::Packet::NtTrans::Response::ParameterBlock
           end
 
           class Trans2Parameters < BinData::Record
-            endian  :little
+            endian :little
 
             uint8                     :oplock_level,        label: 'OpLock Level'
             uint8                     :reserved,            label: 'Reserved Space'
@@ -32,15 +30,15 @@ module RubySMB
             # Returns the length of the Trans2Parameters struct
             # in number of bytes
             def length
-              self.do_num_bytes
+              do_num_bytes
             end
           end
 
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            string            :pad1,               length: lambda { pad1_length }
+            string            :pad1,               length: -> { pad1_length }
             trans2_parameters :trans2_parameters,  label: 'Trans2 Parameters'
-            string            :pad2,               length: lambda { pad2_length }
-            string            :trans2_data,        label: 'Trans2 Data',            length: 0
+            string            :pad2,               length: -> { pad2_length }
+            string            :trans2_data,        label: 'Trans2 Data', length: 0
           end
 
           smb_header        :smb_header

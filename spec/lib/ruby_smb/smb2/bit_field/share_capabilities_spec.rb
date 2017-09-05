@@ -7,7 +7,6 @@ RSpec.describe RubySMB::SMB2::BitField::ShareCapabilities do
   it { is_expected.to respond_to :continuous }
   it { is_expected.to respond_to :dfs }
 
-
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end

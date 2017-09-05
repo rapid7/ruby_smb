@@ -1,19 +1,18 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::Client do
-
-  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
   let(:username) { 'msfadmin' }
   let(:password) { 'msfadmin' }
   subject(:client) { described_class.new(dispatcher, username: username, password: password) }
-  let(:smb1_client) { described_class.new(dispatcher, smb2:false, username: username, password: password) }
-  let(:smb2_client) { described_class.new(dispatcher, smb1:false, username: username, password: password) }
+  let(:smb1_client) { described_class.new(dispatcher, smb2: false, username: username, password: password) }
+  let(:smb2_client) { described_class.new(dispatcher, smb1: false, username: username, password: password) }
   let(:empty_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
 
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
-      expect{ described_class.new(nil) }.to raise_error(ArgumentError)
+      expect { described_class.new(nil) }.to raise_error(ArgumentError)
     end
 
     it 'defaults to true for SMB1 support' do
@@ -25,7 +24,7 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'accepts an argument to disable smb1 support' do
-      smb_client = described_class.new(dispatcher, smb1:false, username: username, password: password)
+      smb_client = described_class.new(dispatcher, smb1: false, username: username, password: password)
       expect(smb_client.smb1).to be false
     end
 
@@ -34,10 +33,10 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'raises an exception if both SMB1 and SMB2 are disabled' do
-      expect{described_class.new(dispatcher, smb1:false, smb2:false, username: username, password: password)}.to raise_error(ArgumentError, 'You must enable at least one Protocol')
+      expect { described_class.new(dispatcher, smb1: false, smb2: false, username: username, password: password) }.to raise_error(ArgumentError, 'You must enable at least one Protocol')
     end
 
-    it 'sets the username attribute'  do
+    it 'sets the username attribute' do
       expect(client.username).to eq username
     end
 
@@ -56,7 +55,7 @@ RSpec.describe RubySMB::Client do
 
     before(:each) do
       expect(dispatcher).to receive(:send_packet).and_return(nil)
-      expect(dispatcher).to receive(:recv_packet).and_return("A")
+      expect(dispatcher).to receive(:recv_packet).and_return('A')
     end
 
     it 'checks the packet version' do
@@ -64,7 +63,7 @@ RSpec.describe RubySMB::Client do
       client.send_recv(smb1_request)
     end
 
-    it 'calls #smb1_sign if it is an SMB1 packet'  do
+    it 'calls #smb1_sign if it is an SMB1 packet' do
       expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
       client.send_recv(smb1_request)
     end
@@ -73,7 +72,6 @@ RSpec.describe RubySMB::Client do
       expect(client).to receive(:smb2_sign).with(smb2_request).and_call_original
       client.send_recv(smb2_request)
     end
-
   end
 
   describe '#login' do
@@ -83,39 +81,39 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'defaults username to what was in the initializer' do
-      expect{ client.login }.to_not change(client, :username)
+      expect { client.login }.to_not change(client, :username)
     end
 
     it 'overrides username if it is passed as a parameter' do
-      expect{ client.login(username:'test') }.to change(client, :username).to('test')
+      expect { client.login(username: 'test') }.to change(client, :username).to('test')
     end
 
     it 'defaults password to what was in the initializer' do
-      expect{ client.login }.to_not change(client, :password)
+      expect { client.login }.to_not change(client, :password)
     end
 
     it 'overrides password if it is passed as a parameter' do
-      expect{ client.login(password:'test') }.to change(client, :password).to('test')
+      expect { client.login(password: 'test') }.to change(client, :password).to('test')
     end
 
     it 'defaults domain to what was in the initializer' do
-      expect{ client.login }.to_not change(client, :domain)
+      expect { client.login }.to_not change(client, :domain)
     end
 
     it 'overrides domain if it is passed as a parameter' do
-      expect{ client.login(domain:'test') }.to change(client, :domain).to('test')
+      expect { client.login(domain: 'test') }.to change(client, :domain).to('test')
     end
 
     it 'defaults local_workstation to what was in the initializer' do
-      expect{ client.login }.to_not change(client, :local_workstation)
+      expect { client.login }.to_not change(client, :local_workstation)
     end
 
     it 'overrides local_workstation if it is passed as a parameter' do
-      expect{ client.login(local_workstation:'test') }.to change(client, :local_workstation).to('test')
+      expect { client.login(local_workstation: 'test') }.to change(client, :local_workstation).to('test')
     end
 
     it 'initialises a new NTLM Client' do
-      expect{ client.login }.to change(client, :ntlm_client)
+      expect { client.login }.to change(client, :ntlm_client)
     end
 
     it 'calls negotiate after the setup' do
@@ -127,37 +125,36 @@ RSpec.describe RubySMB::Client do
       expect(client).to receive(:authenticate)
       client.login
     end
-
   end
 
   context 'Protocol Negotiation' do
-    let(:random_junk) { "fgrgrwgawrtw4t4tg4gahgn" }
+    let(:random_junk) { 'fgrgrwgawrtw4t4tg4gahgn' }
     let(:smb1_capabilities) {
-      {:level_2_oplocks=>1,
-       :nt_status=>1,
-       :rpc_remote_apis=>1,
-       :nt_smbs=>1,
-       :large_files=>1,
-       :unicode=>1,
-       :mpx_mode=>0,
-       :raw_mode=>0,
-       :large_writex=>1,
-       :large_readx=>1,
-       :info_level_passthru=>1,
-       :dfs=>0,
-       :reserved1=>0,
-       :bulk_transfer=>0,
-       :nt_find=>1,
-       :lock_and_read=>1,
-       :unix=>0,
-       :reserved2=>0,
-       :lwio=>1,
-       :extended_security=>1,
-       :reserved3=>0,
-       :dynamic_reauth=>0,
-       :reserved4=>0,
-       :compressed_data=>0,
-       :reserved5=>0}
+      { level_2_oplocks: 1,
+        nt_status: 1,
+        rpc_remote_apis: 1,
+        nt_smbs: 1,
+        large_files: 1,
+        unicode: 1,
+        mpx_mode: 0,
+        raw_mode: 0,
+        large_writex: 1,
+        large_readx: 1,
+        info_level_passthru: 1,
+        dfs: 0,
+        reserved1: 0,
+        bulk_transfer: 0,
+        nt_find: 1,
+        lock_and_read: 1,
+        unix: 0,
+        reserved2: 0,
+        lwio: 1,
+        extended_security: 1,
+        reserved3: 0,
+        dynamic_reauth: 0,
+        reserved4: 0,
+        compressed_data: 0,
+        reserved5: 0 }
     }
     let(:smb1_extended_response) {
       packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.new
@@ -176,19 +173,19 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'sets the default SMB1 Dialect' do
-        expect(client.smb1_negotiate_request.dialects).to include({:buffer_format=>2, :dialect_string=> RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT})
+        expect(client.smb1_negotiate_request.dialects).to include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT)
       end
 
       it 'sets the SMB2.02 dialect if SMB2 support is enabled' do
-        expect(client.smb1_negotiate_request.dialects).to include({:buffer_format=>2, :dialect_string=> RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT})
+        expect(client.smb1_negotiate_request.dialects).to include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT)
       end
 
       it 'excludes the SMB2.02 Dialect if SMB2 support is disabled' do
-        expect(smb1_client.smb1_negotiate_request.dialects).to_not include({:buffer_format=>2, :dialect_string=> RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT})
+        expect(smb1_client.smb1_negotiate_request.dialects).to_not include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT)
       end
 
       it 'excludes the default SMB1 Dialect if SMB1 support is disabled' do
-        expect(smb2_client.smb1_negotiate_request.dialects).to_not include({:buffer_format=>2, :dialect_string=> RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT})
+        expect(smb2_client.smb1_negotiate_request.dialects).to_not include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT)
       end
     end
 
@@ -227,7 +224,7 @@ RSpec.describe RubySMB::Client do
 
       it 'returns the raw response string from the server' do
         expect(client).to receive(:send_recv).and_return('A')
-        expect(client.negotiate_request).to eq "A"
+        expect(client.negotiate_request).to eq 'A'
       end
     end
 
@@ -238,39 +235,39 @@ RSpec.describe RubySMB::Client do
         end
 
         it 'raises an exception if the Response is invalid' do
-          expect{ smb1_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
 
         it 'considers the response invalid if it is not an actual Negotiate Response' do
           bogus_response = smb1_extended_response
           bogus_response.smb_header.command = 0xff
-          expect{ smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
 
         it 'considers the response invalid if Extended Security is not enabled' do
           bogus_response = smb1_extended_response
           bogus_response.parameter_block.capabilities.extended_security = 0
-          expect{ smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
       context 'with only SMB2' do
         it 'returns a properly formed packet' do
-          expect( smb2_client.negotiate_response(smb2_response.to_binary_s) ).to eq smb2_response
+          expect(smb2_client.negotiate_response(smb2_response.to_binary_s)).to eq smb2_response
         end
 
         it 'raises an exception if the Response is invalid' do
-          expect{ smb2_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb2_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
       context 'with SMB1 and SMB2 enabled' do
         it 'returns an SMB1 NegotiateResponse if it looks like SMB1' do
-          expect( client.negotiate_response(smb1_extended_response_raw) ).to eq smb1_extended_response
+          expect(client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
         end
 
         it 'returns an SMB2 NegotiateResponse if it looks like SMB2' do
-          expect( client.negotiate_response(smb2_response.to_binary_s) ).to eq smb2_response
+          expect(client.negotiate_response(smb2_response.to_binary_s)).to eq smb2_response
         end
       end
     end
@@ -279,7 +276,7 @@ RSpec.describe RubySMB::Client do
       context 'when SMB1 was Negotiated' do
         it 'turns off SMB2 support' do
           client.parse_negotiate_response(smb1_extended_response)
-          expect( client.smb2 ).to be false
+          expect(client.smb2).to be false
         end
 
         it 'sets whether or not signing is required' do
@@ -292,7 +289,7 @@ RSpec.describe RubySMB::Client do
       context 'when SMB2 was negotiated' do
         it 'turns off SMB1 support' do
           client.parse_negotiate_response(smb2_response)
-          expect( client.smb1 ).to be false
+          expect(client.smb1).to be false
         end
 
         it 'sets whether or not signing is required' do
@@ -315,10 +312,10 @@ RSpec.describe RubySMB::Client do
 
   context 'Authentication' do
     let(:type2_string) {
-      "TlRMTVNTUAACAAAAHgAeADgAAAA1goriwmZ8HEHtFHAAAAAAAAAAAJgAmABW\nAAAABgGxHQAAAA" +
-        "9XAEkATgAtAFMATgBKAEQARwAwAFUAQQA5ADAARgACAB4A\nVwBJAE4ALQBTAE4ASgBEAEcAMABV" +
-        "AEEAOQAwAEYAAQAeAFcASQBOAC0AUwBO\nAEoARABHADAAVQBBADkAMABGAAQAHgBXAEkATgAtAF" +
-        "MATgBKAEQARwAwAFUA\nQQA5ADAARgADAB4AVwBJAE4ALQBTAE4ASgBEAEcAMABVAEEAOQAwAEYABw" +
+      "TlRMTVNTUAACAAAAHgAeADgAAAA1goriwmZ8HEHtFHAAAAAAAAAAAJgAmABW\nAAAABgGxHQAAAA" \
+        "9XAEkATgAtAFMATgBKAEQARwAwAFUAQQA5ADAARgACAB4A\nVwBJAE4ALQBTAE4ASgBEAEcAMABV" \
+        "AEEAOQAwAEYAAQAeAFcASQBOAC0AUwBO\nAEoARABHADAAVQBBADkAMABGAAQAHgBXAEkATgAtAF" \
+        "MATgBKAEQARwAwAFUA\nQQA5ADAARgADAB4AVwBJAE4ALQBTAE4ASgBEAEcAMABVAEEAOQAwAEYABw" \
         "AI\nADxThZ4nnNIBAAAAAA==\n"
     }
 
@@ -342,12 +339,11 @@ RSpec.describe RubySMB::Client do
     end
 
     context 'for SMB1' do
-      let(:ntlm_client)  { smb1_client.ntlm_client }
-      let(:type1_message)  { ntlm_client.init_context }
+      let(:ntlm_client) { smb1_client.ntlm_client }
+      let(:type1_message) { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
       let(:user_id) { 2041 }
-
 
       describe '#smb1_ntlmssp_auth_packet' do
         it 'creates a new SessionSetupRequest packet' do
@@ -421,11 +417,11 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an UnexpectedStatusCode if the status code is not correct' do
           response.smb_header.nt_status = 0xc0000015
-          expect{ smb1_client.smb1_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error( RubySMB::Error::UnexpectedStatusCode)
+          expect { smb1_client.smb1_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
 
         it 'raises an InvalidPacket if the Command field is wrong' do
-          expect{ smb1_client.smb1_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.smb1_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
@@ -446,12 +442,12 @@ RSpec.describe RubySMB::Client do
         end
 
         it 'raises an InvalidPacket if the Command field is wrong' do
-          expect{ smb1_client.smb1_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.smb1_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
       describe '#smb1_type2_message' do
-        let(:fake_type2) { "NTLMSSP FOO" }
+        let(:fake_type2) { 'NTLMSSP FOO' }
         let(:response_packet) {
           packet = RubySMB::SMB1::Packet::SessionSetupResponse.new
           packet.set_type2_blob(fake_type2)
@@ -484,16 +480,15 @@ RSpec.describe RubySMB::Client do
 
           it 'raises an InvalidPacket error if the command is wrong' do
             anonymous_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
-            expect{ smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+            expect { smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
           end
         end
-
       end
     end
 
     context 'for SMB2' do
       let(:ntlm_client) { smb2_client.ntlm_client }
-      let(:type1_message)  { ntlm_client.init_context }
+      let(:type1_message) { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
       let(:session_id) { 0x0000040000000005 }
@@ -516,7 +511,7 @@ RSpec.describe RubySMB::Client do
         end
 
         it 'increments client#smb2_message_id' do
-          expect{ smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).to(2)
+          expect { smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).to(2)
         end
       end
 
@@ -547,16 +542,16 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an UnexpectedStatusCode if the status code is not correct' do
           response.smb2_header.nt_status = 0xc0000015
-          expect{ smb2_client.smb2_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error( RubySMB::Error::UnexpectedStatusCode)
+          expect { smb2_client.smb2_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
 
         it 'raises an InvalidPacket if the Command field is wrong' do
-          expect{ smb2_client.smb2_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb2_client.smb2_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
       describe '#smb2_type2_message' do
-        let(:fake_type2) { "NTLMSSP FOO" }
+        let(:fake_type2) { 'NTLMSSP FOO' }
         let(:response_packet) {
           packet = RubySMB::SMB2::Packet::SessionSetupResponse.new
           packet.set_type2_blob(fake_type2)
@@ -583,7 +578,6 @@ RSpec.describe RubySMB::Client do
         it 'sets the session ID on the request packet' do
           expect(smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id).smb2_header.session_id).to eq session_id
         end
-
       end
 
       describe '#smb2_ntlmssp_authenticate' do
@@ -612,7 +606,7 @@ RSpec.describe RubySMB::Client do
         end
 
         it 'raises an InvalidPacket if the Command field is wrong' do
-          expect{ smb2_client.smb2_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb2_client.smb2_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
     end
@@ -626,13 +620,13 @@ RSpec.describe RubySMB::Client do
         packet.smb2_header.signature = "\x00" * 16
         packet
       }
-      let(:fake_hmac) { "\x31\x07\x78\x3e\x35\xd7\x0e\x89\x08\x43\x8a\x18\xcd\x78\x52\x39".force_encoding("ASCII-8BIT") }
+      let(:fake_hmac) { "\x31\x07\x78\x3e\x35\xd7\x0e\x89\x08\x43\x8a\x18\xcd\x78\x52\x39".force_encoding('ASCII-8BIT') }
 
       context 'if signing is required and we have a session key' do
         it 'generates the HMAC based on the packet and the NTLM session key and signs the packet with it' do
           smb2_client.session_key = 'foo'
           smb2_client.signing_required = true
-          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest::SHA256),smb2_client.session_key,request1.to_binary_s).and_return(fake_hmac)
+          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest::SHA256), smb2_client.session_key, request1.to_binary_s).and_return(fake_hmac)
           expect(smb2_client.smb2_sign(request1).smb2_header.signature).to eq fake_hmac
         end
       end
@@ -652,12 +646,11 @@ RSpec.describe RubySMB::Client do
           expect(smb2_client.smb2_sign(request1)).to eq request1
         end
       end
-
     end
 
     describe '#smb1_sign' do
       let(:request1) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
-      let(:fake_sig) { "\x9f\x62\xcf\x08\xd9\xc2\x83\x21".force_encoding("ASCII-8BIT") }
+      let(:fake_sig) { "\x9f\x62\xcf\x08\xd9\xc2\x83\x21".force_encoding('ASCII-8BIT') }
 
       context 'if signing is required and we have a session key' do
         it 'generates the signature based on the packet, the sequence counter and the NTLM session key and signs the packet with it' do
@@ -699,7 +692,7 @@ RSpec.describe RubySMB::Client do
 
     it 'increments the client message id' do
       client.smb2_message_id = 1
-      expect{ client.increment_smb_message_id(request_packet) }.to change{ client.smb2_message_id}.by(1)
+      expect { client.increment_smb_message_id(request_packet) }.to change { client.smb2_message_id }.by(1)
     end
   end
 
@@ -735,23 +728,23 @@ RSpec.describe RubySMB::Client do
       describe '#smb1_tree_from_response' do
         it 'raises an InvalidPacket exception if the command is not TREE_CONNECT' do
           response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
-          expect{ smb1_client.smb1_tree_from_response(path,response) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb1_client.smb1_tree_from_response(path, response) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
 
         it 'raises an UnexpectedStatusCode exception if we do not get STATUS_SUCCESS' do
           response.smb_header.nt_status = 0xc0000015
-          expect{ smb1_client.smb1_tree_from_response(path,response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
+          expect { smb1_client.smb1_tree_from_response(path, response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
         end
 
         it 'creates a new Tree from itself, the share path, and the response packet' do
-          expect(RubySMB::SMB1::Tree).to receive(:new).with(client:smb1_client, share:path, response:response)
-          smb1_client.smb1_tree_from_response(path,response)
+          expect(RubySMB::SMB1::Tree).to receive(:new).with(client: smb1_client, share: path, response: response)
+          smb1_client.smb1_tree_from_response(path, response)
         end
       end
     end
 
     context 'with SMB2' do
-      let(:request) { RubySMB::SMB2::Packet::TreeConnectRequest.new  }
+      let(:request) { RubySMB::SMB2::Packet::TreeConnectRequest.new }
       let(:response) {
         packet = RubySMB::SMB2::Packet::TreeConnectResponse.new
         packet.smb2_header.tree_id = tree_id
@@ -779,20 +772,19 @@ RSpec.describe RubySMB::Client do
       describe '#smb2_tree_from_response' do
         it 'raises an InvalidPacket exception if the command is not TREE_CONNECT' do
           response.smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
-          expect{ smb2_client.smb2_tree_from_response(path,response) }.to raise_error(RubySMB::Error::InvalidPacket)
+          expect { smb2_client.smb2_tree_from_response(path, response) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
 
         it 'raises an UnexpectedStatusCode exception if we do not get STATUS_SUCCESS' do
           response.smb2_header.nt_status = 0xc0000015
-          expect{ smb2_client.smb2_tree_from_response(path,response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
+          expect { smb2_client.smb2_tree_from_response(path, response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
         end
 
         it 'creates a new Tree from itself, the share path, and the response packet' do
-          expect(RubySMB::SMB2::Tree).to receive(:new).with(client:smb2_client, share:path, response:response)
-          smb2_client.smb2_tree_from_response(path,response)
+          expect(RubySMB::SMB2::Tree).to receive(:new).with(client: smb2_client, share: path, response: response)
+          smb2_client.smb2_tree_from_response(path, response)
         end
       end
-
     end
   end
 
@@ -819,9 +811,9 @@ RSpec.describe RubySMB::Client do
 
       it 'sets the data on the request packet' do
         modified_request = echo_request
-        modified_request.data_block.data = "DEADBEEF"
+        modified_request.data_block.data = 'DEADBEEF'
         expect(smb1_client).to receive(:send_recv).with(modified_request).and_return(echo_response.to_binary_s)
-        smb1_client.smb1_echo(data: "DEADBEEF")
+        smb1_client.smb1_echo(data: 'DEADBEEF')
       end
 
       it 'returns the NT status code' do

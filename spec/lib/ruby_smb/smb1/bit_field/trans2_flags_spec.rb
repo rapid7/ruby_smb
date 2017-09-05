@@ -23,6 +23,4 @@ RSpec.describe RubySMB::SMB1::BitField::Trans2Flags do
 
     it_behaves_like 'bit field with one flag set', :disconnect, 'C', 0x01
   end
-
-
 end

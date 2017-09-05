@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::RequestSecondary do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -70,8 +69,5 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::RequestSecondary do
     it 'is a standard DataBlock' do
       expect(data_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::DataBlock
     end
-
   end
-
-
 end

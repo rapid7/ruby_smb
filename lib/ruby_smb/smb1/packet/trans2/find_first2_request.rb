@@ -2,16 +2,14 @@ module RubySMB
   module SMB1
     module Packet
       module Trans2
-
         # A Trans2 FIND_FIRST2 Request Packet as defined in
         # [2.2.6.2.1](https://msdn.microsoft.com/en-us/library/ee441987.aspx)
         class FindFirst2Request < RubySMB::GenericPacket
-
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
 
           class Trans2Parameters < BinData::Record
-            endian  :little
+            endian :little
             smb_file_attributes :search_attributes, label: 'File Attributes'
             uint16              :search_count,      label: 'Search Count'
 
@@ -33,25 +31,25 @@ module RubySMB
             # Returns the length of the Trans2Parameters struct
             # in number of bytes
             def length
-              self.do_num_bytes
+              do_num_bytes
             end
           end
 
           class Trans2Data < BinData::Record
-            smb_gea_list  :extended_attribute_list, label: 'Get Extended Attribute List'
+            smb_gea_list :extended_attribute_list, label: 'Get Extended Attribute List'
 
             # Returns the length of the Trans2Data struct
             # in number of bytes
             def length
-              self.do_num_bytes
+              do_num_bytes
             end
           end
 
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            uint8              :name,               label: 'Name',              initial_value: 0x00
-            string             :pad1,               length: lambda { pad1_length }
+            uint8              :name,               label: 'Name', initial_value: 0x00
+            string             :pad1,               length: -> { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-            string             :pad2,               length: lambda { pad2_length }
+            string             :pad2,               length: -> { pad2_length }
             trans2_data        :trans2_data,        label: 'Trans2 Data'
           end
 
@@ -59,13 +57,11 @@ module RubySMB
           parameter_block   :parameter_block
           data_block        :data_block
 
-
           def initialize_instance
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_FIRST2
           end
-
         end
       end
     end

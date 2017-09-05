@@ -21,7 +21,7 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
 client = RubySMB::Client.new(dispatcher, smb1: true, smb2: true, username: username, password: password)
 protocol = client.negotiate
-status  = client.authenticate
+status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
@@ -37,4 +37,3 @@ file = tree.open_file(filename: file)
 data = file.read
 puts data
 file.close
-

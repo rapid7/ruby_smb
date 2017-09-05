@@ -1,7 +1,6 @@
 module RubySMB
   module SMB1
     module BitField
-
       # Represents a CreateOptions BitField as used by both the NT_CREATE_ANDX
       # and the NT_TRANSACT_CREATE Requests. The definition for this field can be found at
       # [2.2.4.64.1 Request](https://msdn.microsoft.com/en-us/library/ee442175.aspx) and

@@ -4,8 +4,8 @@ module RubySMB
     # [2.2.1.2.2.1 SMB_FEA_LIST](https://msdn.microsoft.com/en-us/library/ff359296.aspx)
     class SmbFeaList < BinData::Record
       endian :little
-      uint32  :size_of_list,  label: 'Size of List in Bytes', initial_value: lambda { fea_list.do_num_bytes }
-      array   :fea_list,  initial_length: 0 do
+      uint32  :size_of_list, label: 'Size of List in Bytes', initial_value: -> { fea_list.do_num_bytes }
+      array   :fea_list, initial_length: 0 do
         smb_fea
       end
     end

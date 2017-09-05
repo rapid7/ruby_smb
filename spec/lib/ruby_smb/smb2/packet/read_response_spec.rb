@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::ReadResponse do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -42,13 +41,10 @@ RSpec.describe RubySMB::SMB2::Packet::ReadResponse do
   describe '#data_length' do
     it 'sets the length of the actual buffer' do
       packet.data_length = 12
-      packet.buffer = "hello world!"
+      packet.buffer = 'hello world!'
       expect(packet.buffer.length).to eq 12
       packet.data_length = 5
-      expect(packet.buffer).to eq "hello"
+      expect(packet.buffer).to eq 'hello'
     end
   end
-
-
-
 end
