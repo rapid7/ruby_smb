@@ -9,13 +9,11 @@ RSpec.describe RubySMB::SMB1::BitField::SmbExtFileAttributes do
   it { is_expected.to respond_to :read_only }
   it { is_expected.to respond_to :compressed }
   it { is_expected.to respond_to :temporary }
-  it { is_expected.to respond_to :write_through }
-  it { is_expected.to respond_to :no_buffering }
-  it { is_expected.to respond_to :random_access }
-  it { is_expected.to respond_to :sequential_scan }
-  it { is_expected.to respond_to :delete_on_close }
-  it { is_expected.to respond_to :backup_semantics }
-  it { is_expected.to respond_to :posix_semantics }
+  it { is_expected.to respond_to :encrypted }
+  it { is_expected.to respond_to :not_content_indexed }
+  it { is_expected.to respond_to :offline }
+  it { is_expected.to respond_to :reparse_point }
+  it { is_expected.to respond_to :sparse }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -85,60 +83,44 @@ RSpec.describe RubySMB::SMB1::BitField::SmbExtFileAttributes do
     it_behaves_like 'bit field with one flag set', :compressed, 'V', 0x00000800
   end
 
-  describe 'posix_semantics' do
+  describe 'encrypted' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.posix_semantics).to be_a BinData::Bit1
+      expect(attrs.encrypted).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :posix_semantics, 'V', 0x01000000
+    it_behaves_like 'bit field with one flag set', :encrypted, 'V', 0x00004000
   end
 
-  describe 'backup_semantics' do
+  describe 'not_content_indexed' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.backup_semantics).to be_a BinData::Bit1
+      expect(attrs.not_content_indexed).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :backup_semantics, 'V', 0x02000000
+    it_behaves_like 'bit field with one flag set', :not_content_indexed, 'V', 0x00002000
   end
 
-  describe 'delete_on_close' do
+  describe 'offline' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.delete_on_close).to be_a BinData::Bit1
+      expect(attrs.offline).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :delete_on_close, 'V', 0x04000000
+    it_behaves_like 'bit field with one flag set', :offline, 'V', 0x00001000
   end
 
-  describe 'sequential_scan' do
+  describe 'reparse_point' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.sequential_scan).to be_a BinData::Bit1
+      expect(attrs.reparse_point).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :sequential_scan, 'V', 0x08000000
+    it_behaves_like 'bit field with one flag set', :reparse_point, 'V', 0x00000400
   end
 
-  describe 'random_access' do
+
+  describe 'sparse' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.random_access).to be_a BinData::Bit1
+      expect(attrs.sparse).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :random_access, 'V', 0x10000000
+    it_behaves_like 'bit field with one flag set', :sparse, 'V', 0x00000200
   end
-
-  describe 'no_buffering' do
-    it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.no_buffering).to be_a BinData::Bit1
-    end
-
-    it_behaves_like 'bit field with one flag set', :no_buffering, 'V', 0x20000000
-  end
-
-  describe 'write_through' do
-    it 'should be a 1-bit field per the SMB spec' do
-      expect(attrs.write_through).to be_a BinData::Bit1
-    end
-
-    it_behaves_like 'bit field with one flag set', :write_through, 'V', 0x80000000
-  end
-
 end

@@ -18,6 +18,8 @@ module RubySMB
       require 'ruby_smb/smb1/bit_field/smb_nmpipe_status'
       require 'ruby_smb/smb1/bit_field/share_access'
       require 'ruby_smb/smb1/bit_field/create_options'
+      require 'ruby_smb/smb1/bit_field/security_flags'
+      require 'ruby_smb/smb1/bit_field/file_status_flags'
     end
   end
 end

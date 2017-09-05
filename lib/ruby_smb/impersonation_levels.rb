@@ -1,6 +1,7 @@
 module RubySMB
   # Contains constants for the various Impersonation levels as defined in
-  # [2.2.4.64.1 Request](https://msdn.microsoft.com/en-us/library/ee442175.aspx)
+  # [2.2.4.64.1 Request](https://msdn.microsoft.com/en-us/library/ee442175.aspx) and
+  # [2.2.4.9.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/cc246332.aspx)
   # See also [Impersonation Levels](https://msdn.microsoft.com/en-us/library/ms686632(v=vs.85).aspx)
   module ImpersonationLevels
     # The client is anonymous to the server. The server process can impersonate the client, but the impersonation
