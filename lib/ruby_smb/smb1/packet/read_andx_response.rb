@@ -39,6 +39,7 @@ module RubySMB
         def initialize_instance
           super
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+          smb_header.flags.reply = 1
         end
       end
     end
