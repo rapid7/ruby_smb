@@ -115,7 +115,6 @@ RSpec.describe RubySMB::SMB1::BitField::SmbExtFileAttributes do
     it_behaves_like 'bit field with one flag set', :reparse_point, 'V', 0x00000400
   end
 
-
   describe 'sparse' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(attrs.sparse).to be_a BinData::Bit1

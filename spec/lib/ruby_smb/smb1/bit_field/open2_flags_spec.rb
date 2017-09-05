@@ -57,6 +57,4 @@ RSpec.describe RubySMB::SMB1::BitField::Open2Flags do
 
     it_behaves_like 'bit field with one flag set', :req_easize, 'v', 0x0008
   end
-
-
 end

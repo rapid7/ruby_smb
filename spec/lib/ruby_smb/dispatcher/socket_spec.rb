@@ -1,8 +1,6 @@
 RSpec.describe RubySMB::Dispatcher::Socket do
   class FakeSocket < StringIO
-    def setsockopt(*args)
-
-    end
+    def setsockopt(*args); end
   end
 
   let(:fake_tcp_socket) {
@@ -60,7 +58,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
 
     it 'raises a CommunicationError if it encounters a socket error' do
       expect(fake_tcp_socket).to receive(:read).and_raise(Errno::ECONNRESET)
-      expect{ smb_socket.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
+      expect { smb_socket.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
     end
   end
 
@@ -77,7 +75,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
 
     it 'raises a CommunicationError if it encounters a socket error' do
       expect(fake_tcp_socket).to receive(:write).and_raise(Errno::ECONNRESET)
-      expect{ smb_socket.send_packet(negotiate_response) }.to raise_error(RubySMB::Error::CommunicationError)
+      expect { smb_socket.send_packet(negotiate_response) }.to raise_error(RubySMB::Error::CommunicationError)
     end
   end
 end

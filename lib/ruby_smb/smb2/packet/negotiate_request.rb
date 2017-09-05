@@ -25,7 +25,7 @@ module RubySMB
         # @param [Fixnum] the numeric code for the dialect you wish to add
         # @return [Array<Fixnum>] the array of all currently selected dialects
         def add_dialect(dialect)
-          return ArgumentError, 'Must be a number' unless dialect.is_a? Fixnum
+          return ArgumentError, 'Must be a number' unless dialect.is_a? Integer
           self.dialect_count += 1
           dialects << dialect
         end

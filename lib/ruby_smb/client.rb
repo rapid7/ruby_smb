@@ -1,5 +1,4 @@
 module RubySMB
-
   # Represents an SMB client capable of talking to SMB1 or SMB2 servers and handling
   # all end-user client functionality.
   class Client
@@ -16,12 +15,11 @@ module RubySMB
     include RubySMB::Client::Echo
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
-    SMB1_DIALECT_SMB1_DEFAULT = "NT LM 0.12"
+    SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze
     # The Default SMB2 Dialect string used in an SMB1 Negotiate Request
-    SMB1_DIALECT_SMB2_DEFAULT = "SMB 2.002"
+    SMB1_DIALECT_SMB2_DEFAULT = 'SMB 2.002'.freeze
     # Dialect value for SMB2 Default (Version 2.02)
     SMB2_DIALECT_DEFAULT = 0x0202
-
 
     # The dispatcher responsible for sending packets
     # @!attribute [rw] dispatcher
@@ -99,22 +97,22 @@ module RubySMB
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
-    def initialize(dispatcher, smb1: true, smb2: true, username:,password:, domain:'.', local_workstation:'WORKSTATION')
-      raise ArgumentError, 'No Dispatcher provided' unless dispatcher.kind_of? RubySMB::Dispatcher::Base
+    def initialize(dispatcher, smb1: true, smb2: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
+      raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
       @dispatcher        = dispatcher
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode("utf-8") || ''.encode("utf-8")
+      @password          = password.encode('utf-8') || ''.encode('utf-8')
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
-      @username          = username.encode("utf-8") || ''.encode("utf-8")
+      @username          = username.encode('utf-8') || ''.encode('utf-8')
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,
@@ -145,12 +143,12 @@ module RubySMB
     # @param echo [Integer] the number of times the server should echo (ignored in SMB2)
     # @param data [String] the data the server should echo back (ignored in SMB2)
     # @return [WindowsError::ErrorCode] the NTStatus of the last response received
-    def echo(count: 1, data: '' )
-      if smb2
-        response = smb2_echo
-      else
-        response = smb1_echo(count:count, data:data)
-      end
+    def echo(count: 1, data: '')
+      response = if smb2
+                   smb2_echo
+                 else
+                   smb1_echo(count: count, data: data)
+                 end
       response.status_code
     end
 
@@ -161,8 +159,8 @@ module RubySMB
     # @param packet [RubySMB::GenericPacket] the packet to set the message id for
     # @return [RubySMB::GenericPacket] the modified packet
     def increment_smb_message_id(packet)
-      if packet.smb2_header.message_id == 0 && self.smb2_message_id != 0
-        packet.smb2_header.message_id = self.smb2_message_id
+      if packet.smb2_header.message_id.zero? && smb2_message_id != 0
+        packet.smb2_header.message_id = smb2_message_id
         self.smb2_message_id += 1
       end
       packet
@@ -170,11 +168,11 @@ module RubySMB
 
     # Performs protocol negotiation and session setup. It defaults to using
     # the credentials supplied during initialization, but can take a new set of credentials if needed.
-    def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation )
+    def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode("utf-8") || ''.encode("utf-8")
-      @username          = username.encode("utf-8") || ''.encode("utf-8")
+      @password          = password.encode('utf-8') || ''.encode('utf-8')
+      @username          = username.encode('utf-8') || ''.encode('utf-8')
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,
@@ -211,26 +209,22 @@ module RubySMB
     # @return [String] the raw response data received
     def send_recv(packet)
       case packet.packet_smb_version
-        when 'SMB1'
-          if self.user_id
-            packet.smb_header.uid = self.user_id
-          end
-          packet = smb1_sign(packet)
-        when 'SMB2'
-          packet = increment_smb_message_id(packet)
-          packet.smb2_header.session_id = self.session_id
-          unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
-            packet = smb2_sign(packet)
-          end
-        else
-          packet = packet
+      when 'SMB1'
+        packet.smb_header.uid = user_id if user_id
+        packet = smb1_sign(packet)
+      when 'SMB2'
+        packet = increment_smb_message_id(packet)
+        packet.smb2_header.session_id = session_id
+        unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
+          packet = smb2_sign(packet)
+        end
+      else
+        packet = packet
       end
       dispatcher.send_packet(packet)
       raw_response = dispatcher.recv_packet
 
-      if self.signing_required && !self.session_key.empty?
-        self.sequence_counter += 1
-      end
+      self.sequence_counter += 1 if signing_required && !session_key.empty?
       raw_response
     end
 
@@ -259,7 +253,5 @@ module RubySMB
       self.sequence_counter = 0
       self.smb2_message_id  = 0
     end
-
-
   end
 end

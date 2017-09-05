@@ -1,8 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::File do
-
-  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
 
   let(:client) { RubySMB::Client.new(dispatcher, username: 'msfadmin', password: 'msfadmin') }
@@ -18,7 +17,7 @@ RSpec.describe RubySMB::SMB2::File do
 
   let(:disco_req) { RubySMB::SMB2::Packet::TreeDisconnectRequest.new }
   let(:disco_resp) { RubySMB::SMB2::Packet::TreeDisconnectResponse.new }
-  let(:tree) { RubySMB::SMB2::Tree.new(client:client, share:path, response:connect_response ) }
+  let(:tree) { RubySMB::SMB2::Tree.new(client: client, share: path, response: connect_response) }
   let(:file_id) { RubySMB::Field::Smb2Fileid.read('\x6d\x01\x00\x00\x00\x00\x00\x00\x\x01\x00\x00\x00\xff\xff\xff\xff') }
   let(:time) { DateTime.now }
   let(:create_response) {
@@ -99,7 +98,7 @@ RSpec.describe RubySMB::SMB2::File do
   describe '#read' do
     context 'for a small file' do
       let(:small_read) { file.read_packet(read_length: 108) }
-      let(:small_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length:9 ,buffer: 'fake data')}
+      let(:small_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data') }
 
       it 'uses a single packet to read the entire file' do
         expect(file).to receive(:read_packet).with(read_length: 108, offset: 0).and_return(small_read)
@@ -111,14 +110,14 @@ RSpec.describe RubySMB::SMB2::File do
 
     context 'for a larger file' do
       let(:big_read) { file.read_packet(read_length: 108) }
-      let(:big_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length:9 ,buffer: 'fake data')}
+      let(:big_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data') }
 
       it 'uses a multiple packet to read the file in chunks' do
         expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_READ_SIZE, offset: 0).and_return(big_read)
         expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_READ_SIZE, offset: described_class::MAX_READ_SIZE).and_return(big_read)
         expect(client).to receive(:send_recv).twice.and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with('fake data').and_return(big_response)
-        file.read(bytes:(described_class::MAX_READ_SIZE * 2))
+        file.read(bytes: (described_class::MAX_READ_SIZE * 2))
       end
     end
   end

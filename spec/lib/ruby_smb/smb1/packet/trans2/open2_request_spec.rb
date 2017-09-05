@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Request do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -30,7 +29,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Request do
     it 'should have the setup set to the OPEN2 subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::OPEN2
     end
-
   end
 
   describe '#data_block' do
@@ -105,8 +103,5 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Request do
         end
       end
     end
-
   end
-
-
 end

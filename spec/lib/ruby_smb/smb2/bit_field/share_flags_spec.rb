@@ -24,7 +24,6 @@ RSpec.describe RubySMB::SMB2::BitField::ShareFlags do
     it_behaves_like 'bit field with one flag set', :dfs, 'V', 0x00000001
   end
 
-
   describe '#dfs_root' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(flags.dfs_root).to be_a BinData::Bit1
@@ -179,6 +178,5 @@ RSpec.describe RubySMB::SMB2::BitField::ShareFlags do
       flags.vdo_caching = 0
       expect(flags.caching_type).to eq :manual
     end
-
   end
 end

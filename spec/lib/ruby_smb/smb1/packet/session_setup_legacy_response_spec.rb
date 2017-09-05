@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::SessionSetupLegacyResponse do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -30,7 +29,6 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupLegacyResponse do
     it { is_expected.to respond_to :andx_block }
     it { is_expected.to respond_to :action }
 
-
     it 'has an AndXBlock' do
       expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
     end
@@ -47,6 +45,4 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupLegacyResponse do
     it { is_expected.to respond_to :native_os }
     it { is_expected.to respond_to :native_lan_man }
   end
-
-
 end

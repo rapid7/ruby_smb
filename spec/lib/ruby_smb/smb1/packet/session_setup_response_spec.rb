@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::SessionSetupResponse do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -49,7 +48,7 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupResponse do
   end
 
   describe '#set_type2_blob' do
-    let(:fake_message) { "foo" }
+    let(:fake_message) { 'foo' }
 
     it 'calls the #gss_type2 method to create a blob' do
       expect(RubySMB::Gss).to receive(:gss_type2).with(fake_message).and_return(fake_message)
@@ -68,5 +67,4 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupResponse do
       expect(packet.parameter_block.security_blob_length).to eq fake_message.length
     end
   end
-
 end

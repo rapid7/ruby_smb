@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::SessionSetupResponse do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -32,7 +31,7 @@ RSpec.describe RubySMB::SMB2::Packet::SessionSetupResponse do
   end
 
   describe '#set_type2_blob' do
-    let(:fake_message) { "foo" }
+    let(:fake_message) { 'foo' }
 
     it 'calls the #gss_type2 method to create a blob' do
       expect(RubySMB::Gss).to receive(:gss_type2).with(fake_message).and_return(fake_message)

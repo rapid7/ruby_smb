@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::EchoResponse do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -39,6 +38,4 @@ RSpec.describe RubySMB::SMB1::Packet::EchoResponse do
       expect(data_block).to be_a RubySMB::SMB1::DataBlock
     end
   end
-
-
 end

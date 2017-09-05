@@ -31,5 +31,4 @@ RSpec.describe RubySMB::Fscc::FileFullEaInfo do
       expect(info.ea_value_length).to eq info.ea_value.do_num_bytes
     end
   end
-
 end

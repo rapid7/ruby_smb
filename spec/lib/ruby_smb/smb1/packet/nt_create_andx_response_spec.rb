@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
+RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -85,7 +85,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
 
     describe '#volume_guid' do
       it 'has the correct length' do
-        expect(parameter_block.volume_guid.length).to eq (16)
+        expect(parameter_block.volume_guid.length).to eq 16
       end
     end
 
@@ -114,7 +114,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       end
     end
 
-    describe "#maximal_access_rights" do
+    describe '#maximal_access_rights' do
       it 'should be a DirectoryAccessMask when the file is a directory' do
         parameter_block.ext_file_attributes.directory = 1
         access_mask = parameter_block.maximal_access_rights.send(:current_choice)
@@ -128,7 +128,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       end
     end
 
-    describe "#guest_maximal_access_rights" do
+    describe '#guest_maximal_access_rights' do
       it 'should be a DirectoryAccessMask when the file is a directory' do
         parameter_block.ext_file_attributes.directory = 1
         access_mask = parameter_block.guest_maximal_access_rights.send(:current_choice)
@@ -141,7 +141,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
         expect(access_mask.class).to eq RubySMB::SMB1::BitField::FileAccessMask
       end
     end
-
   end
 
   describe '#data_block' do
@@ -155,6 +154,4 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
       expect(data_block.byte_count).to eq(0)
     end
   end
-
 end
-

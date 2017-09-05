@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Tree do
-  let(:sock)  { double("Socket", peeraddr: '192.168.1.5' ) }
+  let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
 
   let(:client) { RubySMB::Client.new(dispatcher, username: 'msfadmin', password: 'msfadmin') }
@@ -19,7 +19,7 @@ RSpec.describe RubySMB::SMB2::Tree do
   let(:disco_resp) { RubySMB::SMB2::Packet::TreeDisconnectResponse.new }
 
   subject(:tree) {
-    described_class.new(client:client, share:path, response:response )
+    described_class.new(client: client, share: path, response: response)
   }
 
   it { is_expected.to respond_to :client }
@@ -72,7 +72,7 @@ RSpec.describe RubySMB::SMB2::Tree do
   describe '#open_directory_packet' do
     describe 'directory name' do
       it 'uses a null byte of nothing is passed in' do
-        expect(tree.open_directory_packet.name).to eq "\x00".encode("UTF-16LE")
+        expect(tree.open_directory_packet.name).to eq "\x00".encode('UTF-16LE')
       end
 
       it 'sets the #name_length to 0 if no name is passed in' do
@@ -80,8 +80,8 @@ RSpec.describe RubySMB::SMB2::Tree do
       end
 
       it 'encodes any supplied file name in UTF-16LE' do
-        name = "hello.txt"
-        expect(tree.open_directory_packet(directory:name).name).to eq name.encode("UTF-16LE")
+        name = 'hello.txt'
+        expect(tree.open_directory_packet(directory: name).name).to eq name.encode('UTF-16LE')
       end
     end
 
@@ -91,7 +91,7 @@ RSpec.describe RubySMB::SMB2::Tree do
       end
 
       it 'can take the Disposition as an argument' do
-        expect(tree.open_directory_packet(disposition:RubySMB::Dispositions::FILE_OPEN_IF).create_disposition).to eq RubySMB::Dispositions::FILE_OPEN_IF
+        expect(tree.open_directory_packet(disposition: RubySMB::Dispositions::FILE_OPEN_IF).create_disposition).to eq RubySMB::Dispositions::FILE_OPEN_IF
       end
     end
 
@@ -121,8 +121,8 @@ RSpec.describe RubySMB::SMB2::Tree do
   end
 
   describe '#open_directory' do
-    let (:create_req) { RubySMB::SMB2::Packet::CreateRequest.new }
-    let(:create_response) {  RubySMB::SMB2::Packet::CreateResponse.new }
+    let(:create_req) { RubySMB::SMB2::Packet::CreateRequest.new }
+    let(:create_response) { RubySMB::SMB2::Packet::CreateResponse.new }
 
     it 'sends the create request packet and gets a response back' do
       allow(tree).to receive(:open_directory_packet).and_return(create_req)

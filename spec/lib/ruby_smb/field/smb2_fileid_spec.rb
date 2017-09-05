@@ -7,5 +7,4 @@ RSpec.describe RubySMB::Field::Smb2Fileid do
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
-
 end

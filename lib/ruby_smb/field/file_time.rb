@@ -32,7 +32,7 @@ module RubySMB
           time_int *= NS_MULTIPLIER
           adjusted_epoch = time_int + EPOCH_DIFF_100NS
           set(adjusted_epoch)
-        when Fixnum
+        when Integer
           self.val = value
         else
           self.val = value.to_i

@@ -17,7 +17,6 @@ RSpec.describe RubySMB::Fscc::FileAttributes do
   it { is_expected.to respond_to :sparse }
   it { is_expected.to respond_to :temp }
 
-
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
@@ -134,7 +133,6 @@ RSpec.describe RubySMB::Fscc::FileAttributes do
     it_behaves_like 'bit field with one flag set', :content_indexed, 'V', 0x00002000
   end
 
-
   describe 'encrypted' do
     it 'should be a 1-bit field per the SMB spec' do
       expect(attrs.encrypted).to be_a BinData::Bit1
@@ -142,6 +140,4 @@ RSpec.describe RubySMB::Fscc::FileAttributes do
 
     it_behaves_like 'bit field with one flag set', :encrypted, 'V', 0x00004000
   end
-
-
 end

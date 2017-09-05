@@ -2,25 +2,21 @@ module RubySMB
   module Field
     # Represents a NULL-Terminated String in UTF-16
     class Stringz16 < BinData::Stringz
-
       def assign(val)
-        super(binary_string(val.encode("utf-16le")))
+        super(binary_string(val.encode('utf-16le')))
       end
 
       def snapshot
         # override to always remove trailing zero bytes
         result = _value
-        result
         result = trim_and_zero_terminate(result)
-        result.chomp("\0\0").force_encoding("utf-16le")
+        result.chomp("\0\0").force_encoding('utf-16le')
       end
 
       private
 
       def append_zero_byte_if_needed!(str)
-        if str.length == 0 || !(str.end_with?("\0\0"))
-          str << "\0\0"
-        end
+        str << "\0\0" if str.empty? || !str.end_with?("\0\0")
       end
 
       # Override parent on {BinData::Stringz} to use

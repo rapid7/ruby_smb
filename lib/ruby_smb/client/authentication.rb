@@ -2,15 +2,14 @@ module RubySMB
   class Client
     # This module holds all the backend client methods for authentication.
     module Authentication
-
       # Responsible for handling Authentication and Session Setup for
       # the SMB Client. It returns the final Status code from the authentication
       # exchange.
       #
       # @return [WindowsError::NTStatus] the NTStatus object from the SessionSetup exchange.
       def authenticate
-        if self.smb1
-          if self.username.empty? && self.password.empty?
+        if smb1
+          if username.empty? && password.empty?
             smb1_anonymous_auth
           else
             smb1_authenticate
@@ -33,8 +32,8 @@ module RubySMB
         response      = smb1_anonymous_auth_response(raw_response)
         response_code = response.status_code
 
-        if response_code.name == "STATUS_SUCCESS"
-          self.user_id  = response.smb_header.uid
+        if response_code.name == 'STATUS_SUCCESS'
+          self.user_id = response.smb_header.uid
           self.peer_native_os = response.data_block.native_os
         end
 
@@ -75,8 +74,8 @@ module RubySMB
         response = smb1_ntlmssp_final_packet(raw)
         response_code = response.status_code
 
-        if response_code.name == "STATUS_SUCCESS"
-          self.user_id  = user_id
+        if response_code.name == 'STATUS_SUCCESS'
+          self.user_id = user_id
           self.peer_native_os = response.data_block.native_os
         end
 
@@ -99,8 +98,8 @@ module RubySMB
       # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [String] the raw binary response from the server
-      def smb1_ntlmssp_authenticate(type2_string,user_id)
-        packet = smb1_ntlmssp_auth_packet(type2_string,user_id)
+      def smb1_ntlmssp_authenticate(type2_string, user_id)
+        packet = smb1_ntlmssp_auth_packet(type2_string, user_id)
         send_recv(packet)
       end
 
@@ -110,7 +109,7 @@ module RubySMB
       # @param type2_string [String] the Base64 encoded Type2 challenge to respond to
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the second authentication packet to send
-      def smb1_ntlmssp_auth_packet(type2_string,user_id)
+      def smb1_ntlmssp_auth_packet(type2_string, user_id)
         type3_message = ntlm_client.init_context(type2_string)
         self.session_key = ntlm_client.session_key
         packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
@@ -156,7 +155,7 @@ module RubySMB
         packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
         status_code = packet.status_code
 
-        unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
+        unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
         end
 
@@ -172,9 +171,9 @@ module RubySMB
       # @return [String] the base64 encoded  NTLM Challenge (Type2 Message) from the response
       def smb1_type2_message(response_packet)
         sec_blob = response_packet.data_block.security_blob
-        ntlmssp_offset = sec_blob.index("NTLMSSP")
+        ntlmssp_offset = sec_blob.index('NTLMSSP')
         type2_blob = sec_blob.slice(ntlmssp_offset..-1)
-        [type2_blob].pack("m")
+        [type2_blob].pack('m')
       end
 
       #
@@ -206,7 +205,7 @@ module RubySMB
       def smb2_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
         status_code = packet.status_code
-        unless status_code.name == "STATUS_MORE_PROCESSING_REQUIRED"
+        unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
         end
 
@@ -247,9 +246,9 @@ module RubySMB
       # @return [String] the base64 encoded  NTLM Challenge (Type2 Message) from the response
       def smb2_type2_message(response_packet)
         sec_blob = response_packet.buffer
-        ntlmssp_offset = sec_blob.index("NTLMSSP")
+        ntlmssp_offset = sec_blob.index('NTLMSSP')
         type2_blob = sec_blob.slice(ntlmssp_offset..-1)
-        [type2_blob].pack("m")
+        [type2_blob].pack('m')
       end
 
       # Takes the Base64 encoded NTLM Type 2 (Challenge) message
@@ -259,8 +258,8 @@ module RubySMB
       # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [String] the raw binary response from the server
-      def smb2_ntlmssp_authenticate(type2_string,user_id)
-        packet = smb2_ntlmssp_auth_packet(type2_string,user_id)
+      def smb2_ntlmssp_authenticate(type2_string, user_id)
+        packet = smb2_ntlmssp_auth_packet(type2_string, user_id)
         send_recv(packet)
       end
 
@@ -278,8 +277,6 @@ module RubySMB
         packet.set_type3_blob(type3_message.serialize)
         packet
       end
-
-
     end
   end
 end

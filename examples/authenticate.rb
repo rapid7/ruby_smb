@@ -6,7 +6,6 @@
 require 'bundler/setup'
 require 'ruby_smb'
 
-
 def run_authentication(address, smb1, smb2, username, password)
   # Create our socket and add it to the dispatcher
   sock = TCPSocket.new address, 445
@@ -14,12 +13,12 @@ def run_authentication(address, smb1, smb2, username, password)
 
   client = RubySMB::Client.new(dispatcher, smb1: smb1, smb2: smb2, username: username, password: password)
   protocol = client.negotiate
-  status  = client.authenticate
-  if client.peer_native_os
-    native_os = "(#{client.peer_native_os})"
-  else
-    native_os = ''
-  end
+  status = client.authenticate
+  native_os = if client.peer_native_os
+                "(#{client.peer_native_os})"
+              else
+                ''
+              end
   puts "#{protocol} : #{status} #{native_os}"
 end
 

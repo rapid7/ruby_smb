@@ -23,5 +23,4 @@ RSpec.describe RubySMB::SMB1::BitField::Open2OpenMode do
 
     it_behaves_like 'bit field with one flag set', :create_file, 'v', 0x0010
   end
-
 end

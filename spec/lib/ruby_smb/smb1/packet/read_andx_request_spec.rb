@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::ReadAndxRequest  do
+RSpec.describe RubySMB::SMB1::Packet::ReadAndxRequest do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -109,7 +109,7 @@ RSpec.describe RubySMB::SMB1::Packet::ReadAndxRequest  do
     end
 
     it 'raises an exception when the value is a String' do
-      expect { packet.set_read_from_named_pipe("true") }.to raise_error(ArgumentError)
+      expect { packet.set_read_from_named_pipe('true') }.to raise_error(ArgumentError)
     end
 
     it 'raises an exception when the value is a Numeric' do
@@ -135,7 +135,7 @@ RSpec.describe RubySMB::SMB1::Packet::ReadAndxRequest  do
     end
 
     it 'raises an exception when the value is a String' do
-      expect { packet.set_64_bit_offset("true") }.to raise_error(ArgumentError)
+      expect { packet.set_64_bit_offset('true') }.to raise_error(ArgumentError)
     end
 
     it 'raises an exception when the value is a Numeric' do
@@ -146,6 +146,4 @@ RSpec.describe RubySMB::SMB1::Packet::ReadAndxRequest  do
       expect { packet.set_64_bit_offset(:true) }.to raise_error(ArgumentError)
     end
   end
-
 end
-

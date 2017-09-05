@@ -32,6 +32,4 @@ RSpec.describe RubySMB::SMB1::BitField::FileStatusFlags do
 
     it_behaves_like 'bit field with one flag set', :no_eas, 'v', 0x0001
   end
-
 end
-

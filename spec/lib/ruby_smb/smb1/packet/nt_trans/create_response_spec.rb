@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateResponse do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -114,9 +113,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtTrans::CreateResponse do
           expect(parameters.nmpipe_status).to be_a RubySMB::SMB1::BitField::SmbNmpipeStatus
         end
       end
-
     end
   end
-
-
 end

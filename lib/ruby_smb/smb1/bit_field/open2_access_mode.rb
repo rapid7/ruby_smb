@@ -3,7 +3,7 @@ module RubySMB
     module BitField
       # The AccessMode bit-field for an SMB1 Open2 Request as defined in
       # [2.2.6.1.1 Request](https://msdn.microsoft.com/en-us/library/ee441733.aspx)
-      class Open2AccessMode< BinData::Record
+      class Open2AccessMode < BinData::Record
         endian  :little
         bit1    :reserved2,           label: 'Reserved Space'
         bit3    :sharing_mode,        label: 'Sharing Mode'
@@ -22,18 +22,18 @@ module RubySMB
         # ReadWrite, and Execute respectively.
         #
         # @param mode [Symbol] the access mode to set
-        def set_access_mode(mode=:r)
+        def set_access_mode(mode = :r)
           modes = [:r, :w, :rw, :x]
-          raise ArgumentError, "Mode must be one of #{modes.to_s}" unless modes.include? mode
+          raise ArgumentError, "Mode must be one of #{modes}" unless modes.include? mode
           case mode
-            when :r
-              self.access_mode = 0
-            when :w
-              self.access_mode = 1
-            when :rw
-              self.access_mode = 2
-            when :x
-              self.access_mode = 3
+          when :r
+            self.access_mode = 0
+          when :w
+            self.access_mode = 1
+          when :rw
+            self.access_mode = 2
+          when :x
+            self.access_mode = 3
           end
         end
       end

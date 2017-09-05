@@ -1,6 +1,5 @@
 module RubySMB
   module Field
-
     # Conveneince class for dealing with 32-bit unsigned UTIME
     # fields in SMB, as defined in
     # [2.2.1.4.3 UTIME](https://msdn.microsoft.com/en-us/library/ee441907.aspx)
@@ -23,14 +22,14 @@ module RubySMB
       # @return
       def set(value)
         case value
-          when DateTime
-            set(value.to_time)
-          when Time
-            set(value.to_i)
-          when Fixnum
-            self.val = value
-          else
-            self.val = value.to_i
+        when DateTime
+          set(value.to_time)
+        when Time
+          set(value.to_i)
+        when Integer
+          self.val = value
+        else
+          self.val = value.to_i
         end
         val
       end

@@ -1,11 +1,10 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 TreeConnectResponse Packet as defined in
       # [2.2.10 SMB2 TREE_CONNECT Response](https://msdn.microsoft.com/en-us/library/cc246499.aspx)
       class TreeConnectResponse < RubySMB::GenericPacket
-        endian  :little
+        endian :little
         smb2_header           :smb2_header
         uint16                :structure_size, label: 'Structure Size', initial_value: 16
         uint8                 :share_type,     label: 'Share Type',     initial_value: 0x01
@@ -28,9 +27,9 @@ module RubySMB
         # @return [RubySMB::SMB2::BitField::FileAccessMask] if anything else was connected to
         def access_rights
           if is_directory?
-            self.maximal_access
+            maximal_access
           else
-            mask = self.maximal_access.to_binary_s
+            mask = maximal_access.to_binary_s
             RubySMB::SMB2::BitField::FileAccessMask.read(mask)
           end
         end
@@ -39,11 +38,8 @@ module RubySMB
         #
         # @return [Boolean]
         def is_directory?
-          self.share_type == 0x01
+          share_type == 0x01
         end
-
-
-
       end
     end
   end

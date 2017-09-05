@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -84,7 +83,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
       end
 
       describe '#action_taken' do
-        subject(:action) { parameters.action_taken}
+        subject(:action) { parameters.action_taken }
 
         it 'is 2-bytes' do
           expect(action.do_num_bytes).to eq 2
@@ -100,6 +99,4 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
       end
     end
   end
-
-
 end

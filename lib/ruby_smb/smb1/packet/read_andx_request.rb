@@ -1,15 +1,13 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 SMB_COM_READ_ANDX Request Packet as defined in
       # [2.2.4.42.1 Request](https://msdn.microsoft.com/en-us/library/ee441839.aspx)
       # [2.2.4.2.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/ff470250.aspx)
       class ReadAndxRequest < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {ReadAndxRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
-          endian  :little
+          endian :little
 
           and_x_block :andx_block
           uint16      :fid,                          label: 'FID'
@@ -17,7 +15,7 @@ module RubySMB
           uint16      :max_count_of_bytes_to_return, label: 'Max Count of Bytes to Return'
           uint16      :min_count_of_bytes_to_return, label: 'Min Count of Bytes to Return'
 
-          choice :timeout_or_max_count_high,     selection: lambda { read_from_named_pipe } do
+          choice :timeout_or_max_count_high, selection: -> { read_from_named_pipe } do
             struct true do
               uint32 :timeout,                       label: 'Timeout'
             end
@@ -46,7 +44,6 @@ module RubySMB
             0x0A
           end
           private :calculate_word_count
-
         end
 
         # Represents the specific layout of the DataBlock for a {ReadAndxRequest} Packet.
@@ -69,7 +66,7 @@ module RubySMB
         #
         # @param read_from_named_pipe [TrueClass, FalseClass] the value the read_from_named_pipe flag is to be set to.
         def set_read_from_named_pipe(read_from_named_pipe)
-          raise ArgumentError.new, "The value can only be true or false" unless [true, false].include?(read_from_named_pipe)
+          raise ArgumentError.new, 'The value can only be true or false' unless [true, false].include?(read_from_named_pipe)
           parameter_block.read_from_named_pipe = read_from_named_pipe
         end
 
@@ -78,7 +75,7 @@ module RubySMB
         #
         # @param is_64_bit [TrueClass, FalseClass] use a 64-bit offset if set to true, 32-bit otherwise
         def set_64_bit_offset(is_64_bit)
-          raise ArgumentError.new, "The value can only be true or false" unless [true, false].include?(is_64_bit)
+          raise ArgumentError.new, 'The value can only be true or false' unless [true, false].include?(is_64_bit)
           parameter_block.word_count = is_64_bit ? 0x0C : 0x0A
         end
       end

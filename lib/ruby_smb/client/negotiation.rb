@@ -3,24 +3,19 @@ module RubySMB
   class Client
     # This module holds all of the methods backing the {RubySMB::Client#negotiate} method
     module Negotiation
-
       # Handles the entire SMB Multi-Protocol Negotiation from the
       # Client to the Server. It sets state on the client appropriate
       # to the protocol and capabilites negotiated during the exchange.
       #
       # @return [void]
       def negotiate
-        begin
-          raw_response    = negotiate_request
-          response_packet = negotiate_response(raw_response)
-          parse_negotiate_response(response_packet)
-        rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
-          error = "Unable to Negotiate with remote host"
-          if smb1 && !smb2
-            error << ', SMB1 may be disabled'
-          end
-          raise RubySMB::Error::NegotiationFailure, error
-        end
+        raw_response    = negotiate_request
+        response_packet = negotiate_response(raw_response)
+        parse_negotiate_response(response_packet)
+      rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
+        error = 'Unable to Negotiate with remote host'
+        error << ', SMB1 may be disabled' if smb1 && !smb2
+        raise RubySMB::Error::NegotiationFailure, error
       end
 
       # Creates and dispatches the first Negotiate Request Packet and
@@ -48,23 +43,21 @@ module RubySMB
         if smb1
           begin
             packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
-          rescue Exception => e
+          rescue StandardError => e
             raise RubySMB::Error::InvalidPacket, "Not a Valid SMB1 Negoitate Response #{e.message}"
           end
-          if packet.valid?
-            response = packet
-          end
+          response = packet if packet.valid?
         end
         if smb2 && response.nil?
           begin
             packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
-          rescue Exception => e
+          rescue StandardError => e
             raise RubySMB::Error::InvalidPacket, "Not a Valid SMB2 Negoitate Response #{e.message}"
           end
           response = packet
         end
         if response.nil?
-          raise RubySMB::Error::InvalidPacket, "No Valid Negotiate Response found"
+          raise RubySMB::Error::InvalidPacket, 'No Valid Negotiate Response found'
         end
         response
       end
@@ -77,27 +70,26 @@ module RubySMB
       # @return [void] This method sets state and does not return a meaningful value
       def parse_negotiate_response(packet)
         case packet
-          when RubySMB::SMB1::Packet::NegotiateResponseExtended
-            self.smb1 = true
-            self.smb2 = false
-            if packet.parameter_block.security_mode.security_signatures_required == 1
-              self.signing_required = true
-            else
-              self.signing_required = false
-            end
-            'SMB1'
-          when RubySMB::SMB2::Packet::NegotiateResponse
-            self.smb1 = false
-            self.smb2 = true
-            if packet.security_mode.signing_required == 1
-              self.signing_required = true
-            else
-              self.signing_required = false
-            end
-            'SMB2'
+        when RubySMB::SMB1::Packet::NegotiateResponseExtended
+          self.smb1 = true
+          self.smb2 = false
+          if packet.parameter_block.security_mode.security_signatures_required == 1
+            self.signing_required = true
+          else
+            self.signing_required = false
+          end
+          'SMB1'
+        when RubySMB::SMB2::Packet::NegotiateResponse
+          self.smb1 = false
+          self.smb2 = true
+          self.signing_required = if packet.security_mode.signing_required == 1
+                                    true
+                                  else
+                                    false
+                                  end
+          'SMB2'
         end
       end
-
 
       # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
       # dialects filled in based on the protocol options set on the Client.

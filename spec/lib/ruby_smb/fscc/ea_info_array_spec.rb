@@ -40,12 +40,10 @@ RSpec.describe RubySMB::Fscc::EaInfoArray do
   end
 
   it 'raises an error when inserting an invalid object' do
-    expect{ info_array << "Foo" }.to raise_error(ArgumentError)
+    expect { info_array << 'Foo' }.to raise_error(ArgumentError)
   end
 
   it 'raises an error when setting an invalid value' do
-    expect{ info_array[0] = "Foo" }.to raise_error(ArgumentError)
+    expect { info_array[0] = 'Foo' }.to raise_error(ArgumentError)
   end
-
-
 end

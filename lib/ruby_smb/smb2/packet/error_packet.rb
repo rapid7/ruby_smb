@@ -1,9 +1,7 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 Error packet for when an incomplete response comes back
-
       class ErrorPacket < RubySMB::GenericPacket
         endian       :little
         smb2_header  :smb2_header

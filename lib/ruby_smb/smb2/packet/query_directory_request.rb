@@ -1,13 +1,12 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 Query Directory Request Packet as defined in
       # [2.2.33 SMB2 QUERY_DIRECTORY Request](https://msdn.microsoft.com/en-us/library/cc246551.aspx)
       class QueryDirectoryRequest < RubySMB::GenericPacket
         endian       :little
         smb2_header  :smb2_header
-        uint16       :structure_size,          label: 'Structure Size',           initial_value: 33
+        uint16       :structure_size,          label: 'Structure Size', initial_value: 33
         uint8        :file_information_class,  label: 'File Information Class'
 
         struct :flags do
@@ -21,8 +20,8 @@ module RubySMB
 
         uint32        :file_index,    label: 'File Index'
         smb2_fileid   :file_id,       label: 'File ID'
-        uint16        :name_offset,   label: 'File Name Offset',      initial_value: lambda { name.abs_offset }
-        uint16        :name_length,   label: 'File Name Length',      initial_value: lambda { name.do_num_bytes }
+        uint16        :name_offset,   label: 'File Name Offset',      initial_value: -> { name.abs_offset }
+        uint16        :name_length,   label: 'File Name Length',      initial_value: -> { name.do_num_bytes }
         uint32        :output_length, label: 'Output Buffer Length'
         string16      :name,          label: 'Name/Search Pattern'
 
@@ -30,7 +29,6 @@ module RubySMB
           super
           smb2_header.command = RubySMB::SMB2::Commands::QUERY_DIRECTORY
         end
-
       end
     end
   end

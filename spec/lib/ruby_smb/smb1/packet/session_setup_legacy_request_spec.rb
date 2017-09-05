@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::SessionSetupLegacyRequest do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -55,8 +54,5 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupLegacyRequest do
     it { is_expected.to respond_to :primary_domain }
     it { is_expected.to respond_to :native_os }
     it { is_expected.to respond_to :native_lan_man }
-
   end
-
-
 end

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::ReadRequest do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -41,7 +40,4 @@ RSpec.describe RubySMB::SMB2::Packet::ReadRequest do
   it 'should have a structure size of 49' do
     expect(packet.structure_size).to eq 49
   end
-
-
-
 end

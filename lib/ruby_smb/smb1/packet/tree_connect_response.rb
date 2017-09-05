@@ -1,11 +1,9 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 TreeConnect Response Packet as defined in
       # [2.2.4.7.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246331.aspx)
       class TreeConnectResponse < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block                :andx_block
@@ -38,9 +36,9 @@ module RubySMB
         # @return [RubySMB::SMB1::BitField::FileAccessMask] if anything else was connected to
         def access_rights
           if is_directory?
-            self.parameter_block.access_rights
+            parameter_block.access_rights
           else
-            mask = self.parameter_block.access_rights.to_binary_s
+            mask = parameter_block.access_rights.to_binary_s
             RubySMB::SMB1::BitField::FileAccessMask.read(mask)
           end
         end
@@ -53,9 +51,9 @@ module RubySMB
         # @return [RubySMB::SMB1::BitField::FileAccessMask] if anything else was connected to
         def guest_access_rights
           if is_directory?
-            self.parameter_block.guest_access_rights
+            parameter_block.guest_access_rights
           else
-            mask = self.parameter_block.guest_access_rights.to_binary_s
+            mask = parameter_block.guest_access_rights.to_binary_s
             RubySMB::SMB1::BitField::FileAccessMask.read(mask)
           end
         end
@@ -66,7 +64,7 @@ module RubySMB
         # @return [TrueClass] if service is 'A:'
         # @return [FalseClass] if service is NOT 'A:'
         def is_directory?
-          self.data_block.service == 'A:'
+          data_block.service == 'A:'
         end
       end
     end

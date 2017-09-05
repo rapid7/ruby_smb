@@ -1,8 +1,8 @@
 RSpec.describe RubySMB::SMB1::BitField::SecurityFlags do
   subject(:options) { described_class.new }
 
-      it { is_expected.to respond_to :effective_only }
-      it { is_expected.to respond_to :context_tracking }
+  it { is_expected.to respond_to :effective_only }
+  it { is_expected.to respond_to :context_tracking }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -23,8 +23,4 @@ RSpec.describe RubySMB::SMB1::BitField::SecurityFlags do
 
     it_behaves_like 'bit field with one flag set', :context_tracking, 'C', 0x01
   end
-
 end
-
-
-

@@ -22,14 +22,14 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
 client = RubySMB::Client.new(dispatcher, smb1: true, smb2: true, username: username, password: password)
 protocol = client.negotiate
-status  = client.authenticate
+status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
 begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
-rescue Exception => e
+rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
 
@@ -39,9 +39,7 @@ files.each do |file|
   create_time = file.create_time.to_datetime.to_s
   access_time = file.last_access.to_datetime.to_s
   change_time = file.last_change.to_datetime.to_s
-  file_name   = file.file_name.encode("UTF-8")
+  file_name   = file.file_name.encode('UTF-8')
 
   puts "FILE: #{file_name}\n\tSIZE(BYTES):#{file.end_of_file}\n\tSIZE_ON_DISK(BYTES):#{file.allocation_size}\n\tCREATED:#{create_time}\n\tACCESSED:#{access_time}\n\tCHANGED:#{change_time}\n\n"
 end
-
-

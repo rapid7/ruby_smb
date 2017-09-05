@@ -19,7 +19,7 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
 client = RubySMB::Client.new(dispatcher, smb1: true, smb2: true, username: username, password: password)
 protocol = client.negotiate
-status  = client.authenticate
+status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
@@ -27,8 +27,6 @@ begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
   tree.disconnect!
-rescue Exception => e
+rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
-
-

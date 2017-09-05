@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryRequest do
-
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :smb2_header }
@@ -65,8 +64,6 @@ RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryRequest do
 
       it_behaves_like 'bit field with one flag set', :reopen, 'C', 0x10
     end
-
-
   end
 
   it 'has an SMB2 FILEID field' do
@@ -80,5 +77,4 @@ RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryRequest do
   it 'has a length value for the name field' do
     expect(packet.name_length).to eq packet.name.do_num_bytes
   end
-
 end

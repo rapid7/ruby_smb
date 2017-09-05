@@ -5,7 +5,7 @@ module RubySMB
       # [2.2.1.2.3 SMB_EXT_FILE_ATTR](https://msdn.microsoft.com/en-us/library/ee878573.aspx) and
       # [2.2.1.2.1 Extended File Attribute (SMB_EXT_FILE_ATTR) Extensions](https://msdn.microsoft.com/en-us/library/cc246322.aspx)
       class SmbExtFileAttributes < BinData::Record
-        endian  :little
+        endian :little
         bit1  :normal,              label: 'Normal File'
         bit1  :reserved,            label: 'Reserved Space'
         bit1  :archive,             label: 'Archive'

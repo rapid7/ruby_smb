@@ -23,6 +23,5 @@ module RubySMB
     # can impersonate the client's security context while acting on behalf of the client. During impersonation,
     # the client's credentials (both local and network) can be passed to any number of computers.
     SEC_DELEGATE    = 0x00000003
-
   end
 end

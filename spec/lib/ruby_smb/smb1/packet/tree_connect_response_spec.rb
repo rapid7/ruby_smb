@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
-
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -35,7 +34,6 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
     it 'has an AndXBlock' do
       expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
     end
-
   end
 
   describe '#data_block' do
@@ -47,7 +45,6 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
 
     it { is_expected.to respond_to :service }
     it { is_expected.to respond_to :native_file_system }
-
   end
 
   context 'when the connect is to a directory' do
@@ -80,7 +77,5 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
     it 'returns a FileAccessMask from #guest_access_rights' do
       expect(file_response.guest_access_rights).to be_a RubySMB::SMB1::BitField::FileAccessMask
     end
-
   end
-
 end

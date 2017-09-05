@@ -4,7 +4,7 @@ module RubySMB
       # The Flags bit-field for SMB1 File Attributes as defined in
       # [2.2.1.2.4 SMB_FILE_ATTRIBUTES](https://msdn.microsoft.com/en-us/library/ee441551.aspx)
       class SmbFileAttributes < BinData::Record
-        endian  :little
+        endian :little
         bit2  :reserved,     label: 'Reserved Space'
         bit1  :archive,      label: 'Archive'
         bit1  :directory,    label: 'Directory'

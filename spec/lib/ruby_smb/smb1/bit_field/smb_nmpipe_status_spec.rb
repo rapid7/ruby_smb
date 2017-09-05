@@ -48,6 +48,4 @@ RSpec.describe RubySMB::SMB1::BitField::SmbNmpipeStatus do
 
     it_behaves_like 'bit field with one flag set', :nonblocking, 'v', 0x8000
   end
-
-
 end

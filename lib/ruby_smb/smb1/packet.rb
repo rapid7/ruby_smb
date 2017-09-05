@@ -1,5 +1,7 @@
 module RubySMB
   module SMB1
+    # Namespace for all SMB1 packet definitions
+    # see [2.2 Message Syntax](https://msdn.microsoft.com/en-us/library/ee441466.aspx)
     module Packet
       require 'ruby_smb/smb1/packet/empty_packet'
       require 'ruby_smb/smb1/packet/negotiate_request'

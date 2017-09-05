@@ -12,7 +12,6 @@ module RubySMB
         bit1    :dfs,                   label: 'DFS Share',                  initial_value: 0
         bit1    :search,                label: 'Exclusive Search Bits',      initial_value: 1
         bit8    :reserved2,             label: 'Reserved Space',             initial_value: 0
-
       end
     end
   end

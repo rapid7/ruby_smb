@@ -1,13 +1,12 @@
 module RubySMB
   module SMB2
     module Packet
-
       # An SMB2 Create Response Packet as defined in
       # [2.2.14 SMB2 CREATE Response](https://msdn.microsoft.com/en-us/library/cc246512.aspx)
       class CreateResponse < RubySMB::GenericPacket
-        endian       :little
+        endian :little
         smb2_header           :smb2_header
-        uint16                :structure_size,       label: 'Structure Size',        initial_value: 89
+        uint16                :structure_size,       label: 'Structure Size', initial_value: 89
         uint8                 :oplock_level,         label: 'Granted OpLock Level'
         uint8                 :flags,                label: 'Flags (Do Not Use)'
         uint32                :create_action,        label: 'Create Action'
@@ -20,17 +19,16 @@ module RubySMB
         file_attributes       :file_attributes,      label: 'File Attributes'
         uint32                :reserved,             label: 'Reserved Space'
         smb2_fileid           :file_id,              label: 'File ID'
-        uint32                :context_offset,       label: 'Create Context Offset',  initial_value: lambda { context.abs_offset }
-        uint32                :context_length,       label: 'Create Context Length',  initial_value: lambda { context.do_num_bytes }
+        uint32                :context_offset,       label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
+        uint32                :context_length,       label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
 
-        array :context, label: 'Contexts',  type: :create_context, read_until: :eof
+        array :context, label: 'Contexts', type: :create_context, read_until: :eof
 
         def initialize_instance
           super
           smb2_header.command = RubySMB::SMB2::Commands::CREATE
           smb2_header.flags.reply = 1
         end
-
       end
     end
   end

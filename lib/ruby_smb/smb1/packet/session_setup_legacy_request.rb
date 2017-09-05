@@ -1,11 +1,9 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 SMB_COM_SESSION_SETUP_ANDX Request Packet, without NTLMSSP as defined in
       # [2.2.4.53.1 Request](https://msdn.microsoft.com/en-us/library/ee441849.aspx)
       class SessionSetupLegacyRequest < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -13,8 +11,8 @@ module RubySMB
           uint16        :max_mpx_count,           label: 'Max Mpx Count'
           uint16        :vc_number,               label: 'VC Number'
           uint32        :session_key,             label: 'Session Key'
-          uint16        :oem_password_length,     label: 'OEM Password Length',       initial_value: lambda { self.parent.data_block.oem_password.length }
-          uint16        :unicode_password_length, label: 'Unicored Password Length',  initial_value: lambda { self.parent.data_block.unicode_password.length }
+          uint16        :oem_password_length,     label: 'OEM Password Length',       initial_value: -> { parent.data_block.oem_password.length }
+          uint16        :unicode_password_length, label: 'Unicored Password Length',  initial_value: -> { parent.data_block.unicode_password.length }
           uint32        :reserved
           capabilities  :capabilities
         end
@@ -42,8 +40,6 @@ module RubySMB
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
           parameter_block.capabilities.extended_security = 0
         end
-
-
       end
     end
   end

@@ -21,16 +21,15 @@ module RubySMB
       display_str
     end
 
-
     def packet_smb_version
       class_name = self.class.to_s
       case class_name
-        when /SMB1/
-          'SMB1'
-        when /SMB2/
-          'SMB2'
-        else
-          ''
+      when /SMB1/
+        'SMB1'
+      when /SMB2/
+        'SMB2'
+      else
+        ''
       end
     end
 
@@ -38,10 +37,10 @@ module RubySMB
       value = -1
       smb_version = packet_smb_version
       case smb_version
-        when 'SMB1'
-          value = self.smb_header.nt_status.value
-        when 'SMB2'
-          value = self.smb2_header.nt_status.value
+      when 'SMB1'
+        value = smb_header.nt_status.value
+      when 'SMB2'
+        value = smb2_header.nt_status.value
       end
       status_code = WindowsError::NTStatus.find_by_retval(value).first
       if status_code.nil?
@@ -49,8 +48,6 @@ module RubySMB
       end
       status_code
     end
-
-    private
 
     # Returns an array of hashes representing the
     # fields for this record.
@@ -77,7 +74,7 @@ module RubySMB
         name.capitalize!
       end
       formatted_name = "\n" + ("\t" * depth) + name
-      formatted_string = sprintf '%-30s %-10s %s', formatted_name, class_str, field[:label]
+      formatted_string = format '%-30s %-10s %s', formatted_name, class_str, field[:label]
       field[:fields].each do |sub_field|
         formatted_string << format_field(sub_field, (depth + 1))
       end
@@ -110,6 +107,8 @@ module RubySMB
       field_hashes
     end
 
+    private
+
     # Takes a hash representation of a field in the packet structure and formats it
     # into a string representing the contents of that field.
     #
@@ -135,8 +134,8 @@ module RubySMB
           if field[:class].ancestors.include? BinData::Record
             field_str = label
           else
-            value = self.send(name)
-            field_str = sprintf '%-30s %s', label, value
+            value = send(name)
+            field_str = format '%-30s %s', label, value
           end
         else
           parent = self
@@ -146,7 +145,7 @@ module RubySMB
           value = parent.send(name)
           label = field[:label] || name.to_s.capitalize
           label = "\n" + ("\t" * depth) + label
-          field_str = sprintf '%-30s %s', label, value
+          field_str = format '%-30s %s', label, value
         end
       end
       my_parents << name
@@ -173,7 +172,7 @@ module RubySMB
           value = sub_field.send(name)
           label ||= name
           label = "\n" + "\t" * depth + label
-          sub_field_str = sprintf '%-30s %s', label, value
+          sub_field_str = format '%-30s %s', label, value
           array_field_str << sub_field_str
         end
       end

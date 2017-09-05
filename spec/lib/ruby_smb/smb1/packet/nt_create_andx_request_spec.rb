@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
+RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -49,7 +49,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
 
     describe '#name_length' do
       it 'is updated according to the #file_name length' do
-        file_name = "test_name"
+        file_name = 'test_name'
         packet.data_block.file_name = file_name
         expect(parameter_block.name_length).to eq(file_name.length)
       end
@@ -137,7 +137,6 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
         expect(parameter_block.security_flags).to be_a RubySMB::SMB1::BitField::SecurityFlags
       end
     end
-
   end
 
   describe '#data_block' do
@@ -148,8 +147,5 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxRequest  do
     end
 
     it { is_expected.to respond_to :file_name }
-
   end
 end
-
-

@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::ReadAndxResponse  do
+RSpec.describe RubySMB::SMB1::Packet::ReadAndxResponse do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -83,12 +83,11 @@ RSpec.describe RubySMB::SMB1::Packet::ReadAndxResponse  do
 
     describe '#data' do
       it 'reads the number of bytes specified in the data_length field' do
-        data = "Testing..."
+        data = 'Testing...'
         packet.parameter_block.data_length = 4
         data_block.data.read(data)
-        expect(data_block.data).to eq(data[0,4])
+        expect(data_block.data).to eq(data[0, 4])
       end
     end
   end
-
 end
