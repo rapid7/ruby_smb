@@ -1,3 +1,5 @@
+require 'date'
+
 RSpec.describe RubySMB::Field::Utime do
   subject(:time) { described_class.read(binary_filetime) }
 

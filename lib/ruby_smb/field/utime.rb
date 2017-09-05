@@ -1,3 +1,5 @@
+require 'date'
+
 module RubySMB
   module Field
     # Conveneince class for dealing with 32-bit unsigned UTIME
