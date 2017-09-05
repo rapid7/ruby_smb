@@ -50,8 +50,6 @@ module RubySMB
       status_code
     end
 
-    private
-
     # Returns an array of hashes representing the
     # fields for this record.
     #
@@ -109,6 +107,8 @@ module RubySMB
       end
       field_hashes
     end
+
+    private
 
     # Takes a hash representation of a field in the packet structure and formats it
     # into a string representing the contents of that field.

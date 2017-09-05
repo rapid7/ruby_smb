@@ -27,7 +27,7 @@ begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
   tree.disconnect!
-rescue Exception => e
+rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
 

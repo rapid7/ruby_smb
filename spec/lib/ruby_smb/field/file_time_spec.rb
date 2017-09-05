@@ -42,13 +42,13 @@ RSpec.describe RubySMB::Field::FileTime do
     it 'will take a Time object correctly but lose Nanoseconds' do
       empty_filetime.set time_filetime
       val = empty_filetime.get
-      expect(val / 10_000_000).to eq (int_filetime / 10_000_000)
+      expect(val / 10_000_000).to eq(int_filetime / 10_000_000)
     end
 
     it 'will take a DateTime object correctly but lose Nanoseconds' do
       empty_filetime.set datetime_filetime
       val = empty_filetime.get
-      expect(val / 10_000_000).to eq (int_filetime / 10_000_000)
+      expect(val / 10_000_000).to eq(int_filetime / 10_000_000)
     end
 
     it 'will accept a raw integer value and set it' do

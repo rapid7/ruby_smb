@@ -7,7 +7,6 @@ RSpec.describe RubySMB::Dispatcher::Base do
   describe '#nbss' do
     it 'returns the size of the packet to the packet in 4 bytes' do
       packet = RubySMB::SMB1::Packet::NegotiateRequest.new
-      packet_size = packet.do_num_bytes
       expect( dispatcher.nbss(packet) ).to eq "\x00\x00\x00\x23"
     end
   end

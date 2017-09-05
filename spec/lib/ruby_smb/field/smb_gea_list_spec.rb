@@ -30,7 +30,7 @@ RSpec.describe RubySMB::Field::SmbGeaList do
       list.gea_list << gea1
       expect(list.size_of_list).to eq gea1.do_num_bytes
       list.gea_list << gea2
-      expect(list.size_of_list).to eq (gea1.do_num_bytes + gea2.do_num_bytes )
+      expect(list.size_of_list).to eq(gea1.do_num_bytes + gea2.do_num_bytes )
     end
   end
 end

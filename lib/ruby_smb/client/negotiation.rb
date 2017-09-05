@@ -48,7 +48,7 @@ module RubySMB
         if smb1
           begin
             packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
-          rescue Exception => e
+          rescue StandardError => e
             raise RubySMB::Error::InvalidPacket, "Not a Valid SMB1 Negoitate Response #{e.message}"
           end
           if packet.valid?
@@ -58,7 +58,7 @@ module RubySMB
         if smb2 && response.nil?
           begin
             packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
-          rescue Exception => e
+          rescue StandardError => e
             raise RubySMB::Error::InvalidPacket, "Not a Valid SMB2 Negoitate Response #{e.message}"
           end
           response = packet

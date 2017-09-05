@@ -121,7 +121,7 @@ RSpec.describe RubySMB::SMB2::Tree do
   end
 
   describe '#open_directory' do
-    let (:create_req) { RubySMB::SMB2::Packet::CreateRequest.new }
+    let(:create_req) { RubySMB::SMB2::Packet::CreateRequest.new }
     let(:create_response) {  RubySMB::SMB2::Packet::CreateResponse.new }
 
     it 'sends the create request packet and gets a response back' do

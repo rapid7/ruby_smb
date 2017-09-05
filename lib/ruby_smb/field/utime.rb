@@ -27,7 +27,7 @@ module RubySMB
             set(value.to_time)
           when Time
             set(value.to_i)
-          when Fixnum
+          when Integer
             self.val = value
           else
             self.val = value.to_i

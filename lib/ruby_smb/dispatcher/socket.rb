@@ -32,7 +32,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
         bytes_written += @tcp_socket.write(data[bytes_written..-1])
       end
     rescue IOError, Errno::ECONNABORTED, Errno::ECONNRESET => e
-      raise RubySMB::Error::CommunicationError, "An error occured writing to the Socket"
+      raise RubySMB::Error::CommunicationError, "An error occured writing to the Socket: #{e.message}"
     end
     nil
   end
@@ -56,7 +56,7 @@ class RubySMB::Dispatcher::Socket < RubySMB::Dispatcher::Base
 
       data
     rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError, NoMethodError => e
-      raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket"
+      raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket #{e.message}"
     end
   end
 end

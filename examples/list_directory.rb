@@ -29,7 +29,7 @@ puts "#{protocol} : #{status}"
 begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
-rescue Exception => e
+rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
 

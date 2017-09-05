@@ -32,7 +32,7 @@ RSpec.describe RubySMB::Field::SmbFeaList do
       list.fea_list << fea1
       expect(list.size_of_list).to eq fea1.do_num_bytes
       list.fea_list << fea2
-      expect(list.size_of_list).to eq (fea1.do_num_bytes + fea2.do_num_bytes )
+      expect(list.size_of_list).to eq(fea1.do_num_bytes + fea2.do_num_bytes )
     end
   end
 end

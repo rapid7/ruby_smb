@@ -7,7 +7,7 @@ class RubySMB::Dispatcher::Base
   end
 
   # @abstract
-  def send_packet(packet)
+  def send_packet(_packet)
     raise NotImplementedError
   end
 

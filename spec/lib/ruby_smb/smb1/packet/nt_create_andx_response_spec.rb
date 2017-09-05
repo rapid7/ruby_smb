@@ -85,7 +85,7 @@ RSpec.describe RubySMB::SMB1::Packet::NtCreateAndxResponse  do
 
     describe '#volume_guid' do
       it 'has the correct length' do
-        expect(parameter_block.volume_guid.length).to eq (16)
+        expect(parameter_block.volume_guid.length).to eq 16
       end
     end
 

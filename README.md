@@ -255,7 +255,7 @@ Example:
       begin
         tree = client.tree_connect('TEST_SHARE')
         puts "Connected to #{path} successfully!"
-      rescue Exception => e
+      rescue StandardError => e
         puts "Failed to connect to #{path}: #{e.message}"
       end
       

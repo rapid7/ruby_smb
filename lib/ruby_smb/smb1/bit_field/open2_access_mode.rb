@@ -24,7 +24,7 @@ module RubySMB
         # @param mode [Symbol] the access mode to set
         def set_access_mode(mode=:r)
           modes = [:r, :w, :rw, :x]
-          raise ArgumentError, "Mode must be one of #{modes.to_s}" unless modes.include? mode
+          raise ArgumentError, "Mode must be one of #{modes}" unless modes.include? mode
           case mode
             when :r
               self.access_mode = 0

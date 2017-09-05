@@ -685,7 +685,7 @@ RSpec.describe RubySMB::Client do
           smb1_client.signing_required = true
           expect(smb1_client.smb1_sign(request1)).to eq request1
         end
-       end
+      end
     end
   end
 

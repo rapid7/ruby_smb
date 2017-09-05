@@ -10,7 +10,6 @@ module RubySMB
       def snapshot
         # override to always remove trailing zero bytes
         result = _value
-        result
         result = trim_and_zero_terminate(result)
         result.chomp("\0\0").force_encoding("utf-16le")
       end
