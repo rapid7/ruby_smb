@@ -100,7 +100,7 @@ module RubySMB
 
         remaining_bytes = bytes - atomic_read_size
 
-        while remaining_bytes > 0
+        while remaining_bytes.positive?
           offset += atomic_read_size
           atomic_read_size = remaining_bytes if remaining_bytes < MAX_READ_SIZE
 

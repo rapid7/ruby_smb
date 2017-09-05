@@ -12,9 +12,7 @@ module RubySMB
       # @param tcp_socket [IO]
       def initialize(tcp_socket)
         @tcp_socket = tcp_socket
-        if @tcp_socket.respond_to?(:setsockopt)
-          @tcp_socket.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
-        end
+        @tcp_socket.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true) if @tcp_socket.respond_to?(:setsockopt)
       end
 
       # @param host [String] passed to TCPSocket.new
@@ -45,15 +43,11 @@ module RubySMB
       def recv_packet
         IO.select([@tcp_socket])
         nbss_header = @tcp_socket.read(4) # Length of NBSS header. TODO: remove to a constant
-        if nbss_header.nil?
-          raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'
-        else
-          length = nbss_header.unpack('N').first
-        end
+        raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing' if nbss_header.nil?
+        length = nbss_header.unpack('N').first
         IO.select([@tcp_socket])
         data = @tcp_socket.read(length)
         data << @tcp_socket.read(length - data.length) while data.length < length
-
         data
       rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError, NoMethodError => e
         raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket #{e.message}"
