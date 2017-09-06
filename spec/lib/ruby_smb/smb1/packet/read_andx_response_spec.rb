@@ -12,8 +12,8 @@ RSpec.describe RubySMB::SMB1::Packet::ReadAndxResponse do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
     end
 
-    it 'should not have the response flag set' do
-      expect(header.flags.reply).to eq 0
+    it 'should have the response flag set' do
+      expect(header.flags.reply).to eq 1
     end
   end
 
