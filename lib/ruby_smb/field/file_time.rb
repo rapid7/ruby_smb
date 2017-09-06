@@ -1,3 +1,5 @@
+require 'date'
+
 module RubySMB
   module Field
     # Represents a Windows FILETIME structure as defined in
