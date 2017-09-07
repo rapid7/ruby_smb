@@ -133,6 +133,20 @@ module RubySMB
         read_request.offset       = offset
         read_request
       end
+      
+      # Delete a file
+      def delete
+        delete_request = delete_packet
+        raw_response   = tree.client.send_recv(delete_request)
+        response       = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+      end
+      
+      # Crafts the SetInfoRequest packet to be sent for read operations.
+      def delete_packet
+        delete_request                 = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
+        delete_request.file_info_class = 13
+        delete_request
+      end
 
       # Sets the header fields that we have to set on every packet
       # we send for File operations.
