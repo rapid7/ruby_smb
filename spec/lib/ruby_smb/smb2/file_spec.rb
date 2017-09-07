@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'securerandom'
 
 RSpec.describe RubySMB::SMB2::File do
   let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
@@ -113,11 +114,50 @@ RSpec.describe RubySMB::SMB2::File do
       let(:big_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data') }
 
       it 'uses a multiple packet to read the file in chunks' do
-        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_READ_SIZE, offset: 0).and_return(big_read)
-        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_READ_SIZE, offset: described_class::MAX_READ_SIZE).and_return(big_read)
+        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: 0).and_return(big_read)
+        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE).and_return(big_read)
         expect(client).to receive(:send_recv).twice.and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with('fake data').and_return(big_response)
-        file.read(bytes: (described_class::MAX_READ_SIZE * 2))
+        file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
+      end
+    end
+  end
+
+  describe '#append' do
+    it 'call #write with offset set to the end of the file' do
+      expect(file).to receive(:write).with(data:'test', offset: file.size)
+      file.append(data:'test')
+    end
+  end
+
+  describe '#write_packet' do
+    it 'calls #set_header_fields with the newly created packet' do
+      expect(file).to receive(:set_header_fields).and_call_original
+      file.write_packet
+    end
+
+    it 'sets the offset on the packet' do
+      expect(file.write_packet(offset:5).write_offset).to eq 5
+    end
+
+    it 'sets the buffer on the packet' do
+      expect(file.write_packet(data:'hello').buffer).to eq 'hello'
+    end
+  end
+
+  describe '#write' do
+    let(:write_response) { RubySMB::SMB2::Packet::WriteResponse.new }
+    context 'for a small write' do
+      it 'sends a single packet' do
+        expect(client).to receive(:send_recv).once.and_return(write_response.to_binary_s)
+        file.write(data: 'test')
+      end
+    end
+
+    context 'for a large write' do
+      it 'sends multiple packets' do
+        expect(client).to receive(:send_recv).twice.and_return(write_response.to_binary_s)
+        file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
       end
     end
   end

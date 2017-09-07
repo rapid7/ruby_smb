@@ -3,9 +3,9 @@ module RubySMB
     # Represents a file on the Remote server that we can perform
     # various I/O operations on.
     class File
-      # The maximum number of byte we want to read in a
-      # single packet.
-      MAX_READ_SIZE = 32_768
+      # The maximum number of byte we want to read or write
+      # in a single packet.
+      MAX_PACKET_SIZE = 32_768
 
       # The {FileAttributes} for the file
       # @!attribute [rw] attributes
@@ -68,6 +68,14 @@ module RubySMB
         @size_on_disk = response.allocation_size
       end
 
+      # Appends the supplied data to the end of the file.
+      #
+      # @param data [String] the data to write to the file
+      # @return [WindowsError::ErrorCode] the NTStatus code returned from the operation
+      def append(data:'')
+        write(data: data, offset: size)
+      end
+
       # Closes the handle to the remote file.
       #
       # @return [WindowsError::ErrorCode] the NTStatus code returned by the operation
@@ -86,8 +94,8 @@ module RubySMB
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
       def read(bytes: size, offset: 0)
-        atomic_read_size = if bytes > MAX_READ_SIZE
-                             MAX_READ_SIZE
+        atomic_read_size = if bytes > MAX_PACKET_SIZE
+                             MAX_PACKET_SIZE
                            else
                              bytes
                            end
@@ -102,7 +110,7 @@ module RubySMB
 
         while remaining_bytes > 0
           offset += atomic_read_size
-          atomic_read_size = remaining_bytes if remaining_bytes < MAX_READ_SIZE
+          atomic_read_size = remaining_bytes if remaining_bytes < MAX_PACKET_SIZE
 
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
           raw_response = tree.client.send_recv(read_request)
@@ -126,11 +134,55 @@ module RubySMB
         read_request
       end
 
+      # Sets the header fields that we have to set on every packet
+      # we send for File operations.
+      # @param request [RubySMB::GenericPacket] the request packet to set fields on
+      # @return  [RubySMB::GenericPacket] the rmodified request packet
       def set_header_fields(request)
         request         = tree.set_header_fields(request)
         request.file_id = guid
         request
       end
+
+      # Write the supplied data to the file at the given offset.
+      #
+      # @param data [String] the data to write to the file
+      # @param offset [Integer] the offset in the file to start writing from
+      # @return [WindowsError::ErrorCode] the NTStatus code returned from the operation
+      def write(data:'', offset: 0)
+        buffer            = data.dup
+        bytes             = data.length
+        atomic_write_size = if bytes > MAX_PACKET_SIZE
+                             MAX_PACKET_SIZE
+                           else
+                             bytes
+                            end
+
+        while buffer.length > 0 do
+          write_request = write_packet(data: buffer.slice!(0,atomic_write_size), offset: offset)
+          raw_response  = tree.client.send_recv(write_request)
+          response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+          status        = response.smb2_header.nt_status.to_nt_status
+
+          offset+= atomic_write_size
+          return status unless status == WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
+        status
+      end
+
+      # Creates the Request packet for the #write command
+      #
+      # @param data [String] the data to write to the file
+      # @param offset [Integer] the offset in the file to start writing from
+      # @return []RubySMB::SMB2::Packet::WriteRequest] the request packet
+      def write_packet(data:'', offset: 0)
+        write_request               = set_header_fields(RubySMB::SMB2::Packet::WriteRequest.new)
+        write_request.write_offset  = offset
+        write_request.buffer        = data
+        write_request
+      end
+
     end
   end
 end
