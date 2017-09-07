@@ -5,6 +5,7 @@ module RubySMB
       # [2.2.4.51.2 Response](https://msdn.microsoft.com/en-us/library/ee441823.aspx)
       class TreeDisconnectResponse < RubySMB::GenericPacket
         # The Parameter Block for this packet is empty save the Word Count
+        # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
         end
 

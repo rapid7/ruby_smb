@@ -46,7 +46,8 @@ module RubySMB
             end
           end
 
-          class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
+          class DataBlock  < RubySMB::SMB1::Packet::Trans2::DataBlock
             uint8              :name,               label: 'Name', initial_value: 0x00
             string             :pad1,               length: -> { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'

@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
+RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -94,7 +94,6 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
 
         it_behaves_like 'bit field with one flag set', :writethrough_mode, 'v', 0x0001
       end
-
     end
 
     describe '#offset_high' do
@@ -108,7 +107,6 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
         expect(parameter_block.offset_high?).to be false
       end
     end
-
   end
 
   describe '#data_block' do
@@ -120,7 +118,6 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
 
     it { is_expected.to respond_to :pad }
     it { is_expected.to respond_to :data }
-
   end
 
   describe '#set_64_bit_offset' do
@@ -137,7 +134,7 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
     end
 
     it 'raises an exception when the value is a String' do
-      expect { packet.set_64_bit_offset("true") }.to raise_error(ArgumentError)
+      expect { packet.set_64_bit_offset('true') }.to raise_error(ArgumentError)
     end
 
     it 'raises an exception when the value is a Numeric' do
@@ -148,6 +145,4 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest  do
       expect { packet.set_64_bit_offset(:true) }.to raise_error(ArgumentError)
     end
   end
-
 end
-

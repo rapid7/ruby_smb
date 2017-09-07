@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::WriteAndxResponse  do
+RSpec.describe RubySMB::SMB1::Packet::WriteAndxResponse do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -38,7 +38,6 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxResponse  do
         expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
       end
     end
-
   end
 
   describe '#data_block' do
@@ -51,7 +50,5 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxResponse  do
     it 'should be empty' do
       expect(data_block.byte_count).to eq(0)
     end
-
   end
-
 end

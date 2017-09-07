@@ -1,12 +1,10 @@
 module RubySMB
   module SMB1
     module Packet
-
       # A SMB1 SMB_COM_WRITE_ANDX Response Packet as defined in
       # [2.2.4.43.2 Response](https://msdn.microsoft.com/en-us/library/ee441673.aspx)
       # [2.2.4.3.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/ff469858.aspx)
       class WriteAndxResponse < RubySMB::GenericPacket
-
         # A SMB1 Parameter Block as defined by the {WriteAndxResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian      :little
@@ -31,7 +29,6 @@ module RubySMB
           smb_header.command = RubySMB::SMB1::Commands::SMB_COM_WRITE_ANDX
           smb_header.flags.reply = 1
         end
-
       end
     end
   end

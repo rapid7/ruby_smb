@@ -5,8 +5,9 @@ module RubySMB
         # This class represents a generic SMB1 Trans2 Request Packet as defined in
         # [2.2.4.46.1 Request](https://msdn.microsoft.com/en-us/library/ee442192.aspx)
         class Request < RubySMB::GenericPacket
+          # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
-            uint16        :total_parameter_count, label: 'Total Parameter Count(bytes)'
+            uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
             uint16        :total_data_count,      label: 'Total Data Count(bytes)'
             uint16        :max_parameter_count,   label: 'Max Parameter Count(bytes)'
             uint16        :max_data_count,        label: 'Max Data Count(bytes)'
@@ -25,6 +26,7 @@ module RubySMB
             array :setup, type: :uint16, initial_length: 0
           end
 
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             uint8  :name,               label: 'Name', initial_value: 0x00
             string :pad1,               length: -> { pad1_length }

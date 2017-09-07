@@ -1,5 +1,6 @@
 module RubySMB
   module SMB1
+    # Namespace for SMB1 Bit Mask style field definitions
     module BitField
       require 'ruby_smb/smb1/bit_field/header_flags'
       require 'ruby_smb/smb1/bit_field/header_flags2'

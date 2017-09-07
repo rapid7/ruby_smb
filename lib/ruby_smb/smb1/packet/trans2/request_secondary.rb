@@ -5,8 +5,9 @@ module RubySMB
         # This class represents a generic SMB1 Trans2 Secondary Request Packet as defined in
         # [2.2.4.47.1 Request](https://msdn.microsoft.com/en-us/library/ee442105.aspx)
         class RequestSecondary < RubySMB::GenericPacket
+          # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
-            uint16  :total_parameter_count,   label: 'Total Parameter Count(bytes)'
+            uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
             uint16  :total_data_count,        label: 'Total Data Count(bytes)'
             uint16  :parameter_count,         label: 'Parameter Count(bytes)',         initial_value: -> { parent.data_block.trans2_parameters.length }
             uint16  :parameter_offset,        label: 'Parameter Offset',               initial_value: -> { parent.data_block.trans2_parameters.abs_offset }
@@ -17,6 +18,7 @@ module RubySMB
             uint16  :fid,                     label: 'FileID'
           end
 
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans2::Request::DataBlock
           end
 

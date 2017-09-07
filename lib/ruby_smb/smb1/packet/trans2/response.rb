@@ -5,8 +5,9 @@ module RubySMB
         # This class represents a generic SMB1 Trans2 Response Packet as defined in
         # [2.2.4.46.2 Response](https://msdn.microsoft.com/en-us/library/ee441550.aspx)
         class Response < RubySMB::GenericPacket
+          # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
-            uint16        :total_parameter_count,   label: 'Total Parameter Count(bytes)'
+            uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
             uint16        :total_data_count,        label: 'Total Data Count(bytes)'
             uint16        :reserved,                label: 'Reserved Space',                 initial_value: 0x00
             uint16        :parameter_count,         label: 'Parameter Count(bytes)',         initial_value: -> { parent.data_block.trans2_parameters.length }
@@ -21,6 +22,7 @@ module RubySMB
             array :setup, type: :uint16, initial_length: 0
           end
 
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             string :pad1,               length: -> { pad1_length }
             string :trans2_parameters,  label: 'Trans2 Parameters'

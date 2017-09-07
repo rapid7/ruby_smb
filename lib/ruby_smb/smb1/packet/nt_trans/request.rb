@@ -5,8 +5,9 @@ module RubySMB
         # Class representing a generic NT Transaction request packet as defined in
         # [2.2.4.62.1 Request](https://msdn.microsoft.com/en-us/library/ee441534.aspx)
         class Request < RubySMB::GenericPacket
+          # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
-            endian        :little
+            endian :little
             uint8         :max_setup_count,       label: 'Max Setup Count'
             uint16        :reserved,              label: 'Reserved Space'
             uint32        :total_parameter_count, label: 'Total Parameter Count(bytes)'
@@ -23,12 +24,13 @@ module RubySMB
             array :setup, type: :uint16, initial_length: 0
           end
 
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            string :pad1,               length: -> { pad1_length }
+            string :pad1, length: -> { pad1_length }
             string :trans2_parameters,  label: 'Trans2 Parameters'
             string :pad2,               length: -> { pad2_length }
             string :trans2_data,        label: 'Trans2 Data'
-          end
+           end
 
           smb_header        :smb_header
           parameter_block   :parameter_block

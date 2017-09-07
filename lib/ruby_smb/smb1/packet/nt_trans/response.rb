@@ -5,6 +5,7 @@ module RubySMB
         # Class representing a generic NT Transaction response packet as defined in
         # [2.2.4.62.2 Response](https://msdn.microsoft.com/en-us/library/ee442112.aspx)
         class Response < RubySMB::GenericPacket
+          # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             endian :little
 
@@ -23,7 +24,8 @@ module RubySMB
             array :setup, type: :uint16, initial_length: 0
           end
 
-          class DataBlock < RubySMB::SMB1::Packet::NtTrans::Request::DataBlock
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
+          class DataBlock  < RubySMB::SMB1::Packet::NtTrans::Request::DataBlock
           end
 
           smb_header        :smb_header
