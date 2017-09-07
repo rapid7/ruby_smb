@@ -25,6 +25,7 @@ module RubySMB
       require 'ruby_smb/smb2/packet/close_request'
       require 'ruby_smb/smb2/packet/close_response'
       require 'ruby_smb/smb2/packet/write_request'
+      require 'ruby_smb/smb2/packet/write_response'
     end
   end
 end
