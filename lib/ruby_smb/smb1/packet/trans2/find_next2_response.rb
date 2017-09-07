@@ -8,6 +8,7 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock
           end
 
+          # The Trans2 Parameter Block for this particular Subcommand
           class Trans2Parameters < BinData::Record
             endian  :little
 
@@ -23,6 +24,7 @@ module RubySMB
             end
           end
 
+          # The Trans2 Data Blcok for this particular Subcommand
           class Trans2Data < BinData::Record
             rest :buffer, label: 'Results Buffer'
 
@@ -34,7 +36,7 @@ module RubySMB
           end
 
           # The {RubySMB::SMB1::DataBlock} specific to this packet type.
-          class DataBlock  < RubySMB::SMB1::Packet::Trans2::DataBlock
+          class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             uint8              :name,               label: 'Name', initial_value: 0x00
             string             :pad1,               length: -> { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'

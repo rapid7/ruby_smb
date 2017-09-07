@@ -8,6 +8,7 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::Packet::NtTrans::Response::ParameterBlock
           end
 
+          # The Trans2 Parameter Block for this particular Subcommand
           class Trans2Parameters < BinData::Record
             endian :little
 

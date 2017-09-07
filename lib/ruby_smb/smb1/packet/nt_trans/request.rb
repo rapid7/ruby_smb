@@ -30,7 +30,7 @@ module RubySMB
             string :trans2_parameters,  label: 'Trans2 Parameters'
             string :pad2,               length: -> { pad2_length }
             string :trans2_data,        label: 'Trans2 Data'
-           end
+          end
 
           smb_header        :smb_header
           parameter_block   :parameter_block

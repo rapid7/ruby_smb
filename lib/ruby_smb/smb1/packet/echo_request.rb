@@ -7,7 +7,7 @@ module RubySMB
         # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           uint16 :echo_count, label: 'Echo Count', initial_value: 1
-       end
+        end
 
         # The {RubySMB::SMB1::DataBlock} specific to this packet type.
         class DataBlock < RubySMB::SMB1::DataBlock

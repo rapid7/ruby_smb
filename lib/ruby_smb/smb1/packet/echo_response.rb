@@ -12,7 +12,7 @@ module RubySMB
         # The {RubySMB::SMB1::DataBlock} specific to this packet type.
         class DataBlock < RubySMB::SMB1::DataBlock
           string :data, label: 'Data'
-       end
+        end
 
         smb_header        :smb_header
         parameter_block   :parameter_block

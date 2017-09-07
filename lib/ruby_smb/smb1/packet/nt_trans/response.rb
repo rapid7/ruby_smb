@@ -25,7 +25,7 @@ module RubySMB
           end
 
           # The {RubySMB::SMB1::DataBlock} specific to this packet type.
-          class DataBlock  < RubySMB::SMB1::Packet::NtTrans::Request::DataBlock
+          class DataBlock < RubySMB::SMB1::Packet::NtTrans::Request::DataBlock
           end
 
           smb_header        :smb_header
