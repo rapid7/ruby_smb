@@ -54,4 +54,30 @@ RSpec.describe RubySMB::GenericPacket do
       expect(parent_packet.display).to eq str
     end
   end
+
+  describe '#read' do
+    context 'when reading an SMB1 packet' do
+      let(:smb1_error_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
+
+      it 'returns the error packet instead of the asked for class' do
+        expect(RubySMB::SMB1::Packet::NegotiateResponse.read(smb1_error_packet.to_binary_s)).to be_a RubySMB::SMB1::Packet::EmptyPacket
+      end
+
+      it 'reraises the exception if it is not a valid error packet either' do
+        expect{RubySMB::SMB1::Packet::NegotiateResponse.read('a')}.to raise_error(EOFError)
+      end
+    end
+
+    context 'when reading an SMB2 packet' do
+      let(:smb2_error_packet) { RubySMB::SMB2::Packet::ErrorPacket.new }
+
+      it 'returns the error packet instead of the asked for class' do
+        expect(RubySMB::SMB2::Packet::NegotiateResponse.read(smb2_error_packet.to_binary_s)).to be_a RubySMB::SMB2::Packet::ErrorPacket
+      end
+
+      it 'reraises the exception if it is not a valid error packet either' do
+        expect{RubySMB::SMB2::Packet::NegotiateResponse.read('a')}.to raise_error(EOFError)
+      end
+    end
+  end
 end

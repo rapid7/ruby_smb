@@ -33,6 +33,29 @@ module RubySMB
       end
     end
 
+    # Overrides the class #read method with some automatic
+    # exception handling. If an {EOFError} is thrown, it will try
+    # to read the data into the protocol specific empty ErrorPacket
+    # so that the NTstatus code can be read. We re-raise the exception
+    # in the event that it is not an SMB1 or SMB2 packet, or if it is
+    # already an error packet.
+    def self.read(val)
+      begin
+        super(val)
+      rescue EOFError => e
+        case self.to_s
+          when /EmptyPacket|ErrorPacket/
+            raise e
+          when /SMB1/
+            RubySMB::SMB1::Packet::EmptyPacket.read(val)
+          when /SMB2/
+            RubySMB::SMB2::Packet::ErrorPacket.read(val)
+          else
+            raise e
+        end
+      end
+    end
+
     def status_code
       value = -1
       smb_version = packet_smb_version
