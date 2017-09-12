@@ -161,7 +161,7 @@ RSpec.describe RubySMB::SMB2::File do
       end
     end
   end
-  
+
   describe '#delete_packet' do
     it 'creates a new SetInfoRequest packet' do
       expect(RubySMB::SMB2::Packet::SetInfoRequest).to receive(:new).and_call_original
@@ -177,7 +177,7 @@ RSpec.describe RubySMB::SMB2::File do
       expect(file.delete_packet.file_info_class).to eq 13
     end
   end
-  
+
   describe '#delete' do
     context 'for a small file' do
       let(:small_delete) { file.delete_packet }

@@ -7,7 +7,7 @@ module RubySMB
         endian :little
 
         smb2_header   :smb2_header
-        uint16        :structure_size,  label: 'Structure Size',      initial_value: 2
+        uint16        :structure_size, label: 'Structure Size', initial_value: 2
 
         def initialize_instance
           super

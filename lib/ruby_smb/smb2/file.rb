@@ -3,7 +3,6 @@ module RubySMB
     # Represents a file on the Remote server that we can perform
     # various I/O operations on.
     class File
-
       # The maximum number of byte we want to read or write
       # in a single packet.
       MAX_PACKET_SIZE = 32_768
@@ -134,23 +133,22 @@ module RubySMB
         read_request.offset       = offset
         read_request
       end
-      
+
       # Delete a file on close
       #
       # @return [String] the delete response to string
       def delete
-        delete_request = delete_packet
-        raw_response   = tree.client.send_recv(delete_request)
-        response       = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        raw_response = tree.client.send_recv(delete_packet)
+        RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
       end
-      
+
       # Crafts the SetInfoRequest packet to be sent for delete operations.
       #
       # @return [RubySMB::SMB2::Packet::SetInfoRequest] the set info packet
       def delete_packet
         delete_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
         file_disposition_information        = RubySMB::Fscc::FileInformation::FileDispositionInformation.new
-        
+
         delete_request.info_type            = file_disposition_information.info_type
         delete_request.file_info_class      = file_disposition_information.file_info_class
         delete_request.buffer_length        = file_disposition_information.buffer_length

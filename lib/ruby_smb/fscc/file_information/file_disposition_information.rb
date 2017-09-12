@@ -12,13 +12,12 @@ module RubySMB
         SMB2_FLAG = 0x0D
 
         endian :little
-        
-        uint8  :info_type,          label: "Info Type",       initial_value: 0x01
+
+        uint8  :info_type,          label: 'Info Type',       initial_value: 0x01
         uint8  :file_info_class,    label: 'File Info Class', initial_value: 0x0D
         uint32 :buffer_length,      label: 'Buffer Length',   initial_value: 1
         uint16 :buffer_offset,      label: 'Buffer Offset',   initial_value: 96
         string :buffer,             label: 'Buffer',          initial_value: 1
-        
       end
     end
   end
