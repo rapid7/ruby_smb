@@ -135,14 +135,18 @@ module RubySMB
         read_request
       end
       
-      # Delete a file
+      # Delete a file on close
+      #
+      # @return [String] the delete response to string
       def delete
         delete_request = delete_packet
         raw_response   = tree.client.send_recv(delete_request)
         response       = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
       end
       
-      # Crafts the SetInfoRequest packet to be sent for read operations.
+      # Crafts the SetInfoRequest packet to be sent for delete operations.
+      #
+      # @return [RubySMB::SMB2::Packet::SetInfoRequest] the set info packet
       def delete_packet
         delete_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
         file_disposition_information        = RubySMB::Fscc::FileInformation::FileDispositionInformation.new

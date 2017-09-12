@@ -1,10 +1,10 @@
 #!/usr/bin/ruby
 
-# This example script is used for testing the reading of a file.
-# It will attempt to connect to a specific share and then read a specified file.
-# Example usage: ruby read_file.rb 192.168.172.138 msfadmin msfadmin TEST_SHARE short.txt
+# This example script is used for testing the deleting of a file.
+# It will attempt to connect to a specific share and then delete a specified file.
+# Example usage: ruby delete_file.rb 192.168.172.138 msfadmin msfadmin TEST_SHARE short.txt
 # This will try to connect to \\192.168.172.138\TEST_SHARE with the msfadmin:msfadmin credentials
-# and read the file short.txt
+# and delete the file short.txt
 
 require 'bundler/setup'
 require 'ruby_smb'
