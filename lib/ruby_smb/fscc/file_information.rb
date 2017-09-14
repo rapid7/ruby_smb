@@ -5,6 +5,7 @@ module RubySMB
     module FileInformation
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
+      require 'ruby_smb/fscc/file_information/file_disposition_information'
       require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
