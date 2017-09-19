@@ -187,7 +187,7 @@ RSpec.describe RubySMB::SMB2::File do
         expect(file).to receive(:delete_packet).and_return(small_delete)
         expect(client).to receive(:send_recv).with(small_delete).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
-        expect(file.delete[:smb2_header][:command]).to eq 17
+        expect(file.delete).to eq WindowsError::NTStatus::STATUS_SUCCESS
       end
     end
   end

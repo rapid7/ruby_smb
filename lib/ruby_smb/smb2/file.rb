@@ -136,10 +136,11 @@ module RubySMB
 
       # Delete a file on close
       #
-      # @return [String] the delete response to string
+      # @return [WindowsError::ErrorCode] the NTStatus Response code
       def delete
         raw_response = tree.client.send_recv(delete_packet)
-        RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        response.smb2_header.nt_status.to_nt_status
       end
 
       # Crafts the SetInfoRequest packet to be sent for delete operations.
