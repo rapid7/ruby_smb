@@ -222,11 +222,8 @@ module RubySMB
         rename_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
         file_rename_information             = RubySMB::Fscc::FileInformation::FileRenameInformation.new
         
-        file_rename_information.file_name          = new_file_name
-        file_rename_information.file_name_length   = new_file_name.length
-        
-        # require 'pry'
-#         binding.pry
+        file_rename_information.file_name          = new_file_name.encode('utf-16le')
+        file_rename_information.file_name_length   = file_rename_information.file_name.do_num_bytes
         
         rename_request.buffer                      = file_rename_information.to_binary_s
 
