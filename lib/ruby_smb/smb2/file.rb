@@ -221,20 +221,20 @@ module RubySMB
       def rename_packet(new_file_name)
         rename_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
         file_rename_information             = RubySMB::Fscc::FileInformation::FileRenameInformation.new
+        
+        file_rename_information.file_name          = new_file_name
+        file_rename_information.file_name_length   = new_file_name.length
+        
+        # require 'pry'
+#         binding.pry
+        
+        rename_request.buffer                      = file_rename_information.to_binary_s
 
-        rename_request.info_type            = file_rename_information.info_type
-        rename_request.file_info_class      = file_rename_information.file_info_class
+        rename_request.info_type            = 0x01
+        rename_request.file_info_class      = 0x0A
         
-        rename_request.buffer_length        = file_rename_information.buffer_length
-        rename_request.buffer_offset        = file_rename_information.buffer_offset
-        
-        rename_request.buffer              += file_rename_information.replace_if_exists
-        rename_request.buffer              += file_rename_information.reserved_0
-        rename_request.buffer              += file_rename_information.reserved_1
-        rename_request.buffer              += file_rename_information.reserved_2
-        rename_request.buffer              += file_rename_information.root_firectory
-        rename_request.buffer              += file_rename_information.file_name_length
-        rename_request.buffer              += file_rename_information.file_name
+        rename_request.buffer_length        = file_rename_information.num_bytes
+        rename_request.buffer_offset        = 96
         
         rename_request
       end

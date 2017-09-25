@@ -10,6 +10,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_names_information'
+      require 'ruby_smb/fscc/file_information/file_rename_information'
     end
   end
 end
