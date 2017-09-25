@@ -12,11 +12,6 @@ module RubySMB
         SMB2_FLAG = 0x0A
 
         endian :little
-
-        # uint8  :info_type,          label: 'Info Type',         initial_value: 0x01
-#         uint8  :file_info_class,    label: 'File Info Class',   initial_value: 0x0A
-#         uint32 :buffer_length,      label: 'Buffer Length',     initial_value: 1
-#         uint16 :buffer_offset,      label: 'Buffer Offset',     initial_value: 96
         
         uint8  :replace_if_exists,  label: 'Replace If Exists', initial_value: 1
         uint8  :reserved_0,         label: 'Reserved 0',        initial_value: 0

@@ -191,4 +191,34 @@ RSpec.describe RubySMB::SMB2::File do
       end
     end
   end
+  
+  describe '#rename_packet' do
+    it 'creates a new SetInfoRequest packet' do
+      expect(RubySMB::SMB2::Packet::SetInfoRequest).to receive(:new).and_call_original
+      file.rename_packet('new_file.txt')
+    end
+
+    it 'calls #set_header_fields' do
+      expect(file).to receive(:set_header_fields).and_call_original
+      file.rename_packet('new_file.txt')
+    end
+
+    it 'sets the file_info_class of the packet' do
+      expect(file.rename_packet('new_file.txt').file_info_class).to eq 0x0A
+    end
+  end
+
+  describe '#rename' do
+    context 'for a small file' do
+      let(:small_rename) { file.rename_packet('new_file.txt') }
+      let(:small_response) { RubySMB::SMB2::Packet::SetInfoResponse.new }
+
+      it 'uses a single packet to rename the entire file' do
+        expect(file).to receive(:rename_packet).and_return(small_rename)
+        expect(client).to receive(:send_recv).with(small_rename).and_return 'raw_response'
+        expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
+        expect(file.rename('new_file.txt')[:smb2_header][:command]).to eq 17
+      end
+    end
+  end
 end

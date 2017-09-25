@@ -209,6 +209,7 @@ module RubySMB
       
       # Rename a file
       #
+      # @param new_file_name [String] the new name
       # @return [String] the rename response to string
       def rename(new_file_name)
         raw_response = tree.client.send_recv(rename_packet(new_file_name))
@@ -217,21 +218,18 @@ module RubySMB
 
       # Crafts the SetInfoRequest packet to be sent for rename operations.
       #
+      # @param new_file_name [String] the new name
       # @return [RubySMB::SMB2::Packet::SetInfoRequest] the set info packet
       def rename_packet(new_file_name)
-        rename_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
-        file_rename_information             = RubySMB::Fscc::FileInformation::FileRenameInformation.new
+        file_rename_information                  = RubySMB::Fscc::FileInformation::FileRenameInformation.new
+        file_rename_information.file_name        = new_file_name.encode('utf-16le')
+        file_rename_information.file_name_length = file_rename_information.file_name.do_num_bytes
         
-        file_rename_information.file_name          = new_file_name.encode('utf-16le')
-        file_rename_information.file_name_length   = file_rename_information.file_name.do_num_bytes
-        
-        rename_request.buffer                      = file_rename_information.to_binary_s
-
-        rename_request.info_type            = 0x01
-        rename_request.file_info_class      = 0x0A
-        
-        rename_request.buffer_length        = file_rename_information.num_bytes
-        rename_request.buffer_offset        = 96
+        rename_request                           = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
+        rename_request.info_type                 = 0x01
+        rename_request.file_info_class           = 0x0A
+        rename_request.buffer                    = file_rename_information.to_binary_s
+        rename_request.buffer_length             = file_rename_information.num_bytes
         
         rename_request
       end
