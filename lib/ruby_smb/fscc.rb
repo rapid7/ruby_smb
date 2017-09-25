@@ -7,5 +7,6 @@ module RubySMB
     require 'ruby_smb/fscc/file_full_ea_info'
     require 'ruby_smb/fscc/ea_info_array'
     require 'ruby_smb/fscc/file_information'
+    require 'ruby_smb/fscc/control_codes'
   end
 end
