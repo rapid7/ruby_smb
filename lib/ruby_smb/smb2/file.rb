@@ -206,6 +206,38 @@ module RubySMB
         write_request.buffer        = data
         write_request
       end
+      
+      # Rename a file
+      #
+      # @return [String] the rename response to string
+      def rename(new_file_name)
+        raw_response = tree.client.send_recv(rename_packet(new_file_name))
+        RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+      end
+
+      # Crafts the SetInfoRequest packet to be sent for rename operations.
+      #
+      # @return [RubySMB::SMB2::Packet::SetInfoRequest] the set info packet
+      def rename_packet(new_file_name)
+        rename_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
+        file_rename_information             = RubySMB::Fscc::FileInformation::FileRenameInformation.new
+
+        rename_request.info_type            = file_rename_information.info_type
+        rename_request.file_info_class      = file_rename_information.file_info_class
+        
+        rename_request.buffer_length        = file_rename_information.buffer_length
+        rename_request.buffer_offset        = file_rename_information.buffer_offset
+        
+        rename_request.buffer              += file_rename_information.replace_if_exists
+        rename_request.buffer              += file_rename_information.reserved_0
+        rename_request.buffer              += file_rename_information.reserved_1
+        rename_request.buffer              += file_rename_information.reserved_2
+        rename_request.buffer              += file_rename_information.root_firectory
+        rename_request.buffer              += file_rename_information.file_name_length
+        rename_request.buffer              += file_rename_information.file_name
+        
+        rename_request
+      end
 
     end
   end
