@@ -2,7 +2,7 @@
 
 # This example script is used for testing the deleting of a file.
 # It will attempt to connect to a specific share and then rename a specified file.
-# Example usage: ruby rename_file.rb 192.168.172.138 msfadmin msfadmin TEST_SHARE short.txt
+# Example usage: ruby rename_file.rb 192.168.172.138 msfadmin msfadmin TEST_SHARE short.txt shortrenamed.txt
 # This will try to connect to \\192.168.172.138\TEST_SHARE with the msfadmin:msfadmin credentials
 # and rename the file short.txt
 
