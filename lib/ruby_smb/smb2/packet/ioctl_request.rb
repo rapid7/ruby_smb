@@ -8,7 +8,7 @@ module RubySMB
 
         smb2_header   :smb2_header
         uint16        :structure_size,      label: 'Structure Size',      initial_value: 57
-        uint32        :reserved1,           label: 'Reserved Space'
+        uint16        :reserved1,           label: 'Reserved Space'
         uint32        :ctl_code,            label: 'Control Code'
         smb2_fileid   :file_id,             label: 'File Id'
         uint32        :input_offset,        label: 'Input Offset',        initial_value: -> { calc_input_offset }
