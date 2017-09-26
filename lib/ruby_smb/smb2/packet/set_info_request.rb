@@ -8,7 +8,7 @@ module RubySMB
 
         smb2_header           :smb2_header
         uint16                :structure_size,         label: 'Structure Size',         initial_value: 33
-        uint8                 :info_type,              label: 'Info Type'
+        uint8                 :info_type,              label: 'Info Type',              initial_value: 0x01
         uint8                 :file_info_class,        label: 'File Info Class'
         uint32                :buffer_length,          label: 'Buffer Length'
         uint16                :buffer_offset,          label: 'Buffer Offset',          initial_value: 96
