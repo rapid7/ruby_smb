@@ -209,10 +209,11 @@ module RubySMB
       # Rename a file
       #
       # @param new_file_name [String] the new name
-      # @return [String] the rename response to string
+      # @return [WindowsError::ErrorCode] the NTStatus Response code
       def rename(new_file_name)
         raw_response = tree.client.send_recv(rename_packet(new_file_name))
-        RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        response.smb2_header.nt_status.to_nt_status
       end
 
       # Crafts the SetInfoRequest packet to be sent for rename operations.

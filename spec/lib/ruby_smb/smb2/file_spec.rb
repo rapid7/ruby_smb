@@ -217,7 +217,7 @@ RSpec.describe RubySMB::SMB2::File do
         expect(file).to receive(:rename_packet).and_return(small_rename)
         expect(client).to receive(:send_recv).with(small_rename).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
-        expect(file.rename('new_file.txt')[:smb2_header][:command]).to eq 17
+        expect(file.rename('new_file.txt')).to eq WindowsError::NTStatus::STATUS_SUCCESS
       end
     end
   end
