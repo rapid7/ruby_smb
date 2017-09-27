@@ -150,8 +150,7 @@ module RubySMB
         delete_request                      = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
         file_disposition_information        = RubySMB::Fscc::FileInformation::FileDispositionInformation.new
 
-        delete_request.info_type            = file_disposition_information.info_type
-        delete_request.file_info_class      = file_disposition_information.file_info_class
+        delete_request.file_info_class      = RubySMB::Fscc::FileInformation::FileDispositionInformation::SMB2_FLAG
         delete_request.buffer_length        = file_disposition_information.buffer_length
         delete_request.buffer_offset        = file_disposition_information.buffer_offset
         delete_request.buffer               = file_disposition_information.buffer
@@ -205,6 +204,32 @@ module RubySMB
         write_request.write_offset  = offset
         write_request.buffer        = data
         write_request
+      end
+      
+      # Rename a file
+      #
+      # @param new_file_name [String] the new name
+      # @return [WindowsError::ErrorCode] the NTStatus Response code
+      def rename(new_file_name)
+        raw_response = tree.client.send_recv(rename_packet(new_file_name))
+        response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        response.smb2_header.nt_status.to_nt_status
+      end
+
+      # Crafts the SetInfoRequest packet to be sent for rename operations.
+      #
+      # @param new_file_name [String] the new name
+      # @return [RubySMB::SMB2::Packet::SetInfoRequest] the set info packet
+      def rename_packet(new_file_name)
+        file_rename_information                  = RubySMB::Fscc::FileInformation::FileRenameInformation.new
+        file_rename_information.file_name        = new_file_name.encode('utf-16le')
+        
+        rename_request                           = set_header_fields(RubySMB::SMB2::Packet::SetInfoRequest.new)
+        rename_request.file_info_class           = RubySMB::Fscc::FileInformation::FileRenameInformation::SMB2_FLAG
+        rename_request.buffer                    = file_rename_information.to_binary_s
+        rename_request.buffer_length             = file_rename_information.num_bytes
+        
+        rename_request
       end
 
     end
