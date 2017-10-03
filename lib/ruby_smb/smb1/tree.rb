@@ -41,10 +41,78 @@ module RubySMB
       # @return [WindowsError::ErrorCode] the NTStatus sent back by the server.
       def disconnect!
         request = RubySMB::SMB1::Packet::TreeDisconnectRequest.new
-        request.smb_header.tid = id
+        request = set_header_fields(request)
         raw_response = client.send_recv(request)
         response = RubySMB::SMB1::Packet::TreeDisconnectResponse.read(raw_response)
         response.status_code
+      end
+
+      # Open a file on the remote share.
+      #
+      # @example
+      #   tree = client.tree_connect("\\\\192.168.99.134\\Share")
+      #   tree.open_file(filename: "myfile")
+      #
+      # @param filename [String] name of the file to be opened
+      # @param flags [BinData::Struct, Hash] flags to setup the request (see {RubySMB::SMB1::Packet::NtCreateAndxRequest})
+      # @param options [RubySMB::SMB1::BitField::CreateOptions, Hash] flags that defines how the file should be created
+      # @param disposition [Integer] 32-bit field that defines how an already-existing file or a new file needs to be handled (constants are defined in {RubySMB::Dispositions})
+      # @param impersonation [Integer] 32-bit field that defines the impersonation level (constants are defined in {RubySMB::ImpersonationLevels})
+      # @param read [TrueClass, FalseClass] request a read access
+      # @param write [TrueClass, FalseClass] request a write access
+      # @param delete [TrueClass, FalseClass] request a delete access
+      # @return [RubySMB::SMB1::File] handle to the created file
+      def open_file(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                    impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
+        nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
+        nt_create_andx_request = set_header_fields(nt_create_andx_request)
+
+        nt_create_andx_request.parameter_block.ext_file_attributes.normal = 1
+
+        if flags
+          nt_create_andx_request.parameter_block.flags = flags
+        else
+          nt_create_andx_request.parameter_block.flags.request_extended_response = 1
+        end
+
+        if options
+          nt_create_andx_request.parameter_block.create_options = options
+        else
+          nt_create_andx_request.parameter_block.create_options.directory_file     = 0
+          nt_create_andx_request.parameter_block.create_options.non_directory_file = 1
+        end
+
+        if read
+          nt_create_andx_request.parameter_block.share_access.share_read     = 1
+          nt_create_andx_request.parameter_block.desired_access.read_data    = 1
+          nt_create_andx_request.parameter_block.desired_access.read_ea      = 1
+          nt_create_andx_request.parameter_block.desired_access.read_attr    = 1
+          nt_create_andx_request.parameter_block.desired_access.read_control = 1
+        end
+
+        if write
+          nt_create_andx_request.parameter_block.share_access.share_write   = 1
+          nt_create_andx_request.parameter_block.desired_access.write_data  = 1
+          nt_create_andx_request.parameter_block.desired_access.append_data = 1
+          nt_create_andx_request.parameter_block.desired_access.write_ea    = 1
+          nt_create_andx_request.parameter_block.desired_access.write_attr  = 1
+        end
+
+        if delete
+          nt_create_andx_request.parameter_block.share_access.share_delete    = 1
+          nt_create_andx_request.parameter_block.desired_access.delete_access = 1
+        end
+
+        nt_create_andx_request.parameter_block.impersonation_level = impersonation
+        nt_create_andx_request.parameter_block.create_disposition  = disposition
+
+        unicode_enabled = nt_create_andx_request.smb_header.flags2.unicode == 1
+        nt_create_andx_request.data_block.file_name = add_null_termination(str: filename, unicode: unicode_enabled)
+
+        raw_response = @client.send_recv(nt_create_andx_request)
+        response = @client.parse_response(response_packet: RubySMB::SMB1::Packet::NtCreateAndxResponse, raw_response: raw_response)
+
+        RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
       end
 
       # List `directory` on the remote share.
@@ -59,8 +127,7 @@ module RubySMB
       # @return [Array] array of directory structures
       def list(directory: '\\', pattern: '*', type: RubySMB::Fscc::FileInformation::FileFullDirectoryInformation)
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
-        find_first_request.smb_header.tid             = id
-        find_first_request.smb_header.flags2.eas      = 1
+        find_first_request = set_header_fields(find_first_request)
         find_first_request.smb_header.flags2.unicode  = 1
 
         search_path = directory.dup
@@ -118,6 +185,17 @@ module RubySMB
         results
       end
 
+      # Sets a few preset header fields that will always be set the same
+      # way for Tree operations. This is, the TreeID and Extended Attributes.
+      #
+      # @param [RubySMB::SMB::Packet] the request packet to modify
+      # @return [RubySMB::SMB::Packet] the modified packet.
+      def set_header_fields(request)
+        request.smb_header.tid        = @id
+        request.smb_header.flags2.eas = 1
+        request
+      end
+
       private
 
       # Sets ParameterBlock options for FIND_FIRST2 and
@@ -132,6 +210,21 @@ module RubySMB
         request.parameter_block.max_data_count         = 16_384
         request
       end
+
+      # Add null termination to `str` in case it is not already null-terminated.
+      #
+      # @str [String] the string to be null-terminated
+      # @unicode [TrueClass, FalseClass] True if the null-termination should be Unicode encoded
+      # @return [String] the null-terminated string
+      def add_null_termination(str:, unicode: false)
+        null_termination = unicode ? "\x00".encode('UTF-16LE') : "\x00"
+        if str.end_with?(null_termination)
+          return str
+        else
+          return str + null_termination
+        end
+      end
+
     end
   end
 end
