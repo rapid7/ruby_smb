@@ -33,7 +33,7 @@ rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
 
-file = tree.open_file(filename: file, write: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+file = tree.open_file(filename: file, write: true, disposition: RubySMB::Dispositions::FILE_OVERWRITE_IF)
 
 result = file.write(data: data)
 puts result.to_s
