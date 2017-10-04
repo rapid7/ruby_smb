@@ -17,5 +17,6 @@ module RubySMB
     require 'ruby_smb/smb1/dialect'
     require 'ruby_smb/smb1/packet'
     require 'ruby_smb/smb1/tree'
+    require 'ruby_smb/smb1/file'
   end
 end
