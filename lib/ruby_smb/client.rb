@@ -285,11 +285,11 @@ module RubySMB
       raise ArgumentError, 'response_packet should be a kind of RubySMB::GenericPacket' unless response_packet < RubySMB::GenericPacket
       begin
         response = response_packet.read(raw_response)
-      rescue EOFError, IOError
+      rescue IOError
         response = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
       end
       unless response.smb_header.command == response_packet.new.smb_header.command
-        raise RubySMB::Error::InvalidPacket, "Not a #{response_packet.to_s}"
+        raise RubySMB::Error::InvalidPacket, "Not a #{response_packet}"
       end
       unless response.status_code == expected_status_code
         raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
