@@ -14,12 +14,21 @@ RSpec.describe RubySMB::Dispatcher::Socket do
 
   # Don't try to actually select on our StringIO fake socket
   before(:each) do
-    allow(IO).to receive(:select).and_return(nil)
+    allow(IO).to receive(:select).and_return([])
   end
 
   it 'should attempt to set KEEPALIVE on the socket' do
     expect(fake_tcp_socket).to receive(:setsockopt).with(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
     described_class.new(fake_tcp_socket)
+  end
+
+  it 'sets the default read_timeout value to READ_TIMEOUT' do
+    expect(described_class.new(fake_tcp_socket).read_timeout).to eq(described_class::READ_TIMEOUT)
+  end
+
+  it 'accepts a read_timeout value as arguments' do
+    read_timeout = 10
+    expect(described_class.new(fake_tcp_socket, read_timeout: read_timeout).read_timeout).to eq(read_timeout)
   end
 
   describe '#connect' do
@@ -47,6 +56,14 @@ RSpec.describe RubySMB::Dispatcher::Socket do
       end
     end
 
+    describe 'when reading from the socket results in an empty value' do
+      it 'should raise Error::NetBiosSessionService' do
+        smb_socket.tcp_socket = blank_socket
+        allow(blank_socket).to receive(:read).with(4).and_return('')
+        expect { smb_socket.recv_packet }.to raise_error(::RubySMB::Error::NetBiosSessionService)
+      end
+    end
+
     describe 'when reading an SMB Response packet' do
       it 'reads a number of bytes defined in the nbss header' do
         smb_socket.tcp_socket = response_socket
@@ -59,6 +76,27 @@ RSpec.describe RubySMB::Dispatcher::Socket do
     it 'raises a CommunicationError if it encounters a socket error' do
       expect(fake_tcp_socket).to receive(:read).and_raise(Errno::ECONNRESET)
       expect { smb_socket.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
+    end
+
+    it 'uses the default read_timeout with IO#select when it has not been specifically defined' do
+      smb_socket.tcp_socket = response_socket
+      expect(IO).to receive(:select).with([response_socket], nil, nil, described_class::READ_TIMEOUT).and_return([]).twice
+      smb_socket.recv_packet
+    end
+
+    it 'uses the defined read_timeout with IO#select' do
+      smb_socket.tcp_socket = response_socket
+      timeout = 10
+      smb_socket.read_timeout = timeout
+      expect(IO).to receive(:select).with([response_socket], nil, nil, timeout).and_return([]).twice
+      smb_socket.recv_packet
+    end
+
+    context 'when the read_timeout expires' do
+      it 'raises a CommunicationError exception' do
+        allow(IO).to receive(:select).and_return(nil)
+        expect { smb_socket.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
+      end
     end
   end
 

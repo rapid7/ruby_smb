@@ -4,15 +4,23 @@ module RubySMB
     # This class provides a wrapper around a Socket for the packet Dispatcher.
     # It allows for dependency injection of different Socket implementations.
     class Socket < RubySMB::Dispatcher::Base
+      READ_TIMEOUT = 30
+
       # The underlying socket that we select on
       # @!attribute [rw] tcp_socket
       #   @return [IO]
       attr_accessor :tcp_socket
 
+      # The read timeout
+      # @!attribute [rw] read_timeout
+      #   @return [Integer]
+      attr_accessor :read_timeout
+
       # @param tcp_socket [IO]
-      def initialize(tcp_socket)
+      def initialize(tcp_socket, read_timeout: READ_TIMEOUT)
         @tcp_socket = tcp_socket
         @tcp_socket.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true) if @tcp_socket.respond_to?(:setsockopt)
+        @read_timeout = read_timeout
       end
 
       # @param host [String] passed to TCPSocket.new
@@ -41,11 +49,15 @@ module RubySMB
       # which are assumed to be the NetBiosSessionService header.
       # @return [String]
       def recv_packet
-        IO.select([@tcp_socket])
+        if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
+          raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
+        end
         nbss_header = @tcp_socket.read(4) # Length of NBSS header. TODO: remove to a constant
-        raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing' if nbss_header.nil?
+        raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing' if nbss_header.nil? || nbss_header.empty?
         length = nbss_header.unpack('N').first
-        IO.select([@tcp_socket])
+        if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
+          raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
+        end
         data = @tcp_socket.read(length)
         data << @tcp_socket.read(length - data.length) while data.length < length
         data
