@@ -31,7 +31,7 @@ module RubySMB
         bit1    :reserve_opfilter,            label: 'Reserve OPFilter'
         bit4    :reserved,                    label: 'Reserved Space'
         # Byte Boundary
-        bit8
+        bit8    :reserved2,                   label: 'Reserved Space'
       end
     end
   end
