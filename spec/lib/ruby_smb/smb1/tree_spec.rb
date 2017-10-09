@@ -74,7 +74,7 @@ RSpec.describe RubySMB::SMB1::Tree do
 
     before :each do
       allow(RubySMB::SMB1::Packet::NtCreateAndxRequest).to receive(:new).and_return(nt_create_andx_req)
-      allow(client).to receive(:parse_response).and_return(nt_create_andx_response)
+      allow(RubySMB::SMB1::Packet::NtCreateAndxResponse).to receive(:read).and_return(nt_create_andx_response)
     end
 
     it 'calls #set_header_fields' do
@@ -238,6 +238,19 @@ RSpec.describe RubySMB::SMB1::Tree do
         expect(tree.open_file(filename: filename)).to eq(file_obj)
       end
 
+      context 'when the response is not a NtCreateAndxResponse packet' do
+        it 'raise an InvalidPacket exception' do
+          nt_create_andx_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+          expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raise an UnexpectedStatusCode exception' do
+          nt_create_andx_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
+      end
     end
   end
 

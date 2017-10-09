@@ -119,7 +119,6 @@ RSpec.describe RubySMB::SMB1::File do
     end
   end
 
-
   describe '#read' do
     let(:read_data) { 'read data' }
     let(:raw_response) { double('fake raw response data') }
@@ -131,7 +130,7 @@ RSpec.describe RubySMB::SMB1::File do
 
     before :example do
       allow(client).to receive(:send_recv).and_return(raw_response)
-      allow(client).to receive(:parse_response).with(response_packet: RubySMB::SMB1::Packet::ReadAndxResponse, raw_response: raw_response).and_return(read_andx_response)
+      allow(RubySMB::SMB1::Packet::ReadAndxResponse).to receive(:read).with(raw_response).and_return(read_andx_response)
     end
 
     context 'when the number of bytes to read is not provided' do
@@ -155,7 +154,7 @@ RSpec.describe RubySMB::SMB1::File do
         read_io = StringIO.new(read_data)
         expect(file).to receive(:read_packet).with(read_length: client.max_buffer_size, offset: 0).once.ordered.and_call_original
         expect(file).to receive(:read_packet).with(read_length: (read_data.size - client.max_buffer_size), offset: client.max_buffer_size).once.ordered.and_call_original
-        allow(client).to receive(:parse_response).with(response_packet: RubySMB::SMB1::Packet::ReadAndxResponse, raw_response: raw_response) do
+        allow(RubySMB::SMB1::Packet::ReadAndxResponse).to receive(:read).with(raw_response) do
           read_andx_response.data_block.data = read_io.read(client.max_buffer_size)
           read_andx_response
         end
@@ -163,26 +162,48 @@ RSpec.describe RubySMB::SMB1::File do
       end
     end
 
-    context 'when the response is an EmptyPacket with the SMB_COM_READ_ANDX command and STATUS_SUCCESS status code' do
-      it 'returns an empty string if it is the first request' do
-        allow(client).to receive(:parse_response).with(response_packet: RubySMB::SMB1::Packet::ReadAndxResponse, raw_response: raw_response).and_return(RubySMB::SMB1::Packet::EmptyPacket.new)
-        expect(file.read).to eq('')
+    context 'when sending the request packet and gets a response back' do
+      context 'when the response is not a ReadAndxResponse packet' do
+        it 'raise an InvalidPacket exception' do
+          read_andx_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+          expect { file.read }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
       end
 
-      it 'returns the current read data if it happens after the first request' do
-        partial_data = read_data[0..-2]
-        client.max_buffer_size = partial_data.size
-        first_request = true
-        allow(client).to receive(:parse_response).with(response_packet: RubySMB::SMB1::Packet::ReadAndxResponse, raw_response: raw_response).twice do
-          if first_request
-            read_andx_response.data_block.data = partial_data
-            first_request = false
-            read_andx_response
-          else
-            RubySMB::SMB1::Packet::EmptyPacket.new
-          end
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raise an UnexpectedStatusCode exception' do
+          read_andx_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { file.read }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
-        expect(file.read(bytes: read_data.size)).to eq(partial_data)
+      end
+
+      context 'when the response is an EmptyPacket with the SMB_COM_READ_ANDX command and STATUS_SUCCESS status code' do
+        let(:empty_packet) do
+          empty_packet = RubySMB::SMB1::Packet::EmptyPacket.new
+          empty_packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+          empty_packet
+        end
+
+        it 'returns an empty string if it is the first request' do
+          allow(RubySMB::SMB1::Packet::ReadAndxResponse).to receive(:read).with(raw_response).and_return(empty_packet)
+          expect(file.read).to eq('')
+        end
+
+        it 'returns the current read data if it happens after the first request' do
+          partial_data = read_data[0..-2]
+          client.max_buffer_size = partial_data.size
+          first_request = true
+          allow(RubySMB::SMB1::Packet::ReadAndxResponse).to receive(:read).with(raw_response).twice do
+            if first_request
+              read_andx_response.data_block.data = partial_data
+              first_request = false
+              read_andx_response
+            else
+              empty_packet
+            end
+          end
+          expect(file.read(bytes: read_data.size)).to eq(partial_data)
+        end
       end
     end
   end
@@ -224,11 +245,15 @@ RSpec.describe RubySMB::SMB1::File do
   describe '#write' do
     let(:write_data) { 'write data' }
     let(:raw_response) { double('fake raw response data') }
-    let(:write_andx_response) { RubySMB::SMB1::Packet::WriteAndxResponse.new }
+    let(:write_andx_response) do
+      response = RubySMB::SMB1::Packet::WriteAndxResponse.new
+      response.parameter_block.count_low = write_data.size
+      response
+    end
 
     before :example do
       allow(client).to receive(:send_recv).and_return(raw_response)
-      allow(client).to receive(:parse_response).with(response_packet: RubySMB::SMB1::Packet::WriteAndxResponse, raw_response: raw_response).and_return(write_andx_response)
+      allow(RubySMB::SMB1::Packet::WriteAndxResponse).to receive(:read).with(raw_response).and_return(write_andx_response)
     end
 
     describe 'offset' do
@@ -248,24 +273,48 @@ RSpec.describe RubySMB::SMB1::File do
       it 'sends only one packet with the entire buffer' do
         client.max_buffer_size = write_data.size
         expect(file).to receive(:write_packet).with(data: write_data, offset: 0).once.and_call_original
-        expect(file.write(data: write_data)).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        expect(file.write(data: write_data)).to eq write_data.size
       end
     end
 
     context 'when the buffer size is greater than max_buffer_size' do
       it 'sends multiple packets with at most max_buffer_size bytes per chunk' do
         client.max_buffer_size = write_data.size - 1
-        buffer = write_data.dup
-        expect(file).to receive(:write_packet).with(data: buffer.slice!(0, client.max_buffer_size), offset: 0).once.ordered.and_call_original
-        expect(file).to receive(:write_packet).with(data: buffer, offset: client.max_buffer_size).once.ordered.and_call_original
-        expect(file.write(data: write_data)).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        first_data_chunk = write_data[0, client.max_buffer_size]
+        second_data_chunk = write_data[client.max_buffer_size..-1]
+        original_write_packet = file.method(:write_packet)
+
+        expect(file).to receive(:write_packet).with(data: first_data_chunk , offset: 0).once do
+          allow(RubySMB::SMB1::Packet::WriteAndxResponse).to receive(:read).with(raw_response) do
+            write_andx_response.parameter_block.count_low = first_data_chunk.size
+            write_andx_response
+          end
+          original_write_packet.call(data: first_data_chunk, offset: 0)
+        end
+        expect(file).to receive(:write_packet).with(data: second_data_chunk, offset: client.max_buffer_size).once do
+          allow(RubySMB::SMB1::Packet::WriteAndxResponse).to receive(:read).with(raw_response) do
+            write_andx_response.parameter_block.count_low = second_data_chunk.size
+            write_andx_response
+          end
+          original_write_packet.call(data: second_data_chunk, offset: client.max_buffer_size)
+        end
+        expect(file.write(data: write_data)).to eq write_data.size
       end
     end
 
-    context 'when an error occured' do
-      it 'returns the status' do
-        write_andx_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect(file.write(data: write_data)).to eq WindowsError::NTStatus::STATUS_ACCESS_DENIED
+    context 'when sending the request packet and gets a response back' do
+      context 'when the response is not a WriteAndxResponse packet' do
+        it 'raise an InvalidPacket exception' do
+          write_andx_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+          expect { file.write(data: write_data) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raise an UnexpectedStatusCode exception' do
+          write_andx_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { file.write(data: write_data) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
       end
     end
   end

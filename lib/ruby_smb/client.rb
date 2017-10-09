@@ -263,38 +263,5 @@ module RubySMB
       self.smb2_message_id  = 0
     end
 
-    # Parses a raw response using the supplied response packet class, which
-    # must be a subclass of {RubySMB::GenericPacket}. It raises an exception
-    # if the NTStatus is not `expected_status_code`. If an error occurs, it
-    # uses the default {RubySMB::SMB1::Packet::EmptyPacket} to parse the
-    # response.
-    #
-    # @example
-    #   raw_response = @client.send_recv(request_packet)
-    #   response = @client.parse_response(
-    #     response_packet: RubySMB::SMB1::Packet::NtCreateAndxResponse,
-    #     raw_response: raw_response)
-    #
-    # @param response_packet [Class] the class used to parse the raw response
-    # @param raw_response [String] the raw response to parse
-    # @param expected_status_code [WindowsError::ErrorCode] the expected status code
-    # @return [RubySMB::GenericPacket] the parsed response
-    # @raise [RubySMB::Error::InvalidPacket] if the response command is not the the expected command from `response_packet`
-    # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not `expected_status_code`
-    def parse_response(response_packet:, raw_response:, expected_status_code: WindowsError::NTStatus::STATUS_SUCCESS)
-      raise ArgumentError, 'response_packet should be a kind of RubySMB::GenericPacket' unless response_packet < RubySMB::GenericPacket
-      begin
-        response = response_packet.read(raw_response)
-      rescue IOError
-        response = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
-      end
-      unless response.smb_header.command == response_packet.new.smb_header.command
-        raise RubySMB::Error::InvalidPacket, "Not a #{response_packet}"
-      end
-      unless response.status_code == expected_status_code
-        raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
-      end
-      response
-    end
   end
 end

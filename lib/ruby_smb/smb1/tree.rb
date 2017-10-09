@@ -62,6 +62,8 @@ module RubySMB
       # @param write [TrueClass, FalseClass] request a write access
       # @param delete [TrueClass, FalseClass] request a delete access
       # @return [RubySMB::SMB1::File] handle to the created file
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not SMB_COM_NT_CREATE_ANDX
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def open_file(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                     impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
         nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
@@ -110,7 +112,13 @@ module RubySMB
         nt_create_andx_request.data_block.file_name = add_null_termination(str: filename, unicode: unicode_enabled)
 
         raw_response = @client.send_recv(nt_create_andx_request)
-        response = @client.parse_response(response_packet: RubySMB::SMB1::Packet::NtCreateAndxResponse, raw_response: raw_response)
+        response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
+        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
+          raise RubySMB::Error::InvalidPacket, 'Not a NtCreateAndxResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
 
         RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
       end

@@ -76,10 +76,18 @@ module RubySMB
       # Closes the handle to the remote file.
       #
       # @return [WindowsError::ErrorCode] the NTStatus code returned by the operation
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not SMB_COM_CLOSE
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def close
         close_request = set_header_fields(RubySMB::SMB1::Packet::CloseRequest.new)
         raw_response  = @tree.client.send_recv(close_request)
-        response = @tree.client.parse_response(response_packet: RubySMB::SMB1::Packet::CloseResponse, raw_response: raw_response)
+        response = RubySMB::SMB1::Packet::CloseResponse.read(raw_response)
+        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_CLOSE
+          raise RubySMB::Error::InvalidPacket, 'Not a CloseResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
         response.status_code
       end
 
@@ -90,6 +98,8 @@ module RubySMB
       # @param bytes [Integer] the number of bytes to read
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not SMB_COM_READ_ANDX
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def read(bytes: @size, offset: 0)
         atomic_read_size = if bytes > @tree.client.max_buffer_size
                              @tree.client.max_buffer_size
@@ -102,7 +112,13 @@ module RubySMB
         loop do
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
           raw_response = @tree.client.send_recv(read_request)
-          response = @tree.client.parse_response(response_packet: RubySMB::SMB1::Packet::ReadAndxResponse, raw_response: raw_response)
+          response = RubySMB::SMB1::Packet::ReadAndxResponse.read(raw_response)
+          unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+            raise RubySMB::Error::InvalidPacket, 'Not a ReadAndxResponse packet'
+          end
+          unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          end
 
           if response.is_a?(RubySMB::SMB1::Packet::ReadAndxResponse)
             data << response.data_block.data.to_binary_s
@@ -138,11 +154,13 @@ module RubySMB
       #
       # @param data [String] the data to write to the file
       # @param offset [Integer] the offset in the file to start writing from
-      # @return [WindowsError::ErrorCode] the NTStatus code returned from the operation
+      # @return [Integer] the count of bytes written
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not SMB_COM_WRITE_ANDX
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def write(data:, offset: 0)
         buffer = data.dup
         bytes  = data.length
-        status = nil
+        total_bytes_written = 0
 
         loop do
           atomic_write_size = if bytes > @tree.client.max_buffer_size
@@ -152,15 +170,21 @@ module RubySMB
                               end
           write_request = write_packet(data: buffer.slice!(0, atomic_write_size), offset: offset)
           raw_response = @tree.client.send_recv(write_request)
-          response = @tree.client.parse_response(response_packet: RubySMB::SMB1::Packet::WriteAndxResponse, raw_response: raw_response)
-          status = response.status_code
-          offset += atomic_write_size
-          bytes -= atomic_write_size
-          return status unless status == WindowsError::NTStatus::STATUS_SUCCESS
+          response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
+          unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_WRITE_ANDX
+            raise RubySMB::Error::InvalidPacket, 'Not a WriteAndxResponse packet'
+          end
+          unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          end
+          bytes_written = response.parameter_block.count_low + (response.parameter_block.count_high << 16)
+          total_bytes_written += bytes_written
+          offset += bytes_written
+          bytes -= bytes_written
           break unless buffer.length > 0
         end
 
-        status
+        total_bytes_written
       end
 
       # Creates the Request packet for the #write command
