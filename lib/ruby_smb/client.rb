@@ -20,6 +20,8 @@ module RubySMB
     SMB1_DIALECT_SMB2_DEFAULT = 'SMB 2.002'.freeze
     # Dialect value for SMB2 Default (Version 2.02)
     SMB2_DIALECT_DEFAULT = 0x0202
+    # The default maximum size of a SMB message that the Client accepts (in bytes)
+    MAX_BUFFER_SIZE = 4356
 
     # The dispatcher responsible for sending packets
     # @!attribute [rw] dispatcher
@@ -94,6 +96,12 @@ module RubySMB
     #   @return [String]
     attr_accessor :user_id
 
+    # The maximum size of a SMB message that the Client accepts (in bytes)
+    # Its default value is equal to {MAX_BUFFER_SIZE}.
+    # @!attribute [rw] max_buffer_size
+    #   @return [Integer]
+    attr_accessor :max_buffer_size
+
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
@@ -113,6 +121,7 @@ module RubySMB
       @smb1              = smb1
       @smb2              = smb2
       @username          = username.encode('utf-8') || ''.encode('utf-8')
+      @max_buffer_size   = MAX_BUFFER_SIZE
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,
@@ -253,5 +262,6 @@ module RubySMB
       self.sequence_counter = 0
       self.smb2_message_id  = 0
     end
+
   end
 end

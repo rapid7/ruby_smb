@@ -45,7 +45,7 @@ module RubySMB
       def smb1_anonymous_auth_request
         packet = RubySMB::SMB1::Packet::SessionSetupLegacyRequest.new
         packet.data_block.oem_password = "\x00"
-        packet.parameter_block.max_buffer_size = 4356
+        packet.parameter_block.max_buffer_size = self.max_buffer_size
         packet.parameter_block.max_mpx_count = 50
         packet.parameter_block.capabilities.extended_security = 0
         packet
@@ -115,7 +115,7 @@ module RubySMB
         packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
         packet.smb_header.uid = user_id
         packet.set_type3_blob(type3_message.serialize)
-        packet.parameter_block.max_buffer_size = 4356
+        packet.parameter_block.max_buffer_size = self.max_buffer_size
         packet.parameter_block.max_mpx_count = 50
         packet.smb_header.flags2.extended_security = 1
         packet
@@ -130,7 +130,7 @@ module RubySMB
         type1_message = ntlm_client.init_context
         packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
         packet.set_type1_blob(type1_message.serialize)
-        packet.parameter_block.max_buffer_size = 4356
+        packet.parameter_block.max_buffer_size = self.max_buffer_size
         packet.parameter_block.max_mpx_count = 50
         packet.smb_header.flags2.extended_security = 1
         packet

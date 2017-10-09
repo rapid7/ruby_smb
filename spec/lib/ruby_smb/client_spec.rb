@@ -24,8 +24,7 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'accepts an argument to disable smb1 support' do
-      smb_client = described_class.new(dispatcher, smb1: false, username: username, password: password)
-      expect(smb_client.smb1).to be false
+      expect(smb2_client.smb1).to be false
     end
 
     it 'accepts an argument to disable smb2 support' do
@@ -44,8 +43,12 @@ RSpec.describe RubySMB::Client do
       expect(client.password).to eq password
     end
 
-    it 'crates an NTLM client' do
+    it 'creates an NTLM client' do
       expect(client.ntlm_client).to be_a Net::NTLM::Client
+    end
+
+    it 'sets the max_buffer_size to MAX_BUFFER_SIZE' do
+      expect(client.max_buffer_size).to eq RubySMB::Client::MAX_BUFFER_SIZE
     end
   end
 
@@ -361,6 +364,10 @@ RSpec.describe RubySMB::Client do
         it 'enables extended security on the packet' do
           expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id).smb_header.flags2.extended_security).to eq 1
         end
+
+        it 'sets the max_buffer_size to the client\'s max_buffer_size' do
+          expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id).parameter_block.max_buffer_size).to eq smb1_client.max_buffer_size
+        end
       end
 
       describe '#smb1_ntlmssp_negotiate_packet' do
@@ -378,6 +385,10 @@ RSpec.describe RubySMB::Client do
 
         it 'enables extended security on the packet' do
           expect(smb1_client.smb1_ntlmssp_negotiate_packet.smb_header.flags2.extended_security).to eq 1
+        end
+
+        it 'sets the max_buffer_size to the client\'s max_buffer_size' do
+          expect(smb1_client.smb1_ntlmssp_negotiate_packet.parameter_block.max_buffer_size).to eq smb1_client.max_buffer_size
         end
       end
 
@@ -465,6 +476,10 @@ RSpec.describe RubySMB::Client do
         describe '#smb1_anonymous_auth_request' do
           it 'creates a SessionSetupLegacyRequest packet with a null byte for the oem password' do
             expect(smb1_client.smb1_anonymous_auth_request.data_block.oem_password).to eq "\x00"
+          end
+
+          it 'creates a SessionSetupLegacyRequest packet with the max_buffer_size set to the client\'s max_buffer_size' do
+            expect(smb1_client.smb1_anonymous_auth_request.parameter_block.max_buffer_size).to eq smb1_client.max_buffer_size
           end
         end
 
@@ -833,4 +848,6 @@ RSpec.describe RubySMB::Client do
       end
     end
   end
+
 end
+
