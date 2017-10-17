@@ -25,7 +25,7 @@ puts "#{protocol} : #{status}"
 
 begin
   tree = client.tree_connect(path)
-  file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_SUPERSEDE)
+  file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
   shares = client.net_share_enum_all(file)
   puts "Connected to #{shares} successfully!"
 rescue StandardError => e
@@ -33,4 +33,4 @@ rescue StandardError => e
 end
 
 #file.close
-client.wipe_state!
+#client.wipe_state!
