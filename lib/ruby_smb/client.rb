@@ -304,6 +304,17 @@ module RubySMB
       end
     end
 
+    # Returns array of shares
+    #
+    # @return [Array] of shares
+    def net_share_enum_all(file)
+      if smb2
+        smb2_net_share_enum_all(file)
+      else
+        smb1_net_share_enum_all(file)
+      end
+    end
+
     # Resets all of the session state on the client, setting it
     # back to scratch. Should only be called when a session is no longer
     # valid.
