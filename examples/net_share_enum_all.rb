@@ -23,14 +23,10 @@ status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
-begin
-  tree = client.tree_connect(path)
-  file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-  shares = client.net_share_enum_all(file)
-  puts "Connected to #{shares} successfully!"
-rescue StandardError => e
-  puts "Failed to enumerate shares: #{e.message}"
-end
+tree = client.tree_connect(path)
+file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+shares = client.net_share_enum_all(file)
+puts shares
 
-#file.close
+file.close
 #client.wipe_state!

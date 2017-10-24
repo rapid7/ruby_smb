@@ -17,7 +17,7 @@ module RubySMB
         uint32        :output_count,        label: 'Output Count'
         uint32        :flags,               label: 'Flags'
         uint32        :reserved2,           label: 'Reserved Space'
-        string        :buffer,              label: 'Input Buffer'
+        string        :buffer,              label: 'Input Buffer',        length: -> { output_count }
 
         def initialize_instance
           super
