@@ -6,6 +6,7 @@ module RubySMB
     # Protocol ID value. Translates to \xFESMB
     SMB2_PROTOCOL_ID = 0xFE534D42
 
+    require 'ruby_smb/smb2/info_type'
     require 'ruby_smb/smb2/commands'
     require 'ruby_smb/smb2/create_context'
     require 'ruby_smb/smb2/bit_field'

@@ -4,12 +4,6 @@ module RubySMB
       # The FileBothDirectoryInformation Class as defined in
       # [2.4.8 FileBothDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232095.aspx)
       class FileBothDirectoryInformation < BinData::Record
-        # the response should use this Information Class Structure.
-        SMB1_FLAG = 0x0104
-        # The value set in the InformationLevel field of an SMB2 request to indicate
-        # the response should use this Information Class Structure.
-        SMB2_FLAG = 0x03
-
         endian :little
 
         uint32           :next_offset,        label: 'Next Entry Offset'

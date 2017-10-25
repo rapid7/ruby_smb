@@ -1,16 +1,9 @@
 module RubySMB
   module Fscc
     module FileInformation
-      # The FileDirectoryInformation Class as defined in
+      # The FileIdDirectoryInformation Class as defined in
       # [2.4.18 FileIdFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232071.aspx)
       class FileIdFullDirectoryInformation < BinData::Record
-        # Null bytes because SMB1 Requests can't use this
-        # Information Class.
-        SMB1_FLAG = 0x0000
-        # The value set in the InformationLevel field of an SMB2 request to indicate
-        # the response should use this Information Class Structure.
-        SMB2_FLAG = 0x26
-
         endian :little
 
         uint32           :next_offset,      label: 'Next Entry Offset'
