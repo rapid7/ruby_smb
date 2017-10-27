@@ -11,10 +11,10 @@ module RubySMB
       SMB2_0_INFO_FILESYSTEM = 0x02
 
       # The security information
-      SMB2_0_INFO_SECURITY   = 0x01
+      SMB2_0_INFO_SECURITY   = 0x03
 
       # The underlying object store quota information
-      SMB2_0_INFO_QUOTA      = 0x01
+      SMB2_0_INFO_QUOTA      = 0x04
     end
   end
 end
