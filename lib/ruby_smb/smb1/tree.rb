@@ -133,10 +133,11 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
-      def list(directory: '\\', pattern: '*', type: RubySMB::Fscc::FileInformation::FileFullDirectoryInformation)
+      def list(directory: '\\', pattern: '*', unicode: true,
+               type: RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo)
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
         find_first_request = set_header_fields(find_first_request)
-        find_first_request.smb_header.flags2.unicode  = 1
+        find_first_request.smb_header.flags2.unicode  = 1 if unicode
 
         search_path = directory.dup
         search_path << '\\' unless search_path.end_with?('\\')
@@ -150,7 +151,7 @@ module RubySMB
         t2_params.search_attributes.directory = 1
         t2_params.flags.close_eos             = 1
         t2_params.flags.resume_keys           = 0
-        t2_params.information_level           = type::SMB1_FLAG
+        t2_params.information_level           = type::CLASS_LEVEL
         t2_params.filename                    = search_path
         t2_params.search_count                = 10
 
@@ -159,7 +160,7 @@ module RubySMB
         raw_response  = client.send_recv(find_first_request)
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
 
-        results = response.results(type)
+        results = response.results(type, unicode: unicode)
 
         eos   = response.data_block.trans2_parameters.eos
         sid   = response.data_block.trans2_parameters.sid
@@ -169,13 +170,13 @@ module RubySMB
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
           find_next_request.smb_header.tid              = id
           find_next_request.smb_header.flags2.eas       = 1
-          find_next_request.smb_header.flags2.unicode   = 1
+          find_next_request.smb_header.flags2.unicode   = 1 if unicode
 
           t2_params                             = find_next_request.data_block.trans2_parameters
           t2_params.sid                         = sid
           t2_params.flags.close_eos             = 1
           t2_params.flags.resume_keys           = 0
-          t2_params.information_level           = type::SMB1_FLAG
+          t2_params.information_level           = type::CLASS_LEVEL
           t2_params.filename                    = last
           t2_params.search_count                = 10
 
@@ -184,7 +185,7 @@ module RubySMB
           raw_response  = client.send_recv(find_next_request)
           response      = RubySMB::SMB1::Packet::Trans2::FindNext2Response.read(raw_response)
 
-          results += response.results(type)
+          results += response.results(type, unicode: unicode)
 
           eos   = response.data_block.trans2_parameters.eos
           last  = results.last.file_name
