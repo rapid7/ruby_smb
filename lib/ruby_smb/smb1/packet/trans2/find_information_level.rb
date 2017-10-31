@@ -6,7 +6,7 @@ module RubySMB
         # TRANS2_FIND_NEXT2 (section 2.2.6.3) subcommand requests to indicate the level
         # of information that a server MUST respond with for each file matching the
         # request's search criteria.
-        module SmbInfo
+        module FindInformationLevel
           # Return creation, access, and last write timestamps, size and file attributes along with the file name.
           SMB_INFO_STANDARD                 = 0x0001
           # Return the SMB_INFO_STANDARD data along with the size of a file's extended attributes (EAs).
@@ -21,6 +21,10 @@ module RubySMB
           SMB_FIND_FILE_NAMES_INFO          = 0x0103
           # Returns a combination of the data from SMB_FIND_FILE_FULL_DIRECTORY_INFO and SMB_FIND_FILE_NAMES_INFO.
           SMB_FIND_FILE_BOTH_DIRECTORY_INFO = 0x0104
+
+
+          require 'ruby_smb/smb1/packet/trans2/find_information_level/find_file_full_directory_info'
+
         end
       end
     end
