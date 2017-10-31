@@ -28,7 +28,10 @@ module RubySMB
               bit8  :reserved2,   label: 'Reserved Space'
             end
 
-            stringz16 :filename, label: 'Filename'
+            choice :filename, :copy_on_change => true, selection: -> { @obj.parent.parent.parent.smb_header.flags2.unicode } do
+              stringz16 1, label: 'FileName'
+              stringz   0, label: 'FileName'
+            end
 
             # Returns the length of the Trans2Parameters struct
             # in number of bytes
@@ -39,7 +42,8 @@ module RubySMB
 
           # The Trans2 Data Blcok for this particular Subcommand
           class Trans2Data < BinData::Record
-            smb_gea_list :extended_attribute_list, label: 'Get Extended Attribute List'
+            smb_gea_list :extended_attribute_list, label: 'Get Extended Attribute List',
+              onlyif: -> { parent.trans2_parameters.information_level == FindInformationLevel::SMB_INFO_QUERY_EAS_FROM_LIST}
 
             # Returns the length of the Trans2Data struct
             # in number of bytes

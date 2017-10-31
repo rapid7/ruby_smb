@@ -61,7 +61,7 @@ module RubySMB
           #
           # @param klass [Class] the FileInformationClass class to read the data as
           # @return [array<BinData::Record>] An array of structs holding the requested information
-          def results(klass)
+          def results(klass, unicode:)
             information_classes = []
             blob = data_block.trans2_data.buffer.to_binary_s.dup
             until blob.empty?
@@ -73,7 +73,9 @@ module RubySMB
                        blob.slice!(0, length)
                      end
 
-              information_classes << klass.read(data)
+              file_info = klass.new
+              file_info.unicode = unicode
+              information_classes << file_info.read(data)
             end
             information_classes
           end
