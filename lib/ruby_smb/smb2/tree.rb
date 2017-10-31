@@ -107,7 +107,7 @@ module RubySMB
         file_id         = create_response.file_id
 
         directory_request                         = RubySMB::SMB2::Packet::QueryDirectoryRequest.new
-        directory_request.file_information_class  = type::SMB2_FLAG
+        directory_request.file_information_class  = type::CLASS_LEVEL
         directory_request.file_id                 = file_id
         directory_request.name                    = pattern
         directory_request.output_length           = 65_535
