@@ -4,6 +4,8 @@ module RubySMB
       # The FileDirectoryInformation Class as defined in
       # [2.4.10 FileDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232097.aspx)
       class FileDirectoryInformation < BinData::Record
+        CLASS_LEVEL = FileInformation::FILE_DIRECTORY_INFORMATION
+
         endian :little
 
         uint32           :next_offset,      label: 'Next Entry Offset'

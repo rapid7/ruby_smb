@@ -3,15 +3,6 @@ module RubySMB
     # Namespace and constant values for File Information Classes, as defined in
     # [2.4 File Information Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx)
     module FileInformation
-      require 'ruby_smb/fscc/file_information/file_directory_information'
-      require 'ruby_smb/fscc/file_information/file_full_directory_information'
-      require 'ruby_smb/fscc/file_information/file_disposition_information'
-      require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
-      require 'ruby_smb/fscc/file_information/file_both_directory_information'
-      require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
-      require 'ruby_smb/fscc/file_information/file_names_information'
-      require 'ruby_smb/fscc/file_information/file_rename_information'
-
       # Information class used in directory enumeration to return detailed
       # information about the contents of a directory.
       FILE_DIRECTORY_INFORMATION         = 0x01
@@ -46,6 +37,15 @@ module RubySMB
       # contents of a directory.
       FILE_ID_FULL_DIRECTORY_INFORMATION = 0x26
 
+
+      require 'ruby_smb/fscc/file_information/file_directory_information'
+      require 'ruby_smb/fscc/file_information/file_full_directory_information'
+      require 'ruby_smb/fscc/file_information/file_disposition_information'
+      require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
+      require 'ruby_smb/fscc/file_information/file_both_directory_information'
+      require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
+      require 'ruby_smb/fscc/file_information/file_names_information'
+      require 'ruby_smb/fscc/file_information/file_rename_information'
     end
   end
 end

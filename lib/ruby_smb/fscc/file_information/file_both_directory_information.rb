@@ -4,6 +4,8 @@ module RubySMB
       # The FileBothDirectoryInformation Class as defined in
       # [2.4.8 FileBothDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232095.aspx)
       class FileBothDirectoryInformation < BinData::Record
+        CLASS_LEVEL = FileInformation::FILE_BOTH_DIRECTORY_INFORMATION
+
         endian :little
 
         uint32           :next_offset,        label: 'Next Entry Offset'

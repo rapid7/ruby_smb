@@ -4,6 +4,8 @@ module RubySMB
       # The FileNamesInformation Class as defined in
       # [2.4.26 FileNamesInformation](https://msdn.microsoft.com/en-us/library/cc232077.aspx)
       class FileNamesInformation < BinData::Record
+        CLASS_LEVEL = FileInformation::FILE_NAMES_INFORMATION
+
         endian :little
 
         uint32           :next_offset,      label: 'Next Entry Offset'
