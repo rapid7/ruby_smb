@@ -40,54 +40,6 @@ module RubySMB
         RubySMB::SMB1::Tree.new(client: self, share: share, response: response)
       end
 
-      #
-      # SMB2 Methods
-      #
-
-      # Sends a request to connect to a remote host and returns the Array
-      # of shares
-      #
-      # @return [Array] List of shares
-      def smb2_net_share_enum_all(file)
-        #cn_num_ctx_items = "\x02\x00\x00\x00"
-        #ctx_item_1 = "\x00\x00\x01\x00\xC8O2Kp\x16\xD3\x01\x12xZG\xBFn\xE1\x88\x03\x00\x00\x00\x04]\x88\x8A\xEB\x1C\xC9\x11\x9F\xE8\b\x00+\x10H`\x02\x00\x00\x00"
-        #ctx_item_2 = "\x01\x00\x01\x00\xC8O2Kp\x16\xD3\x01\x12xZG\xBFn\xE1\x88\x03\x00\x00\x00,\x1C\xB7l\x12\x98@E\x03\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00"
-        #dce_rpc_bind.p_context_elem = cn_num_ctx_items + ctx_item_1 + ctx_item_2
-
-        p_cont_elem_t_1 = RubySMB::Dcerpc::PContElemT.new
-        p_cont_elem_t_2 = RubySMB::Dcerpc::PContElemT.new
-
-        p_cont_elem_t_1.p_cont_id = 0
-
-        # p_cont_elem_t_1.abstract_syntax = RubySMB::Dcerpc::PSyntaxIdT.new(if_uuid: '4b324fc8-1670-01d3-1278-5a47bf6ee188', if_version: 3)
-        # p_cont_elem_t_1.transfer_syntaxes = [RubySMB::Dcerpc::PSyntaxIdT.new(if_uuid: '8a885d04-1ceb-11c9-9fe8-08002b104860', if_version: 2)]
-        p_cont_elem_t_1.abstract_syntax = RubySMB::Dcerpc::PSyntaxIdT.new
-        p_cont_elem_t_1.transfer_syntaxes = [RubySMB::Dcerpc::PSyntaxIdT.new]
-
-        p_cont_elem_t_2.p_cont_id = 1
-        # p_cont_elem_t_2.abstract_syntax = RubySMB::Dcerpc::PSyntaxIdT.new(if_uuid: '4b324fc8-1670-01d3-1278-5a47bf6ee188', if_version: 3)
-        # p_cont_elem_t_2.transfer_syntaxes = [RubySMB::Dcerpc::PSyntaxIdT.new(if_uuid: '6cb71c2c-9812-4540-0300-000000000000', if_version: 1)]
-        p_cont_elem_t_2.abstract_syntax = RubySMB::Dcerpc::PSyntaxIdT.new
-        p_cont_elem_t_2.transfer_syntaxes = [RubySMB::Dcerpc::PSyntaxIdT.new]
-
-        dce_rpc_bind = RubySMB::Dcerpc::Bind.new
-        dce_rpc_bind.p_context_elem.p_cont_elem = [p_cont_elem_t_1, p_cont_elem_t_2]
-        #dce_rpc_bind.p_context_elem.p_cont_elem = [p_cont_elem_t_1]
-
-        file.write(data: dce_rpc_bind.to_binary_s)
-
-        #file.read(bytes: 1024)
-
-        #dce_rpc_query = "050000031000000060000000020000004800000000000f00000002000e000000000000000e0000005c005c00310030002e00370030002e00330033002e003100380000000100000001000000040002000000000000000000ffffffff00000000".strip.gsub(/([A-Fa-f0-9]{1,2})\s*?/) { $1.hex.chr }
-
-        #request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
-        #request.ctl_code = 0x0011C017
-        #request.flags.is_fsctl = 0x00000001
-
-        #request.buffer = dce_rpc_query
-        #raw_response = send_recv(request)
-      end
-
       # Sends a request to connect to a remote Tree and returns the
       # {RubySMB::SMB2::Tree}
       #

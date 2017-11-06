@@ -18,15 +18,17 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
 client = RubySMB::Client.new(dispatcher, smb1: false, smb2: true, username: username, password: password)
 
+
 protocol = client.negotiate
 status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
-tree = client.tree_connect(path)
-file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-shares = client.net_share_enum_all(file)
+#tree = client.tree_connect(path)
+#file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+shares = client.net_share_enum_all
 puts shares
 
-file.close
+#client.wipe_state!
+#file.close
 #client.wipe_state!

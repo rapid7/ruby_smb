@@ -2,40 +2,60 @@ module RubySMB
   module Dcerpc
     # The FileDirectoryInformation Class as defined in
     # [2.4.18 FileIdFullDirectoryInformation](https://msdn.microsoft.com/en-us/library/cc232071.aspx)
+    
+    class Uuid < BinData::Primitive
+      uint32le :time_low
+      uint16le :time_mid
+      uint16le :time_hi_and_version
+      
+      uint16be :clock_seq_hi_and_res
+      uint48be :node
+      
+      def get
+        self.to_binary_s
+      end
+      
+      def set(uuid_string)
+        components = uuid_string.split('-')
+        self.time_low = components[0].hex
+        self.time_mid = components[1].hex
+        self.time_hi_and_version = components[2].hex
+        self.clock_seq_hi_and_res = components[3].hex
+        self.node = components[4].hex
+      end
+    end
 
     class PSyntaxIdT < BinData::Record
       endian  :little
-
-      # string :if_uuid, initial_value: '4b324fc8-1670-01d3-1278-5a47bf6ee188'
-      # uint32  :if_version, initial_value: 3
-
-      #uint128be :to_uuid, initial_value: '4b324fc8-1670-01d3-1278-5a47bf6ee188'.gsub(/-/, '').to_i(16)
-      string :to_uuid, initial_value: -> {
-        parts = '4b324fc8-1670-01d3-1278-5a47bf6ee188'.split('-')
-        return [ parts[0].hex, parts[1].hex, parts[2].hex, parts[3].hex ].pack('Vvvn') + [ parts[4] ].pack('H*')
-      }
+      uuid    :if_uuid, initial_value: '4b324fc8-1670-01d3-1278-5a47bf6ee188'
       uint16  :if_ver, initial_value: 3
       uint16  :if_ver_minor, initial_value: 0
-
+    end
+    
+    class PSyntaxIdT1 < BinData::Record
+      endian  :little
+      uuid    :if_uuid, initial_value: '8a885d04-1ceb-11c9-9fe8-08002b104860'
+      uint16  :if_ver, initial_value: 2
+      uint16  :if_ver_minor, initial_value: 0
     end
 
     class PContElemT < BinData::Record
       endian :little
 
-      uint16           :p_cont_id
-      uint8            :n_transfer_syn, initial_value: 1
+      uint16           :p_cont_id, initial_value: 0
+      uint8            :n_transfer_syn, value: -> {transfer_syntaxes.length}
       uint8            :reserved
       p_syntax_id_t    :abstract_syntax
-      array            :transfer_syntaxes, :type => :p_syntax_id_t
+      array            :transfer_syntaxes, type: :p_syntax_id_t1, initial_length: 1
     end
 
     class PContListT < BinData::Record
       endian :little
 
-      uint8  :n_context_elem, initial_value: 2
+      uint8  :n_context_elem, value: -> { p_cont_elem.length }
       uint8  :reserved
       uint16 :reserved2
-      array  :p_cont_elem, :type => :p_cont_elem_t
+      array  :p_cont_elem, type: :p_cont_elem_t, initial_length: 1
     end
 
     class Bind < BinData::Record
@@ -48,16 +68,15 @@ module RubySMB
 
       uint32          :packed_drep,    label: 'NDR data rep format label', initial_value: 16
 
-      uint16          :frag_length,    label: 'total length of fragment', initial_value: 116
+      uint16          :frag_length,    label: 'total length of fragment', initial_value: 72
       uint16          :auth_length,    label: 'length of auth_value', initial_value: 0
-      uint32          :call_id,        label: 'call identifier', initial_value: 2
+      uint32          :call_id,        label: 'call identifier', initial_value: 1
 
-      uint16          :max_xmit_frag,  label: 'max transmit frag size', initial_value: 4280
-      uint16          :max_recv_frag,  label: 'max receive  frag size', initial_value: 4280
+      uint16          :max_xmit_frag,  label: 'max transmit frag size', initial_value: 65535
+      uint16          :max_recv_frag,  label: 'max receive  frag size', initial_value: 65535
       uint32          :assoc_group_id, label: 'ncarnation of client-server assoc group', initial_value: 0x00000000
 
       p_cont_list_t   :p_context_elem
-
     end
   end
 end

@@ -307,12 +307,44 @@ module RubySMB
     # Returns array of shares
     #
     # @return [Array] of shares
-    def net_share_enum_all(file)
+    def net_share_enum_all
       if smb2
-        smb2_net_share_enum_all(file)
+        smb2_net_share_enum_all
       else
-        smb1_net_share_enum_all(file)
+        smb1_net_share_enum_all
       end
+    end
+    
+    #
+    # SMB2 Methods
+    #
+
+    # Sends a request to connect to a remote host and returns the Array
+    # of shares
+    #
+    # @return [Array] List of shares
+    def smb2_net_share_enum_all
+      #send_recv
+      tree = tree_connect("\\\\172.16.149.167\\IPC$")
+      file = tree.open_file(filename: 'srvsvc', write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+      
+      bind_request = RubySMB::Dcerpc::Bind.new
+      #bind_request.p_context_elem.p_cont_elem[0].transfer_syntaxes[0].assign(if_ver: 2)
+      
+      request = tree.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
+      request.ctl_code = 0x0011C017
+      request.flags.is_fsctl =  0x00000001
+      #request.file_id = file.guid
+      request.buffer = bind_request.to_binary_s
+      
+      puts request
+      
+      puts send_recv(request)
+      
+      #file.close
+      
+      
+
     end
 
     # Resets all of the session state on the client, setting it
