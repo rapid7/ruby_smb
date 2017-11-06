@@ -21,14 +21,17 @@ RSpec.describe RubySMB::Field::SmbGeaList do
   describe '#size_of_list' do
     it 'shows the size, in bytes, of the fea_list' do
       list.gea_list << gea1
-      expect(list.size_of_list).to eq gea1.do_num_bytes
+      total_size = list.size_of_list.do_num_bytes + gea1.do_num_bytes
+      expect(list.size_of_list).to eq total_size
     end
 
     it 'changes dynamically as new GEAs are added' do
       list.gea_list << gea1
-      expect(list.size_of_list).to eq gea1.do_num_bytes
+      total_size = list.size_of_list.do_num_bytes + gea1.do_num_bytes
+      expect(list.size_of_list).to eq total_size
       list.gea_list << gea2
-      expect(list.size_of_list).to eq(gea1.do_num_bytes + gea2.do_num_bytes)
+      total_size += gea2.do_num_bytes
+      expect(list.size_of_list).to eq total_size
     end
   end
 end
