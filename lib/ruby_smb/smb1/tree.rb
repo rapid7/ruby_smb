@@ -168,8 +168,7 @@ module RubySMB
 
         while eos.zero?
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
-          find_next_request.smb_header.tid              = id
-          find_next_request.smb_header.flags2.eas       = 1
+          find_next_request = set_header_fields(find_next_request)
           find_next_request.smb_header.flags2.unicode   = 1 if unicode
 
           t2_params                             = find_next_request.data_block.trans2_parameters

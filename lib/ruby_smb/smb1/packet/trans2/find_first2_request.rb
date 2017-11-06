@@ -28,7 +28,7 @@ module RubySMB
             uint16    :information_level, label: 'Information Level'
             uint32    :storage_type,      label: 'Search Storage type'
 
-            choice :filename, :copy_on_change => true, selection: -> { @obj.parent.parent.parent.smb_header.flags2.unicode } do
+            choice :filename, :copy_on_change => true, selection: -> { self.smb_header.flags2.unicode } do
               stringz16 1, label: 'FileName'
               stringz   0, label: 'FileName'
             end
