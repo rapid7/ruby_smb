@@ -345,18 +345,26 @@ module RubySMB
       request.ctl_code = 0x0011C017
       request.flags.is_fsctl =  0x00000001
       request.file_id = file.guid
-      request.buffer = RubySMB::Dcerpc::Request.new(host: host)
+      request.buffer = RubySMB::Dcerpc::Request.new(host: host).to_binary_s
 
       puts send_recv(bind_request)
 
-      require 'pry'
-      binding.pry
+      # require 'pry'
+      # binding.pry
+      # begin
 
-      puts send_recv(request)
+        puts dispatcher.recv_packet
 
-      require 'pry'
-      binding.pry
+        puts send_recv(increment_smb_message_id(request))
 
+      loop do
+        begin
+          puts dispatcher.recv_packet
+          puts send_recv(increment_smb_message_id(request))
+        rescue
+          continue
+        end
+      end
     end
 
     # Resets all of the session state on the client, setting it

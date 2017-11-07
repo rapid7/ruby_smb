@@ -6,12 +6,12 @@ module RubySMB
         endian :little
 
         uint32 :referent_id, initial_value: 0x00000001
-        uint32 :max_count,    initial_value: -> { 15 }
+        uint32 :max_count,    initial_value: -> { 16 }
         uint32 :offset,       initial_value: 0
         uint32 :actual_count, initial_value: -> {max_count}
-        string :server_unc,          length: -> {32},
+        string :server_unc,          length: -> {16},
                                   pad_front: false,
-                              initial_value: -> {host.encode('utf-16le')}
+                              initial_value: -> {host.encode('utf-16le') << "\x00".encode('UTF-16le')}
 
         uint32 :level, initial_value: 1
 

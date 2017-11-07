@@ -18,13 +18,13 @@ module RubySMB
 
       #needed on request, response, fault
 
-      uint32 :alloc_hint, initial_value: 80 # 16:04 allocation hint
+      uint32 :alloc_hint, initial_value: -> {80} # 16:04 allocation hint
       uint16 :p_cont_id, initial_value: 0 # 20:02 pres context, i.e. data rep
       uint16 :opnum, initial_value: 15 # 22:02 operation #within the interface
 
       # optional field for request, only present if the PFC_OBJECT_UUID field is non-zero
 
-      net_share_enum_all :stub, initial_value: -> { RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(server_unc: host) }
+      net_share_enum_all :stub, value: -> { RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(server_unc: host) }
       #string :object, initial_value: -> {stubdata(host)}
       #string :object, initial_value: -> {'010000000f000000000000000f0000003100370032002e00310036002e003100340039002e00310036003800000000000100000001000000010000000000000000000000ffffffff0100000000000000'.hex}
 
