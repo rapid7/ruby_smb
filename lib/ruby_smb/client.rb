@@ -307,11 +307,11 @@ module RubySMB
     # Returns array of shares
     #
     # @return [Array] of shares
-    def net_share_enum_all
+    def net_share_enum_all(host)
       if smb2
-        smb2_net_share_enum_all
+        smb2_net_share_enum_all(host)
       else
-        smb1_net_share_enum_all
+        smb1_net_share_enum_all(host)
       end
     end
     
@@ -323,27 +323,39 @@ module RubySMB
     # of shares
     #
     # @return [Array] List of shares
-    def smb2_net_share_enum_all
+    def smb2_net_share_enum_all(host)
+
+
+
       #send_recv
-      tree = tree_connect("\\\\172.16.149.167\\IPC$")
-      file = tree.open_file(filename: 'srvsvc', write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+      tree = tree_connect("\\\\#{host}\\IPC$")
+      file = tree.open_file(filename: 'srvsvc', write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN)
       
-      bind_request = RubySMB::Dcerpc::Bind.new
-      #bind_request.p_context_elem.p_cont_elem[0].transfer_syntaxes[0].assign(if_ver: 2)
-      
-      request = tree.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
+      # bind_request = RubySMB::Dcerpc::Bind.new
+      # puts file.write(data: bind_request.to_binary_s)
+      # puts file.read(bytes: 1024)
+
+      bind_request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
+      bind_request.ctl_code = 0x0011C017
+      bind_request.flags.is_fsctl =  0x00000001
+      bind_request.file_id = file.guid
+      bind_request.buffer = RubySMB::Dcerpc::Bind.new.to_binary_s
+
+      request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
       request.ctl_code = 0x0011C017
       request.flags.is_fsctl =  0x00000001
-      #request.file_id = file.guid
-      request.buffer = bind_request.to_binary_s
-      
-      puts request
-      
+      request.file_id = file.guid
+      request.buffer = RubySMB::Dcerpc::Request.new(host: host)
+
+      puts send_recv(bind_request)
+
+      require 'pry'
+      binding.pry
+
       puts send_recv(request)
-      
-      #file.close
-      
-      
+
+      require 'pry'
+      binding.pry
 
     end
 

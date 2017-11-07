@@ -26,7 +26,7 @@ puts "#{protocol} : #{status}"
 
 #tree = client.tree_connect(path)
 #file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-shares = client.net_share_enum_all
+shares = client.net_share_enum_all(address)
 puts shares
 
 #client.wipe_state!
