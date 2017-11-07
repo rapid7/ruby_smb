@@ -338,13 +338,13 @@ module RubySMB
       bind_request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
       bind_request.ctl_code = 0x0011C017
       bind_request.flags.is_fsctl =  0x00000001
-      bind_request.file_id = file.guid
+      #bind_request.file_id = file.guid
       bind_request.buffer = RubySMB::Dcerpc::Bind.new.to_binary_s
 
       request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
       request.ctl_code = 0x0011C017
       request.flags.is_fsctl =  0x00000001
-      request.file_id = file.guid
+      #request.file_id = file.guid
       request.buffer = RubySMB::Dcerpc::Request.new(host: host).to_binary_s
 
       puts send_recv(bind_request)

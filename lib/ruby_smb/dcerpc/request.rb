@@ -2,7 +2,7 @@ module RubySMB
   module Dcerpc
 
     class Request < BinData::Record
-      endian :little
+      endian :big
 
       #common fields
       uint8 :rpc_vers, initial_value: 5 # 00:01 RPC version
