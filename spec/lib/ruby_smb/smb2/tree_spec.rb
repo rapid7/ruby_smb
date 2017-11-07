@@ -130,4 +130,112 @@ RSpec.describe RubySMB::SMB2::Tree do
       tree.open_directory
     end
   end
+
+  describe '#list' do
+    let(:create_res) { double('create response') }
+    let(:query_dir_req) { RubySMB::SMB2::Packet::QueryDirectoryRequest.new }
+    let(:query_dir_res) { RubySMB::SMB2::Packet::QueryDirectoryResponse.new }
+
+    before :example do
+      allow(tree).to receive(:open_directory).and_return(create_res)
+      allow(create_res).to receive(:file_id)
+      allow(RubySMB::SMB2::Packet::QueryDirectoryRequest).to receive(:new).and_return(query_dir_req)
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB2::Packet::QueryDirectoryResponse).to receive(:read).and_return(query_dir_res)
+      query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES.value
+    end
+
+    it 'calls #open_directory' do
+      dir = '/dir'
+      expect(tree).to receive(:open_directory).with(directory: dir).and_return(create_res)
+      tree.list(directory: dir)
+    end
+
+    it 'uses the File ID from the create response' do
+      file_id = RubySMB::Field::Smb2Fileid.new
+      allow(create_res).to receive(:file_id).and_return(file_id)
+      allow(client).to receive(:send_recv) do |packet|
+        expect(packet.file_id).to eq file_id
+      end
+      tree.list
+    end
+
+    it 'sets the default QueryDirectoryRequest values' do
+      allow(client).to receive(:send_recv) do |packet|
+        expect(packet.file_information_class).to eq RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation::CLASS_LEVEL
+        expect(packet.name).to eq '*'.encode('UTF-16LE')
+        expect(packet.output_length).to eq 65_535
+      end
+      tree.list
+    end
+
+    it 'sets QueryDirectoryRequest #name field to the pattern passed as argument' do
+      pattern = '/dir/*/'.encode('UTF-16LE')
+      allow(client).to receive(:send_recv) do |packet|
+        expect(packet.name).to eq pattern
+      end
+      tree.list(pattern: pattern)
+    end
+
+    it 'sets QueryDirectoryRequest #file_information_class field to the type passed as argument' do
+      type = RubySMB::Fscc::FileInformation::FileDirectoryInformation
+      allow(client).to receive(:send_recv) do |packet|
+        expect(packet.file_information_class).to eq type::CLASS_LEVEL
+      end
+      tree.list(type: type)
+    end
+
+    it 'calls #set_header_fields' do
+      expect(tree).to receive(:set_header_fields).with(query_dir_req).and_call_original
+      tree.list
+    end
+
+    let(:file1) { double('file information') }
+    let(:file2) { double('file information') }
+
+    it 'returns the expected file information' do
+      query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_SUCCESS.value
+      allow(query_dir_res).to receive(:results) do |_type|
+        query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES.value
+        [file1]
+      end
+      expect(tree.list).to eq([file1])
+    end
+
+    context 'when multiple requests are needed to retrieve the full directory list' do
+      before :example do
+        query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_SUCCESS.value
+        first_query = true
+        allow(query_dir_res).to receive(:results) do |_type|
+          if first_query
+            first_query = false
+            [file1]
+          else
+            query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES.value
+            [file2]
+          end
+        end
+      end
+
+      it 'returns the expected file information' do
+        expect(tree.list).to eq([file1] + [file2])
+      end
+
+      it 'resets the message ID between the requests' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.smb2_header.message_id).to eq 0
+          packet.smb2_header.message_id = 1
+        end
+        tree.list
+      end
+    end
+
+    context 'when an unexpected status code is received' do
+      it 'raises an exception' do
+        query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_NOT_AVAILABLE.value
+        expect { tree.list }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+    end
+
+  end
 end

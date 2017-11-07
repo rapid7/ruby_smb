@@ -1,8 +1,43 @@
 module RubySMB
   module Fscc
-    # Contains the Constant values for File Information Classes, as defined in
-    # [2.2.33 SMB2 QUERY_DIRECTORY Request](https://msdn.microsoft.com/en-us/library/cc246551.aspx)
+    # Namespace and constant values for File Information Classes, as defined in
+    # [2.4 File Information Classes](https://msdn.microsoft.com/en-us/library/cc232064.aspx)
     module FileInformation
+      # Information class used in directory enumeration to return detailed
+      # information about the contents of a directory.
+      FILE_DIRECTORY_INFORMATION         = 0x01
+
+      # Information class used in directory enumeration to return detailed
+      # information (with extended attributes size) about the contents of a
+      # directory.
+      FILE_FULL_DIRECTORY_INFORMATION    = 0x02
+
+      # Information class used in directory enumeration to return detailed
+      # information (with extended attributes size and short names) about the
+      # contents of a directory.
+      FILE_BOTH_DIRECTORY_INFORMATION    = 0x03
+
+      # Information class used to rename a file.
+      FILE_RENAME_INFORMATION            = 0x0A
+
+      # Information class used in directory enumeration to return detailed
+      # information (with only filenames) about the contents of a directory.
+      FILE_NAMES_INFORMATION             = 0x0C
+
+      # Information class used to mark a file for deletion.
+      FILE_DISPOSITION_INFORMATION       = 0x0D
+
+      # Information class used in directory enumeration to return detailed
+      # information (with extended attributes size, short names and file ID)
+      # about the contents of a directory.
+      FILE_ID_BOTH_DIRECTORY_INFORMATION = 0x25
+
+      # Information class used in directory enumeration to return detailed
+      # information (with extended attributes size and file ID) about the
+      # contents of a directory.
+      FILE_ID_FULL_DIRECTORY_INFORMATION = 0x26
+
+
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_disposition_information'

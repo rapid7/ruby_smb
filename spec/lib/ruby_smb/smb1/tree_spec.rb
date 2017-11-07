@@ -254,6 +254,169 @@ RSpec.describe RubySMB::SMB1::Tree do
     end
   end
 
+  describe '#list' do
+    let(:find_first2_req) { RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new }
+    let(:file_info1) do
+      file_info = RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new
+      file_info.unicode = true
+      file_info.file_name = 'test1.txt'
+      file_info
+    end
+    let(:find_first2_res) do
+      packet = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.new
+      packet.data_block.trans2_parameters.eos = 1
+      packet.data_block.trans2_data.buffer = file_info1.to_binary_s
+      packet
+    end
+
+    before :each do
+      allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Request).to receive(:new).and_return(find_first2_req)
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Response).to receive(:read).and_return(find_first2_res)
+    end
+
+    it 'calls #set_header_fields' do
+      expect(tree).to receive(:set_header_fields).with(find_first2_req).and_call_original
+      tree.list
+    end
+
+    it 'sets the unicode flag when the unicode argument is true (default)' do
+      allow(client).to receive(:send_recv).with(find_first2_req) do |packet|
+        expect(packet.smb_header.flags2.unicode).to eq 1
+      end
+      tree.list
+    end
+
+    it 'does not set the unicode flag when the unicode argument is false' do
+      allow(client).to receive(:send_recv).with(find_first2_req) do |packet|
+        expect(packet.smb_header.flags2.unicode).to eq 0
+      end
+      tree.list(unicode: false)
+    end
+
+    it 'adds a leading and trailing \\ to the search path if not present' do
+      directory = 'dir'
+      search = ('\\' + directory + '\\*').encode('UTF-16LE')
+      allow(client).to receive(:send_recv).with(find_first2_req) do |packet|
+        expect(packet.data_block.trans2_parameters.filename).to eq search
+      end
+      tree.list(directory: directory)
+    end
+
+    it 'sets the expected default search parameters' do
+      allow(client).to receive(:send_recv).with(find_first2_req) do |packet|
+        t2_params = packet.data_block.trans2_parameters
+        expect(t2_params.search_attributes.hidden).to eq 1
+        expect(t2_params.search_attributes.system).to eq 1
+        expect(t2_params.search_attributes.directory).to eq 1
+        expect(t2_params.flags.close_eos).to eq 1
+        expect(t2_params.flags.resume_keys).to eq 0
+        expect(t2_params.information_level).to eq RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo::CLASS_LEVEL
+        expect(t2_params.filename).to eq '\\*'.encode('UTF-16LE')
+        expect(t2_params.search_count).to eq 10
+      end
+      tree.list
+    end
+
+    it 'calls #set_find_params' do
+      expect(tree).to receive(:set_find_params).with(find_first2_req).and_call_original
+      tree.list
+    end
+
+    it 'calls FindFileFullDirectoryInfo#results' do
+      expect(find_first2_res).to receive(:results).with(RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo, unicode: true).and_call_original
+      tree.list
+    end
+
+    it 'returns the expected FindFileFullDirectoryInfo structure' do
+      expect(tree.list).to eq([file_info1])
+    end
+
+    it 'returns the expected FindFileFullDirectoryInfo structures when multiple files are listed' do
+      file_info1.next_offset = file_info1.do_num_bytes
+      file_info2 = RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new
+      file_info2.unicode = true
+      file_info2.file_name = 'test2.txt'
+      find_first2_res.data_block.trans2_data.buffer = file_info1.to_binary_s + file_info2.to_binary_s
+
+      expect(tree.list).to eq([file_info1, file_info2])
+    end
+
+    context 'when more requests are needed to get all the information' do
+      let(:find_next2_req) { RubySMB::SMB1::Packet::Trans2::FindNext2Request.new }
+      let(:file_info2) do
+        file_info = RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new
+        file_info.unicode = true
+        file_info.file_name = 'test2.txt'
+        file_info
+      end
+      let(:find_next2_res) do
+        packet = RubySMB::SMB1::Packet::Trans2::FindNext2Response.new
+        packet.data_block.trans2_parameters.eos = 1
+        packet.data_block.trans2_data.buffer = file_info2.to_binary_s
+        packet
+      end
+      let(:sid) { 0x1000 }
+
+      before :each do
+        find_first2_res.data_block.trans2_parameters.eos = 0
+        find_first2_res.data_block.trans2_parameters.sid = sid
+        allow(RubySMB::SMB1::Packet::Trans2::FindNext2Request).to receive(:new).and_return(find_next2_req)
+        allow(client).to receive(:send_recv).with(find_next2_req)
+        allow(RubySMB::SMB1::Packet::Trans2::FindNext2Response).to receive(:read).and_return(find_next2_res)
+      end
+
+      it 'calls #set_header_fields' do
+        expect(tree).to receive(:set_header_fields).with(find_first2_req).once.ordered.and_call_original
+        expect(tree).to receive(:set_header_fields).with(find_next2_req).once.ordered.and_call_original
+        tree.list
+      end
+
+      it 'sets the unicode flag when the unicode argument is true (default)' do
+        allow(client).to receive(:send_recv).with(find_next2_req) do |packet|
+          expect(packet.smb_header.flags2.unicode).to eq 1
+        end
+        tree.list
+      end
+
+      it 'does not set the unicode flag when the unicode argument is false' do
+        allow(client).to receive(:send_recv).with(find_next2_req) do |packet|
+          expect(packet.smb_header.flags2.unicode).to eq 0
+        end
+        tree.list(unicode: false)
+      end
+
+      it 'sets the expected default search parameters' do
+        allow(client).to receive(:send_recv).with(find_next2_req) do |packet|
+          t2_params = packet.data_block.trans2_parameters
+          expect(t2_params.sid).to eq sid
+          expect(t2_params.flags.close_eos).to eq 1
+          expect(t2_params.flags.resume_keys).to eq 0
+          expect(t2_params.information_level).to eq RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo::CLASS_LEVEL
+          expect(t2_params.filename).to eq file_info1.file_name
+          expect(t2_params.search_count).to eq 10
+        end
+        tree.list
+      end
+
+      it 'calls #set_find_params' do
+        expect(tree).to receive(:set_find_params).with(find_first2_req).once.ordered.and_call_original
+        expect(tree).to receive(:set_find_params).with(find_next2_req).once.ordered.and_call_original
+        tree.list
+      end
+
+      it 'calls FindFileFullDirectoryInfo#results' do
+        expect(find_first2_res).to receive(:results).with(RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo, unicode: true).once.ordered.and_call_original
+        expect(find_next2_res).to receive(:results).with(RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo, unicode: true).once.ordered.and_call_original
+        tree.list
+      end
+
+      it 'returns the expected FindFileFullDirectoryInfo structures' do
+        expect(tree.list).to eq([file_info1, file_info2])
+      end
+    end
+  end
+
   describe '#set_header_fields' do
     let(:modified_request) { tree.set_header_fields(disco_req) }
     it 'adds the TreeID to the header' do
@@ -262,6 +425,33 @@ RSpec.describe RubySMB::SMB1::Tree do
 
     it 'sets the Flags2 extended attributes field to 1' do
       expect(modified_request.smb_header.flags2.eas).to eq 1
+    end
+  end
+
+  describe '#set_find_params' do
+    let(:find_first2_req) { RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new }
+    let(:modified_request) { tree.send(:set_find_params, find_first2_req) }
+
+    it 'sets #data_count to 0' do
+      expect(modified_request.parameter_block.data_count).to eq 0
+    end
+
+    it 'sets #data_offset to 0' do
+      expect(modified_request.parameter_block.data_offset).to eq 0
+    end
+
+    it 'sets #total_parameter_count to #parameter_count value' do
+      find_first2_req.parameter_block.parameter_count = 10
+      expect(modified_request.parameter_block.total_parameter_count).to eq 10
+    end
+
+    it 'sets #max_parameter_count to #parameter_count value' do
+      find_first2_req.parameter_block.parameter_count = 10
+      expect(modified_request.parameter_block.max_parameter_count).to eq 10
+    end
+
+    it 'sets #max_data_count to 16,384' do
+      expect(modified_request.parameter_block.max_data_count).to eq 16_384
     end
   end
 

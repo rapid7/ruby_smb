@@ -174,7 +174,11 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'sets the file_info_class of the packet' do
-      expect(file.delete_packet.file_info_class).to eq 13
+      expect(file.delete_packet.file_info_class).to eq RubySMB::Fscc::FileInformation::FILE_DISPOSITION_INFORMATION
+    end
+
+    it 'sets the delete_pending field to 1' do
+      expect(file.delete_packet.buffer.delete_pending).to eq 1
     end
   end
 
@@ -204,7 +208,12 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'sets the file_info_class of the packet' do
-      expect(file.rename_packet('new_file.txt').file_info_class).to eq 0x0A
+      expect(file.rename_packet('new_file.txt').file_info_class).to eq RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION
+    end
+
+    it 'sets the file_name field to the unicode-encoded new file name' do
+      filename = "new_file.txt"
+      expect(file.rename_packet(filename).buffer.file_name).to eq filename.encode('UTF-16LE').force_encoding('ASCII-8BIT')
     end
   end
 

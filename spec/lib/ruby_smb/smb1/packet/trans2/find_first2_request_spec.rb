@@ -118,9 +118,37 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
 
       describe '#filename' do
         let(:name) { 'hello.txt' }
-        it 'should be null terminated' do
+
+        before :example do
           parameters.filename = name
-          expect(parameters.filename.to_binary_s).to end_with("\x00")
+        end
+
+        context 'when unicode flag is set' do
+          before :example do
+            packet.smb_header.flags2.unicode = 1
+          end
+
+          it 'is terminated with unicode null-termination character' do
+            expect(parameters.filename.to_binary_s).to end_with("\x00\x00")
+          end
+
+          it 'is UTF-16LE encoded' do
+            expect(parameters.filename.encoding.name).to eq 'UTF-16LE'
+          end
+        end
+
+        context 'when unicode flag is not set' do
+          before :example do
+            packet.smb_header.flags2.unicode = 0
+          end
+
+          it 'is terminated with ASCII null-termination character' do
+            expect(parameters.filename.to_binary_s).to end_with("\x00")
+          end
+
+          it 'is ASCII-8BIT encoded' do
+            expect(parameters.filename.encoding.name).to eq 'ASCII-8BIT'
+          end
         end
       end
     end
@@ -133,6 +161,18 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Request do
       describe '#extended_attribute_list' do
         it 'is an smb_gea_list' do
           expect(data.extended_attribute_list).to be_a RubySMB::Field::SmbGeaList
+        end
+
+        it 'only exists if the information level is SMB_INFO_QUERY_EAS_FROM_LIST' do
+          data_block.trans2_parameters.information_level =
+            RubySMB::SMB1::Packet::Trans2::FindInformationLevel::SMB_INFO_QUERY_EAS_FROM_LIST
+          expect(data.do_num_bytes).to eq RubySMB::Field::SmbGeaList.new.do_num_bytes
+        end
+
+        it 'does not exist if the information level is SMB_INFO_STANDARD' do
+          data_block.trans2_parameters.information_level =
+            RubySMB::SMB1::Packet::Trans2::FindInformationLevel::SMB_INFO_STANDARD
+          expect(data.do_num_bytes).to eq 0
         end
       end
     end

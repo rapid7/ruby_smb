@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+include RubySMB::SMB1::Packet::Trans2::FindInformationLevel
+
 RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
   subject(:packet) { described_class.new }
 
@@ -60,15 +62,16 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
   end
 
   describe '#results' do
+
     let(:names1) {
-      names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
+      names = FindFileFullDirectoryInfo.new
       names.file_name = 'test.txt'
       names.next_offset = names.do_num_bytes
       names
     }
 
     let(:names2) {
-      names = RubySMB::Fscc::FileInformation::FileNamesInformation.new
+      names = FindFileFullDirectoryInfo.new
       names.file_name = '..'
       names
     }
@@ -77,9 +80,25 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
 
     let(:names_blob) { names_array.collect(&:to_binary_s).join('') }
 
-    it 'returns an array of parsed Fileinformation structs' do
+    it 'returns an array of parsed FindFileFullDirectoryInfo structs' do
       packet.data_block.trans2_data.buffer = names_blob
-      expect(packet.results(RubySMB::Fscc::FileInformation::FileNamesInformation)).to eq names_array
+      expect(packet.results(FindFileFullDirectoryInfo, unicode: false)).to eq names_array
+    end
+
+    it 'sets the FindFileFullDirectoryInfo unicode attribute when unicode argument is true' do
+      packet.data_block.trans2_data.buffer = names1.to_binary_s
+      find_info = FindFileFullDirectoryInfo.new
+      allow(FindFileFullDirectoryInfo).to receive(:new).and_return find_info
+      expect(find_info).to receive(:unicode=).with(true).once
+      packet.results(FindFileFullDirectoryInfo, unicode: true)
+    end
+
+    it 'does not set the FindFileFullDirectoryInfo unicode attribute when unicode argument is false' do
+      packet.data_block.trans2_data.buffer = names1.to_binary_s
+      find_info = FindFileFullDirectoryInfo.new
+      allow(FindFileFullDirectoryInfo).to receive(:new).and_return find_info
+      expect(find_info).to receive(:unicode=).with(false).once
+      packet.results(FindFileFullDirectoryInfo, unicode: false)
     end
   end
 end
