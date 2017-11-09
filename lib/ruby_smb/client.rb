@@ -325,47 +325,19 @@ module RubySMB
     # @return [Array] List of shares
     def smb2_net_share_enum_all(host)
 
-
-
-      #send_recv
       tree = tree_connect("\\\\#{host}\\IPC$")
-      file = tree.open_file(filename: 'srvsvc', write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN)
-      
-      # bind_request = RubySMB::Dcerpc::Bind.new
-      # puts file.write(data: bind_request.to_binary_s)
-      # puts file.read(bytes: 1024)
+      named_pipe = tree.open_file(filename: "srvsvc", write: true,read: true,disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+      handle = RubySMB::Dcerpc::Handle.new(named_pipe)
 
-      bind_request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
-      bind_request.ctl_code = 0x0011C017
-      bind_request.flags.is_fsctl =  0x00000001
-      #bind_request.file_id = file.guid
-      bind_request.buffer = RubySMB::Dcerpc::Bind.new.to_binary_s
+      bind_response = handle.bind()
+      request_response = handle.request({
+          opnum: 15,
+          stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host).to_binary_s
+      })
 
-      request = file.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new)
-      request.ctl_code = 0x0011C017
-      request.flags.is_fsctl =  0x00000001
-      #request.file_id = file.guid
-      request.buffer = RubySMB::Dcerpc::Request.new(host: host).to_binary_s
-
-      puts send_recv(bind_request)
-
-      # require 'pry'
-      # binding.pry
-      # begin
-
-        puts dispatcher.recv_packet
-
-        puts send_recv(increment_smb_message_id(request))
-
-      loop do
-        begin
-          puts dispatcher.recv_packet
-          puts send_recv(increment_smb_message_id(request))
-        rescue
-          continue
-        end
-      end
     end
+
+
 
     # Resets all of the session state on the client, setting it
     # back to scratch. Should only be called when a session is no longer

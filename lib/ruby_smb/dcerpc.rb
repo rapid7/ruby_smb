@@ -6,8 +6,8 @@ module RubySMB
     require 'ruby_smb/dcerpc/uuid'
     require 'ruby_smb/dcerpc/ndr'
     require 'ruby_smb/dcerpc/srvsvc'
-    require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/request'
-
+    require 'ruby_smb/dcerpc/bind'
+    require 'ruby_smb/dcerpc/handle'
   end
 end

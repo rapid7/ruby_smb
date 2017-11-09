@@ -3,17 +3,17 @@ module RubySMB
     module Srvsvc
 
       class NetShareEnumAll < BinData::Record
-        endian :little
+        endian :big
 
         uint32 :referent_id, initial_value: 0x00000001
-        uint32 :max_count,    initial_value: -> { 30 }
+        uint32 :max_count,    initial_value: -> { 32 }
         uint32 :offset,       initial_value: 0
-        uint32 :actual_count, initial_value: -> {32}
+        uint32 :actual_count, initial_value: -> {max_count}
         string :server_unc,          length: -> {actual_count},
                                   pad_front: false,
-                              initial_value: -> {host}
+                              initial_value: -> {host.encode('utf-16le')}
 
-        uint16 :padding, initial_value: 0x0a
+        uint16 :padding, initial_value: 0x00
         uint32 :level, initial_value: 1
 
         uint32 :ctr, initial_value: 1

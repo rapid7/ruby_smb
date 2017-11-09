@@ -14,21 +14,20 @@ password = ARGV[2]
 path     = "\\\\#{address}\\IPC$"
 
 sock = TCPSocket.new address, 445
-dispatcher = RubySMB::Dispatcher::Socket.new(sock)
+dispatcher = RubySMB::Dispatcher::Socket.new(sock, read_timeout: 60)
 
 client = RubySMB::Client.new(dispatcher, smb1: false, smb2: true, username: username, password: password)
-
-
 protocol = client.negotiate
 status = client.authenticate
 
 puts "#{protocol} : #{status}"
 
-#tree = client.tree_connect(path)
-#file = tree.open_file(filename: "srvsvc", write: true, read: true, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-shares = client.net_share_enum_all(address)
-puts shares
+begin
+  shares = client.net_share_enum_all(address)
+  puts shares
+rescue => e
+  puts "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
+end
 
-#client.wipe_state!
 #file.close
 #client.wipe_state!
