@@ -150,6 +150,29 @@ module RubySMB
         read_request
       end
 
+      # Delete a file on close
+      #
+      # @return [WindowsError::ErrorCode] the NTStatus Response code
+      def delete
+        raw_response = @tree.client.send_recv(delete_packet)
+        response = RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.read(raw_response)
+        response.status_code
+      end
+
+      # Crafts the SetFileInformationRequest packet to be sent for delete operations.
+      #
+      # @return [RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest] the set info packet
+      def delete_packet
+        delete_request = RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest.new
+        delete_request = @tree.set_header_fields(delete_request)
+        delete_request.data_block.trans2_parameters.fid = @fid
+        passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_DISPOSITION_INFORMATION +
+          RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+        delete_request.data_block.trans2_parameters.information_level = passthrough_info_level
+        delete_request.data_block.trans2_data.info_level_struct.delete_pending = 1
+        set_trans2_params(delete_request)
+      end
+
       # Write the supplied data to the file at the given offset.
       #
       # @param data [String] the data to write to the file
@@ -201,6 +224,31 @@ module RubySMB
         write_request
       end
 
+      # Rename a file
+      #
+      # @param new_file_name [String] the new name
+      # @return [WindowsError::ErrorCode] the NTStatus Response code
+      def rename(new_file_name)
+        raw_response = tree.client.send_recv(rename_packet(new_file_name))
+        response = RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.read(raw_response)
+        response.status_code
+      end
+
+      # Crafts the SetFileInformationRequest packet to be sent for rename operations.
+      #
+      # @param new_file_name [String] the new name
+      # @return [RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest] the set info packet
+      def rename_packet(new_file_name)
+        rename_request = RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest.new
+        rename_request = @tree.set_header_fields(rename_request)
+        rename_request.data_block.trans2_parameters.fid = @fid
+        passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION +
+          RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+        rename_request.data_block.trans2_parameters.information_level = passthrough_info_level
+        rename_request.data_block.trans2_data.info_level_struct.file_name = new_file_name.encode('utf-16le')
+        set_trans2_params(rename_request)
+      end
+
       # Sets the header fields that we have to set on every packet
       # we send for File operations.
       #
@@ -211,6 +259,16 @@ module RubySMB
         request.parameter_block.fid = @fid
         request
       end
+
+      # Sets ParameterBlock options for Trans2 requests
+      def set_trans2_params(request)
+        request.parameter_block.total_parameter_count = request.parameter_block.parameter_count
+        request.parameter_block.total_data_count      = request.parameter_block.data_count
+        request.parameter_block.max_parameter_count   = request.parameter_block.parameter_count
+        request.parameter_block.max_data_count        = 16_384
+        request
+      end
+      private :set_trans2_params
 
     end
   end
