@@ -38,6 +38,15 @@ module RubySMB
       FILE_ID_FULL_DIRECTORY_INFORMATION = 0x26
 
 
+      # These Information Classes can be used by SMB1 using the pass-through
+      # Information Levels when available on the server (CAP_INFOLEVEL_PASSTHRU
+      # capability flag in an SMB_COM_NEGOTIATE server response). The constant
+      # SMB_INFO_PASSTHROUGH needs to be added to access these Information
+      # Levels. This is documented in
+      # [2.2.2.3.5 Pass-through Information Level Codes](https://msdn.microsoft.com/en-us/library/ff470158.aspx)
+      SMB_INFO_PASSTHROUGH               = 0x03e8
+
+
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_disposition_information'
