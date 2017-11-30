@@ -4,7 +4,7 @@ RSpec.describe RubySMB::Client do
   let(:sock) { double('Socket', peeraddr: '192.168.1.5') }
   let(:dispatcher) { RubySMB::Dispatcher::Socket.new(sock) }
   let(:username) { 'msfadmin' }
-  let(:password) { 'msfadmin' }
+  let(:password) { 'msfpasswd' }
   subject(:client) { described_class.new(dispatcher, username: username, password: password) }
   let(:smb1_client) { described_class.new(dispatcher, smb2: false, username: username, password: password) }
   let(:smb2_client) { described_class.new(dispatcher, smb1: false, username: username, password: password) }
@@ -45,6 +45,29 @@ RSpec.describe RubySMB::Client do
 
     it 'creates an NTLM client' do
       expect(client.ntlm_client).to be_a Net::NTLM::Client
+    end
+
+    it 'passes the expected arguments when creating the NTLM client' do
+      domain = 'SPEC_DOMAIN'
+      local_workstation = 'SPEC_WORKSTATION'
+
+      allow(Net::NTLM::Client).to receive(:new) do |username, passwd, opt|
+        expect(username).to eq(username)
+        expect(password).to eq(password)
+        expect(opt[:workstation]).to eq(local_workstation)
+        expect(opt[:domain]).to eq(domain)
+        flags = Net::NTLM::Client::DEFAULT_FLAGS |
+          Net::NTLM::FLAGS[:TARGET_INFO] | 0x02000000
+        expect(opt[:flags]).to eq(flags)
+      end
+
+      described_class.new(
+        dispatcher,
+        username: username,
+        password: password,
+        domain: domain,
+        local_workstation: local_workstation
+      )
     end
 
     it 'sets the max_buffer_size to MAX_BUFFER_SIZE' do
@@ -209,25 +232,17 @@ RSpec.describe RubySMB::Client do
     describe '#negotiate_request' do
       it 'calls #smb1_negotiate_request if SMB1 is enabled' do
         expect(smb1_client).to receive(:smb1_negotiate_request)
-        expect(smb1_client).to receive(:send_recv)
         smb1_client.negotiate_request
       end
 
       it 'calls #smb1_negotiate_request if both protocols are enabled' do
         expect(client).to receive(:smb1_negotiate_request)
-        expect(client).to receive(:send_recv)
         client.negotiate_request
       end
 
       it 'calls #smb2_negotiate_request if SMB2 is enabled' do
         expect(smb2_client).to receive(:smb2_negotiate_request)
-        expect(smb2_client).to receive(:send_recv)
         smb2_client.negotiate_request
-      end
-
-      it 'returns the raw response string from the server' do
-        expect(client).to receive(:send_recv).and_return('A')
-        expect(client.negotiate_request).to eq 'A'
       end
     end
 
@@ -287,6 +302,21 @@ RSpec.describe RubySMB::Client do
           client.parse_negotiate_response(smb1_extended_response)
           expect(client.signing_required).to be true
         end
+
+        it 'sets #dialect to the negotiated dialect' do
+          smb1_extended_response.dialects = [
+            RubySMB::SMB1::Dialect.new(dialect_string: 'A'),
+            RubySMB::SMB1::Dialect.new(dialect_string: 'B'),
+            RubySMB::SMB1::Dialect.new(dialect_string: 'C'),
+          ]
+          smb1_extended_response.parameter_block.dialect_index = 1
+          client.parse_negotiate_response(smb1_extended_response)
+          expect(client.dialect).to eq 'B'
+        end
+
+        it 'returns the string \'SMB1\'' do
+          expect(client.parse_negotiate_response(smb1_extended_response)).to eq ('SMB1')
+        end
       end
 
       context 'when SMB2 was negotiated' do
@@ -300,15 +330,40 @@ RSpec.describe RubySMB::Client do
           client.parse_negotiate_response(smb2_response)
           expect(client.signing_required).to be true
         end
+
+        it 'sets #dialect to the negotiated dialect' do
+          smb2_response.dialect_revision = 2
+          client.parse_negotiate_response(smb2_response)
+          expect(client.dialect).to eq '0x0002'
+        end
+
+        it 'returns the string \'SMB2\'' do
+          expect(client.parse_negotiate_response(smb2_response)).to eq ('SMB2')
+        end
       end
     end
 
     describe '#negotiate' do
       it 'calls the backing methods' do
         expect(client).to receive(:negotiate_request)
+        expect(client).to receive(:send_recv)
         expect(client).to receive(:negotiate_response)
         expect(client).to receive(:parse_negotiate_response)
         client.negotiate
+      end
+
+      it 'sets the response-packet #dialects array with the dialects sent in the request' do
+        request_packet = client.smb1_negotiate_request
+        allow(client).to receive(:negotiate_request).and_return(request_packet)
+        allow(client).to receive(:send_recv)
+        allow(client).to receive(:negotiate_response).and_return(smb1_extended_response)
+        expect(smb1_extended_response).to receive(:dialects=).with(request_packet.dialects)
+        client.negotiate
+      end
+
+      it 'raise the expected exception if an error occurs' do
+        allow(client).to receive(:send_recv).and_raise(RubySMB::Error::InvalidPacket)
+        expect { client.negotiate }.to raise_error(RubySMB::Error::NegotiationFailure)
       end
     end
   end
@@ -345,28 +400,86 @@ RSpec.describe RubySMB::Client do
       let(:ntlm_client) { smb1_client.ntlm_client }
       let(:type1_message) { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB1::Packet::SessionSetupRequest.new }
+      let(:response_packet) { RubySMB::SMB1::Packet::SessionSetupResponse.new }
+      let(:final_response_packet) { RubySMB::SMB1::Packet::SessionSetupResponse.new }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
       let(:user_id) { 2041 }
+
+      describe '#smb1_authenticate' do
+        before :example do
+          allow(smb1_client).to receive(:smb1_ntlmssp_negotiate)
+          allow(smb1_client).to receive(:smb1_ntlmssp_challenge_packet).and_return(response_packet)
+          allow(smb1_client).to receive(:smb1_type2_message).and_return(type2_string)
+          allow(smb1_client).to receive(:smb1_ntlmssp_authenticate)
+          allow(smb1_client).to receive(:smb1_ntlmssp_final_packet).and_return(final_response_packet)
+        end
+
+        it 'calls the backing methods' do
+          response_packet.smb_header.uid = user_id
+          expect(smb1_client).to receive(:smb1_ntlmssp_negotiate).and_return(negotiate_packet)
+          expect(smb1_client).to receive(:smb1_ntlmssp_challenge_packet).with(negotiate_packet).and_return(response_packet)
+          expect(smb1_client).to receive(:smb1_type2_message).with(response_packet).and_return(type2_string)
+          expect(smb1_client).to receive(:store_target_info).with(String)
+          expect(smb1_client).to receive(:extract_os_version).with(String)
+          expect(smb1_client).to receive(:smb1_ntlmssp_authenticate).with(Net::NTLM::Message::Type3, user_id)
+          expect(smb1_client).to receive(:smb1_ntlmssp_final_packet).and_return(final_response_packet)
+          smb1_client.smb1_authenticate
+        end
+
+        it 'stores the OS information from the challenge packet' do
+          native_os = 'Windows 7 Professional 7601 Service Pack 1'
+          native_lm = 'Windows 7 Professional 6.1'
+          response_packet.data_block.native_os = native_os
+          response_packet.data_block.native_lan_man = native_lm
+          smb1_client.smb1_authenticate
+
+          expect(smb1_client.peer_native_os).to eq native_os
+          expect(smb1_client.peer_native_lm).to eq native_lm
+        end
+
+        it 'stores the session key from the NTLM client' do
+          smb1_client.smb1_authenticate
+          expect(smb1_client.session_key).to eq ntlm_client.session_key
+        end
+
+        it 'stores the OS version number from the challenge message' do
+          smb1_client.smb1_authenticate
+          expect(smb1_client.os_version).to eq '6.1.7601'
+        end
+
+        it 'stores the user ID if the status code is \'STATUS_SUCCESS\'' do
+          response_packet.smb_header.uid = user_id
+          final_response_packet.smb_header.nt_status = WindowsError::NTStatus::STATUS_SUCCESS.value
+          smb1_client.smb1_authenticate
+          expect(smb1_client.user_id).to eq user_id
+        end
+
+        it 'does not store the user ID if the status code is not \'STATUS_SUCCESS\'' do
+          response_packet.smb_header.uid = user_id
+          final_response_packet.smb_header.nt_status = WindowsError::NTStatus::STATUS_PENDING.value
+          smb1_client.smb1_authenticate
+          expect(smb1_client.user_id).to eq nil
+        end
+      end
 
       describe '#smb1_ntlmssp_auth_packet' do
         it 'creates a new SessionSetupRequest packet' do
           expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
-          smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id)
+          smb1_client.smb1_ntlmssp_auth_packet(type3_message, user_id)
         end
 
-        it 'builds the security blob with an NTLM Type 3 Message' do
+        it 'sets the security blob with an NTLM Type 3 Message' do
           expect(RubySMB::SMB1::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
-          expect(ntlm_client).to receive(:init_context).with(type2_string).and_return(type3_message)
           expect(negotiate_packet).to receive(:set_type3_blob).with(type3_message.serialize)
-          smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id)
+          smb1_client.smb1_ntlmssp_auth_packet(type3_message, user_id)
         end
 
         it 'enables extended security on the packet' do
-          expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id).smb_header.flags2.extended_security).to eq 1
+          expect(smb1_client.smb1_ntlmssp_auth_packet(type3_message, user_id).smb_header.flags2.extended_security).to eq 1
         end
 
         it 'sets the max_buffer_size to the client\'s max_buffer_size' do
-          expect(smb1_client.smb1_ntlmssp_auth_packet(type2_string, user_id).parameter_block.max_buffer_size).to eq smb1_client.max_buffer_size
+          expect(smb1_client.smb1_ntlmssp_auth_packet(type3_message, user_id).parameter_block.max_buffer_size).to eq smb1_client.max_buffer_size
         end
       end
 
@@ -397,7 +510,7 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client).to receive(:smb1_ntlmssp_auth_packet).and_return(negotiate_packet)
           expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
           expect(dispatcher).to receive(:recv_packet)
-          smb1_client.smb1_ntlmssp_authenticate(type2_string, user_id)
+          smb1_client.smb1_ntlmssp_authenticate(type3_message, user_id)
         end
       end
 
@@ -473,6 +586,42 @@ RSpec.describe RubySMB::Client do
         let(:anonymous_request) { RubySMB::SMB1::Packet::SessionSetupLegacyRequest.new }
         let(:anonymous_response) { RubySMB::SMB1::Packet::SessionSetupLegacyResponse.new }
 
+        describe '#smb1_anonymous_auth' do
+          it 'calls the backing methods' do
+            expect(client).to receive(:smb1_anonymous_auth_request).and_return(anonymous_request)
+            expect(client).to receive(:send_recv).with(anonymous_request)
+            expect(client).to receive(:smb1_anonymous_auth_response).and_return(anonymous_response)
+            client.smb1_anonymous_auth
+          end
+
+          it 'returns the status code' do
+            allow(client).to receive(:send_recv)
+            allow(client).to receive(:smb1_anonymous_auth_response).and_return(anonymous_response)
+            anonymous_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_PENDING.value
+            expect(client.smb1_anonymous_auth).to eq WindowsError::NTStatus::STATUS_PENDING
+          end
+
+          it 'sets the expected Client\'s attribute from the response when the status code is STATUS_SUCCESS' do
+            native_os = 'Windows 7 Professional 7601 Service Pack 1'
+            native_lm = 'Windows 7 Professional 6.1'
+            primary_domain = 'SPEC_DOMAIN'
+            anonymous_response.smb_header.uid = user_id
+            anonymous_response.data_block.native_os = native_os
+            anonymous_response.data_block.native_lan_man = native_lm
+            anonymous_response.data_block.primary_domain = primary_domain
+            anonymous_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_SUCCESS.value
+
+            allow(client).to receive(:send_recv)
+            allow(client).to receive(:smb1_anonymous_auth_response).and_return(anonymous_response)
+
+            client.smb1_anonymous_auth
+            expect(client.user_id).to eq user_id
+            expect(client.peer_native_os).to eq native_os
+            expect(client.peer_native_lm).to eq native_lm
+            expect(client.primary_domain).to eq primary_domain
+          end
+        end
+
         describe '#smb1_anonymous_auth_request' do
           it 'creates a SessionSetupLegacyRequest packet with a null byte for the oem password' do
             expect(smb1_client.smb1_anonymous_auth_request.data_block.oem_password).to eq "\x00"
@@ -505,8 +654,48 @@ RSpec.describe RubySMB::Client do
       let(:ntlm_client) { smb2_client.ntlm_client }
       let(:type1_message) { ntlm_client.init_context }
       let(:negotiate_packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+      let(:response_packet) { RubySMB::SMB2::Packet::SessionSetupResponse.new }
+      let(:final_response_packet) { RubySMB::SMB2::Packet::SessionSetupResponse.new }
       let(:type3_message) { ntlm_client.init_context(type2_string) }
       let(:session_id) { 0x0000040000000005 }
+
+      describe '#smb2_authenticate' do
+        before :example do
+          allow(smb2_client).to receive(:smb2_ntlmssp_negotiate)
+          allow(smb2_client).to receive(:smb2_ntlmssp_challenge_packet).and_return(response_packet)
+          allow(smb2_client).to receive(:smb2_type2_message).and_return(type2_string)
+          allow(smb2_client).to receive(:smb2_ntlmssp_authenticate)
+          allow(smb2_client).to receive(:smb2_ntlmssp_final_packet).and_return(final_response_packet)
+        end
+
+        it 'calls the backing methods' do
+          response_packet.smb2_header.session_id = session_id
+          expect(smb2_client).to receive(:smb2_ntlmssp_negotiate).and_return(negotiate_packet)
+          expect(smb2_client).to receive(:smb2_ntlmssp_challenge_packet).with(negotiate_packet).and_return(response_packet)
+          expect(smb2_client).to receive(:smb2_type2_message).with(response_packet).and_return(type2_string)
+          expect(smb2_client).to receive(:store_target_info).with(String)
+          expect(smb2_client).to receive(:extract_os_version).with(String)
+          expect(smb2_client).to receive(:smb2_ntlmssp_authenticate).with(Net::NTLM::Message::Type3, session_id)
+          expect(smb2_client).to receive(:smb2_ntlmssp_final_packet).and_return(final_response_packet)
+          smb2_client.smb2_authenticate
+        end
+
+        it 'stores the session ID from the challenge message' do
+          response_packet.smb2_header.session_id = session_id
+          smb2_client.smb2_authenticate
+          expect(smb2_client.session_id).to eq session_id
+        end
+
+        it 'stores the session key from the NTLM client' do
+          smb2_client.smb2_authenticate
+          expect(smb2_client.session_key).to eq ntlm_client.session_key
+        end
+
+        it 'stores the OS version number from the challenge message' do
+          smb2_client.smb2_authenticate
+          expect(smb2_client.os_version).to eq '6.1.7601'
+        end
+      end
 
       describe '#smb2_ntlmssp_negotiate_packet' do
         it 'creates a new SessionSetupRequest packet' do
@@ -577,21 +766,20 @@ RSpec.describe RubySMB::Client do
         end
       end
 
-      describe '#smb1_ntlmssp_auth_packet' do
+      describe '#smb2_ntlmssp_auth_packet' do
         it 'creates a new SessionSetupRequest packet' do
           expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
-          smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id)
+          smb2_client.smb2_ntlmssp_auth_packet(type3_message, session_id)
         end
 
-        it 'builds the security blob with an NTLM Type 3 Message' do
+        it 'sets the security blob with an NTLM Type 3 Message' do
           expect(RubySMB::SMB2::Packet::SessionSetupRequest).to receive(:new).and_return(negotiate_packet)
-          expect(ntlm_client).to receive(:init_context).with(type2_string).and_return(type3_message)
           expect(negotiate_packet).to receive(:set_type3_blob).with(type3_message.serialize)
-          smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id)
+          smb2_client.smb2_ntlmssp_auth_packet(type3_message, session_id)
         end
 
         it 'sets the session ID on the request packet' do
-          expect(smb2_client.smb2_ntlmssp_auth_packet(type2_string, session_id).smb2_header.session_id).to eq session_id
+          expect(smb2_client.smb2_ntlmssp_auth_packet(type3_message, session_id).smb2_header.session_id).to eq session_id
         end
       end
 
@@ -600,7 +788,7 @@ RSpec.describe RubySMB::Client do
           expect(smb2_client).to receive(:smb2_ntlmssp_auth_packet).and_return(negotiate_packet)
           expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
           expect(dispatcher).to receive(:recv_packet)
-          smb2_client.smb2_ntlmssp_authenticate(type2_string, session_id)
+          smb2_client.smb2_ntlmssp_authenticate(type3_message, session_id)
         end
       end
 
@@ -623,6 +811,46 @@ RSpec.describe RubySMB::Client do
         it 'raises an InvalidPacket if the Command field is wrong' do
           expect { smb2_client.smb2_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
+      end
+    end
+
+    describe '#store_target_info' do
+      let(:target_info_str) { "\x02\x00\x14\x00T\x00E\x00S\x00T\x00D\x00O\x00M"\
+        "\x00A\x00I\x00N\x00\x01\x00\x10\x00T\x00E\x00S\x00T\x00N\x00A\x00M"\
+        "\x00E\x00\x04\x00 \x00t\x00e\x00s\x00t\x00d\x00o\x00m\x00a\x00i\x00"\
+        "n\x00.\x00l\x00o\x00c\x00a\x00l\x00\x03\x002\x00t\x00e\x00s\x00t\x00"\
+        "n\x00a\x00m\x00e\x00.\x00t\x00e\x00s\x00t\x00d\x00o\x00m\x00a\x00i"\
+        "\x00n\x00.\x00l\x00o\x00c\x00a\x00l\x00\x05\x00 \x00t\x00e\x00s\x00t"\
+        "\x00f\x00o\x00r\x00e\x00s\x00t\x00.\x00l\x00o\x00c\x00a\x00l\x00\a"\
+        "\x00\b\x00Q7w\x01Fh\xD3\x01\x00\x00\x00\x00" }
+
+      it 'creates a Net::NTLM::TargetInfo object from the target_info string' do
+        expect(Net::NTLM::TargetInfo).to receive(:new).with(target_info_str).and_call_original
+        client.store_target_info(target_info_str)
+      end
+
+      it 'sets the expected Client\'s attribute' do
+        client.store_target_info(target_info_str)
+        expect(client.default_name).to eq 'TESTNAME'
+        expect(client.default_domain).to eq 'TESTDOMAIN'
+        expect(client.dns_host_name).to eq 'testname.testdomain.local'
+        expect(client.dns_domain_name).to eq 'testdomain.local'
+        expect(client.dns_tree_name).to eq 'testforest.local'
+      end
+
+      it 'stores the strings with UTF-8 encoding' do
+        client.store_target_info(target_info_str)
+        expect(client.default_name.encoding.name).to eq 'UTF-8'
+        expect(client.default_domain.encoding.name).to eq 'UTF-8'
+        expect(client.dns_host_name.encoding.name).to eq 'UTF-8'
+        expect(client.dns_domain_name.encoding.name).to eq 'UTF-8'
+        expect(client.dns_tree_name.encoding.name).to eq 'UTF-8'
+      end
+    end
+
+    describe '#extract_os_version' do
+      it 'returns the expected version number' do
+        expect(client.extract_os_version("\x06\x00q\x17\x00\x00\x00\x0F")).to eq '6.0.6001'
       end
     end
   end
