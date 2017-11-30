@@ -327,5 +327,143 @@ RSpec.describe RubySMB::SMB1::File do
     end
   end
 
+  describe '#delete' do
+    let(:set_info_res) { RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.new }
+
+    before :example do
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse).to receive(:read).and_return(set_info_res)
+    end
+
+    it 'calls #delete_packet' do
+      expect(file).to receive(:delete_packet)
+      file.delete
+    end
+
+    it 'returns the response NTStatus code' do
+      status = WindowsError::NTStatus::STATUS_SUCCESS
+      set_info_res.smb_header.nt_status = status.value
+      expect(file.delete).to eq status
+    end
+  end
+
+  describe '#delete_packet' do
+    let(:request) do
+      request = RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest.new
+      passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_DISPOSITION_INFORMATION +
+        RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+      request.data_block.trans2_parameters.information_level = passthrough_info_level
+      request
+    end
+
+    before :example do
+      allow(RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest).to receive(:new).and_return(request)
+    end
+
+    it 'creates a new Trans2 SetFileInformationRequest packet' do
+      expect(RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest).to receive(:new).and_return(request)
+      file.delete_packet
+    end
+
+    it 'calls Tree #set_header_fields to set SetFileInformationRequest headers' do
+      expect(tree).to receive(:set_header_fields).with(request).and_call_original
+      file.delete_packet
+    end
+
+    it 'sets the Trans2 parameter #fid of the packet with the File FID' do
+      fid = 0x1000
+      file.fid = fid
+      expect(file.delete_packet.data_block.trans2_parameters.fid).to eq fid
+    end
+
+    it 'sets the Trans2 parameter #information_level of the packet' do
+      request.data_block.trans2_parameters.information_level = 0
+      passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_DISPOSITION_INFORMATION +
+        RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+      expect(file.delete_packet.data_block.trans2_parameters.information_level).to eq passthrough_info_level
+    end
+
+    it 'sets the File Information #delete_pending field of the packet' do
+      expect(file.delete_packet.data_block.trans2_data.info_level_struct.delete_pending).to eq 1
+    end
+
+    it 'sets the Trans2 ParameterBlock fields' do
+      parameter_block = file.delete_packet.parameter_block
+      expect(parameter_block.total_parameter_count).to eq request.parameter_block.parameter_count
+      expect(parameter_block.total_data_count).to eq request.parameter_block.data_count
+      expect(parameter_block.max_parameter_count).to eq request.parameter_block.parameter_count
+      expect(parameter_block.max_data_count).to eq 16_384
+    end
+  end
+
+  describe '#rename' do
+    let(:set_info_res) { RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.new }
+    let(:filename) { 'file.txt' }
+
+    before :example do
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse).to receive(:read).and_return(set_info_res)
+    end
+
+    it 'calls #rename_packet' do
+      expect(file).to receive(:rename_packet)
+      file.rename(filename)
+    end
+
+    it 'returns the response NTStatus code' do
+      status = WindowsError::NTStatus::STATUS_SUCCESS
+      set_info_res.smb_header.nt_status = status.value
+      expect(file.rename(filename)).to eq status
+    end
+  end
+
+  describe '#rename_packet' do
+    let(:request) do
+      request = RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest.new
+      passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION +
+        RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+      request.data_block.trans2_parameters.information_level = passthrough_info_level
+      request
+    end
+
+    before :example do
+      allow(RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest).to receive(:new).and_return(request)
+    end
+
+    it 'creates a new Trans2 SetFileInformationRequest packet' do
+      expect(RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest).to receive(:new).and_return(request)
+      file.rename_packet(filename)
+    end
+
+    it 'calls Tree #set_header_fields to set SetFileInformationRequest headers' do
+      expect(tree).to receive(:set_header_fields).with(request).and_call_original
+      file.rename_packet(filename)
+    end
+
+    it 'sets the Trans2 parameter #fid of the packet with the File FID' do
+      fid = 0x1000
+      file.fid = fid
+      expect(file.rename_packet(filename).data_block.trans2_parameters.fid).to eq fid
+    end
+
+    it 'sets the Trans2 parameter #information_level of the packet' do
+      request.data_block.trans2_parameters.information_level = 0
+      passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION +
+        RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
+      expect(file.rename_packet(filename).data_block.trans2_parameters.information_level).to eq passthrough_info_level
+    end
+
+    it 'sets the File Information #rename_pending field of the packet' do
+      expect(file.rename_packet(filename).data_block.trans2_data.info_level_struct.file_name).to eq filename.encode('utf-16le').force_encoding('ASCII-8BIT')
+    end
+
+    it 'sets the Trans2 ParameterBlock fields' do
+      parameter_block = file.rename_packet(filename).parameter_block
+      expect(parameter_block.total_parameter_count).to eq request.parameter_block.parameter_count
+      expect(parameter_block.total_data_count).to eq request.parameter_block.data_count
+      expect(parameter_block.max_parameter_count).to eq request.parameter_block.parameter_count
+      expect(parameter_block.max_data_count).to eq 16_384
+    end
+  end
 end
 
