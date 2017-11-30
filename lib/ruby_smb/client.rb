@@ -54,6 +54,54 @@ module RubySMB
     #   @return [String]
     attr_accessor :peer_native_os
 
+    # The Native LAN Manager of the Peer/Server.
+    # Currently only available with SMB1.
+    # @!attribute [rw] peer_native_lm
+    #   @return [String]
+    attr_accessor :peer_native_lm
+
+    # The Primary Domain of the Peer/Server.
+    # Currently only available with SMB1 and only when authentiation
+    # without NTLMSSP is used.
+    # @!attribute [rw] primary_domain
+    #   @return [String]
+    attr_accessor :primary_domain
+
+    # The Netbios Name of the Peer/Server.
+    # @!attribute [rw] default_name
+    #   @return [String]
+    attr_accessor :default_name
+
+    # The Netbios Domain of the Peer/Server.
+    # @!attribute [rw] default_domain
+    #   @return [String]
+    attr_accessor :default_domain
+
+    # The Fully Qualified Domain Name (FQDN) of the computer.
+    # @!attribute [rw] dns_host_name
+    #   @return [String]
+    attr_accessor :dns_host_name
+
+    # The Fully Qualified Domain Name (FQDN) of the domain.
+    # @!attribute [rw] dns_domain_name
+    #   @return [String]
+    attr_accessor :dns_domain_name
+
+    # The Fully Qualified Domain Name (FQDN) of the forest.
+    # @!attribute [rw] dns_tree_name
+    #   @return [String]
+    attr_accessor :dns_tree_name
+
+    # The OS version number (<major>.<minor>.<build>) of the Peer/Server.
+    # @!attribute [rw] os_version
+    #   @return [String]
+    attr_accessor :os_version
+
+    # The negotiated dialect.
+    # @!attribute [rw] dialect
+    #   @return [Integer]
+    attr_accessor :dialect
+
     # The Sequence Counter used for SMB1 Signing.
     # It tracks the number of packets both sent and received
     # since the NTLM session was initialized with the Challenge.
@@ -123,11 +171,17 @@ module RubySMB
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
 
+      negotiate_version_flag = 0x02000000
+      flags = Net::NTLM::Client::DEFAULT_FLAGS |
+        Net::NTLM::FLAGS[:TARGET_INFO] |
+        negotiate_version_flag
+
       @ntlm_client = Net::NTLM::Client.new(
         @username,
         @password,
         workstation: @local_workstation,
-        domain: @domain
+        domain: @domain,
+        flags: flags
       )
 
       @smb2_message_id = 0
