@@ -329,9 +329,6 @@ module RubySMB
       named_pipe = tree.open_file(filename: "srvsvc", write: true,read: true,disposition: RubySMB::Dispositions::FILE_OPEN_IF)
       handle = RubySMB::Dcerpc::Handle.new(named_pipe)
 
-      # require 'pry'
-      # binding.pry
-
       bind_response = handle.bind()
       request_response = handle.request({
           opnum: 15,

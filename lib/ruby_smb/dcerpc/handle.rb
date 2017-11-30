@@ -29,6 +29,8 @@ module RubySMB
       def wait_listen
         @last_msg = @pipe.tree.client.dispatcher
                         .tcp_socket.recvmsg.first
+        require 'pry'
+        binding.pry
         handle_msg(RubySMB::SMB2::Packet::IoctlResponse.read(@last_msg))
       end
 

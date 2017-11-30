@@ -18,13 +18,13 @@ module RubySMB
 
       #needed on request, response, fault
 
-      uint32 :alloc_hint, value: -> {stub.do_num_bytes} # 16:04 allocation hint
+      uint32 :alloc_hint, initial_value: -> {stub.do_num_bytes} # 16:04 allocation hint
       uint16 :p_cont_id, initial_value: 0 # 20:02 pres context, i.e. data rep
       uint16 :opnum, initial_value: 15 # 22:02 operation #within the interface
 
       # optional field for request, only present if the PFC_OBJECT_UUID field is non-zero
 
-      string :stub, length: -> {80}
+      string :stub#, length: -> {80}
 
       # stub data, 8-octet aligned
 

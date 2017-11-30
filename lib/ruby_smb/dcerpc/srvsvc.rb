@@ -2,6 +2,7 @@ module RubySMB
   module Dcerpc
     module Srvsvc
 
+      #https://msdn.microsoft.com/en-us/library/cc247293.aspx
       class NetShareEnumAll < BinData::Record
         endian :little
 
@@ -26,6 +27,41 @@ module RubySMB
 
         uint32 :resume_referent_id, value: 0x00000001
         uint32 :resume_handle, initial_value: 0
+      end
+
+      class ShareEntry < BinData::Record
+        endian :little
+
+        uint32 :referent_id
+        uint32 :type
+
+        # comment
+        uint32 :referent_id_comment
+      end
+
+      class NetShareEnumAllResponse < BinData::Record
+        endian :little
+
+        uint32 :level
+
+        #### pointerz
+
+        #string :net_share_ctr, length: 394
+        uint32 :ctr
+        uint32 :referent_id
+        uint32 :count
+        uint32 :referent_id_array
+        uint32 :max_count
+
+        array :share_entry, initial_count: -> {max_count}
+
+        ####
+        uint16 :padding
+        uint32 :total_entries
+
+        uint32 :resume_referent_id
+        uint32 :resume_handle
+        uint32 :werror
       end
     end
   end
