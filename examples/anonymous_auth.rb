@@ -15,6 +15,11 @@ def run_authentication(address, smb1, smb2, username, password)
   protocol = client.negotiate
   status = client.authenticate
   puts "#{protocol} : #{status}"
+  if status.name == 'STATUS_SUCCESS'
+    puts "Native OS: #{client.peer_native_os}"
+    puts "Native LAN Manager: #{client.peer_native_lm}"
+    puts "Domain/Workgroup: #{client.primary_domain}"
+  end
 end
 
 address  = ARGV[0]
