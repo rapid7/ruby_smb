@@ -32,7 +32,7 @@ module RubySMB
         response      = smb1_anonymous_auth_response(raw_response)
         response_code = response.status_code
 
-        if response_code.name == 'STATUS_SUCCESS'
+        if response_code == WindowsError::NTStatus::STATUS_SUCCESS
           self.user_id = response.smb_header.uid
           self.peer_native_os = response.data_block.native_os.to_s
           self.peer_native_lm = response.data_block.native_lan_man.to_s
@@ -89,7 +89,7 @@ module RubySMB
         response = smb1_ntlmssp_final_packet(raw)
         response_code = response.status_code
 
-        @user_id = user_id if response_code.name == 'STATUS_SUCCESS'
+        @user_id = user_id if response_code == WindowsError::NTStatus::STATUS_SUCCESS
 
         response_code
       end
