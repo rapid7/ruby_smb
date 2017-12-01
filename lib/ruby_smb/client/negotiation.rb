@@ -6,11 +6,17 @@ module RubySMB
       # Handles the entire SMB Multi-Protocol Negotiation from the
       # Client to the Server. It sets state on the client appropriate
       # to the protocol and capabilites negotiated during the exchange.
+      # It also keeps track of the negotiated dialect.
       #
       # @return [void]
       def negotiate
-        raw_response    = negotiate_request
+        request_packet  = negotiate_request
+        raw_response    = send_recv(request_packet)
         response_packet = negotiate_response(raw_response)
+        # The list of dialect identifiers sent to the server is stored
+        # internally to be able to retrieve the negotiated dialect later on.
+        # This is only valid for SMB1.
+        response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
         parse_negotiate_response(response_packet)
       rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
         error = 'Unable to Negotiate with remote host'
@@ -18,17 +24,17 @@ module RubySMB
         raise RubySMB::Error::NegotiationFailure, error
       end
 
-      # Creates and dispatches the first Negotiate Request Packet and
-      # returns the raw response data.
+      # Creates the first Negotiate Request Packet according to the SMB version
+      # used.
       #
-      # @return [String] the raw binary string containing the response from the server
+      # @return [RubySMB::SMB1::Packet::NegotiateRequest] a SMB1 Negotiate Request packet if SMB1 is used
+      # @return [RubySMB::SMB1::Packet::NegotiateRequest] a SMB2 Negotiate Request packet if SMB2 is used
       def negotiate_request
         if smb1
-          request = smb1_negotiate_request
+          smb1_negotiate_request
         elsif smb2
-          request = smb2_negotiate_request
+          smb2_negotiate_request
         end
-        send_recv(request)
       end
 
       # Takes the raw response data from the server and tries
@@ -64,10 +70,11 @@ module RubySMB
 
       # Sets the supported SMB Protocol and whether or not
       # Signing is enabled based on the Negotiate Response Packet.
+      # It also stores the negotiated dialect.
       #
       # @param packet [RubySMB::SMB1::Packet::NegotiateResponseExtended] if SMB1 was negotiated
       # @param packet [RubySMB::SMB2::Packet::NegotiateResponse] if SMB2 was negotiated
-      # @return [void] This method sets state and does not return a meaningful value
+      # @return [String] The SMB version as a string ('SMB1', 'SMB2')
       def parse_negotiate_response(packet)
         case packet
         when RubySMB::SMB1::Packet::NegotiateResponseExtended
@@ -78,6 +85,7 @@ module RubySMB
           else
             self.signing_required = false
           end
+          self.dialect = packet.negotiated_dialect.to_s
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
@@ -87,6 +95,7 @@ module RubySMB
                                   else
                                     false
                                   end
+          self.dialect = "0x%04x" % packet.dialect_revision
           'SMB2'
         end
       end

@@ -32,9 +32,11 @@ module RubySMB
         response      = smb1_anonymous_auth_response(raw_response)
         response_code = response.status_code
 
-        if response_code.name == 'STATUS_SUCCESS'
+        if response_code == WindowsError::NTStatus::STATUS_SUCCESS
           self.user_id = response.smb_header.uid
-          self.peer_native_os = response.data_block.native_os
+          self.peer_native_os = response.data_block.native_os.to_s
+          self.peer_native_lm = response.data_block.native_lan_man.to_s
+          self.primary_domain = response.data_block.primary_domain.to_s
         end
 
         response_code
@@ -64,20 +66,30 @@ module RubySMB
         packet
       end
 
-      # Handles the SMB1 NTLMSSP 4-way handshake for Authentication
+      # Handles the SMB1 NTLMSSP 4-way handshake for Authentication and store
+      # information about the peer/server.
       def smb1_authenticate
         response = smb1_ntlmssp_negotiate
         challenge_packet = smb1_ntlmssp_challenge_packet(response)
+
+        # Store the available OS information before going forward.
+        @peer_native_os = challenge_packet.data_block.native_os.to_s
+        @peer_native_lm = challenge_packet.data_block.native_lan_man.to_s
+
         user_id = challenge_packet.smb_header.uid
-        challenge_message = smb1_type2_message(challenge_packet)
-        raw = smb1_ntlmssp_authenticate(challenge_message, user_id)
+        type2_b64_message = smb1_type2_message(challenge_packet)
+        type3_message = @ntlm_client.init_context(type2_b64_message)
+
+        @session_key = @ntlm_client.session_key
+        challenge_message = @ntlm_client.session.challenge_message
+        store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
+        @os_version = extract_os_version(challenge_message.os_version.to_s)
+
+        raw = smb1_ntlmssp_authenticate(type3_message, user_id)
         response = smb1_ntlmssp_final_packet(raw)
         response_code = response.status_code
 
-        if response_code.name == 'STATUS_SUCCESS'
-          self.user_id = user_id
-          self.peer_native_os = response.data_block.native_os
-        end
+        @user_id = user_id if response_code == WindowsError::NTStatus::STATUS_SUCCESS
 
         response_code
       end
@@ -91,27 +103,24 @@ module RubySMB
         send_recv(packet)
       end
 
-      # Takes the Base64 encoded NTLM Type 2 (Challenge) message
-      # and calls the routines to build the Auth packet, sends the packet
-      # and receives the raw response
+      # Takes the NTLM Type 3 (authenticate) message and calls the routines to
+      # build the Auth packet, sends the packet and receives the raw response.
       #
-      # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
+      # @param type3_message [String] the NTLM Type 3 message
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [String] the raw binary response from the server
-      def smb1_ntlmssp_authenticate(type2_string, user_id)
-        packet = smb1_ntlmssp_auth_packet(type2_string, user_id)
+      def smb1_ntlmssp_authenticate(type3_message, user_id)
+        packet = smb1_ntlmssp_auth_packet(type3_message, user_id)
         send_recv(packet)
       end
 
       # Generates the {RubySMB::SMB1::Packet::SessionSetupRequest} packet
       # with the NTLM Type 3 (Auth) message in the security_blob field.
       #
-      # @param type2_string [String] the Base64 encoded Type2 challenge to respond to
+      # @param type3_message [String] the NTLM Type 3 message
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [RubySMB::SMB1::Packet::SessionSetupRequest] the second authentication packet to send
-      def smb1_ntlmssp_auth_packet(type2_string, user_id)
-        type3_message = ntlm_client.init_context(type2_string)
-        self.session_key = ntlm_client.session_key
+      def smb1_ntlmssp_auth_packet(type3_message, user_id)
         packet = RubySMB::SMB1::Packet::SessionSetupRequest.new
         packet.smb_header.uid = user_id
         packet.set_type3_blob(type3_message.serialize)
@@ -180,15 +189,23 @@ module RubySMB
       # SMB 2 Methods
       #
 
-      # Handles the SMB1 NTLMSSP 4-way handshake for Authentication
+      # Handles the SMB2 NTLMSSP 4-way handshake for Authentication and store
+      # information about the peer/server.
       def smb2_authenticate
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
-        session_id = challenge_packet.smb2_header.session_id
-        self.session_id = session_id
-        challenge_message = smb2_type2_message(challenge_packet)
-        raw = smb2_ntlmssp_authenticate(challenge_message, session_id)
+        @session_id = challenge_packet.smb2_header.session_id
+        type2_b64_message = smb2_type2_message(challenge_packet)
+        type3_message = @ntlm_client.init_context(type2_b64_message)
+
+        @session_key = @ntlm_client.session_key
+        challenge_message = ntlm_client.session.challenge_message
+        store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
+        @os_version = extract_os_version(challenge_message.os_version.to_s)
+
+        raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
+
         response.status_code
       end
 
@@ -251,31 +268,58 @@ module RubySMB
         [type2_blob].pack('m')
       end
 
-      # Takes the Base64 encoded NTLM Type 2 (Challenge) message
-      # and calls the routines to build the Auth packet, sends the packet
-      # and receives the raw response
+      # Takes the NTLM Type 3 (authenticate) message and calls the routines to
+      # build the Auth packet, sends the packet and receives the raw response.
       #
-      # @param type2_string [String] the Base64 Encoded NTLM Type 2 message
+      # @param type3_message [String] the NTLM Type 3 message
       # @param user_id [Integer] the temporary user ID from the Type 2 response
       # @return [String] the raw binary response from the server
-      def smb2_ntlmssp_authenticate(type2_string, user_id)
-        packet = smb2_ntlmssp_auth_packet(type2_string, user_id)
+      def smb2_ntlmssp_authenticate(type3_message, user_id)
+        packet = smb2_ntlmssp_auth_packet(type3_message, user_id)
         send_recv(packet)
       end
 
       # Generates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet
       # with the NTLM Type 3 (Auth) message in the security_blob field.
       #
-      # @param type2_string [String] the Base64 encoded Type2 challenge to respond to
+      # @param type3_message [String] the NTLM Type 3 message
       # @param session_id [Integer] the temporary session id from the Type 2 response
       # @return [RubySMB::SMB2::Packet::SessionSetupRequest] the second authentication packet to send
-      def smb2_ntlmssp_auth_packet(type2_string, session_id)
-        type3_message = ntlm_client.init_context(type2_string)
-        self.session_key = ntlm_client.session_key
+      def smb2_ntlmssp_auth_packet(type3_message, session_id)
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.smb2_header.session_id = session_id
         packet.set_type3_blob(type3_message.serialize)
         packet
+      end
+
+      # Extract and store useful information about the peer/server from the
+      # NTLM Type 2 (challenge) TargetInfo fields.
+      #
+      # @param target_info_str [String] the Target Info string
+      def store_target_info(target_info_str)
+        target_info = Net::NTLM::TargetInfo.new(target_info_str)
+        {
+          Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME  => :@default_name,
+          Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME    => :@default_domain,
+          Net::NTLM::TargetInfo::MSV_AV_DNS_COMPUTER_NAME => :@dns_host_name,
+          Net::NTLM::TargetInfo::MSV_AV_DNS_DOMAIN_NAME   => :@dns_domain_name,
+          Net::NTLM::TargetInfo::MSV_AV_DNS_TREE_NAME     => :@dns_tree_name
+        }.each do |constant, attribute|
+          if target_info.av_pairs[constant]
+            value = target_info.av_pairs[constant].dup
+            value.force_encoding('UTF-16LE')
+            instance_variable_set(attribute, value.encode('UTF-8'))
+          end
+        end
+      end
+
+      # Extract the peer/server version number from the NTLM Type 2 (challenge)
+      # Version field.
+      #
+      # @param version [String] the version number as a binary string
+      # @return [String] the formated version number (<major>.<minor>.<build>)
+      def extract_os_version(version)
+        version.unpack('CCS').join('.')
       end
     end
   end

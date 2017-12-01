@@ -147,4 +147,41 @@ RSpec.describe RubySMB::SMB1::Packet::NegotiateResponse do
       expect(packet.valid?).to be false
     end
   end
+
+  context 'with dialects' do
+    let(:dialects) do
+      dialects = []
+      dialects << RubySMB::SMB1::Dialect.read("\x02\x4e\x54\x20\x4c\x4d\x20\x30\x2e\x31\x32\x00")
+      dialects << RubySMB::SMB1::Dialect.read("\x02\x53\x4d\x42\x20\x32\x2e\x30\x30\x32\x00")
+      dialects
+    end
+
+    describe '#dialects=' do
+      it 'sets #dialects to the array of Dialects passed as argument' do
+        packet.dialects = dialects
+        expect(packet.instance_variable_get(:@dialects)).to eq dialects
+      end
+
+      it 'returns #dialects' do
+        expect(packet.dialects = dialects).to eq dialects
+      end
+
+      it 'raises an exception when one of the element of dialects is not a Dialect object' do
+        dialects << 'My Dialect'
+        expect { packet.dialects = dialects }.to raise_error(ArgumentError)
+      end
+    end
+
+    describe '#negotiated_dialect' do
+      it 'returns an empty string if #dialects is empty' do
+        expect(packet.negotiated_dialect).to eq ''
+      end
+
+      it 'returns the negotiated dialect' do
+        packet.parameter_block.dialect_index = 1
+        packet.dialects = dialects
+        expect(packet.negotiated_dialect).to eq 'SMB 2.002'
+      end
+    end
+  end
 end
