@@ -13,7 +13,7 @@ module RubySMB
         string :server_unc,   pad_front: false,
                               initial_value: -> {host.encode('utf-16le')}
 
-        uint16 :nullterminator, initial_value: 0
+        #uint16 :nullterminator, initial_value: 0
 
         uint16 :padding, initial_value: 0
         uint32 :level, initial_value: 1
@@ -53,7 +53,7 @@ module RubySMB
         uint32 :referent_id_array
         uint32 :max_count
 
-        string :stub, read_length: -> {  }
+        string :stub, read_length: -> {max_count * 80}
 
         #array :share_entry, type: :share_entry, initial_length: -> { max_count }
 

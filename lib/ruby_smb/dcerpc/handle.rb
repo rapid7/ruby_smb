@@ -4,6 +4,7 @@ module RubySMB
 
       attr_accessor :pipe
       attr_accessor :last_msg
+      attr_accessor :response
 
       def initialize(named_pipe)
         @pipe = named_pipe
@@ -24,8 +25,6 @@ module RubySMB
         request.buffer = action.to_binary_s
         @last_msg = @pipe.tree.client.send_recv(request)
         handle_msg(RubySMB::SMB2::Packet::IoctlResponse.read(@last_msg))
-        # require 'pry'
-        # binding.pry
       end
 
       def wait_listen
@@ -44,6 +43,10 @@ module RubySMB
       end
 
       def handle_dcerpc(msg)
+        if msg.smb2_header.message_id == 6
+          dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.buffer.to_binary_s).stub
+          @response = RubySMB::Dcerpc::Handle.parse_response(dcerpc_response_stub.to_binary_s)
+        end
         case msg.class
           when RubySMB::SMB2::Packet::ErrorPacket
             msg
