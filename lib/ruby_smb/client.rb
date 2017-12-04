@@ -334,6 +334,8 @@ module RubySMB
           opnum: 15,
           stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host).to_binary_s
       })
+      require 'pry'
+      binding.pry
 
     end
 

@@ -33,7 +33,7 @@ module RubySMB
         endian :little
 
         uint32 :referent_id
-        uint32 :type
+        uint32 :typez
 
         # comment
         uint32 :referent_id_comment
@@ -49,19 +49,21 @@ module RubySMB
         #string :net_share_ctr, length: 394
         uint32 :ctr
         uint32 :referent_id
-        uint32 :count
+        uint32 :countz
         uint32 :referent_id_array
         uint32 :max_count
 
-        array :share_entry, initial_count: -> {max_count}
+        string :stub, read_length: -> {  }
+
+        #array :share_entry, type: :share_entry, initial_length: -> { max_count }
 
         ####
-        uint16 :padding
-        uint32 :total_entries
-
-        uint32 :resume_referent_id
-        uint32 :resume_handle
-        uint32 :werror
+        # uint16 :padding
+        # uint32 :total_entries
+        #
+        # uint32 :resume_referent_id
+        # uint32 :resume_handle
+        # uint32 :werror
       end
     end
   end
