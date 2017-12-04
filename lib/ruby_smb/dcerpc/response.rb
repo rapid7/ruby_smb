@@ -1,6 +1,6 @@
 module RubySMB
   module Dcerpc
-
+    #http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm
     class Response < BinData::Record
       endian :little
 

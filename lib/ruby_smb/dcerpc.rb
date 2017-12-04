@@ -1,14 +1,12 @@
 module RubySMB
-  # Namespace for structures and classes from File System
-  # Control Codes as defined in
-  # [[MS-FSCC]: File System Control Codes](https://msdn.microsoft.com/en-us/library/cc231987.aspx)
+  # DCERPC PDU's
+  # http://pubs.opengroup.org/onlinepubs/9629399/
   module Dcerpc
     require 'ruby_smb/dcerpc/uuid'
-    require 'ruby_smb/dcerpc/ndr'
-    require 'ruby_smb/dcerpc/srvsvc'
+    require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
-    require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/handle'
+    require 'ruby_smb/dcerpc/srvsvc'
   end
 end

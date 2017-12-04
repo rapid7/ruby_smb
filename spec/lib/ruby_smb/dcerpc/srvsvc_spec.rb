@@ -10,7 +10,7 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc do
   let(:dcerpc_response) {RubySMB::Dcerpc::Response.read(buffer)}
   let(:stub){dcerpc_response.stub.to_binary_s}
 
-  let(:parse_response) {RubySMB::Dcerpc::Handle.parse_response(stub)}
+  let(:parse_response) {RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(stub)}
 
   describe 'when parsing a raw ioctl response' do
     it 'correctly parses a dcerpc response' do

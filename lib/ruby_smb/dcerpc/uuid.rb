@@ -1,6 +1,7 @@
 module RubySMB
   module Dcerpc
 
+    #https://msdn.microsoft.com/en-us/library/windows/desktop/aa379358(v=vs.85).aspx
     class Uuid < BinData::Primitive
       uint32le :time_low
       uint16le :time_mid

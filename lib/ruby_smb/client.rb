@@ -326,15 +326,20 @@ module RubySMB
     def smb2_net_share_enum_all(host)
 
       tree = tree_connect("\\\\#{host}\\IPC$")
-      named_pipe = tree.open_file(filename: "srvsvc", write: true,read: true,disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-      handle = RubySMB::Dcerpc::Handle.new(named_pipe)
 
-      bind_response = handle.bind()
-      request_response = handle.request({
+      named_pipe = tree.open_file(filename: "srvsvc",
+                                  write: true,
+                                  read: true,
+                                  disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+
+      handle = RubySMB::Dcerpc::Handle.new(named_pipe, RubySMB::Dcerpc::Srvsvc::Bind.new)
+
+      handle.bind()
+      handle.request({
           opnum: 15,
           stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host).to_binary_s
       })
-      handle.response
+      RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
     end
 
 

@@ -27,43 +27,103 @@ module RubySMB
 
         uint32 :resume_referent_id, value: 0x00000001
         uint32 :resume_handle, initial_value: 0
+
+        def self.parse_response(response)
+
+          shares = []
+
+          res = response.dup
+          win_error = res.slice!(-4, 4).unpack("V")[0]
+
+          if win_error != 0
+            raise RuntimeError, "Invalid DCERPC response: win_error = #{win_error}"
+          end
+
+          # Remove unused data
+          res.slice!(0, 12) # level, CTR header, Reference ID of CTR
+          share_count = res.slice!(0, 4).unpack("V")[0]
+          res.slice!(0, 4) # Reference ID of CTR1
+          share_max_count = res.slice!(0, 4).unpack("V")[0]
+
+          if share_max_count != share_count
+            raise RuntimeError, "Invalid DCERPC response: count != count max (#{share_count}/#{share_max_count})"
+          end
+
+          # ReferenceID / Type / ReferenceID of Comment
+          types = res.slice!(0, share_count * 12).scan(/.{12}/n).map { |a| a[4, 2].unpack("v")[0] }
+
+          share_count.times do |t|
+            length, offset, max_length = res.slice!(0, 12).unpack("VVV")
+            if offset != 0
+              raise RuntimeError, "Invalid DCERPC response: offset != 0 (#{offset})"
+            end
+
+            if length != max_length
+              raise RuntimeError, "Invalid DCERPC response: length !=max_length (#{length}/#{max_length})"
+            end
+            name = res.slice!(0, 2 * length).gsub('\x00', '')
+            res.slice!(0, 2) if length % 2 == 1 # pad
+
+            comment_length, comment_offset, comment_max_length = res.slice!(0, 12).unpack("VVV")
+
+            if comment_offset != 0
+              raise RuntimeError, "Invalid DCERPC response: comment_offset != 0 (#{comment_offset})"
+            end
+
+            if comment_length != comment_max_length
+              raise RuntimeError, "Invalid DCERPC response: comment_length != comment_max_length (#{comment_length}/#{comment_max_length})"
+            end
+
+            comment = res.slice!(0, 2 * comment_length)
+
+            res.slice!(0, 2) if comment_length % 2 == 1 # pad
+
+            name = name.gsub("\x00", "")
+            s_type = ['DISK', 'PRINTER', 'DEVICE', 'IPC', 'SPECIAL', 'TEMPORARY'][types[t]].gsub("\x00", "")
+            comment = comment.gsub("\x00", "")
+
+            shares << [name, s_type, comment]
+          end
+
+          shares
+        end
       end
 
-      class ShareEntry < BinData::Record
+      class PSyntaxIdT < BinData::Record
         endian :little
-
-        uint32 :referent_id
-        uint32 :typez
-
-        # comment
-        uint32 :referent_id_comment
+        uuid :if_uuid, initial_value: '4b324fc8-1670-01d3-1278-5a47bf6ee188'
+        uint16 :if_ver, initial_value: 3
+        uint16 :if_ver_minor, initial_value: 0
       end
 
-      class NetShareEnumAllResponse < BinData::Record
+      class PSyntaxIdT1 < BinData::Record
+        endian :little
+        uuid :if_uuid, initial_value: '8a885d04-1ceb-11c9-9fe8-08002b104860'
+        uint16 :if_ver, initial_value: 2
+        uint16 :if_ver_minor, initial_value: 0
+      end
+
+      class PContElemT < BinData::Record
         endian :little
 
-        uint32 :level
+        uint16 :p_cont_id, initial_value: 0
+        uint8 :n_transfer_syn, value: -> { transfer_syntaxes.length }
+        uint8 :reserved
+        p_syntax_id_t :abstract_syntax
+        array :transfer_syntaxes, type: :p_syntax_id_t1, initial_length: 1
+      end
 
-        #### pointerz
+      class PContListT < BinData::Record
+        endian :little
 
-        #string :net_share_ctr, length: 394
-        uint32 :ctr
-        uint32 :referent_id
-        uint32 :countz
-        uint32 :referent_id_array
-        uint32 :max_count
+        uint8 :n_context_elem, value: -> { p_cont_elem.length }
+        uint8 :reserved
+        uint16 :reserved2
+        array :p_cont_elem, type: :p_cont_elem_t, initial_length: 1
+      end
 
-        string :stub, read_length: -> {max_count * 80}
-
-        #array :share_entry, type: :share_entry, initial_length: -> { max_count }
-
-        ####
-        # uint16 :padding
-        # uint32 :total_entries
-        #
-        # uint32 :resume_referent_id
-        # uint32 :resume_handle
-        # uint32 :werror
+      class Bind < RubySMB::Dcerpc::Bind
+        p_cont_list_t :p_context_elem
       end
     end
   end
