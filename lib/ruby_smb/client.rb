@@ -339,7 +339,8 @@ module RubySMB
           opnum: 15,
           stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host).to_binary_s
       })
-      RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
+      shares = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
+      shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
     end
 
 
