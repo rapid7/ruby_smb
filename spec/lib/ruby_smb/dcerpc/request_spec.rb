@@ -2,13 +2,20 @@ require 'spec_helper'
 
 RSpec.describe RubySMB::Dcerpc::Request do
 
-  let(:request){ described_class.new(
-      opnum: 15,
-       stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: '192.161.204.122').to_binary_s
+  describe 'when making a NetShareEnumAll dcerpc request' do
+    let(:request){
+      described_class.new(
+          opnum: RubySMB::Dcerpc::Srvsvc::OPNUMS[:net_share_enum_all],
+          stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: '192.161.204.122').to_binary_s
       )
-  }
+    }
 
-  it 'should create a Request PDU' do
-    expect(request.do_num_bytes).to eq 104
+    it 'should create a Request struct with NetShareEnumAll as stub with size of 104' do
+      expect(request.do_num_bytes).to eq 104
+    end
+
+    it 'should set the correct opnum' do
+      expect(request.opnum).to eq 15
+    end
   end
 end

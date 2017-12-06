@@ -24,11 +24,8 @@ module RubySMB
 
       # optional field for request, only present if the PFC_OBJECT_UUID field is non-zero
 
-      string :stub#, length: -> {80}
-
-      # stub data, 8-octet aligned
-
-      # optional authentication verifier
+      string :stub, read_length: -> {alloc_hint} # stub data, 8-octet aligned
+      string :auth_verifier_co_t # optional authentication verifier
       # following fields present iff auth_length != 0 */
 
       #auth_verifier_co_t   auth_verifier # xx:yy
