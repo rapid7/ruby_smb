@@ -332,7 +332,7 @@ module RubySMB
                                   read: true,
                                   disposition: RubySMB::Dispositions::FILE_OPEN_IF)
 
-      handle = RubySMB::Dcerpc::Handle.new(named_pipe, RubySMB::Dcerpc::Srvsvc::Bind.new)
+      handle = RubySMB::Dcerpc::Handle.new(named_pipe, RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.create_bind)
 
       handle.bind()
       handle.request({
