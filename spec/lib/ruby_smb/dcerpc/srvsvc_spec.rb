@@ -15,12 +15,7 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc do
   #let(:parse_response) { RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(stub) }
 
   describe 'NetShareEnumAll' do
-    let(:bind){RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.create_bind}
     let(:stub){ RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: '192.161.204.122') }
-
-    it 'correctly creates a bind PDU' do
-      expect(bind.ptype).to eq 11
-    end
 
     it 'correctly makes a dcerpc stub' do
       expect(stub.do_num_bytes).to eq 80

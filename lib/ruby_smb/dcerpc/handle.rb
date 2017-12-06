@@ -5,19 +5,24 @@ module RubySMB
       attr_accessor :pipe
       attr_accessor :last_msg
       attr_accessor :response
-      attr_accessor :bind
+      attr_accessor :endpoint
 
-      def initialize(named_pipe, bind)
+      def initialize(named_pipe)
         @pipe = named_pipe
-        @bind = bind
       end
 
-      def bind(options={})
-        ioctl_request(@bind)
+      def bind(endpoint, version)
+        @endpoint = endpoint
+        ioctl_request(RubySMB::Dcerpc::Bind.new(endpoint: endpoint, version: version))
       end
 
-      def request(options={})
-        ioctl_request(RubySMB::Dcerpc::Request.new(options))
+      def request(opnum:, stub:, options:{})
+        ioctl_request(
+            RubySMB::Dcerpc::Request.new(
+                opnum: opnum,
+                stub: stub.new(options).to_binary_s
+            )
+        )
       end
 
       def ioctl_request(action, options={})
@@ -29,31 +34,10 @@ module RubySMB
         handle_msg(RubySMB::SMB2::Packet::IoctlResponse.read(@last_msg))
       end
 
-      def wait_listen
-        @last_msg = @pipe.tree.client.dispatcher
-                        .tcp_socket.recvmsg.first
-        handle_msg(RubySMB::SMB2::Packet::IoctlResponse.read(@last_msg))
-      end
-
       def handle_msg(msg)
-        case msg.status_code
-          when WindowsError::NTStatus::STATUS_PENDING
-            wait_listen
-          else
-            handle_dcerpc(msg)
-        end
-      end
-
-      def handle_dcerpc(msg)
         if msg.smb2_header.message_id == 6
           dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.buffer.to_binary_s).stub
           @response = dcerpc_response_stub.to_binary_s
-        end
-        case msg.class
-          when RubySMB::SMB2::Packet::ErrorPacket
-            msg
-          when RubySMB::SMB2::Packet::IoctlResponse
-            msg
         end
       end
     end
