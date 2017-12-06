@@ -27,7 +27,7 @@ begin
   shares = client.net_share_enum_all(address)
   Pry::ColorPrinter.pp shares
 rescue => e
-  puts "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
+  Pry::ColorPrinter.pp "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
 end
 
 #file.close

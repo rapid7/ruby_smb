@@ -2,8 +2,13 @@ module RubySMB
   module Dcerpc
     module Srvsvc
 
+      OPNUMS = {
+          net_share_enum_all: 15
+      }
+
       #https://msdn.microsoft.com/en-us/library/cc247293.aspx
       class NetShareEnumAll < BinData::Record
+
         endian :little
 
         uint32 :referent_id, initial_value: 0x00000001

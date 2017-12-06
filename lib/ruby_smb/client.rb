@@ -332,15 +332,15 @@ module RubySMB
                                   read: true,
                                   disposition: RubySMB::Dispositions::FILE_OPEN_IF)
 
-      handle = RubySMB::Dcerpc::Handle.new(named_pipe)
+      handle = Dcerpc::Handle.new(named_pipe)
 
-      handle.bind(Dcerpc::Srvsvc, 3)
+      handle.bind(endpoint: Dcerpc::Srvsvc)
       handle.request(
-          opnum: 15,
+          opnum: Dcerpc::Srvsvc::OPNUMS[:net_share_enum_all],
           stub: Dcerpc::Srvsvc::NetShareEnumAll,
           options:{host: host}
       )
-      shares = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
+      shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
       shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
     end
 

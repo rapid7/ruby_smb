@@ -4,19 +4,19 @@ module RubySMB
 
       attr_accessor :pipe
       attr_accessor :last_msg
+      attr_accessor :msg_type
       attr_accessor :response
-      attr_accessor :endpoint
 
       def initialize(named_pipe)
         @pipe = named_pipe
       end
 
-      def bind(endpoint, version)
-        @endpoint = endpoint
-        ioctl_request(RubySMB::Dcerpc::Bind.new(endpoint: endpoint, version: version))
+      def bind(endpoint:)
+        ioctl_request(RubySMB::Dcerpc::Bind.new(endpoint: endpoint))
       end
 
       def request(opnum:, stub:, options:{})
+        @msg_type = :request
         ioctl_request(
             RubySMB::Dcerpc::Request.new(
                 opnum: opnum,
@@ -35,7 +35,7 @@ module RubySMB
       end
 
       def handle_msg(msg)
-        if msg.smb2_header.message_id == 6
+        if @msg_type == :request
           dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.buffer.to_binary_s).stub
           @response = dcerpc_response_stub.to_binary_s
         end

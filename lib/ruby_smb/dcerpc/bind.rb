@@ -20,7 +20,7 @@ module RubySMB
     class PContElemT < BinData::Record
       endian :little
 
-      uint16 :p_cont_id, initial_value: 0
+      uint16 :p_cont_id
       uint8 :n_transfer_syn, value: -> { transfer_syntaxes.length }
       uint8 :reserved
       choice :abstract_syntax, selection: -> {endpoint} do
