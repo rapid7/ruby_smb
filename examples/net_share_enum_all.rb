@@ -25,7 +25,7 @@ puts "#{protocol} : #{status}"
 
 begin
   shares = client.net_share_enum_all(address)
-  Pry::ColorPrinter.pp shares
+  Pry::ColorPrinter.pp shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
 rescue => e
   Pry::ColorPrinter.pp "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
 end

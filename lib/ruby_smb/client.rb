@@ -53,12 +53,14 @@ module RubySMB
     # @!attribute [rw] peer_native_os
     #   @return [String]
     attr_accessor :peer_native_os
+    attr_accessor :native_os
 
     # The Native LAN Manager of the Peer/Server.
     # Currently only available with SMB1.
     # @!attribute [rw] peer_native_lm
     #   @return [String]
     attr_accessor :peer_native_lm
+    attr_accessor :native_lm
 
     # The Primary Domain of the Peer/Server.
     # Currently only available with SMB1 and only when authentiation
@@ -118,6 +120,7 @@ module RubySMB
     # @!attribute [rw] signing_enabled
     #   @return [Boolean]
     attr_accessor :signing_required
+    attr_accessor :verify_signature
 
     # Whether or not the Client should support SMB1
     # @!attribute [rw] smb1
@@ -149,6 +152,8 @@ module RubySMB
     # @!attribute [rw] max_buffer_size
     #   @return [Integer]
     attr_accessor :max_buffer_size
+
+    attr_accessor :use_ntlmv2, :usentlm2_session, :send_lm, :use_lanman_key, :send_ntlm, :spnopt, :last_tree_id, :last_file
 
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
@@ -248,6 +253,21 @@ module RubySMB
       authenticate
     end
 
+    def session_setup(user, pass, domain)
+      @password          = pass.encode('utf-8') || ''.encode('utf-8')
+      @username          = user.encode('utf-8') || ''.encode('utf-8')
+      @domain = domain
+
+      @ntlm_client = Net::NTLM::Client.new(
+          @username,
+          @password,
+          workstation: @local_workstation,
+          domain: @domain
+      )
+
+      authenticate
+    end
+
     # Sends a LOGOFF command to the remote server to terminate the session
     #
     # @return [WindowsError::ErrorCode] the NTStatus of the response
@@ -314,6 +334,28 @@ module RubySMB
         smb1_net_share_enum_all(host)
       end
     end
+
+    def create_pipe(path, disposition=RubySMB::Dispositions::FILE_OPEN_IF, host=@dns_host_name)
+      tree = tree_connect("\\\\#{host}\\IPC$")
+
+      @last_tree_id = tree.id
+
+      @last_file = tree.open_file(filename: path.gsub(/\\/,''),
+                                  write: true,
+                                  read: true,
+                                  disposition: disposition)
+      return @last_file
+    end
+
+    # Writes data to an open file handle
+    def write(file_id = self.last_file_id, offset = 0, data = '', do_recv = true)
+      @last_file.write(data: data, offset: offset)
+    end
+
+    def read(file_id = self.last_file_id, offset = 0, length = @last_file.size)
+      data = @last_file.read(bytes: length, offset: offset)
+      data.bytes
+    end
     
     #
     # SMB2 Methods
@@ -340,8 +382,7 @@ module RubySMB
           stub: Dcerpc::Srvsvc::NetShareEnumAll,
           options:{host: host}
       )
-      shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
-      shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
+      Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
     end
 
 
