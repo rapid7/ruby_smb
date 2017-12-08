@@ -153,7 +153,8 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :max_buffer_size
 
-    attr_accessor :use_ntlmv2, :usentlm2_session, :send_lm, :use_lanman_key, :send_ntlm, :spnopt, :last_tree_id, :last_file
+    attr_accessor :use_ntlmv2, :usentlm2_session, :send_lm, :use_lanman_key,
+                  :send_ntlm, :spnopt, :last_tree_id, :last_file, :auth_user
 
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
@@ -266,6 +267,7 @@ module RubySMB
       )
 
       authenticate
+      @auth_user = user
     end
 
     # Sends a LOGOFF command to the remote server to terminate the session
@@ -355,6 +357,25 @@ module RubySMB
     def read(file_id = self.last_file_id, offset = 0, length = @last_file.size)
       data = @last_file.read(bytes: length, offset: offset)
       data.bytes
+    end
+
+    def open(path, mode = RubySMB::Dispositions::FILE_OPEN, access = :read)
+
+      tree = tree_connect("\\\\#{@dns_host_name}\\ADMIN$")
+
+      @last_file = tree.open_file(filename: path,
+                                  write: false,
+                                  read: true,
+                                  disposition: RubySMB::Dispositions::FILE_OPEN)
+      return @last_file
+    end
+
+    def close(file_id = self.last_file_id, tree_id = self.last_tree_id)
+      @last_file.close
+    end
+
+    def tree_disconnect(share)
+      @last_file.tree.disconnect!
     end
     
     #

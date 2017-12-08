@@ -36,7 +36,7 @@ module RubySMB
         bytes_written = 0
         begin
           while bytes_written < data.size
-            bytes_written += @tcp_socket.write(data[bytes_written..-1])
+            bytes_written += @tcp_socket.write(data[bytes_written..-1]||"")
           end
         rescue IOError, Errno::ECONNABORTED, Errno::ECONNRESET => e
           raise RubySMB::Error::CommunicationError, "An error occured writing to the Socket: #{e.message}"
