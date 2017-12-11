@@ -176,21 +176,18 @@ module RubySMB
                            else
                              bytes
                             end
-        total_bytes_written = 0
 
         while buffer.length > 0 do
           write_request = write_packet(data: buffer.slice!(0,atomic_write_size), offset: offset)
           raw_response  = tree.client.send_recv(write_request)
           response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+          status        = response.smb2_header.nt_status.to_nt_status
 
-          unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
-          end
-          total_bytes_written += response.write_count
           offset+= atomic_write_size
+          return status unless status == WindowsError::NTStatus::STATUS_SUCCESS
         end
 
-        return total_bytes_written
+        status
       end
 
       # Creates the Request packet for the #write command
