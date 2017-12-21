@@ -317,5 +317,41 @@ module RubySMB
       self.smb2_message_id  = 0
     end
 
+    # Requests a NetBIOS Session Service using the provided name.
+    #
+    # @param name [String] the NetBIOS name to request
+    # @return [TrueClass] if session request is granted
+    # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
+    def session_request(name = '*SMBSERVER')
+      encoded_called_name = nb_name_encode("#{name.upcase.ljust(15)}\x20")
+      encoded_calling_name = nb_name_encode("#{''.ljust(15)}\x00")
+
+      session_request = RubySMB::Nbss::SessionRequest.new
+      session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
+      session_request.called_name  = "\x20#{encoded_called_name}\x00"
+      session_request.calling_name = "\x20#{encoded_calling_name}\x00"
+      session_request.session_header.packet_length = session_request.do_num_bytes - session_request.session_header.do_num_bytes
+
+      dispatcher.send_packet(session_request, nbss_header: false)
+      raw_response = dispatcher.recv_packet(full_response: true)
+      session_header =  RubySMB::Nbss::SessionHeader.read(raw_response)
+      if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
+        negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+        raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
+      end
+
+      return true
+    end
+
+    def nb_name_encode(name)
+      encoded_name = ''
+      name.each_byte do |char|
+        first_half = (char >> 4) + 'A'.ord
+        second_half = (char & 0xF) + 'A'.ord
+        encoded_name << first_half.chr
+        encoded_name << second_half.chr
+      end
+      encoded_name
+    end
   end
 end
