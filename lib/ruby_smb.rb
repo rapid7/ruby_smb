@@ -12,6 +12,7 @@ module RubySMB
   require 'ruby_smb/impersonation_levels'
   require 'ruby_smb/gss'
   require 'ruby_smb/field'
+  require 'ruby_smb/nbss'
   require 'ruby_smb/fscc'
   require 'ruby_smb/generic_packet'
   require 'ruby_smb/dispatcher'
