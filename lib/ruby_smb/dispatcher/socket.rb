@@ -70,7 +70,7 @@ module RubySMB
           if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
             raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
           end
-          data << tcp_socket.read(length)
+          data << @tcp_socket.read(length)
           data << @tcp_socket.read(length - data.length) while data.length < length
         end
         data
