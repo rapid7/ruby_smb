@@ -10,7 +10,7 @@ module RubySMB
           RENAME              = 0x0005
           QUERY_SECURITY_DESC = 0x0006
           GET_USER_QUOTA      = 0x0007
-          SET_USER_QUOTE      = 0x0008
+          SET_USER_QUOTA      = 0x0008
         end
       end
     end
