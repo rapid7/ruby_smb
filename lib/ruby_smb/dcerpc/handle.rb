@@ -7,14 +7,20 @@ module RubySMB
       attr_accessor :msg_type
       attr_accessor :response
 
+      # @param [RubySMB::SMB2::File] named_pipe
+      # @return [RubySMB::Dcerpc::Handle]
       def initialize(named_pipe)
         @pipe = named_pipe
       end
 
+      # @param [Class] endpoint
       def bind(endpoint:)
         ioctl_request(RubySMB::Dcerpc::Bind.new(endpoint: endpoint))
       end
 
+      # @param [Integer] opnum
+      # @param [BinData::Record] stub
+      # @param [Hash] options
       def request(opnum:, stub:, options:{})
         @msg_type = :request
         ioctl_request(
@@ -25,6 +31,8 @@ module RubySMB
         )
       end
 
+      # @param [BinData::Record] action
+      # @param [Hash] options
       def ioctl_request(action, options={})
         request = @pipe.set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new(options))
         request.ctl_code = 0x0011C017
@@ -34,6 +42,7 @@ module RubySMB
         handle_msg(RubySMB::SMB2::Packet::IoctlResponse.read(@last_msg))
       end
 
+      # @param [BinData::Record] msg
       def handle_msg(msg)
         if @msg_type == :request
           dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.buffer.to_binary_s).stub

@@ -40,6 +40,10 @@ module RubySMB
         RubySMB::SMB1::Tree.new(client: self, share: share, response: response)
       end
 
+      #
+      # SMB 2 Methods
+      #
+
       # Sends a request to connect to a remote Tree and returns the
       # {RubySMB::SMB2::Tree}
       #

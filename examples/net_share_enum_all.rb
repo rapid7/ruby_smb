@@ -7,7 +7,6 @@
 
 require 'bundler/setup'
 require 'ruby_smb'
-require 'pry'
 
 address  = ARGV[0]
 username = ARGV[1]
@@ -25,10 +24,7 @@ puts "#{protocol} : #{status}"
 
 begin
   shares = client.net_share_enum_all(address)
-  Pry::ColorPrinter.pp shares
+  puts shares
 rescue => e
-  Pry::ColorPrinter.pp "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
+  puts "failed to enum shares: #{e.message}, #{e.backtrace_locations}"
 end
-
-#file.close
-#client.wipe_state!

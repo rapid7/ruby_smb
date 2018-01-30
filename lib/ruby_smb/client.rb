@@ -307,6 +307,7 @@ module RubySMB
     # Returns array of shares
     #
     # @return [Array] of shares
+    # @param [String] host
     def net_share_enum_all(host)
       if smb2
         smb2_net_share_enum_all(host)
@@ -323,6 +324,7 @@ module RubySMB
     # of shares
     #
     # @return [Array] List of shares
+    # @param [String] host
     def smb2_net_share_enum_all(host)
 
       tree = tree_connect("\\\\#{host}\\IPC$")
