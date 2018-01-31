@@ -5,8 +5,8 @@ RSpec.describe RubySMB::Dcerpc::Request do
   describe 'when making a NetShareEnumAll dcerpc request' do
     let(:request){
       described_class.new(
-          opnum: RubySMB::Dcerpc::Srvsvc::OPNUMS[:net_share_enum_all],
-          stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: '192.161.204.122').to_binary_s
+          opnum: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
+          stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(server_name: '192.161.204.122').to_binary_s
       )
     }
 
@@ -15,7 +15,7 @@ RSpec.describe RubySMB::Dcerpc::Request do
     end
 
     it 'should set the correct opnum' do
-      expect(request.opnum).to eq 15
+      expect(request.opnum).to eq 0xF
     end
   end
 end

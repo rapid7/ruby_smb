@@ -338,15 +338,13 @@ module RubySMB
 
       handle.bind(endpoint: Dcerpc::Srvsvc)
       handle.request(
-          opnum: Dcerpc::Srvsvc::OPNUMS[:net_share_enum_all],
+          opnum: Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
           stub: Dcerpc::Srvsvc::NetShareEnumAll,
-          options:{host: host}
+          options:{server_name: host}
       )
       shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
       shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
     end
-
-
 
     # Resets all of the session state on the client, setting it
     # back to scratch. Should only be called when a session is no longer

@@ -2,6 +2,7 @@ module RubySMB
   # DCERPC PDU's
   # http://pubs.opengroup.org/onlinepubs/9629399/
   module Dcerpc
+    require 'ruby_smb/dcerpc/ndr'
     require 'ruby_smb/dcerpc/uuid'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'

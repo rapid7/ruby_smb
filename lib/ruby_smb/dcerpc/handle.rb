@@ -44,10 +44,8 @@ module RubySMB
 
       # @param [BinData::Record] msg
       def handle_msg(msg)
-        if @msg_type == :request
-          dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.buffer.to_binary_s).stub
-          @response = dcerpc_response_stub.to_binary_s
-        end
+        dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.output_data).stub
+        @response = dcerpc_response_stub.to_binary_s
       end
     end
   end
