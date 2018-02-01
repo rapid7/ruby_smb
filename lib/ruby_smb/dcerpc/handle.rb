@@ -14,8 +14,8 @@ module RubySMB
       end
 
       # @param [Class] endpoint
-      def bind(endpoint:)
-        ioctl_request(RubySMB::Dcerpc::Bind.new(endpoint: endpoint))
+      def bind(options={})
+        ioctl_request(RubySMB::Dcerpc::Bind.new(options))
       end
 
       # @param [Integer] opnum

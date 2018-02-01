@@ -1,5 +1,13 @@
 module RubySMB
   module Dcerpc
+
+    class NdrSyntax < BinData::Record
+      endian :little
+      uuid   :if_uuid, initial_value: '8a885d04-1ceb-11c9-9fe8-08002b104860'
+      uint16 :if_ver, initial_value: 2
+      uint16 :if_ver_minor, initial_value: 0
+    end
+
     class NdrString < BinData::Record
       endian :little
 

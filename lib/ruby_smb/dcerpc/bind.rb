@@ -3,39 +3,25 @@ module RubySMB
     # The FileDirectoryInformation Class as defined in
     # http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm
 
-    class SrvsvcSyntax < BinData::Record
-      endian :little
-      uuid   :if_uuid, value: '4b324fc8-1670-01d3-1278-5a47bf6ee188'
-      uint16 :if_ver, initial_value: 3
-      uint16 :if_ver_minor, initial_value: 0
-    end
-
-    class NdrSyntax < BinData::Record
-      endian :little
-      uuid   :if_uuid, value: '8a885d04-1ceb-11c9-9fe8-08002b104860'
-      uint16 :if_ver, initial_value: 2
-      uint16 :if_ver_minor, initial_value: 0
-    end
-
     class PContElemT < BinData::Record
       endian :little
 
       uint16 :p_cont_id
-      uint8 :n_transfer_syn, value: -> { transfer_syntaxes.length }
+      uint8 :n_transfer_syn, initial_value: 1
       uint8 :reserved
       choice :abstract_syntax, selection: -> {endpoint} do
-        srvsvc_syntax Srvsvc
+        srv_svc_syntax Srvsvc
       end
-      array :transfer_syntaxes, type: :ndr_syntax, initial_length: 1
+      array :transfer_syntaxes, type: :ndr_syntax, initial_length: -> { n_transfer_syn }
     end
 
     class PContListT < BinData::Record
       endian :little
 
-      uint8 :n_context_elem, value: -> { p_cont_elem.length }
+      uint8 :n_context_elem, initial_value: -> { 1 }
       uint8 :reserved
       uint16 :reserved2
-      array :p_cont_elem, type: :p_cont_elem_t, initial_length: 1, endpoint: -> {endpoint}
+      array :p_cont_elem, type: :p_cont_elem_t, initial_length: -> {n_context_elem}, endpoint: -> {endpoint}
     end
 
     class Bind < BinData::Record
@@ -56,7 +42,7 @@ module RubySMB
       uint16 :max_recv_frag, label: 'max receive  frag size', initial_value: 65535
       uint32 :assoc_group_id, label: 'ncarnation of client-server assoc group'
 
-      p_cont_list_t :p_context_elem, endpoint: -> {endpoint}
+      p_cont_list_t :p_context_elem, endpoint: -> { endpoint }
       string :auth_verifier_co_t
     end
   end

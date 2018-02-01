@@ -8,7 +8,7 @@ RSpec.describe RubySMB::Dcerpc::Bind do
     let(:abstract_syntax){bind.p_context_elem.p_cont_elem[0].abstract_syntax}
 
     it 'should set the abstract syntax to SrvsvcSyntax' do
-      expect(abstract_syntax).to eq RubySMB::Dcerpc::SrvsvcSyntax.new
+      expect(abstract_syntax).to eq RubySMB::Dcerpc::Srvsvc::SrvSvcSyntax.new
     end
   end
 end
