@@ -25,7 +25,6 @@ module RubySMB
 
       # @param [Hash] options
       def request(opnum:, stub:, options:{})
-        @msg_type = :request
         ioctl_request(
             RubySMB::Dcerpc::Request.new(
                 opnum: opnum,

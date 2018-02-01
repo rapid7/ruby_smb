@@ -8,7 +8,16 @@ module RubySMB
       uint8 :rpc_vers, initial_value: 5 # 00:01 RPC version
       uint8 :rpc_vers_minor # 01:01 minor version
       uint8 :ptype # 02:01 request PDU
-      uint8 :pfc_flags, initial_value: 0x00000003 # 03:01 flags
+      struct :pfc_flags do
+        bit1  :object
+        bit1  :maybe
+        bit1  :did_not_execute
+        bit1  :multiplex
+        bit1  :reserved
+        bit1  :cancel
+        bit1  :last_frag,  initial_value: 1
+        bit1  :first_frag, initial_value: 1
+      end
 
       uint32 :packed_drep, initial_value: 0x00000010 # 04:04 NDR data rep format label
 
