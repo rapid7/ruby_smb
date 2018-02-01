@@ -28,7 +28,7 @@ module RubySMB
         end
 
         uint32  :reserved2, label: 'Reserved Space'
-        string  :buffer,    label: 'Input Buffer'
+        string  :buffer,    label: 'Input Buffer', read_length: -> { input_count + output_count }
 
         def initialize_instance
           super

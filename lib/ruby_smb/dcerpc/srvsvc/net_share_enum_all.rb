@@ -9,16 +9,14 @@ module RubySMB
 
         endian :little
 
-        # uint32    :referent_id, initial_value: 0x00000001
-        # uint32    :max_count,    initial_value: -> { server_unc.do_num_bytes / 2 }
-        # uint32    :offset,       initial_value: 0
-        # uint32    :actual_count, initial_value: -> {max_count}
-        # stringz16 :server_unc,       pad_front: false, read_length: -> { actual_count * 2 },
-        #                          initial_value: -> {host.encode('utf-16le')}
-        srv_svc_handle :server_name
+        uint32    :referent_id, initial_value: 0x00000001
+        uint32    :max_count,    initial_value: -> { server_unc.do_num_bytes / 2 }
+        uint32    :offset,       initial_value: 0
+        uint32    :actual_count, initial_value: -> {max_count}
+        stringz16 :server_unc,       pad_front: false, read_length: -> { actual_count * 2 },
+                                 initial_value: -> {host.encode('utf-16le')}
 
-        #uint16 :padding, initial_value: 0
-        resume_byte_alignment
+        uint16 :padding, initial_value: 0
 
         uint32 :level, initial_value: 1
 

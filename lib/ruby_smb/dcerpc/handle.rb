@@ -4,8 +4,13 @@ module RubySMB
 
       attr_accessor :pipe
       attr_accessor :last_msg
-      attr_accessor :msg_type
       attr_accessor :response
+
+      PTYPES = [
+          RubySMB::Dcerpc::Request,
+          nil,
+          RubySMB::Dcerpc::Response
+      ]
 
       # @param [RubySMB::SMB2::File] named_pipe
       # @return [RubySMB::Dcerpc::Handle]
@@ -18,8 +23,6 @@ module RubySMB
         ioctl_request(RubySMB::Dcerpc::Bind.new(options))
       end
 
-      # @param [Integer] opnum
-      # @param [BinData::Record] stub
       # @param [Hash] options
       def request(opnum:, stub:, options:{})
         @msg_type = :request
@@ -44,8 +47,14 @@ module RubySMB
 
       # @param [BinData::Record] msg
       def handle_msg(msg)
-        dcerpc_response_stub = RubySMB::Dcerpc::Response.read(msg.output_data).stub
-        @response = dcerpc_response_stub.to_binary_s
+        data = msg.buffer.to_binary_s
+        headz = RubySMB::Dcerpc::PduHeader.read(data)
+        pdu = PTYPES[headz.ptype]
+        if pdu
+          dcerpc_response_stub = pdu.read(msg.output_data).stub
+          @response = dcerpc_response_stub.to_binary_s
+        end
+        data
       end
     end
   end

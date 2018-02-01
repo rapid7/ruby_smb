@@ -340,7 +340,7 @@ module RubySMB
       handle.request(
           opnum: Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
           stub: Dcerpc::Srvsvc::NetShareEnumAll,
-          options:{server_name: host}
+          options:{host: host}
       )
       shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
       shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
