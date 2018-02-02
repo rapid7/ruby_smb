@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe RubySMB::Dcerpc::Handle do
 
   describe 'A dce/rpc handle' do
-    # let(:handle){described_class.new(double('File'))}
+    # let(:handle){described_class.new(instance_double('File'))}
     # let(:endpoint){ Dcerpc::Srvsvc }
     #
     # it 'should #bind' do

@@ -11,8 +11,8 @@ module RubySMB
         uint16        :reserved1,           label: 'Reserved Space'
         uint32        :ctl_code,            label: 'Control Code'
         smb2_fileid   :file_id,             label: 'File Id'
-        uint32        :input_offset,        label: 'Input Offset',        value: -> { calc_input_offset }
-        uint32        :input_count,         label: 'Input Count',         value: -> { buffer.do_num_bytes }
+        uint32        :input_offset,        label: 'Input Offset',        initial_value: -> { calc_input_offset }
+        uint32        :input_count,         label: 'Input Count',         initial_value: -> { buffer.do_num_bytes }
         uint32        :max_input_response,  label: 'Max Input Response'
         uint32        :output_offset,       label: 'Output Offset',       initial_value: -> { input_offset + output_count }
         uint32        :output_count,        label: 'Output Count'

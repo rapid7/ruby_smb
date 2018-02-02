@@ -6,7 +6,7 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc do
     let(:stub){ RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: '192.161.204.122') }
 
     it 'crafts an 8 octet aligned stub' do
-      expect(stub.do_num_bytes).to eq 80
+      expect(stub.do_num_bytes).to eq 82
     end
   end
 
