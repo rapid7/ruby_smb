@@ -16,8 +16,6 @@ module RubySMB
         stringz16 :server_unc,       pad_front: false, read_length: -> { actual_count * 2 },
                                  initial_value: -> {host.encode('utf-16le')}
 
-        uint16 :padding,         initial_value: 0
-
         uint32 :level,           initial_value: 1
 
         uint32 :ctr,             initial_value: 1

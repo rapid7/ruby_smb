@@ -11,7 +11,7 @@ RSpec.describe RubySMB::Dcerpc::Request do
     }
 
     it 'should create a Request struct with NetShareEnumAll as stub with size of 106' do
-      expect(request.do_num_bytes).to eq 106
+      expect(request.do_num_bytes).to eq 104
     end
 
     it 'should set the correct opnum' do
