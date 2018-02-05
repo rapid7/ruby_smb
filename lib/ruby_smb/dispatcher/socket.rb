@@ -30,9 +30,11 @@ module RubySMB
       end
 
       # @param packet [SMB2::Packet,#to_s]
+      # @param nbss [Boolean] wether to include the NetBIOS Session header
       # @return [void]
-      def send_packet(packet)
-        data = nbss(packet) + packet.to_binary_s
+      def send_packet(packet, nbss_header: true)
+        data = nbss_header ? nbss(packet) : ''
+        data << packet.to_binary_s
         bytes_written = 0
         begin
           while bytes_written < data.size
@@ -45,21 +47,32 @@ module RubySMB
       end
 
       # Read a packet off the wire and parse it into a string
-      # Throw Error::NetBiosSessionService if there's an error reading the first 4 bytes,
-      # which are assumed to be the NetBiosSessionService header.
-      # @return [String]
-      def recv_packet
+      #
+      # @param full_response [Boolean] whether to include the NetBios Session Service header in the repsonse
+      # @return [String] the raw response (including the NetBios Session Service header if full_response is true)
+      # @raise [RubySMB::Error::NetBiosSessionService] if there's an error reading the first 4 bytes,
+      #   which are assumed to be the NetBiosSessionService header.
+      # @raise [RubySMB::Error::CommunicationError] if the read timeout expires or an error occurs when reading the socket
+      def recv_packet(full_response: false)
         if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
           raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
         end
-        nbss_header = @tcp_socket.read(4) # Length of NBSS header. TODO: remove to a constant
-        raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing' if nbss_header.nil? || nbss_header.empty?
-        length = nbss_header.unpack('N').first
-        if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
-          raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
+
+        begin
+          nbss_header = RubySMB::Nbss::SessionHeader.read(@tcp_socket)
+        rescue IOError
+          raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'
         end
-        data = @tcp_socket.read(length)
-        data << @tcp_socket.read(length - data.length) while data.length < length
+
+        length = nbss_header.packet_length
+        data = full_response ? nbss_header.to_binary_s : ''
+        if length > 0
+          if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
+            raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
+          end
+          data << @tcp_socket.read(length)
+          data << @tcp_socket.read(length - data.length) while data.length < length
+        end
         data
       rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError, NoMethodError => e
         raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket #{e.message}"

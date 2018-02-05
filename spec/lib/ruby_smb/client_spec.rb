@@ -153,6 +153,99 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  context 'NetBIOS Session Service' do
+    describe '#session_request' do
+      let(:called_name)     { '*SMBSERVER      ' }
+      let(:calling_name)    { "               \x00" }
+      let(:session_header)  { RubySMB::Nbss::SessionHeader.new }
+      let(:session_request) { RubySMB::Nbss::SessionRequest.new }
+
+      before :example do
+        allow(RubySMB::Nbss::SessionRequest).to receive(:new).and_return(session_request)
+        allow(dispatcher).to receive(:send_packet)
+        allow(dispatcher).to receive(:recv_packet).and_return(session_header.to_binary_s)
+      end
+
+      it 'requests a session for *SMBSERVER by default' do
+        expect(client).to receive(:nb_name_encode).with(called_name).once
+        expect(client).to receive(:nb_name_encode).with(calling_name).once
+        client.session_request
+      end
+
+      it 'requests a session for the provided name and the expected calling name' do
+        name = 'NBNAME'
+        called_name  = "#{name}          "
+
+        expect(client).to receive(:nb_name_encode).with(called_name).once
+        expect(client).to receive(:nb_name_encode).with(calling_name).once
+        client.session_request(name)
+      end
+
+      it 'makes NetBIOS name uppercase' do
+        name = 'nbNamE'
+        called_name = "#{name.upcase}          "
+
+        expect(client).to receive(:nb_name_encode).with(called_name).once
+        expect(client).to receive(:nb_name_encode).with(calling_name).once
+        client.session_request(name)
+      end
+
+      it 'creates a SessionRequest packet' do
+        expect(RubySMB::Nbss::SessionRequest).to receive(:new).and_return(session_request)
+        client.session_request
+      end
+
+      it 'sets the expected fields of the SessionRequest packet' do
+        encoded_called_name = "\x20#{client.nb_name_encode(called_name)}\x00"
+        encoded_calling_name = "\x20#{client.nb_name_encode(calling_name)}\x00"
+        allow(dispatcher).to receive(:send_packet) do |packet, _opts|
+          expect(packet).to be_a(RubySMB::Nbss::SessionRequest)
+          expect(packet.session_header.session_packet_type).to eq RubySMB::Nbss::SESSION_REQUEST
+          expect(packet.called_name).to eq encoded_called_name 
+          expect(packet.calling_name).to eq encoded_calling_name 
+          expect(packet.session_header.packet_length).to eq (encoded_called_name.size + encoded_calling_name.size)
+        end
+        client.session_request
+      end
+
+      it 'sends the SessionRequest packet without adding additional NetBIOS Session Header' do
+        expect(dispatcher).to receive(:send_packet).with(session_request, nbss_header: false)
+        client.session_request
+      end
+
+      it 'reads the full response packet, including the NetBIOS Session Header' do
+        expect(dispatcher).to receive(:recv_packet).with(full_response: true).and_return(session_header.to_binary_s)
+        client.session_request
+      end
+
+      it 'parses the response with SessionHeader packet structure' do
+        expect(RubySMB::Nbss::SessionHeader).to receive(:read).with(session_header.to_binary_s).and_return(session_header)
+        client.session_request
+      end
+
+      it 'returns true when it is a POSITIVE_SESSION_RESPONSE' do
+        session_header.session_packet_type = RubySMB::Nbss::POSITIVE_SESSION_RESPONSE
+        expect(client.session_request).to be true
+      end
+
+      it 'raises an exception when it is a NEGATIVE_SESSION_RESPONSE' do
+        negative_session_response = RubySMB::Nbss::NegativeSessionResponse.new
+        negative_session_response.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
+        negative_session_response.error_code = 0x80
+        allow(dispatcher).to receive(:recv_packet).and_return(negative_session_response.to_binary_s)
+        expect { client.session_request }.to raise_error(RubySMB::Error::NetBiosSessionService)
+      end
+    end
+
+    describe '#nb_name_encode' do
+      it 'encodes as expected' do
+        input = 'TESTNB          '
+        output = 'FEEFFDFEEOECCACACACACACACACACACA'
+        expect(client.nb_name_encode(input)).to eq output
+      end
+    end
+  end
+
   context 'Protocol Negotiation' do
     let(:random_junk) { 'fgrgrwgawrtw4t4tg4gahgn' }
     let(:smb1_capabilities) {

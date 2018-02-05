@@ -2,10 +2,16 @@ require 'spec_helper'
 
 RSpec.describe RubySMB::Dispatcher::Base do
   subject(:dispatcher) { described_class.new }
+  let(:session_header) { RubySMB::Nbss::SessionHeader.new }
+  let(:packet) { RubySMB::SMB1::Packet::NegotiateRequest.new }
 
   describe '#nbss' do
+    it 'creates a SessionHeader packet' do
+      expect(RubySMB::Nbss::SessionHeader).to receive(:new).and_return(session_header)
+      dispatcher.nbss(packet)
+    end
+
     it 'returns the size of the packet to the packet in 4 bytes' do
-      packet = RubySMB::SMB1::Packet::NegotiateRequest.new
       expect(dispatcher.nbss(packet)).to eq "\x00\x00\x00\x23"
     end
   end
