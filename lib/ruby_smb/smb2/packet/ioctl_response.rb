@@ -17,12 +17,20 @@ module RubySMB
         uint32        :output_count,        label: 'Output Count'
         uint32        :flags,               label: 'Flags'
         uint32        :reserved2,           label: 'Reserved Space'
-        string        :buffer,              label: 'Input Buffer'
+        string        :buffer,              label: 'Input Buffer',        read_length: -> { input_count + output_count }
 
         def initialize_instance
           super
           smb2_header.flags.reply = 1
           smb2_header.command     = RubySMB::SMB2::Commands::IOCTL
+        end
+
+        def input_data
+          to_binary_s[input_offset, input_count]
+        end
+
+        def output_data
+          to_binary_s[output_offset, output_count]
         end
 
       end

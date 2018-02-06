@@ -304,6 +304,48 @@ module RubySMB
       end
     end
 
+    # Returns array of shares
+    #
+    # @return [Array] of shares
+    # @param [String] host
+    def net_share_enum_all(host)
+      if smb2
+        smb2_net_share_enum_all(host)
+      else
+        smb1_net_share_enum_all(host)
+      end
+    end
+    
+    #
+    # SMB2 Methods
+    #
+
+    # Sends a request to connect to a remote host and returns the Array
+    # of shares
+    #
+    # @return [Array] List of shares
+    # @param [String] host
+    def smb2_net_share_enum_all(host)
+
+      tree = tree_connect("\\\\#{host}\\IPC$")
+
+      named_pipe = tree.open_file(filename: "srvsvc",
+                                  write: true,
+                                  read: true,
+                                  disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+
+      handle = Dcerpc::Handle.new(named_pipe)
+
+      handle.bind(endpoint: Dcerpc::Srvsvc)
+      handle.request(
+          opnum: Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
+          stub: Dcerpc::Srvsvc::NetShareEnumAll,
+          options:{host: host}
+      )
+      shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
+      shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
+    end
+
     # Resets all of the session state on the client, setting it
     # back to scratch. Should only be called when a session is no longer
     # valid.

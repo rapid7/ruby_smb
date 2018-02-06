@@ -1121,6 +1121,15 @@ RSpec.describe RubySMB::Client do
           smb2_client.smb2_tree_from_response(path, response)
         end
       end
+
+      describe '#net_share_enum_all' do
+        let(:shares){{}}
+
+        it 'it calls the smb2 method' do
+          expect(smb2_client).to receive(:smb2_net_share_enum_all).with(sock.peeraddr).and_return(shares)
+          smb2_client.net_share_enum_all(sock.peeraddr)
+        end
+      end
     end
   end
 

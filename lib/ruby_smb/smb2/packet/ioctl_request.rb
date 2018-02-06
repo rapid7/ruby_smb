@@ -14,9 +14,9 @@ module RubySMB
         uint32        :input_offset,        label: 'Input Offset',        initial_value: -> { calc_input_offset }
         uint32        :input_count,         label: 'Input Count',         initial_value: -> { buffer.do_num_bytes }
         uint32        :max_input_response,  label: 'Max Input Response'
-        uint32        :output_offset,       label: 'Output Offset'
+        uint32        :output_offset,       label: 'Output Offset',       initial_value: -> { input_offset + output_count }
         uint32        :output_count,        label: 'Output Count'
-        uint32        :max_output_response, label: 'Max Output response'
+        uint32        :max_output_response, label: 'Max Output response', initial_value: 65536
 
         struct :flags do
           bit7  :reserved1, label: 'Reserved Space'
@@ -28,7 +28,7 @@ module RubySMB
         end
 
         uint32  :reserved2, label: 'Reserved Space'
-        string  :buffer,    label: 'Input Buffer'
+        string  :buffer,    label: 'Input Buffer', read_length: -> { input_count + output_count }
 
         def initialize_instance
           super

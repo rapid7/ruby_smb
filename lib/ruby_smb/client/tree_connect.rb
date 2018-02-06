@@ -41,7 +41,7 @@ module RubySMB
       end
 
       #
-      # SMB2 Methods
+      # SMB 2 Methods
       #
 
       # Sends a request to connect to a remote Tree and returns the
