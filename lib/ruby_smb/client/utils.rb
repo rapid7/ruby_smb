@@ -17,7 +17,7 @@ module RubySMB
       end
 
       def last_file
-        @open_files.last
+        @open_files[@last_file_id]
       end
 
       def last_tree_id
@@ -43,7 +43,9 @@ module RubySMB
         @open_files[file_id].send_recv_write(data: data, offset: offset)
       end
 
-      def read(file_id, offset = 0, length = @last_file.size)
+      def read(file_id, offset = 0, length = last_file.size_on_disk)
+        offset = 0
+        length = last_file.size_on_disk
         data = @open_files[file_id].send_recv_read(read_length: length, offset: offset)
         data.bytes
       end
