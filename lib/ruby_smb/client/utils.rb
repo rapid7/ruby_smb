@@ -13,7 +13,7 @@ module RubySMB
       attr_accessor :last_file_id
 
       def last_tree
-        @tree_connects.values.last
+        @tree_connects.last
       end
 
       def last_file
@@ -49,11 +49,11 @@ module RubySMB
       end
 
       def close(file_id, tree_id)
-       @open_files[file_id].close
+       @open_files[file_id.to_binary_s].close
       end
 
       def tree_disconnect(share)
-       @tree_connects[share].disconnect!
+       @tree_connects.detect{|tree| tree.id == share }.disconnect!
       end
       
       def native_os

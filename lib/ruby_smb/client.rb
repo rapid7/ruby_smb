@@ -186,7 +186,7 @@ module RubySMB
         flags: flags
       )
       
-      @tree_connects = {}
+      @tree_connects = []
       @open_files = {}
 
       @smb2_message_id = 0
@@ -314,11 +314,13 @@ module RubySMB
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
     def tree_connect(share)
-      @tree_connects[share] = if smb2
+      connected_tree = if smb2
         smb2_tree_connect(share)
       else
         smb1_tree_connect(share)
       end
+      @tree_connects << connected_tree
+      connected_tree
     end
 
     # Returns array of shares
