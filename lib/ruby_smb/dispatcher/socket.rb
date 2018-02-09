@@ -38,13 +38,13 @@ module RubySMB
         bytes_written = 0
         begin
           while bytes_written < data.size
-            bytes_written += @tcp_socket.write(data[bytes_written..-1])
-          end
+            retval = @tcp_socket.write(data[bytes_written..-1])
 
-          if retval == nil
-            raise RubySMB::Error::CommunicationError
-          else
-            bytes_written += retval
+            if retval == nil
+              raise RubySMB::Error::CommunicationError
+            else
+              bytes_written += retval
+            end
           end
 
         rescue IOError, Errno::ECONNABORTED, Errno::ECONNRESET => e
