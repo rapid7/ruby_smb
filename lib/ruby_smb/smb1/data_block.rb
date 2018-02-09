@@ -32,10 +32,18 @@ module RubySMB
       def calculate_byte_count
         total_count = 0
         self.class.data_fields.each do |field_name|
+          next unless field_enabled?(field_name)
           field_value = send(field_name)
           total_count += field_value.do_num_bytes
         end
         total_count
+      end
+
+      def field_enabled?(field_name)
+        res = send("#{field_name}?".to_sym)
+        #require 'pry'
+        #binding.pry unless res
+        res
       end
     end
   end
