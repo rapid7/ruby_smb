@@ -3,6 +3,10 @@ module RubySMB
     # Represents a file on the Remote server that we can perform
     # various I/O operations on.
     class File
+      require 'ruby_smb/smb1/dcerpc'
+
+      include RubySMB::SMB1::Dcerpc
+
       # The {RubySMB::SMB1::Tree} that this file belong to
       # @!attribute [rw] tree
       #   @return [RubySMB::SMB1::Tree]
