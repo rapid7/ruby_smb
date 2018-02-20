@@ -7,12 +7,14 @@ module RubySMB
     require 'ruby_smb/client/signing'
     require 'ruby_smb/client/tree_connect'
     require 'ruby_smb/client/echo'
+    require 'ruby_smb/client/utils'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
     include RubySMB::Client::Signing
     include RubySMB::Client::TreeConnect
     include RubySMB::Client::Echo
+    include RubySMB::Client::Utils
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze
@@ -183,6 +185,9 @@ module RubySMB
         domain: @domain,
         flags: flags
       )
+      
+      @tree_connects = []
+      @open_files = {}
 
       @smb2_message_id = 0
     end
@@ -232,19 +237,31 @@ module RubySMB
     # Performs protocol negotiation and session setup. It defaults to using
     # the credentials supplied during initialization, but can take a new set of credentials if needed.
     def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation)
+      negotiate
+      session_setup(username, password, domain, true,
+                    local_workstation: local_workstation)
+    end
+
+    def session_setup(user, pass, domain, do_recv=true,
+                      local_workstation: self.local_workstation)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode('utf-8') || ''.encode('utf-8')
-      @username          = username.encode('utf-8') || ''.encode('utf-8')
+      @password          = pass.encode('utf-8') || ''.encode('utf-8')
+      @username          = user.encode('utf-8') || ''.encode('utf-8')
 
+      negotiate_version_flag = 0x02000000
+      flags = Net::NTLM::Client::DEFAULT_FLAGS |
+        Net::NTLM::FLAGS[:TARGET_INFO] |
+        negotiate_version_flag
+      
       @ntlm_client = Net::NTLM::Client.new(
-        @username,
-        @password,
-        workstation: @local_workstation,
-        domain: @domain
+          @username,
+          @password,
+          workstation: @local_workstation,
+          domain: @domain,
+          flags: flags
       )
 
-      negotiate
       authenticate
     end
 
@@ -297,11 +314,13 @@ module RubySMB
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
     def tree_connect(share)
-      if smb2
+      connected_tree = if smb2
         smb2_tree_connect(share)
       else
         smb1_tree_connect(share)
       end
+      @tree_connects << connected_tree
+      connected_tree
     end
 
     # Returns array of shares
