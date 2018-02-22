@@ -8,10 +8,9 @@ A native Ruby implementation of the SMB Protocol Family. It currently supports
  1. [[MS-SMB]](https://msdn.microsoft.com/en-us/library/cc246231.aspx)
  1. [[MS-SMB2]](http://msdn.microsoft.com/en-us/library/cc246482.aspx)
 
-This library currently include both a Client level, and Packet level support. A user can aprse and manipulate raw
-SMB packets, or simply use the simple client to perform SMB operations.
+This library currently include both a client level, and packet level support. A user can parse and manipulate raw SMB packets, or use the simple client to perform SMB operations.
 
-See the Wiki for more information on this porject's long-term goals, style guide, and developer tips.
+See the Wiki for more information on this project's long-term goals, style guide, and developer tips.
 
 ## Installation
 
@@ -33,20 +32,21 @@ Or install it yourself as:
 
 ### Defining a packet
 
-All packets are done in a declarative style with BinData. Nested data structures are used where appropriate to give users
-the easiest method of adjusting data, all the way down to the bit level in case of bit masks.
+All packets are implemented in a declarative style with BinData. Nested data
+structures are used where appropriate to give users an easy method of adjusting
+data.
 
 #### SMB1
 SMB1 Packets are made up of three basic components:
  1. **The SMB Header** - This is a standard SMB Header. All SMB1 packets use the same SMB header.
- 1. **The Parameter Block** - This is where function parameters are passed across the wire in the packet. Parameter Blocks will always 
+ 1. **The Parameter Block** - This is where function parameters are passed across the wire in the packet. Parameter Blocks will always
  have a 'Word Count' field that gives the size of the Parameter Block in words(2-bytes)
  1. **The Data Block** - This is the data section of the packet. the Data Block will always have a 'byte count' field that gives the size of
  the Data block in bytes.
-  
+
 The SMB Header can always just be declared as a field in the BinData DSL for the packet class, because its structure never changes.
 For the ParameterBlock and DataBlocks, we always define subclasses for this particular packet. They inherit the 'Word Count' and
-'Byte Count' fields, along with the auto-calculation routines for those fields, from their ancestors. Any other fields are then 
+'Byte Count' fields, along with the auto-calculation routines for those fields, from their ancestors. Any other fields are then
 defined in our subclass before we start the DSL declarations for the packet.
 
 Example:
@@ -165,7 +165,7 @@ Example:
 
 #### Reading from a Binary Blob
 
-Sometimes you need to read a binary blob and apply one of the packet structures to it. 
+Sometimes you need to read a binary blob and apply one of the packet structures to it.
 For example, when you are reading a response packet off of the wire, you will need to read the raw response
 string into an actual packet class. This is done using the #read class method.
 
@@ -230,7 +230,7 @@ Anonymous Example:
 ```ruby
       sock = TCPSocket.new address, 445
       dispatcher = RubySMB::Dispatcher::Socket.new(sock)
-    
+
       client = RubySMB::Client.new(dispatcher, smb1: true, smb2: false, username: '', password: '')
       client.negotiate
       client.authenticate
@@ -238,7 +238,7 @@ Anonymous Example:
 
 #### Connecting to a Tree
 
-While there is one Client, that has branching code-paths for SMB1 and SMB2, once you connect to a 
+While there is one Client, that has branching code-paths for SMB1 and SMB2, once you connect to a
 Tree you will be given a protocol specific Tree object. This Tree object will be responsible for all file operations
 that are to be conducted on that Tree.
 
@@ -247,26 +247,26 @@ Example:
 ```ruby
       sock = TCPSocket.new address, 445
       dispatcher = RubySMB::Dispatcher::Socket.new(sock)
-    
+
       client = RubySMB::Client.new(dispatcher, smb1: true, smb2: false, username: 'msfadmin', password: 'msfadmin')
       client.negotiate
       client.authenticate
-      
+
       begin
         tree = client.tree_connect('TEST_SHARE')
         puts "Connected to #{path} successfully!"
       rescue StandardError => e
         puts "Failed to connect to #{path}: #{e.message}"
       end
-      
+
       files = tree.list(directory: 'subdir1')
-      
+
       files.each do |file|
         create_time = file.create_time.to_datetime.to_s
         access_time = file.last_access.to_datetime.to_s
         change_time = file.last_change.to_datetime.to_s
         file_name   = file.file_name.encode("UTF-8")
-      
+
         puts "FILE: #{file_name}\n\tSIZE(BYTES):#{file.end_of_file}\n\tSIZE_ON_DISK(BYTES):#{file.allocation_size}\n\tCREATED:#{create_time}\n\tACCESSED:#{access_time}\n\tCHANGED:#{change_time}\n\n"
       end
 ```
