@@ -146,11 +146,17 @@ module RubySMB
     #   @return [String]
     attr_accessor :user_id
 
-    # The maximum size of a SMB message that the Client accepts (in bytes)
-    # Its default value is equal to {MAX_BUFFER_SIZE}.
+    # The maximum size SMB message that the Client accepts (in bytes)
+    # The default value is equal to {MAX_BUFFER_SIZE}.
     # @!attribute [rw] max_buffer_size
     #   @return [Integer]
     attr_accessor :max_buffer_size
+
+    # The maximum size SMB message that the Server accepts (in bytes)
+    # The default value is small by default
+    # @!attribute [rw] max_buffer_size
+    #   @return [Integer]
+    attr_accessor :server_max_buffer_size
 
     # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
@@ -172,6 +178,7 @@ module RubySMB
       @smb2              = smb2
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
+      @server_max_buffer_size = MAX_BUFFER_SIZE
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
@@ -185,7 +192,7 @@ module RubySMB
         domain: @domain,
         flags: flags
       )
-      
+
       @tree_connects = []
       @open_files = {}
 
@@ -253,7 +260,7 @@ module RubySMB
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
         Net::NTLM::FLAGS[:TARGET_INFO] |
         negotiate_version_flag
-      
+
       @ntlm_client = Net::NTLM::Client.new(
           @username,
           @password,
@@ -334,7 +341,7 @@ module RubySMB
         smb1_net_share_enum_all(host)
       end
     end
-    
+
     #
     # SMB2 Methods
     #
