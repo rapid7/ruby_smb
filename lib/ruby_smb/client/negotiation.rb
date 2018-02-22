@@ -80,24 +80,19 @@ module RubySMB
         when RubySMB::SMB1::Packet::NegotiateResponseExtended
           self.smb1 = true
           self.smb2 = false
-          if packet.parameter_block.security_mode.security_signatures_required == 1
-            self.signing_required = true
-          else
-            self.signing_required = false
-          end
+          self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
           self.dialect = packet.negotiated_dialect.to_s
+          self.server_max_buffer_size = packet.parameter_block.max_buffer_size
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
           self.smb2 = true
-          self.signing_required = if packet.security_mode.signing_required == 1
-                                    true
-                                  else
-                                    false
-                                  end
+          self.signing_required = packet.security_mode.signing_required == 1
           self.dialect = "0x%04x" % packet.dialect_revision
+          self.server_max_buffer_size = 16644
           'SMB2'
         end
+
       end
 
       # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
