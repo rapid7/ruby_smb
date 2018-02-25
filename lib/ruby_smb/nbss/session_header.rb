@@ -5,9 +5,9 @@ module RubySMB
     class SessionHeader < BinData::Record
       endian :big
 
-      uint8  :session_packet_type, label: 'Session Packet Type'
-      uint8  :flags,               label: 'Flags',              initial_value: 0
-      uint16 :packet_length,       label: 'Packet Length'
+      uint8 :session_packet_type,  label: 'Session Packet Type'
+      bit7  :flags,                label: 'Flags',              initial_value: 0
+      bit17 :packet_length,        label: 'Packet Length'
     end
   end
 end
