@@ -3,26 +3,30 @@ module RubySMB
     module Dcerpc
 
       def net_share_enum_all(host)
-        bind(RubySMB::Dcerpc::Bind.new(endpoint: RubySMB::Dcerpc::Srvsvc))
+        bind(endpoint: RubySMB::Dcerpc::Srvsvc)
 
-        request = RubySMB::Dcerpc::Request.new(
-          opnum: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
-          stub: RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: "\\\\#{host}").to_binary_s
-        )
-        #request.call_id = 1
-        response = request(request)
+        response = request(RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: host)
 
         shares = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(response.stub.to_binary_s)
         shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
       end
 
-      def bind(action, options={})
-        ioctl_response = ioctl_send_recv(action, options)
-        # TODO: parse response and check if it is a Bind_ack (12) response message
+      def bind(options={})
+        bind_req = RubySMB::Dcerpc::Bind.new(options)
+        ioctl_response = ioctl_send_recv(bind_req, options)
+        dcerpc_response = RubySMB::Dcerpc::BindAck.read(ioctl_response.output_data)
+        res_list = dcerpc_response.p_result_list
+        if res_list.n_results == 0 ||
+           res_list.p_results[0].result != RubySMB::Dcerpc::BindAck::ACCEPTANCE
+          raise RubySMB::Dcerpc::Error::BindError,
+            "Bind Failed (Result: #{res_list.p_results[0].result}, Reason: #{res_list.p_results[0].reason})"
+        end
+        dcerpc_response
       end
 
-      def request(action, options={})
-        ioctl_response = ioctl_send_recv(action, options)
+      def request(opnum, options={})
+        dcerpc_request = RubySMB::Dcerpc::Request.new({ :opnum => opnum }, options)
+        ioctl_response = ioctl_send_recv(dcerpc_request, options)
         RubySMB::Dcerpc::Response.read(ioctl_response.output_data)
       end
 
