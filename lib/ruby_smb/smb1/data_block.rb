@@ -40,10 +40,7 @@ module RubySMB
       end
 
       def field_enabled?(field_name)
-        res = send("#{field_name}?".to_sym)
-        #require 'pry'
-        #binding.pry unless res
-        res
+        send("#{field_name}?".to_sym)
       end
     end
   end
