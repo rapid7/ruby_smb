@@ -1,3 +1,3 @@
 module RubySMB
-  VERSION = '0.0.19'.freeze
+  VERSION = '0.0.21'.freeze
 end

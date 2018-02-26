@@ -153,6 +153,13 @@ module RubySMB
         read_request.parameter_block.offset = offset
         read_request
       end
+      
+      def send_recv_read(read_length: 0, offset: 0)
+        read_request = read_packet(read_length: read_length, offset: offset)
+        raw_response = tree.client.send_recv(read_request)
+        response = RubySMB::SMB1::Packet::ReadAndxResponse.read(raw_response)
+        response.data_block.data.to_binary_s
+      end
 
       # Delete a file on close
       #
@@ -226,6 +233,13 @@ module RubySMB
         write_request.data_block.data = data
         write_request.parameter_block.remaining = write_request.parameter_block.data_length
         write_request
+      end
+      
+      def send_recv_write(data:'', offset: 0)
+        pkt = write_packet(data: data, offset: offset)
+        raw_response = @tree.client.send_recv(pkt)
+        response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
+        response.parameter_block.count_low
       end
 
       # Rename a file

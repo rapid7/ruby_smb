@@ -137,6 +137,19 @@ module RubySMB
         read_request.offset       = offset
         read_request
       end
+      
+      def send_recv_read(read_length: 0, offset: 0)
+        read_request = read_packet(read_length: read_length, offset: offset)
+        raw_response = tree.client.send_recv(read_request)
+        response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
+          sleep 1
+          return send_recv_read(read_length: read_length, offset: offset)
+        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
+        response.buffer.to_binary_s
+      end
 
       # Delete a file on close
       #
@@ -204,6 +217,16 @@ module RubySMB
         write_request.write_offset  = offset
         write_request.buffer        = data
         write_request
+      end
+      
+      def send_recv_write(data:'', offset: 0)
+        pkt = write_packet(data: data, offset: offset)
+        raw_response = tree.client.send_recv(pkt)
+        response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+        if response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
+        response.write_count
       end
       
       # Rename a file
