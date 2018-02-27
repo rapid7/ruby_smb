@@ -24,7 +24,7 @@ module RubySMB
       endian :little
 
       uint16  :str_length, initial_value: -> { port_spec.to_binary_s.size }
-      stringz :port_spec,  read_length: -> { length }
+      stringz :port_spec
     end
 
     class BindAck < BinData::Record
