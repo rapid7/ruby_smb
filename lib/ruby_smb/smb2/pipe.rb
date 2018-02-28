@@ -11,6 +11,7 @@ module RubySMB
       #
       # @param peek_size [Integer] Amount of data to peek
       # @return [RubySMB::SMB2::Packet::IoctlResponse]
+      # @raise [RubySMB::Error::InvalidPacket] if not a valid FSCTL_PIPE_PEEK response
       def peek(peek_size: 0)
         packet = RubySMB::SMB2::Packet::IoctlRequest.new
         packet.ctl_code = RubySMB::Fscc::ControlCodes::FSCTL_PIPE_PEEK
@@ -18,10 +19,24 @@ module RubySMB
         # read at least 16 bytes for state, avail, msg_count, first_msg_len
         packet.max_output_response = 16 + peek_size
         packet = set_header_fields(packet)
-        resp = @tree.client.send_recv(packet)
-        RubySMB::SMB2::Packet::IoctlResponse.read(resp)
+        raw_response = @tree.client.send_recv(packet)
+        begin
+          response = RubySMB::SMB2::Packet::IoctlResponse.read(raw_response)
+        rescue EOFError
+          raise RubySMB::Error::InvalidPacket, 'Failed to process IoctlResponse packet'
+        end
+
+        unless response.smb2_header.command == RubySMB::SMB2::Commands::IOCTL
+          raise RubySMB::Error::InvalidPacket, 'Not an IoctlResponse packet'
+        end
+
+        unless response.ctl_code == RubySMB::Fscc::ControlCodes::FSCTL_PIPE_PEEK
+          raise RubySMB::Error::InvalidPacket, 'Not a FSCTL_PIPE_PEEK response packet'
+        end
+        response
       end
 
+      # @return [Integer] The number of bytes available to be read from the pipe
       def peek_available
         packet = peek
         state, avail, msg_count, first_msg_len = packet.buffer.unpack('VVVV')
@@ -29,6 +44,7 @@ module RubySMB
         avail or first_msg_len
       end
 
+      # @return [Integer] Pipe status
       def peek_state
         packet = peek
         packet.buffer.unpack('V')[0]

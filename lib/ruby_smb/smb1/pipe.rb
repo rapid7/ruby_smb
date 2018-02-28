@@ -14,21 +14,33 @@ module RubySMB
       #
       # @param peek_size [Integer] Amount of data to peek
       # @return [RubySMB::SMB1::Packet::Trans::PeekNamedPipeResponse]
+      # @raise [RubySMB::Error::InvalidPacket] if not a valid PeekNamedPipeResponse
       def peek(peek_size: 0)
         packet = RubySMB::SMB1::Packet::Trans::PeekNamedPipeRequest.new
         packet.fid = @fid
         packet.parameter_block.max_data_count = peek_size
         packet = @tree.set_header_fields(packet)
-        resp = @tree.client.send_recv(packet)
-        RubySMB::SMB1::Packet::Trans::PeekNamedPipeResponse.read(resp)
+        raw_response = @tree.client.send_recv(packet)
+        begin
+          response = RubySMB::SMB1::Packet::Trans::PeekNamedPipeResponse.read(raw_response)
+        rescue EOFError
+          raise RubySMB::Error::InvalidPacket, 'Failed to process PeekNamedPipeResponse packet'
+        end
+
+        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+          raise RubySMB::Error::InvalidPacket, 'Not a TransResponse packet'
+        end
+        response
       end
 
+      # @return [Integer] The number of bytes available to be read from the pipe
       def peek_available
         packet = peek
         # Only 1 of these should be non-zero
         packet.data_block.trans_parameters.read_data_available or packet.data_block.trans_parameters.message_bytes_length
       end
 
+      # @return [Integer] Pipe status
       def peek_state
         packet = peek
         packet.data_block.trans_parameters.pipe_state
