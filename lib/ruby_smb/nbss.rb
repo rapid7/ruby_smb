@@ -9,6 +9,7 @@ module RubySMB
     RETARGET_SESSION_RESPONSE = 0x84
     SESSION_KEEP_ALIVE        = 0x85
 
+    require 'ruby_smb/nbss/netbios_name'
     require 'ruby_smb/nbss/session_header'
     require 'ruby_smb/nbss/session_request'
     require 'ruby_smb/nbss/negative_session_response'

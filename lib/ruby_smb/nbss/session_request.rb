@@ -6,8 +6,8 @@ module RubySMB
       endian :big
 
       session_header :session_header
-      string         :called_name,  label: 'Called Name'
-      string         :calling_name, label: 'Calling Name'
+      netbios_name   :called_name,  label: 'Called Name'
+      netbios_name   :calling_name, label: 'Calling Name'
     end
   end
 end
