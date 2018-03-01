@@ -5,14 +5,15 @@ module RubySMB
     class PContElemT < BinData::Record
       endian :little
 
-      uint16 :p_cont_id
-      uint8 :n_transfer_syn, initial_value: 1
+      uint16 :p_cont_id,     label: 'Context ID'
+      uint8 :n_transfer_syn, label: 'Number of transfer syntaxes', initial_value: 1
       uint8 :reserved
-      p_syntax_id_t :abstract_syntax,
+      p_syntax_id_t :abstract_syntax, label: 'Abstract syntax',
         uuid: ->      { endpoint::UUID },
         ver_major: -> { endpoint::VER_MAJOR },
         ver_minor: -> { endpoint::VER_MINOR }
-      array :transfer_syntaxes, type: :p_syntax_id_t, initial_length: -> { n_transfer_syn },
+      array :transfer_syntaxes, label: 'Transfer syntax', type: :p_syntax_id_t,
+        initial_length: -> { n_transfer_syn },
         uuid: ->      { Ndr::UUID },
         ver_major: -> { Ndr::VER_MAJOR },
         ver_minor: -> { Ndr::VER_MINOR }
@@ -21,11 +22,12 @@ module RubySMB
     class PContListT < BinData::Record
       endian :little
 
-      uint8 :n_context_elem, initial_value: -> { 1 }
+      uint8 :n_context_elem, label: 'Number of context elements', initial_value: -> { 1 }
       uint8 :reserved
       uint16 :reserved2
-      array :p_cont_elem, type: :p_cont_elem_t, initial_length: -> {n_context_elem},
-                                                      endpoint: -> {endpoint}
+      array :p_cont_elem, label: 'Presentation context elements', type: :p_cont_elem_t,
+        initial_length: -> {n_context_elem},
+        endpoint: -> {endpoint}
     end
 
     class Bind < BinData::Record
@@ -38,7 +40,7 @@ module RubySMB
       uint32 :assoc_group_id,        label: 'ncarnation of client-server assoc group'
 
       p_cont_list_t :p_context_list, label: 'Presentation context list', endpoint: -> { endpoint }
-      string :auth_verifier, label: 'Authentication verifier',
+      string :auth_verifier,         label: 'Authentication verifier',
         onlyif: -> { pdu_header.auth_length > 0 },
         read_length: -> { pdu_header.auth_length }
 
