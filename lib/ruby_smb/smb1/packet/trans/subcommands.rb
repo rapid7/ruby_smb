@@ -3,7 +3,7 @@ module RubySMB
     module Packet
       module Trans
         module Subcommands
-          PEEK_NAMED_PIPE        = 0x0023
+          PEEK_NMPIPE        = 0x0023
         end
       end
     end

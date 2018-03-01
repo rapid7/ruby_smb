@@ -4,7 +4,7 @@ module RubySMB
       module Trans
         # This class represents an SMB1 Trans PeekNamedPipe Response Packet as defined in
         # [2.2.5.5.2 Response](https://msdn.microsoft.com/en-us/library/ee441883.aspx)
-        class PeekNamedPipeResponse < RubySMB::GenericPacket
+        class PeekNmpipeResponse < RubySMB::GenericPacket
           class ParameterBlock < RubySMB::SMB1::Packet::Trans::Response::ParameterBlock
           end
 
@@ -49,7 +49,7 @@ module RubySMB
           def initialize_instance
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
-            parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::PEEK_NAMED_PIPE
+            parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::PEEK_NMPIPE
           end
         end
       end

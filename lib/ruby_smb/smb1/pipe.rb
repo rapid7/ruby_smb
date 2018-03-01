@@ -13,19 +13,15 @@ module RubySMB
       # Performs a peek operation on the named pipe
       #
       # @param peek_size [Integer] Amount of data to peek
-      # @return [RubySMB::SMB1::Packet::Trans::PeekNamedPipeResponse]
-      # @raise [RubySMB::Error::InvalidPacket] if not a valid PeekNamedPipeResponse
+      # @return [RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse]
+      # @raise [RubySMB::Error::InvalidPacket] if not a valid PeekNmpipeResponse
       def peek(peek_size: 0)
-        packet = RubySMB::SMB1::Packet::Trans::PeekNamedPipeRequest.new
+        packet = RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest.new
         packet.fid = @fid
         packet.parameter_block.max_data_count = peek_size
         packet = @tree.set_header_fields(packet)
         raw_response = @tree.client.send_recv(packet)
-        begin
-          response = RubySMB::SMB1::Packet::Trans::PeekNamedPipeResponse.read(raw_response)
-        rescue EOFError
-          raise RubySMB::Error::InvalidPacket, 'Failed to process PeekNamedPipeResponse packet'
-        end
+        response = RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse.read(raw_response)
 
         unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
           raise RubySMB::Error::InvalidPacket, 'Not a TransResponse packet'

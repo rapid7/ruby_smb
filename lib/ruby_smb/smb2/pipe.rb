@@ -20,18 +20,10 @@ module RubySMB
         packet.max_output_response = 16 + peek_size
         packet = set_header_fields(packet)
         raw_response = @tree.client.send_recv(packet)
-        begin
-          response = RubySMB::SMB2::Packet::IoctlResponse.read(raw_response)
-        rescue EOFError
-          raise RubySMB::Error::InvalidPacket, 'Failed to process IoctlResponse packet'
-        end
+        response = RubySMB::SMB2::Packet::IoctlResponse.read(raw_response)
 
         unless response.smb2_header.command == RubySMB::SMB2::Commands::IOCTL
           raise RubySMB::Error::InvalidPacket, 'Not an IoctlResponse packet'
-        end
-
-        unless response.ctl_code == RubySMB::Fscc::ControlCodes::FSCTL_PIPE_PEEK
-          raise RubySMB::Error::InvalidPacket, 'Not a FSCTL_PIPE_PEEK response packet'
         end
         response
       end

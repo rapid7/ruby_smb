@@ -8,8 +8,8 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans/data_block'
         require 'ruby_smb/smb1/packet/trans/request'
         require 'ruby_smb/smb1/packet/trans/response'
-        require 'ruby_smb/smb1/packet/trans/peek_named_pipe_request'
-        require 'ruby_smb/smb1/packet/trans/peek_named_pipe_response'
+        require 'ruby_smb/smb1/packet/trans/peek_nmpipe_request'
+        require 'ruby_smb/smb1/packet/trans/peek_nmpipe_response'
       end
     end
   end
