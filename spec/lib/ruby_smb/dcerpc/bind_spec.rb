@@ -1,4 +1,15 @@
 RSpec.describe RubySMB::Dcerpc::Bind do
+  let(:uuid) { '12345678-1234-4321-5678-123456789012' }
+  let(:ver_major) { 2 }
+  let(:ver_minor) { 8 }
+  let :endpoint do
+    endpoint = Module.new
+    endpoint.const_set('UUID', uuid)
+    endpoint.const_set('VER_MAJOR', ver_major)
+    endpoint.const_set('VER_MINOR', ver_minor)
+    endpoint
+  end
+
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :pdu_header }
@@ -74,10 +85,36 @@ RSpec.describe RubySMB::Dcerpc::Bind do
       packet.pdu_header.auth_length = 10
       expect(packet.auth_verifier?).to be true
     end
+
+    it 'reads #auth_length bytes' do
+      auth_verifier = '12345678'
+      packet.pdu_header.auth_length = 6
+      packet.auth_verifier.read(auth_verifier)
+      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+    end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new(endpoint: endpoint)
+    packet.auth_verifier = '123456'
+    packet.pdu_header.auth_length = 6
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 end
 
 RSpec.describe RubySMB::Dcerpc::PContListT do
+  let(:uuid) { '12345678-1234-4321-5678-123456789012' }
+  let(:ver_major) { 2 }
+  let(:ver_minor) { 8 }
+  let :endpoint do
+    endpoint = Module.new
+    endpoint.const_set('UUID', uuid)
+    endpoint.const_set('VER_MAJOR', ver_major)
+    endpoint.const_set('VER_MINOR', ver_minor)
+    endpoint
+  end
+
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :n_context_elem }
@@ -114,9 +151,26 @@ RSpec.describe RubySMB::Dcerpc::PContListT do
       expect(packet.p_cont_elem.has_parameter?(:endpoint)).to be true
     end
   end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new(endpoint: endpoint)
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::PContElemT do
+  let(:uuid) { '12345678-1234-4321-5678-123456789012' }
+  let(:ver_major) { 2 }
+  let(:ver_minor) { 8 }
+  let :endpoint do
+    endpoint = Module.new
+    endpoint.const_set('UUID', uuid)
+    endpoint.const_set('VER_MAJOR', ver_major)
+    endpoint.const_set('VER_MINOR', ver_minor)
+    endpoint
+  end
+
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :p_cont_id }
@@ -161,43 +215,29 @@ RSpec.describe RubySMB::Dcerpc::PContElemT do
       expect(packet.abstract_syntax.has_parameter?(:ver_minor)).to be true
     end
 
-    context 'with an endpoint' do
-      let(:uuid) { '12345678-1234-4321-5678-123456789012' }
-      let(:ver_major) { 2 }
-      let(:ver_minor) { 8 }
+    it 'should be initialized with the #endpoint constants' do
+      p_cont_elem_t = described_class.new(endpoint: endpoint)
 
-      let :endpoint do
-        endpoint = Module.new
-        endpoint.const_set('UUID', uuid)
-        endpoint.const_set('VER_MAJOR', ver_major)
-        endpoint.const_set('VER_MINOR', ver_minor)
-        endpoint
-      end
+      expect(p_cont_elem_t.abstract_syntax.if_uuid).to eq(uuid)
+      expect(p_cont_elem_t.abstract_syntax.if_ver_major).to eq(ver_major)
+      expect(p_cont_elem_t.abstract_syntax.if_ver_minor).to eq(ver_minor)
+    end
 
-      it 'should be initialized with the #endpoint constants' do
-        p_cont_elem_t = described_class.new(endpoint: endpoint)
+    it 'should be initialized with the #endpoint constants when passed as a parameter to Bind' do
+      bind = RubySMB::Dcerpc::Bind.new(endpoint: endpoint)
+      p_cont_elem_t = bind.p_context_list.p_cont_elem.first
 
-        expect(p_cont_elem_t.abstract_syntax.if_uuid).to eq(uuid)
-        expect(p_cont_elem_t.abstract_syntax.if_ver_major).to eq(ver_major)
-        expect(p_cont_elem_t.abstract_syntax.if_ver_minor).to eq(ver_minor)
-      end
-
-      it 'should be initialized with the #endpoint constants when passed as a parameter to Bind' do
-        bind = RubySMB::Dcerpc::Bind.new(endpoint: endpoint)
-        p_cont_elem_t = bind.p_context_list.p_cont_elem.first
-
-        expect(p_cont_elem_t.abstract_syntax.if_uuid).to eq(uuid)
-        expect(p_cont_elem_t.abstract_syntax.if_ver_major).to eq(ver_major)
-        expect(p_cont_elem_t.abstract_syntax.if_ver_minor).to eq(ver_minor)
-      end
+      expect(p_cont_elem_t.abstract_syntax.if_uuid).to eq(uuid)
+      expect(p_cont_elem_t.abstract_syntax.if_ver_major).to eq(ver_major)
+      expect(p_cont_elem_t.abstract_syntax.if_ver_minor).to eq(ver_minor)
     end
   end
 
   describe '#transfer_syntaxes' do
-    it 'should be an array of type NdrSyntax' do
+    it 'should be an array of type PSyntaxIdT' do
       expect(packet.transfer_syntaxes).to be_a BinData::Array
       type = packet.transfer_syntaxes.get_parameter(:type)
-      expect(type.instantiate).to be_a RubySMB::Dcerpc::NdrSyntax
+      expect(type.instantiate).to be_a RubySMB::Dcerpc::PSyntaxIdT
     end
 
     it 'should have #n_transfer_syn elements' do
@@ -205,6 +245,18 @@ RSpec.describe RubySMB::Dcerpc::PContElemT do
       packet.n_transfer_syn = n_elements
       expect(packet.transfer_syntaxes.size).to eq n_elements
     end
+
+    it 'sets its elements to the NDR presentation syntax' do
+      expect(packet.transfer_syntaxes[0].if_uuid).to eq RubySMB::Dcerpc::Ndr::UUID
+      expect(packet.transfer_syntaxes[0].if_ver_major).to eq RubySMB::Dcerpc::Ndr::VER_MAJOR
+      expect(packet.transfer_syntaxes[0].if_ver_minor).to eq RubySMB::Dcerpc::Ndr::VER_MINOR
+    end
   end
 
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new(endpoint: endpoint)
+    packet.n_transfer_syn = 2
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
+  end
 end

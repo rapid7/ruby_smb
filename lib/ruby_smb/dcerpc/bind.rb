@@ -12,7 +12,10 @@ module RubySMB
         uuid: ->      { endpoint::UUID },
         ver_major: -> { endpoint::VER_MAJOR },
         ver_minor: -> { endpoint::VER_MINOR }
-      array :transfer_syntaxes, type: :ndr_syntax, initial_length: -> { n_transfer_syn }
+      array :transfer_syntaxes, type: :p_syntax_id_t, initial_length: -> { n_transfer_syn },
+        uuid: ->      { Ndr::UUID },
+        ver_major: -> { Ndr::VER_MAJOR },
+        ver_minor: -> { Ndr::VER_MINOR }
     end
 
     class PContListT < BinData::Record
@@ -35,7 +38,9 @@ module RubySMB
       uint32 :assoc_group_id,        label: 'ncarnation of client-server assoc group'
 
       p_cont_list_t :p_context_list, label: 'Presentation context list', endpoint: -> { endpoint }
-      string :auth_verifier,         label: 'Authentication verifier',   onlyif: -> { pdu_header.auth_length > 0 }
+      string :auth_verifier, label: 'Authentication verifier',
+        onlyif: -> { pdu_header.auth_length > 0 },
+        read_length: -> { pdu_header.auth_length }
 
       def initialize_instance
         super
