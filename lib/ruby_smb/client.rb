@@ -391,15 +391,7 @@ module RubySMB
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
     def session_request(name = '*SMBSERVER')
-      called_name = "#{name.upcase.ljust(15)}\x20"
-      calling_name = "#{''.ljust(15)}\x00"
-
-      session_request = RubySMB::Nbss::SessionRequest.new
-      session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
-      session_request.called_name  = called_name
-      session_request.calling_name = calling_name
-      session_request.session_header.packet_length = session_request.do_num_bytes - session_request.session_header.do_num_bytes
-
+      session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
       session_header =  RubySMB::Nbss::SessionHeader.read(raw_response)
@@ -409,6 +401,18 @@ module RubySMB
       end
 
       return true
+    end
+
+    def session_request_packet(name = '*SMBSERVER')
+      called_name = "#{name.upcase.ljust(15)}\x20"
+      calling_name = "#{''.ljust(15)}\x00"
+
+      session_request = RubySMB::Nbss::SessionRequest.new
+      session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
+      session_request.called_name  = called_name
+      session_request.calling_name = calling_name
+      session_request.session_header.packet_length = session_request.do_num_bytes - session_request.session_header.do_num_bytes
+      session_request
     end
 
     def nb_name_encode(name)
