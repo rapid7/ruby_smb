@@ -14,17 +14,17 @@ module RubySMB
     class PResultListT < BinData::Record
       endian :little
 
-      uint8  :n_results
+      uint8  :n_results, label: 'Number of results'
       uint8  :reserved
       uint16 :reserved2
-      array  :p_results, type: :p_result_t, initial_length: -> { n_results }
+      array  :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }
     end
 
     class PortAnyT < BinData::Record
       endian :little
 
-      uint16  :str_length, initial_value: -> { port_spec.to_binary_s.size }
-      stringz :port_spec
+      uint16  :str_length, label: 'Length', initial_value: -> { port_spec.to_binary_s.size }
+      stringz :port_spec,  label: 'Port string spec'
     end
 
     class BindAck < BinData::Record

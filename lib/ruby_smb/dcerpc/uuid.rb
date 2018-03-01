@@ -4,13 +4,13 @@ module RubySMB
     # [Universal Unique Identifier](http://pubs.opengroup.org/onlinepubs/9629399/apdxa.htm)
     class Uuid < BinData::Primitive
       endian :little
-      uint32 :time_low
-      uint16 :time_mid
-      uint16 :time_hi_and_version
+      uint32 :time_low,                  label: 'Low field of the timestamp'
+      uint16 :time_mid,                  label: 'Middle field of the timestamp'
+      uint16 :time_hi_and_version,       label: 'High field of the timestamp multiplexed with the version number'
 
-      uint8  :clock_seq_hi_and_reserved
-      uint8  :clock_seq_low
-      array  :node, :type => :uint8, initial_length: 6
+      uint8  :clock_seq_hi_and_reserved, label: 'High field of the clock sequence multiplexed with the variant'
+      uint8  :clock_seq_low,             label: 'Low field of the clock sequence'
+      array  :node,                      label: 'Spatially unique node identifier', :type => :uint8, initial_length: 6
 
       def get
         "#{to_string_le(time_low.to_binary_s)}"\
