@@ -1,15 +1,96 @@
-require 'spec_helper'
-
 RSpec.describe RubySMB::Dcerpc::Response do
+  subject(:packet) { described_class.new }
 
-  let(:raw_response){'0500020310000000b801000000000000a00100000000000001000000010000000000020006000000040002000600000008000200000000800c00020010000200000000001400020018000200000000801c00020020000200000000002400020028000200030000802c000200300002000000000034000200070000000000000007000000410044004d0049004e002400000000000d000000000000000d000000520065006d006f00740065002000410064006d0069006e0000000000020000000000000002000000430000000100000000000000010000000000000003000000000000000300000043002400000000000e000000000000000e000000440065006600610075006c007400200073006800610072006500000007000000000000000700000064006f00670065003600340000000000010000000000000001000000000000000500000000000000050000004900500043002400000000000b000000000000000b000000520065006d006f00740065002000490050004300000000000600000000000000060000005500730065007200730000000100000000000000010000000000000006000000380002000000000000000000'.strip.gsub(/([A-Fa-f0-9]{1,2})\s*?/) { $1.hex.chr }}
+  it { is_expected.to respond_to :pdu_header }
+  it { is_expected.to respond_to :alloc_hint }
+  it { is_expected.to respond_to :p_cont_id }
+  it { is_expected.to respond_to :cancel_count }
+  it { is_expected.to respond_to :stub }
+  it { is_expected.to respond_to :auth_verifier }
 
-  describe '#read' do
+  it 'is little endian' do
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  end
 
-    let(:response){described_class.read(raw_response)}
+  describe '#pdu_header' do
+    subject(:header) { packet.pdu_header }
 
-    it 'should use the alloc_hint to determine stub length' do
-      expect(response.stub.do_num_bytes).to eq response.alloc_hint
+    it 'is a standard PDU Header' do
+      expect(header).to be_a RubySMB::Dcerpc::PDUHeader
+    end
+
+    it 'should have the #ptype field set to PTypes::RESPONSE' do
+      expect(header.ptype).to eq RubySMB::Dcerpc::PTypes::RESPONSE
     end
   end
+
+  describe '#alloc_hint' do
+    it 'should be a 32-bit unsigned integer' do
+      expect(packet.alloc_hint).to be_a BinData::Uint32le
+    end
+
+    it 'should be the size of the #stub field' do
+      stub = 'ABCD'
+      packet.stub = stub
+      expect(packet.alloc_hint).to eq(stub.length)
+    end
+  end
+
+  describe '#p_cont_id' do
+    it 'should be a 16-bit unsigned integer' do
+      expect(packet.p_cont_id).to be_a BinData::Uint16le
+    end
+  end
+
+  describe '#cancel_count' do
+    it 'should be a 8-bit unsigned integer' do
+      expect(packet.cancel_count).to be_a BinData::Uint8
+    end
+  end
+
+  describe '#stub' do
+    it 'is a string' do
+      expect(packet.stub).to be_a BinData::String
+    end
+
+    it 'reads the expected number of bytes' do
+      stub = 'ABCDEFGH'
+      packet.pdu_header.frag_length = 28
+      packet.stub.read(stub)
+      expect(packet.stub).to eq(stub[0,4])
+    end
+  end
+
+  describe '#auth_verifier' do
+    it 'should be a string' do
+      expect(packet.auth_verifier).to be_a BinData::String
+    end
+
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.auth_verifier?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.auth_verifier?).to be true
+    end
+
+    it 'reads #auth_length bytes' do
+      auth_verifier = '12345678'
+      packet.pdu_header.auth_length = 6
+      packet.auth_verifier.read(auth_verifier)
+      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+    end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet.stub = 'ABCD'
+    packet.auth_verifier = '123456'
+    packet.pdu_header.auth_length = 6
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
+  end
 end
+
+
