@@ -10,9 +10,9 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16      :total_parameter_count, label: 'Total Parameter Count(bytes)', initial_value: -> { parameter_count }
             uint16      :total_data_count,      label: 'Total Data Count(bytes)',      initial_value: -> { data_count }
-            uint16      :max_parameter_count,   label: 'Max Parameter Count(bytes)'
-            uint16      :max_data_count,        label: 'Max Data Count(bytes)'
-            uint8       :max_setup_count,       label: 'Max Setup Count'
+            uint16      :max_parameter_count,   label: 'Max Parameter Count(bytes)',   initial_value: Trans::MAX_PARAMETER_COUNT
+            uint16      :max_data_count,        label: 'Max Data Count(bytes)',        initial_value: Trans::MAX_DATA_COUNT
+            uint8       :max_setup_count,       label: 'Max Setup Count',              initial_value: Trans::MAX_SETUP_COUNT
             uint8       :reserved,              label: 'Reserved Space',         value: 0x00
             trans_flags :flags
             uint32      :timeout,               label: 'Timeout',                initial_value: 0x00000000

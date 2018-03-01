@@ -44,11 +44,6 @@ module RubySMB
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
             parameter_block.max_parameter_count = 0x0000
-            # MaxDataCount MUST be the number of bytes that the client requests to read from the
-            # named pipe as part of the transacted operation.
-            # The default is set to 1024 bytes. This might be changed if necessary.
-            # TODO: use constant or set it in the client
-            parameter_block.max_data_count = 1024
             parameter_block.max_setup_count = 0x00
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::TRANSACT_NMPIPE
             # FID: must be set to a valid FID from a server response for a

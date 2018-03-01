@@ -64,17 +64,29 @@ RSpec.describe RubySMB::SMB1::Packet::Trans::Request do
       it 'is a 16-bit unsigned integer' do
         expect(parameter_block.max_parameter_count).to be_a BinData::Uint16le
       end
+
+      it 'has the default value MAX_PARAMETER_COUNT' do
+        expect(parameter_block.max_parameter_count).to eq RubySMB::SMB1::Packet::Trans::MAX_PARAMETER_COUNT
+      end
     end
 
     describe '#max_data_count' do
       it 'is a 16-bit unsigned integer' do
         expect(parameter_block.max_data_count).to be_a BinData::Uint16le
       end
+
+      it 'has the default value MAX_DATA_COUNT' do
+        expect(parameter_block.max_data_count).to eq RubySMB::SMB1::Packet::Trans::MAX_DATA_COUNT
+      end
     end
 
     describe '#max_setup_count' do
       it 'is a 8-bit unsigned integer' do
         expect(parameter_block.max_setup_count).to be_a BinData::Uint8
+      end
+
+      it 'has the default value MAX_SETUP_COUNT' do
+        expect(parameter_block.max_setup_count).to eq RubySMB::SMB1::Packet::Trans::MAX_SETUP_COUNT
       end
     end
 
