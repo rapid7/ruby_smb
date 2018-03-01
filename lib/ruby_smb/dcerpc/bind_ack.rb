@@ -8,7 +8,10 @@ module RubySMB
 
       uint16        :result,          label: 'Presentation context negotiation results'
       uint16        :reason,          label: 'Rejection reason'
-      p_syntax_id_t :transfer_syntax, label: 'Presentation syntax ID'
+      p_syntax_id_t :transfer_syntax, label: 'Presentation syntax ID',
+        uuid: ->      { Ndr::UUID },
+        ver_major: -> { Ndr::VER_MAJOR },
+        ver_minor: -> { Ndr::VER_MINOR }
     end
 
     class PResultListT < BinData::Record
@@ -50,7 +53,9 @@ module RubySMB
       string     :pad,                length: -> { pad_length }
 
       p_result_list_t :p_result_list, label: 'Presentation context result list'
-      string :auth_verifier,          label: 'Authentication verifier', onlyif: -> { pdu_header.auth_length > 0 }
+      string :auth_verifier, label: 'Authentication verifier',
+        onlyif: -> { pdu_header.auth_length > 0 },
+        read_length: -> { pdu_header.auth_length }
 
       def initialize_instance
         super

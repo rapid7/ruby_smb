@@ -78,6 +78,13 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
       packet.pdu_header.auth_length = 10
       expect(packet.auth_verifier?).to be true
     end
+
+    it 'reads #auth_length bytes' do
+      auth_verifier = '12345678'
+      packet.pdu_header.auth_length = 6
+      packet.auth_verifier.read(auth_verifier)
+      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+    end
   end
 
   describe '#pad_length' do
@@ -90,6 +97,15 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
       packet.sec_addr.port_spec = 'align' + 'AA'
       expect(packet.pad_length).to eq 2
     end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet.sec_addr.port_spec = "port spec"
+    packet.p_result_list.n_results = 2
+    packet.auth_verifier = '123456'
+    packet.pdu_header.auth_length = 6
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 end
 
@@ -119,6 +135,12 @@ RSpec.describe RubySMB::Dcerpc::PortAnyT do
     it 'should be a Stringz' do
       expect(packet.port_spec).to be_a BinData::Stringz
     end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet.port_spec = "port spec"
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 end
 
@@ -151,6 +173,12 @@ RSpec.describe RubySMB::Dcerpc::PResultListT do
       expect(packet.p_results.size).to eq n_elements
     end
   end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet.n_results = 4
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::PResultT do
@@ -180,7 +208,17 @@ RSpec.describe RubySMB::Dcerpc::PResultT do
     it 'should be a PSyntaxIdT' do
       expect(packet.transfer_syntax).to be_a RubySMB::Dcerpc::PSyntaxIdT
     end
+
+    it 'is set to the NDR presentation syntax' do
+      expect(packet.transfer_syntax.if_uuid).to eq RubySMB::Dcerpc::Ndr::UUID
+      expect(packet.transfer_syntax.if_ver_major).to eq RubySMB::Dcerpc::Ndr::VER_MAJOR
+      expect(packet.transfer_syntax.if_ver_minor).to eq RubySMB::Dcerpc::Ndr::VER_MINOR
+    end
   end
 
+  it 'reads its own binary representation and output the same packet' do
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
+  end
 end
 
