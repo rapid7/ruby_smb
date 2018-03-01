@@ -17,7 +17,9 @@ module RubySMB
         net_share_enum_all RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: -> { host }
       end
 
-      string :auth_verifier,  label: 'Authentication verifier', onlyif: -> { pdu_header.auth_length > 0 }
+      string :auth_verifier, label: 'Authentication verifier',
+        onlyif: -> { pdu_header.auth_length > 0 },
+        read_length: -> { pdu_header.auth_length }
 
       def initialize_instance
         super

@@ -70,9 +70,9 @@ RSpec.describe RubySMB::Dcerpc::Request do
     end
 
     context 'with a NetShareEnumAll stub' do
-      subject(:net_share_enum) { described_class.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4') }
 
       it 'uses opnum as a selector' do
+        packet = described_class.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4')
         expect(packet.stub.selection).to eq(packet.opnum)
       end
     end
@@ -92,6 +92,23 @@ RSpec.describe RubySMB::Dcerpc::Request do
       packet.pdu_header.auth_length = 10
       expect(packet.auth_verifier?).to be true
     end
+
+    it 'reads #auth_length bytes' do
+      auth_verifier = '12345678'
+      packet.pdu_header.auth_length = 6
+      packet.auth_verifier.read(auth_verifier)
+      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+    end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4')
+    packet.pdu_header.pfc_flags.object_uuid = 1
+    packet.object = '8a885d04-1ceb-11c9-9fe8-08002b104860'
+    packet.auth_verifier = '123456'
+    packet.pdu_header.auth_length = 6
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 end
 
