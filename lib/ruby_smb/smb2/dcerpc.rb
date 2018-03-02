@@ -14,7 +14,15 @@ module RubySMB
       def bind(options={})
         bind_req = RubySMB::Dcerpc::Bind.new(options)
         ioctl_response = ioctl_send_recv(bind_req, options)
-        dcerpc_response = RubySMB::Dcerpc::BindAck.read(ioctl_response.output_data)
+        begin
+          dcerpc_response = RubySMB::Dcerpc::BindAck.read(ioctl_response.output_data)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the DCERPC response"
+        end
+        unless dcerpc_response.pdu_header.ptype == RubySMB::Dcerpc::PTypes::BIND_ACK
+          raise RubySMB::Dcerpc::Error::BindError, "Not a BindAck packet"
+        end
+
         res_list = dcerpc_response.p_result_list
         if res_list.n_results == 0 ||
            res_list.p_results[0].result != RubySMB::Dcerpc::BindAck::ACCEPTANCE
@@ -27,7 +35,15 @@ module RubySMB
       def request(opnum, options={})
         dcerpc_request = RubySMB::Dcerpc::Request.new({ :opnum => opnum }, options)
         ioctl_response = ioctl_send_recv(dcerpc_request, options)
-        RubySMB::Dcerpc::Response.read(ioctl_response.output_data)
+        begin
+          dcerpc_response = RubySMB::Dcerpc::Response.read(ioctl_response.output_data)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the DCERPC response"
+        end
+        unless dcerpc_response.pdu_header.ptype == RubySMB::Dcerpc::PTypes::RESPONSE
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Not a Response packet"
+        end
+        dcerpc_response
       end
 
       def ioctl_send_recv(action, options={})
@@ -36,7 +52,14 @@ module RubySMB
         request.flags.is_fsctl = 0x00000001
         request.buffer = action.to_binary_s
         ioctl_raw_response = @tree.client.send_recv(request)
-        RubySMB::SMB2::Packet::IoctlResponse.read(ioctl_raw_response)
+        ioctl_response = RubySMB::SMB2::Packet::IoctlResponse.read(ioctl_raw_response)
+        unless ioctl_response.smb2_header.command == RubySMB::SMB2::Commands::IOCTL
+          raise RubySMB::Error::InvalidPacket, 'Not a IoctlResponse packet'
+        end
+        unless ioctl_response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, ioctl_response.status_code.name
+        end
+        ioctl_response
       end
 
     end

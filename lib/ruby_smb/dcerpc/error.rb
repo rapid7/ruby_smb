@@ -7,6 +7,9 @@ module RubySMB
 
       # Raised when The Bind operation fails
       class BindError < DcerpcError; end
+
+      # Raised when an invalid packet is received
+      class InvalidPacket < DcerpcError; end
     end
   end
 end

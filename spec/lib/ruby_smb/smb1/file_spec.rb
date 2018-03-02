@@ -524,7 +524,6 @@ RSpec.describe RubySMB::SMB1::File do
         allow(file).to receive(:read)
         bind_ack_packet.p_result_list.n_results = 1
         bind_ack_packet.p_result_list.p_results[0].result = RubySMB::Dcerpc::BindAck::ACCEPTANCE
-        bind_ack_packet.p_result_list.p_results[0].transfer_syntax.read(RubySMB::Dcerpc::NdrSyntax.new.to_binary_s)
         allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(bind_ack_packet)
       end
 
@@ -548,6 +547,17 @@ RSpec.describe RubySMB::SMB1::File do
         allow(file).to receive(:read).and_return(raw_response)
         expect(RubySMB::Dcerpc::BindAck).to receive(:read).with(raw_response).and_return(bind_ack_packet)
         file.bind(options)
+      end
+
+      it 'raises the expected exception when an invalid packet is received' do
+        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_raise(IOError)
+        expect { file.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when it is not a BindAck packet' do
+        response = RubySMB::Dcerpc::Bind.new
+        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(response)
+        expect { file.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
       end
 
       it 'raises an exception when no result is returned' do
@@ -620,10 +630,32 @@ RSpec.describe RubySMB::SMB1::File do
         file.request(opnum, options)
       end
 
+      it 'raises the expected exception when it is not a Trans packet' do
+        response = RubySMB::SMB1::Packet::Trans2::Response.new
+        allow(RubySMB::SMB1::Packet::Trans::TransactNmpipeResponse).to receive(:read).and_return(response)
+        expect { file.request(opnum, options) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when the status code is not STATUS_SUCCESS' do
+        nmpipe_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+        expect { file.request(opnum, options) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+
       it 'creates a DCERPC Response packet from the response' do
         nmpipe_response.data_block.trans_data.read_data = "test"
         expect(RubySMB::Dcerpc::Response).to receive(:read).with(nmpipe_response.data_block.trans_data.read_data)
         file.request(opnum, options)
+      end
+
+      it 'raises the expected exception when an invalid packet is received' do
+        allow(RubySMB::Dcerpc::Response).to receive(:read).and_raise(IOError)
+        expect { file.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when it is not a Response packet' do
+        response = RubySMB::Dcerpc::Request.new
+        allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(response)
+        expect { file.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
 
       it 'returns the expected DCERPC Response' do

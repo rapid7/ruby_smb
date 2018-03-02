@@ -289,7 +289,6 @@ RSpec.describe RubySMB::SMB2::File do
         allow(file).to receive(:ioctl_send_recv).and_return(ioctl_response)
         bind_ack_packet.p_result_list.n_results = 1
         bind_ack_packet.p_result_list.p_results[0].result = RubySMB::Dcerpc::BindAck::ACCEPTANCE
-        bind_ack_packet.p_result_list.p_results[0].transfer_syntax.read(RubySMB::Dcerpc::NdrSyntax.new.to_binary_s)
         allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(bind_ack_packet)
       end
 
@@ -306,6 +305,17 @@ RSpec.describe RubySMB::SMB2::File do
       it 'creates a BindAck packet from the response' do
         expect(RubySMB::Dcerpc::BindAck).to receive(:read).with(ioctl_response.output_data).and_return(bind_ack_packet)
         file.bind(options)
+      end
+
+      it 'raises the expected exception when an invalid packet is received' do
+        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_raise(IOError)
+        expect { file.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when it is not a BindAck packet' do
+        response = RubySMB::Dcerpc::Bind.new
+        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(response)
+        expect { file.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
       end
 
       it 'raises an exception when no result is returned' do
@@ -351,6 +361,17 @@ RSpec.describe RubySMB::SMB2::File do
         file.request(opnum, options)
       end
 
+      it 'raises the expected exception when an invalid packet is received' do
+        allow(RubySMB::Dcerpc::Response).to receive(:read).and_raise(IOError)
+        expect { file.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when it is not a BindAck packet' do
+        response = RubySMB::Dcerpc::Request.new
+        allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(response)
+        expect { file.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+
       it 'returns the expected DCERPC Response' do
         expect(file.request(opnum, options)).to eq(res_packet)
       end
@@ -382,14 +403,27 @@ RSpec.describe RubySMB::SMB2::File do
       end
 
       it 'creates a IoctlResponse packet from the response' do
-        expect(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_response.to_binary_s)
+        expect(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_response.to_binary_s).and_call_original
         file.ioctl_send_recv(action, options)
+      end
+
+      it 'raises the expected exception when it is not a IoctlResponse packet' do
+        response = RubySMB::SMB2::Packet::LogoffResponse.new
+        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(response)
+        expect { file.ioctl_send_recv(action, options) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'raises the expected exception when the status code is not STATUS_SUCCESS' do
+        ioctl_response_packet = RubySMB::SMB2::Packet::IoctlResponse.new
+        ioctl_response_packet.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_response.to_binary_s).and_return(ioctl_response_packet)
+        expect { file.ioctl_send_recv(action, options) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
       end
 
       it 'returns the expected DCERPC Response' do
         expect(file.ioctl_send_recv(action, options)).to eq(ioctl_response)
       end
     end
-
   end
 end
+
