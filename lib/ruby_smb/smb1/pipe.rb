@@ -42,6 +42,11 @@ module RubySMB
         packet.data_block.trans_parameters.pipe_state
       end
 
+      # @return [Boolean] True if pipe is connected, false otherwise
+      def is_connected?
+        peek_state == STATUS_OK
+      end
+
     end
   end
 end

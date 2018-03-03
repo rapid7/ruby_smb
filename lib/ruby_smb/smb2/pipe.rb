@@ -42,6 +42,11 @@ module RubySMB
         packet.buffer.unpack('V')[0]
       end
 
+      # @return [Boolean] True if pipe is connected, false otherwise
+      def is_connected?
+        peek_state == STATUS_CONNECTED
+      end
+
     end
   end
 end

@@ -49,6 +49,7 @@ module RubySMB
           def initialize_instance
             super
             smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+            smb_header.flags.reply = 1
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::PEEK_NMPIPE
           end
         end
