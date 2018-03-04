@@ -40,5 +40,6 @@ puts "PipeState:       #{pipe.peek_state}" # 3 == OK
 puts "IsConnected:     #{pipe.is_connected?}"
 
 pipe.close
+puts "IsConnected:     #{pipe.is_connected?}"
 client.tree_connects[-1].disconnect!
 client.disconnect!

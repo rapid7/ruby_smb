@@ -14,7 +14,8 @@ module RubySMB
       #
       # @param peek_size [Integer] Amount of data to peek
       # @return [RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse]
-      # @raise [RubySMB::Error::InvalidPacket] if not a valid PeekNmpipeResponse
+      # @raise [RubySMB::Error::InvalidPacket] If not a valid PeekNmpipeResponse
+      # @raise [RubySMB::Error::UnexpectedStatusCode] If status is not STATUS_BUFFER_OVERFLOW or STATUS_SUCCESS
       def peek(peek_size: 0)
         packet = RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest.new
         packet.fid = @fid
@@ -22,6 +23,10 @@ module RubySMB
         packet = @tree.set_header_fields(packet)
         raw_response = @tree.client.send_recv(packet)
         response = RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse.read(raw_response)
+
+        unless response.status_code == WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW or response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
 
         unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
           raise RubySMB::Error::InvalidPacket, 'Not a TransResponse packet'
@@ -44,7 +49,15 @@ module RubySMB
 
       # @return [Boolean] True if pipe is connected, false otherwise
       def is_connected?
-        peek_state == STATUS_OK
+        begin
+          state = peek_state
+        rescue RubySMB::Error::UnexpectedStatusCode => e
+          if e.message == 'STATUS_INVALID_HANDLE'
+            return false
+          end
+          raise e
+        end
+        state == STATUS_OK
       end
 
     end
