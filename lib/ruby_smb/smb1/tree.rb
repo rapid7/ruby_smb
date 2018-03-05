@@ -120,7 +120,14 @@ module RubySMB
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
 
-        RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
+        case response.parameter_block.resource_type 
+        when RubySMB::SMB1::ResourceType::BYTE_MODE_PIPE, RubySMB::SMB1::ResourceType::MESSAGE_MODE_PIPE
+          RubySMB::SMB1::Pipe.new(name: filename, tree: self, response: response)
+        when RubySMB::SMB1::ResourceType::DISK
+          RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
+        else
+          raise RubySMB::Error::RubySMBError
+        end
       end
 
       # List `directory` on the remote share.
