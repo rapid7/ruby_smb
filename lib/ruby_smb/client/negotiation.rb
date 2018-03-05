@@ -82,14 +82,21 @@ module RubySMB
           self.smb2 = false
           self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
           self.dialect = packet.negotiated_dialect.to_s
-          self.server_max_buffer_size = packet.parameter_block.max_buffer_size
+          # MaxBufferSize is largest message server will receive, measured from start of the SMB header. Subtract 260
+          # for protocol overhead. Then this value can be used for max read/write size without having to factor in
+          # protocol overhead every time.
+          self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
           self.smb2 = true
           self.signing_required = packet.security_mode.signing_required == 1
           self.dialect = "0x%04x" % packet.dialect_revision
-          self.server_max_buffer_size = 16644
+          self.server_max_read_size = packet.max_read_size
+          self.server_max_write_size = packet.max_write_size
+          self.server_max_transact_size = packet.max_transact_size
+          # This value is used in SMB1 only but calculate a valid value anyway
+          self.server_max_buffer_size = [self.server_max_read_size, self.server_max_write_size, self.server_max_transact_size].min
           'SMB2'
         end
 
@@ -102,7 +109,7 @@ module RubySMB
       def smb1_negotiate_request
         packet = RubySMB::SMB1::Packet::NegotiateRequest.new
         # Default to always enabling Extended Security. It simplifies the Negotiation process
-        # while being gauranteed to work with any modern Windows system. We can get more sophisticated
+        # while being guaranteed to work with any modern Windows system. We can get more sophisticated
         # with switching this on and off at a later date if the need arises.
         packet.smb_header.flags2.extended_security = 1
         # There is no real good reason to ever send an SMB1 Negotiate packet

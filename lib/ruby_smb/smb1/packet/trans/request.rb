@@ -6,7 +6,7 @@ module RubySMB
         # This class represents a generic SMB1 Trans Request Packet as defined in
         # [2.2.4.33.1 Request](https://msdn.microsoft.com/en-us/library/ee441730.aspx)
         class Request < RubySMB::GenericPacket
-
+          # A SMB1 Parameter Block
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16      :total_parameter_count, label: 'Total Parameter Count(bytes)', initial_value: -> { parameter_count }
             uint16      :total_data_count,      label: 'Total Data Count(bytes)',      initial_value: -> { data_count }
@@ -26,6 +26,7 @@ module RubySMB
             array       :setup,                 type:  :uint16,                  initial_length: :setup_count
           end
 
+          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans::DataBlock
             # If unicode is set, the name field must be aligned to start on a 2-byte
             # boundary from the start of the SMB header:
@@ -57,3 +58,4 @@ module RubySMB
     end
   end
 end
+

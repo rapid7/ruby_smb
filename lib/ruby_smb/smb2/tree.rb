@@ -28,6 +28,7 @@ module RubySMB
         @share              = share
         @id                 = response.smb2_header.tree_id
         @permissions        = response.maximal_access
+        @share_type         = response.share_type
       end
 
       # Disconnects this Tree from the current session
@@ -89,7 +90,16 @@ module RubySMB
         raw_response  = client.send_recv(create_request)
         response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
 
-        RubySMB::SMB2::File.new(name: filename, tree: self, response: response)
+        case @share_type
+        when 0x01
+          RubySMB::SMB2::File.new(name: filename, tree: self, response: response)
+        when 0x02
+          RubySMB::SMB2::Pipe.new(name: filename, tree: self, response: response)
+        # when 0x03
+        #   it's a printer!
+        else
+          raise RubySMB::Error::RubySMBError
+        end
       end
 
       # List `directory` on the remote share.

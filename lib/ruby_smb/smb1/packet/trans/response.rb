@@ -6,7 +6,7 @@ module RubySMB
         # This class represents a generic SMB1 Trans Response Packet as defined in
         # [2.2.4.33.2 Response](https://msdn.microsoft.com/en-us/library/ee442061.aspx)
         class Response < RubySMB::GenericPacket
-
+          # A SMB1 Parameter Block
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16 :total_parameter_count,  label: 'Total Parameter Count(bytes)', initial_value: -> { parameter_count }
             uint16 :total_data_count,       label: 'Total Data Count(bytes)',      initial_value: -> { data_count }
@@ -44,3 +44,4 @@ module RubySMB
     end
   end
 end
+

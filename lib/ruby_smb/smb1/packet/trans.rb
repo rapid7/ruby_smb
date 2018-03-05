@@ -14,6 +14,8 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans/response'
         require 'ruby_smb/smb1/packet/trans/transact_nmpipe_request'
         require 'ruby_smb/smb1/packet/trans/transact_nmpipe_response'
+        require 'ruby_smb/smb1/packet/trans/peek_nmpipe_request'
+        require 'ruby_smb/smb1/packet/trans/peek_nmpipe_response'
       end
     end
   end

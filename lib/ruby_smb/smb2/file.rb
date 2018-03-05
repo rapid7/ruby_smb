@@ -98,8 +98,8 @@ module RubySMB
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
       def read(bytes: size, offset: 0)
-        atomic_read_size = if bytes > MAX_PACKET_SIZE
-                             MAX_PACKET_SIZE
+        atomic_read_size = if bytes > tree.client.server_max_read_size
+                             tree.client.server_max_read_size
                            else
                              bytes
                            end
@@ -114,7 +114,7 @@ module RubySMB
 
         while remaining_bytes > 0
           offset += atomic_read_size
-          atomic_read_size = remaining_bytes if remaining_bytes < MAX_PACKET_SIZE
+          atomic_read_size = remaining_bytes if remaining_bytes < tree.client.server_max_read_size
 
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
           raw_response = tree.client.send_recv(read_request)
@@ -188,9 +188,9 @@ module RubySMB
       def write(data:'', offset: 0)
         buffer            = data.dup
         bytes             = data.length
-        atomic_write_size = if bytes > MAX_PACKET_SIZE
-                             MAX_PACKET_SIZE
-                           else
+        atomic_write_size = if bytes > tree.client.server_max_write_size
+                              tree.client.server_max_write_size
+                            else
                              bytes
                             end
 

@@ -14,5 +14,6 @@ module RubySMB
     require 'ruby_smb/smb2/packet'
     require 'ruby_smb/smb2/tree'
     require 'ruby_smb/smb2/file'
+    require 'ruby_smb/smb2/pipe'
   end
 end
