@@ -3,10 +3,6 @@ module RubySMB
     # Represents a file on the Remote server that we can perform
     # various I/O operations on.
     class File
-      require 'ruby_smb/smb2/dcerpc'
-
-      include RubySMB::SMB2::Dcerpc
-
       # The maximum number of byte we want to read or write
       # in a single packet.
       MAX_PACKET_SIZE = 32_768
