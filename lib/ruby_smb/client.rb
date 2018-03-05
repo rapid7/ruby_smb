@@ -388,7 +388,8 @@ module RubySMB
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
       session_request.called_name  = "\x20#{encoded_called_name}\x00"
       session_request.calling_name = "\x20#{encoded_calling_name}\x00"
-      session_request.session_header.packet_length = session_request.do_num_bytes - session_request.session_header.do_num_bytes
+      session_request.session_header.packet_length =
+        session_request.num_bytes - session_request.session_header.num_bytes
 
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
