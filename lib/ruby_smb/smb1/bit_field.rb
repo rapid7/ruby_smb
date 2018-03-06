@@ -11,7 +11,6 @@ module RubySMB
       require 'ruby_smb/smb1/bit_field/directory_access_mask'
       require 'ruby_smb/smb1/bit_field/file_access_mask'
       require 'ruby_smb/smb1/bit_field/trans_flags'
-      require 'ruby_smb/smb1/bit_field/trans2_flags'
       require 'ruby_smb/smb1/bit_field/open2_flags'
       require 'ruby_smb/smb1/bit_field/open2_access_mode'
       require 'ruby_smb/smb1/bit_field/open2_open_mode'

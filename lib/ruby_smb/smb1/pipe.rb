@@ -3,6 +3,9 @@ module RubySMB
     # Represents a pipe on the Remote server that we can perform
     # various I/O operations on.
     class Pipe < File
+      require 'ruby_smb/smb1/dcerpc'
+
+      include RubySMB::SMB1::Dcerpc
 
       # Reference: https://msdn.microsoft.com/en-us/library/ee441883.aspx
       STATUS_DISCONNECTED = 0x0001

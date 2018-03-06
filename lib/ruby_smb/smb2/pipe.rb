@@ -3,6 +3,9 @@ module RubySMB
     # Represents a pipe on the Remote server that we can perform
     # various I/O operations on.
     class Pipe < File
+      require 'ruby_smb/smb2/dcerpc'
+
+      include RubySMB::SMB2::Dcerpc
 
       STATUS_CONNECTED = 0x00000003
       STATUS_CLOSING   = 0x00000004

@@ -1,8 +1,9 @@
 module RubySMB
   module SMB1
     module BitField
-      # The Flags bit-field for a Trans Request Packet
-      # [2.2.4.33.1 Request](https://msdn.microsoft.com/en-us/library/ee441730.aspx)
+      # The Flags bit-field for Trans and Trans2 Request Packets as defined in
+      # [2.2.4.33.1 Request](https://msdn.microsoft.com/en-us/library/ee441730.aspx) and
+      # [2.2.4.46.1 Request](https://msdn.microsoft.com/en-us/library/ee442192.aspx)
       class TransFlags < BinData::Record
         endian  :little
         bit6    :reserved,              label: 'Reserved Space',             initial_value: 0

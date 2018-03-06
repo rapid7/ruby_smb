@@ -357,41 +357,9 @@ module RubySMB
     # @return [Array] of shares
     # @param [String] host
     def net_share_enum_all(host)
-      if smb2
-        smb2_net_share_enum_all(host)
-      else
-        smb1_net_share_enum_all(host)
-      end
-    end
-
-    #
-    # SMB2 Methods
-    #
-
-    # Sends a request to connect to a remote host and returns the Array
-    # of shares
-    #
-    # @return [Array] List of shares
-    # @param [String] host
-    def smb2_net_share_enum_all(host)
-
       tree = tree_connect("\\\\#{host}\\IPC$")
-
-      named_pipe = tree.open_file(filename: "srvsvc",
-                                  write: true,
-                                  read: true,
-                                  disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-
-      handle = Dcerpc::Handle.new(named_pipe)
-
-      handle.bind(endpoint: Dcerpc::Srvsvc)
-      handle.request(
-          opnum: Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
-          stub: Dcerpc::Srvsvc::NetShareEnumAll,
-          options:{host: host}
-      )
-      shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
-      shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
+      named_pipe = tree.open_file(filename: "srvsvc", write: true, read: true)
+      named_pipe.net_share_enum_all(host)
     end
 
     # Resets all of the session state on the client, setting it
@@ -420,7 +388,8 @@ module RubySMB
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
       session_request.called_name  = "\x20#{encoded_called_name}\x00"
       session_request.calling_name = "\x20#{encoded_calling_name}\x00"
-      session_request.session_header.packet_length = session_request.do_num_bytes - session_request.session_header.do_num_bytes
+      session_request.session_header.packet_length =
+        session_request.num_bytes - session_request.session_header.num_bytes
 
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)

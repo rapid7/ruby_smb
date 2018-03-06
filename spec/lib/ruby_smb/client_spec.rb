@@ -201,8 +201,8 @@ RSpec.describe RubySMB::Client do
         allow(dispatcher).to receive(:send_packet) do |packet, _opts|
           expect(packet).to be_a(RubySMB::Nbss::SessionRequest)
           expect(packet.session_header.session_packet_type).to eq RubySMB::Nbss::SESSION_REQUEST
-          expect(packet.called_name).to eq encoded_called_name 
-          expect(packet.calling_name).to eq encoded_calling_name 
+          expect(packet.called_name).to eq encoded_called_name
+          expect(packet.calling_name).to eq encoded_calling_name
           expect(packet.session_header.packet_length).to eq (encoded_called_name.size + encoded_calling_name.size)
         end
         client.session_request
@@ -1123,11 +1123,58 @@ RSpec.describe RubySMB::Client do
       end
 
       describe '#net_share_enum_all' do
-        let(:shares){{}}
+        let(:tree){ double("Tree") }
+        let(:named_pipe){ double("Named Pipe") }
 
-        it 'it calls the smb2 method' do
-          expect(smb2_client).to receive(:smb2_net_share_enum_all).with(sock.peeraddr).and_return(shares)
-          smb2_client.net_share_enum_all(sock.peeraddr)
+        before :example do
+          allow(tree).to receive(:open_file).and_return(named_pipe)
+          allow(named_pipe).to receive(:net_share_enum_all)
+        end
+
+        context 'with SMB1' do
+          before :example do
+            allow(smb1_client).to receive(:tree_connect).and_return(tree)
+          end
+
+          it 'it calls the #tree_connect method to connect to the "host" IPC$ share' do
+            ipc_share = "\\\\#{sock.peeraddr}\\IPC$"
+            expect(smb1_client).to receive(:tree_connect).with(ipc_share).and_return(tree)
+            smb1_client.net_share_enum_all(sock.peeraddr)
+          end
+
+          it 'it calls the Tree #open_file method to open "srvsvc" named pipe' do
+            expect(tree).to receive(:open_file).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
+            smb1_client.net_share_enum_all(sock.peeraddr)
+          end
+
+          it 'it calls the File #net_share_enum_all method with the correct host' do
+            host = "1.2.3.4"
+            expect(named_pipe).to receive(:net_share_enum_all).with(host)
+            smb1_client.net_share_enum_all(host)
+          end
+        end
+
+        context 'with SMB2' do
+          before :example do
+            allow(smb2_client).to receive(:tree_connect).and_return(tree)
+          end
+
+          it 'it calls the #tree_connect method to connect to the "host" IPC$ share' do
+            ipc_share = "\\\\#{sock.peeraddr}\\IPC$"
+            expect(smb2_client).to receive(:tree_connect).with(ipc_share).and_return(tree)
+            smb2_client.net_share_enum_all(sock.peeraddr)
+          end
+
+          it 'it calls the Tree #open_file method to open "srvsvc" named pipe' do
+            expect(tree).to receive(:open_file).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
+            smb2_client.net_share_enum_all(sock.peeraddr)
+          end
+
+          it 'it calls the File #net_share_enum_all method with the correct host' do
+            host = "1.2.3.4"
+            expect(named_pipe).to receive(:net_share_enum_all).with(host)
+            smb2_client.net_share_enum_all(host)
+          end
         end
       end
     end
