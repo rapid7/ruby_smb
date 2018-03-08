@@ -13,9 +13,11 @@ module RubySMB
 
       def bind(options={})
         bind_req = RubySMB::Dcerpc::Bind.new(options)
-        ioctl_response = ioctl_send_recv(bind_req, options)
+        write(data: bind_req.to_binary_s)
+        @size = 1024
+        dcerpc_raw_response = read()
         begin
-          dcerpc_response = RubySMB::Dcerpc::BindAck.read(ioctl_response.output_data)
+          dcerpc_response = RubySMB::Dcerpc::BindAck.read(dcerpc_raw_response)
         rescue IOError
           raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the DCERPC response"
         end

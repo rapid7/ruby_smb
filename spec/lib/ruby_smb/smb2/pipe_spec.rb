@@ -43,7 +43,7 @@ RSpec.describe RubySMB::SMB2::Pipe do
       expect(pipe.peek_available).to eq(0x40302010)
     end
   end
-  
+
   describe '#peek_state' do
     it 'reads the correct state of the pipe' do
       allow(pipe).to receive(:peek) { ioctl_response }
@@ -111,12 +111,12 @@ RSpec.describe RubySMB::SMB2::Pipe do
     describe '#bind' do
       let(:options) { { endpoint: RubySMB::Dcerpc::Srvsvc } }
       let(:bind_packet) { RubySMB::Dcerpc::Bind.new(options) }
-      let(:ioctl_response) { RubySMB::SMB2::Packet::IoctlResponse.new }
       let(:bind_ack_packet) { RubySMB::Dcerpc::BindAck.new }
 
       before :example do
         allow(RubySMB::Dcerpc::Bind).to receive(:new).and_return(bind_packet)
-        allow(pipe).to receive(:ioctl_send_recv).and_return(ioctl_response)
+        allow(pipe).to receive(:write)
+        allow(pipe).to receive(:read)
         bind_ack_packet.p_result_list.n_results = 1
         bind_ack_packet.p_result_list.p_results[0].result = RubySMB::Dcerpc::BindAck::ACCEPTANCE
         allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(bind_ack_packet)
@@ -127,13 +127,20 @@ RSpec.describe RubySMB::SMB2::Pipe do
         pipe.bind(options)
       end
 
-      it 'calls #ioctl_send_recv' do
-        expect(pipe).to receive(:ioctl_send_recv).with(bind_packet, options)
+      it 'writes to the named pipe' do
+        expect(pipe).to receive(:write).with(data: bind_packet.to_binary_s)
+        pipe.bind(options)
+      end
+
+      it 'reads the socket' do
+        expect(pipe).to receive(:read)
         pipe.bind(options)
       end
 
       it 'creates a BindAck packet from the response' do
-        expect(RubySMB::Dcerpc::BindAck).to receive(:read).with(ioctl_response.output_data).and_return(bind_ack_packet)
+        raw_response = RubySMB::Dcerpc::BindAck.new.to_binary_s
+        allow(pipe).to receive(:read).and_return(raw_response)
+        expect(RubySMB::Dcerpc::BindAck).to receive(:read).with(raw_response).and_return(bind_ack_packet)
         pipe.bind(options)
       end
 
@@ -199,7 +206,7 @@ RSpec.describe RubySMB::SMB2::Pipe do
       it 'raises the expected exception when it is not a BindAck packet' do
         response = RubySMB::Dcerpc::Request.new
         allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(response)
-        expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { pipe.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
 
       it 'returns the expected DCERPC Response' do
