@@ -83,7 +83,7 @@ module RubySMB
         @session_key = @ntlm_client.session_key
         challenge_message = @ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
-        @os_version = extract_os_version(challenge_message.os_version.to_s)
+        @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
 
         raw = smb1_ntlmssp_authenticate(type3_message, user_id)
         response = smb1_ntlmssp_final_packet(raw)
@@ -201,7 +201,7 @@ module RubySMB
         @session_key = @ntlm_client.session_key
         challenge_message = ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
-        @os_version = extract_os_version(challenge_message.os_version.to_s)
+        @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
 
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
