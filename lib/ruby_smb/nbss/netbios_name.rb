@@ -1,9 +1,9 @@
 module RubySMB
   module Nbss
     # Representation of the NetBIOS Name as defined in
-    # [4.1. NAME FORMAT](https://tools.ietf.org/html/rfc1002#section-4.1)
+    # [4.1. NAME FORMAT](https://tools.ietf.org/html/rfc1002#section-4.1) and
     # [14. REPRESENTATION OF NETBIOS NAMES](https://tools.ietf.org/html/rfc1001#section-14) and
-    # i[Domain name representation and compression](https://tools.ietf.org/html/rfc883#page-31)
+    # [Domain name representation and compression](https://tools.ietf.org/html/rfc883#page-31)
     class NetbiosName < BinData::Primitive
       endian :big
 
