@@ -16,14 +16,14 @@ RSpec.describe RubySMB::Nbss::SessionHeader do
   end
 
   describe '#flags' do
-    it 'is a 8-bit Unsigned Integer' do
-      expect(session_header.flags).to be_a BinData::Uint8
+    it 'is a 7-bit Unsigned Integer' do
+      expect(session_header.flags).to be_a BinData::Bit7
     end
   end
 
   describe '#packet_length' do
-    it 'is a 16-bit Unsigned Integer' do
-      expect(session_header.packet_length).to be_a BinData::Uint16be
+    it 'is a 17-bit Unsigned Integer' do
+      expect(session_header.packet_length).to be_a BinData::Bit17
     end
   end
 end

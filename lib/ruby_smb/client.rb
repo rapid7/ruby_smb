@@ -23,7 +23,9 @@ module RubySMB
     # Dialect value for SMB2 Default (Version 2.02)
     SMB2_DIALECT_DEFAULT = 0x0202
     # The default maximum size of a SMB message that the Client accepts (in bytes)
-    MAX_BUFFER_SIZE = 4356
+    MAX_BUFFER_SIZE = 64512
+    # The default maximum size of a SMB message that the Server accepts (in bytes)
+    SERVER_MAX_BUFFER_SIZE = 4356
 
     # The dispatcher responsible for sending packets
     # @!attribute [rw] dispatcher
@@ -158,7 +160,23 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :server_max_buffer_size
 
-    # @param dispatcher [RubySMB::Dispacther::Socket] the packet dispatcher to use
+    # The maximum size SMB2 write request that the Server accepts (in bytes)
+    # @!attribute [rw] server_max_write_size
+    #   @return [Integer]
+    attr_accessor :server_max_write_size
+
+    # The maximum size SMB2 read request that the Server accepts (in bytes)
+    # @!attribute [rw] server_max_read_size
+    #   @return [Integer]
+    attr_accessor :server_max_read_size
+
+    # The maximum size SMB2 transaction that the Server accepts (in bytes)
+    # For transactions that are not a read or write request
+    # @!attribute [rw] server_max_transact_size
+    #   @return [Integer]
+    attr_accessor :server_max_transact_size
+
+    # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     def initialize(dispatcher, smb1: true, smb2: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
@@ -178,7 +196,11 @@ module RubySMB
       @smb2              = smb2
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
-      @server_max_buffer_size = MAX_BUFFER_SIZE
+      # These sizes will be modifed during negotiation
+      @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
+      @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
@@ -335,41 +357,9 @@ module RubySMB
     # @return [Array] of shares
     # @param [String] host
     def net_share_enum_all(host)
-      if smb2
-        smb2_net_share_enum_all(host)
-      else
-        smb1_net_share_enum_all(host)
-      end
-    end
-
-    #
-    # SMB2 Methods
-    #
-
-    # Sends a request to connect to a remote host and returns the Array
-    # of shares
-    #
-    # @return [Array] List of shares
-    # @param [String] host
-    def smb2_net_share_enum_all(host)
-
       tree = tree_connect("\\\\#{host}\\IPC$")
-
-      named_pipe = tree.open_file(filename: "srvsvc",
-                                  write: true,
-                                  read: true,
-                                  disposition: RubySMB::Dispositions::FILE_OPEN_IF)
-
-      handle = Dcerpc::Handle.new(named_pipe)
-
-      handle.bind(endpoint: Dcerpc::Srvsvc)
-      handle.request(
-          opnum: Dcerpc::Srvsvc::NetShareEnumAll::Opnum,
-          stub: Dcerpc::Srvsvc::NetShareEnumAll,
-          options:{host: host}
-      )
-      shares = Dcerpc::Srvsvc::NetShareEnumAll.parse_response(handle.response)
-      shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
+      named_pipe = tree.open_file(filename: "srvsvc", write: true, read: true)
+      named_pipe.net_share_enum_all(host)
     end
 
     # Resets all of the session state on the client, setting it

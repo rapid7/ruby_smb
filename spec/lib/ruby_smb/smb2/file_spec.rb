@@ -195,7 +195,7 @@ RSpec.describe RubySMB::SMB2::File do
       end
     end
   end
-  
+
   describe '#rename_packet' do
     it 'creates a new SetInfoRequest packet' do
       expect(RubySMB::SMB2::Packet::SetInfoRequest).to receive(:new).and_call_original
@@ -231,3 +231,4 @@ RSpec.describe RubySMB::SMB2::File do
     end
   end
 end
+

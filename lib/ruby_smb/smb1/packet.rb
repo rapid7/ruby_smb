@@ -19,6 +19,7 @@ module RubySMB
       require 'ruby_smb/smb1/packet/logoff_response'
       require 'ruby_smb/smb1/packet/echo_request'
       require 'ruby_smb/smb1/packet/echo_response'
+      require 'ruby_smb/smb1/packet/trans'
       require 'ruby_smb/smb1/packet/trans2'
       require 'ruby_smb/smb1/packet/nt_trans'
       require 'ruby_smb/smb1/packet/nt_create_andx_request'
@@ -29,6 +30,7 @@ module RubySMB
       require 'ruby_smb/smb1/packet/write_andx_response'
       require 'ruby_smb/smb1/packet/close_request'
       require 'ruby_smb/smb1/packet/close_response'
+      require 'ruby_smb/smb1/packet/trans'
     end
   end
 end

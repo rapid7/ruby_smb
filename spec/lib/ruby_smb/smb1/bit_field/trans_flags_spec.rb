@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::BitField::Trans2Flags do
+RSpec.describe RubySMB::SMB1::BitField::TransFlags do
   subject(:flags) { described_class.new }
 
   it { is_expected.to respond_to :no_response }
