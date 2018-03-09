@@ -39,8 +39,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Request do
     it { is_expected.to respond_to :setup_count }
 
     describe 'flags' do
-      it 'is a trans2_flags BitField' do
-        expect(parameter_block.flags).to be_a RubySMB::SMB1::BitField::Trans2Flags
+      it 'is a trans_flags BitField' do
+        expect(parameter_block.flags).to be_a RubySMB::SMB1::BitField::TransFlags
       end
     end
 

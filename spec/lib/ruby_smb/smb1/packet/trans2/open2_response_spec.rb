@@ -10,7 +10,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
       expect(header).to be_a RubySMB::SMB1::SMBHeader
     end
 
-    it 'should have the command set to SMB_COM_NEGOTIATE' do
+    it 'should have the command set to SMB_COM_TRANSACTION2' do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
     end
 

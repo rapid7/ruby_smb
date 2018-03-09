@@ -13,7 +13,7 @@ module RubySMB
             uint16        :max_data_count,        label: 'Max Data Count(bytes)'
             uint8         :max_setup_count,       label: 'Max Setup Count'
             uint8         :reserved,              label: 'Reserved Space',         initial_value: 0x00
-            trans2_flags  :flags
+            trans_flags   :flags
             uint32        :timeout,               label: 'Timeout',                initial_value: 0x00000000
             uint16        :reserved2,             label: 'Reserved Space',         initial_value: 0x00
             uint16        :parameter_count,       label: 'Parameter Count(bytes)', initial_value: -> { parent.data_block.trans2_parameters.length }

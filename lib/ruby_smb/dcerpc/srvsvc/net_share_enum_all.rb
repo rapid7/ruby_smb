@@ -5,17 +5,16 @@ module RubySMB
       #https://msdn.microsoft.com/en-us/library/cc247293.aspx
 
       class NetShareEnumAll < BinData::Record
-        Opnum = 0xF
-
         endian :little
 
         uint32    :referent_id,  initial_value: 0x00000001
         uint32    :max_count,    initial_value: -> { server_unc.do_num_bytes / 2 }
         uint32    :offset,       initial_value: 0
         uint32    :actual_count, initial_value: -> {max_count}
-        stringz16 :server_unc,       pad_front: false, read_length: -> { actual_count * 2 },
-                                 initial_value: -> {host.encode('utf-16le')}
+        stringz16 :server_unc,   pad_front: false, read_length: -> { actual_count * 2 },
+                                 initial_value: -> {"\\\\#{host.encode('utf-8')}".encode('utf-16le')}
 
+        string :pad,             length: lambda { pad_length }
         uint32 :level,           initial_value: 1
 
         uint32 :ctr,             initial_value: 1
@@ -27,6 +26,11 @@ module RubySMB
 
         uint32 :resume_referent_id, initial_value: 0x00000001
         uint32 :resume_handle,    initial_value: 0
+
+        def pad_length
+          offset = (server_unc.abs_offset + server_unc.to_binary_s.length) % 4
+          (4 - offset) % 4
+        end
 
         def self.parse_response(response)
 
