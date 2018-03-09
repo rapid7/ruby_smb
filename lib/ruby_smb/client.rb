@@ -393,6 +393,10 @@ module RubySMB
       return true
     end
 
+    # Crafts the NetBIOS SessionRequest packet to be sent for session request operations.
+    #
+    # @param name [String] the NetBIOS name to request
+    # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
     def session_request_packet(name = '*SMBSERVER')
       called_name = "#{name.upcase.ljust(15)}\x20"
       calling_name = "#{''.ljust(15)}\x00"
@@ -406,15 +410,5 @@ module RubySMB
       session_request
     end
 
-    def nb_name_encode(name)
-      encoded_name = ''
-      name.each_byte do |char|
-        first_half = (char >> 4) + 'A'.ord
-        second_half = (char & 0xF) + 'A'.ord
-        encoded_name << first_half.chr
-        encoded_name << second_half.chr
-      end
-      encoded_name
-    end
   end
 end
