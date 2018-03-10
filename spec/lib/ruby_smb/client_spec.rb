@@ -155,8 +155,6 @@ RSpec.describe RubySMB::Client do
 
   context 'NetBIOS Session Service' do
     describe '#session_request' do
-      let(:called_name)     { '*SMBSERVER      ' }
-      let(:calling_name)    { "               \x00" }
       let(:session_header)  { RubySMB::Nbss::SessionHeader.new }
       let(:session_request) { RubySMB::Nbss::SessionRequest.new }
 
@@ -166,46 +164,10 @@ RSpec.describe RubySMB::Client do
         allow(dispatcher).to receive(:recv_packet).and_return(session_header.to_binary_s)
       end
 
-      it 'requests a session for *SMBSERVER by default' do
-        expect(client).to receive(:nb_name_encode).with(called_name).once
-        expect(client).to receive(:nb_name_encode).with(calling_name).once
-        client.session_request
-      end
-
-      it 'requests a session for the provided name and the expected calling name' do
-        name = 'NBNAME'
-        called_name  = "#{name}          "
-
-        expect(client).to receive(:nb_name_encode).with(called_name).once
-        expect(client).to receive(:nb_name_encode).with(calling_name).once
-        client.session_request(name)
-      end
-
-      it 'makes NetBIOS name uppercase' do
-        name = 'nbNamE'
-        called_name = "#{name.upcase}          "
-
-        expect(client).to receive(:nb_name_encode).with(called_name).once
-        expect(client).to receive(:nb_name_encode).with(calling_name).once
-        client.session_request(name)
-      end
-
-      it 'creates a SessionRequest packet' do
-        expect(RubySMB::Nbss::SessionRequest).to receive(:new).and_return(session_request)
-        client.session_request
-      end
-
-      it 'sets the expected fields of the SessionRequest packet' do
-        encoded_called_name = "\x20#{client.nb_name_encode(called_name)}\x00"
-        encoded_calling_name = "\x20#{client.nb_name_encode(calling_name)}\x00"
-        allow(dispatcher).to receive(:send_packet) do |packet, _opts|
-          expect(packet).to be_a(RubySMB::Nbss::SessionRequest)
-          expect(packet.session_header.session_packet_type).to eq RubySMB::Nbss::SESSION_REQUEST
-          expect(packet.called_name).to eq encoded_called_name
-          expect(packet.calling_name).to eq encoded_calling_name
-          expect(packet.session_header.packet_length).to eq (encoded_called_name.size + encoded_calling_name.size)
-        end
-        client.session_request
+      it 'calls #session_request_packet' do
+        called_name = 'SPECNAME'
+        expect(client).to receive(:session_request_packet).with(called_name)
+        client.session_request(called_name)
       end
 
       it 'sends the SessionRequest packet without adding additional NetBIOS Session Header' do
@@ -237,11 +199,36 @@ RSpec.describe RubySMB::Client do
       end
     end
 
-    describe '#nb_name_encode' do
-      it 'encodes as expected' do
-        input = 'TESTNB          '
-        output = 'FEEFFDFEEOECCACACACACACACACACACA'
-        expect(client.nb_name_encode(input)).to eq output
+    describe '#session_request_packet' do
+      it 'creates a SessionRequest packet' do
+        session_request = RubySMB::Nbss::SessionRequest.new
+        expect(RubySMB::Nbss::SessionRequest).to receive(:new).and_return(session_request)
+        client.session_request_packet
+      end
+
+      it 'sets the expected fields of the SessionRequest packet' do
+        name         = 'NBNAMESPEC'
+        called_name  = 'NBNAMESPEC      '
+        calling_name = "               \x00"
+
+        session_packet = client.session_request_packet(name)
+        expect(session_packet).to be_a(RubySMB::Nbss::SessionRequest)
+        expect(session_packet.session_header.session_packet_type).to eq RubySMB::Nbss::SESSION_REQUEST
+        expect(session_packet.called_name).to eq called_name
+        expect(session_packet.calling_name).to eq calling_name
+        expect(session_packet.session_header.packet_length).to eq(
+          session_packet.called_name.to_binary_s.size + session_packet.calling_name.to_binary_s.size
+        )
+      end
+
+      it 'converts the called name to upperase' do
+        name = 'myname'
+        session_packet = client.session_request_packet(name)
+        expect(session_packet.called_name).to eq("#{name.upcase.ljust(15)}\x20")
+      end
+
+      it 'returns a session packet with *SMBSERVER by default' do
+        expect(client.session_request_packet.called_name).to eq('*SMBSERVER      ')
       end
     end
   end

@@ -17,13 +17,13 @@ RSpec.describe RubySMB::Nbss::SessionRequest do
 
   describe '#called_name' do
     it 'is a string' do
-      expect(session_request.called_name).to be_a BinData::String
+      expect(session_request.called_name).to be_a RubySMB::Nbss::NetbiosName
     end
   end
 
   describe '#calling_name' do
     it 'is a string' do
-      expect(session_request.calling_name).to be_a BinData::String
+      expect(session_request.calling_name).to be_a RubySMB::Nbss::NetbiosName
     end
   end
 end

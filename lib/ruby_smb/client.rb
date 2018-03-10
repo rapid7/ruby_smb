@@ -381,16 +381,7 @@ module RubySMB
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
     def session_request(name = '*SMBSERVER')
-      encoded_called_name = nb_name_encode("#{name.upcase.ljust(15)}\x20")
-      encoded_calling_name = nb_name_encode("#{''.ljust(15)}\x00")
-
-      session_request = RubySMB::Nbss::SessionRequest.new
-      session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
-      session_request.called_name  = "\x20#{encoded_called_name}\x00"
-      session_request.calling_name = "\x20#{encoded_calling_name}\x00"
-      session_request.session_header.packet_length =
-        session_request.num_bytes - session_request.session_header.num_bytes
-
+      session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
       session_header =  RubySMB::Nbss::SessionHeader.read(raw_response)
@@ -402,15 +393,22 @@ module RubySMB
       return true
     end
 
-    def nb_name_encode(name)
-      encoded_name = ''
-      name.each_byte do |char|
-        first_half = (char >> 4) + 'A'.ord
-        second_half = (char & 0xF) + 'A'.ord
-        encoded_name << first_half.chr
-        encoded_name << second_half.chr
-      end
-      encoded_name
+    # Crafts the NetBIOS SessionRequest packet to be sent for session request operations.
+    #
+    # @param name [String] the NetBIOS name to request
+    # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
+    def session_request_packet(name = '*SMBSERVER')
+      called_name = "#{name.upcase.ljust(15)}\x20"
+      calling_name = "#{''.ljust(15)}\x00"
+
+      session_request = RubySMB::Nbss::SessionRequest.new
+      session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST
+      session_request.called_name  = called_name
+      session_request.calling_name = calling_name
+      session_request.session_header.packet_length =
+        session_request.num_bytes - session_request.session_header.num_bytes
+      session_request
     end
+
   end
 end
