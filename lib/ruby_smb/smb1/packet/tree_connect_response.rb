@@ -8,8 +8,8 @@ module RubySMB
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block                :andx_block
           optional_support           :optional_support
-          directory_access_mask      :access_rights,       label: 'Maximal Share Access Rights'
-          directory_access_mask      :guest_access_rights, label: 'Guest Share Access Rights'
+          directory_access_mask      :access_rights,       label: 'Maximal Share Access Rights', onlyif: -> { word_count >= 5 }
+          directory_access_mask      :guest_access_rights, label: 'Guest Share Access Rights',   onlyif: -> { word_count == 7 }
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.

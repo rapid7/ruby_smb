@@ -34,6 +34,32 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
     it 'has an AndXBlock' do
       expect(parameter_block.andx_block).to be_a RubySMB::SMB1::AndXBlock
     end
+
+    context 'when #word_count is less than 5' do
+      before :example do
+        parameter_block.word_count = 3
+      end
+
+      it 'has #access_rights and #guest_access_rights fields disabled' do
+        expect(parameter_block.andx_block?). to be true
+        expect(parameter_block.optional_support?). to be true
+        expect(parameter_block.access_rights?). to be false
+        expect(parameter_block.guest_access_rights?). to be false
+      end
+    end
+
+    context 'when #word_count is 5' do
+      before :example do
+        parameter_block.word_count = 5
+      end
+
+      it 'has the #guest_access_rights field disabled' do
+        expect(parameter_block.andx_block?). to be true
+        expect(parameter_block.optional_support?). to be true
+        expect(parameter_block.access_rights?). to be true
+        expect(parameter_block.guest_access_rights?). to be false
+      end
+    end
   end
 
   describe '#data_block' do
