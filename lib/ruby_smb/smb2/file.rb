@@ -219,7 +219,10 @@ module RubySMB
         pkt = write_packet(data: data, offset: offset)
         raw_response = tree.client.send_recv(pkt)
         response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
-        if response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
+          sleep 1
+          return send_recv_write(data: data, offset: offset)
+        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
         response.write_count
