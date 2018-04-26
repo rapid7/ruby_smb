@@ -24,7 +24,7 @@ module RubySMB
         last_tree.id
       end
 
-      def open(path, disposition=RubySMB::Dispositions::FILE_OPEN, access, write: false, read: true)
+      def open(path, disposition=RubySMB::Dispositions::FILE_OPEN, write: false, read: true)
          file = last_tree.open_file(filename: path, write: write, read: read, disposition: disposition)
          @last_file_id = if file.respond_to?(:guid)
            file.guid.to_binary_s
@@ -32,10 +32,11 @@ module RubySMB
            file.fid.to_binary_s
          end
          @open_files[@last_file_id] = file
+         @last_file_id
       end
 
       def create_pipe(path, disposition=RubySMB::Dispositions::FILE_OPEN_IF, impersonation)
-        open(path.gsub(/\\/, ''), disposition, nil, write: true, read: true)
+        open(path.gsub(/\\/, ''), disposition, write: true, read: true)
       end
       
       #Writes data to an open file handle
@@ -43,15 +44,13 @@ module RubySMB
         @open_files[file_id].send_recv_write(data: data, offset: offset)
       end
 
-      def read(file_id, offset = 0, length = last_file.size_on_disk)
-        offset = 0
-        length = last_file.size_on_disk
+      def read(file_id, offset = 0, length = last_file.size)
         data = @open_files[file_id].send_recv_read(read_length: length, offset: offset)
         data.bytes
       end
 
       def close(file_id, tree_id)
-       @open_files[file_id.to_binary_s].close
+       @open_files[file_id].close
       end
 
       def tree_disconnect(share)

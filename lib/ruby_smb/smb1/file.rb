@@ -225,7 +225,7 @@ module RubySMB
       def write_packet(data:'', offset: 0)
         write_request = set_header_fields(RubySMB::SMB1::Packet::WriteAndxRequest.new)
         write_request.parameter_block.offset = offset
-        write_request.parameter_block.write_mode.writethrough_mode = 1
+        write_request.parameter_block.write_mode.msg_start = 1
         write_request.data_block.data = data
         write_request.parameter_block.remaining = write_request.parameter_block.data_length
         write_request
@@ -233,6 +233,7 @@ module RubySMB
       
       def send_recv_write(data:'', offset: 0)
         pkt = write_packet(data: data, offset: offset)
+        pkt.set_64_bit_offset(true)
         raw_response = @tree.client.send_recv(pkt)
         response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
         response.parameter_block.count_low
