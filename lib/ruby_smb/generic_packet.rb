@@ -42,7 +42,7 @@ module RubySMB
     def self.read(val)
       begin
         super(val)
-      rescue EOFError => e
+      rescue IOError => e
         case self.to_s
           when /EmptyPacket|ErrorPacket/
             raise e

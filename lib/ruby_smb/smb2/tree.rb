@@ -90,6 +90,10 @@ module RubySMB
         raw_response  = client.send_recv(create_request)
         response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
 
+        if response.is_a?(RubySMB::SMB2::Packet::ErrorPacket)
+          raise RubySMB::Error::RubySMBError
+        end
+
         case @share_type
         when 0x01
           RubySMB::SMB2::File.new(name: filename, tree: self, response: response)

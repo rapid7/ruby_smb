@@ -140,7 +140,8 @@ module RubySMB
         response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         if response.status_code == WindowsError::NTStatus::STATUS_PENDING
           sleep 1
-          return send_recv_read(read_length: read_length, offset: offset)
+          raw_response = tree.client.dispatcher.recv_packet
+          response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
@@ -219,7 +220,11 @@ module RubySMB
         pkt = write_packet(data: data, offset: offset)
         raw_response = tree.client.send_recv(pkt)
         response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
-        if response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
+          sleep 1
+          raw_response = tree.client.dispatcher.recv_packet
+          response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
         response.write_count

@@ -233,6 +233,7 @@ module RubySMB
       
       def send_recv_write(data:'', offset: 0)
         pkt = write_packet(data: data, offset: offset)
+        pkt.set_64_bit_offset(true)
         raw_response = @tree.client.send_recv(pkt)
         response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
         response.parameter_block.count_low
