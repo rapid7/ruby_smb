@@ -225,7 +225,7 @@ module RubySMB
       def write_packet(data:'', offset: 0)
         write_request = set_header_fields(RubySMB::SMB1::Packet::WriteAndxRequest.new)
         write_request.parameter_block.offset = offset
-        write_request.parameter_block.write_mode.msg_start = 1
+        write_request.parameter_block.write_mode.writethrough_mode = 1
         write_request.data_block.data = data
         write_request.parameter_block.remaining = write_request.parameter_block.data_length
         write_request
