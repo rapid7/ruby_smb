@@ -25,7 +25,7 @@ module RubySMB
       end
 
       def open(path, disposition=RubySMB::Dispositions::FILE_OPEN, write: false, read: true)
-         file = last_tree.open_file(filename: path.gsub(/\\/, ''), write: write, read: read, disposition: disposition)
+         file = last_tree.open_file(filename: path.sub(/^\\/, ''), write: write, read: read, disposition: disposition)
          @last_file_id = if file.respond_to?(:guid)
            file.guid.to_binary_s
          elsif file.respond_to?(:fid)
@@ -50,7 +50,7 @@ module RubySMB
       end
 
       def delete(path)
-        file = last_tree.open_file(filename: path.gsub(/\\/, ''), delete: true)
+        file = last_tree.open_file(filename: path.sub(/^\\/, ''), delete: true)
         file.delete
         file.close
       end
