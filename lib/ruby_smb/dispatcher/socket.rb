@@ -66,7 +66,9 @@ module RubySMB
         end
 
         begin
-          nbss_header = RubySMB::Nbss::SessionHeader.read(@tcp_socket)
+          nbss_data = @tcp_socket.read(4)
+          raise IOError if nbss_data.nil?
+          nbss_header = RubySMB::Nbss::SessionHeader.read(nbss_data)
         rescue IOError
           raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'
         end
