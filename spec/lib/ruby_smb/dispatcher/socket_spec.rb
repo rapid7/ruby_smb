@@ -85,7 +85,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
       end
 
       it 'reads the nbss header using Nbss::SessionHeader structure' do
-        expect(RubySMB::Nbss::SessionHeader).to receive(:read).with(response_socket).and_return(session_header)
+        expect(RubySMB::Nbss::SessionHeader).to receive(:read).with(nbss).and_return(session_header)
         smb_socket.recv_packet
       end
 
@@ -105,6 +105,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
         packet_length = 10
         session_header.packet_length = packet_length
         allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
+        expect(response_socket).to receive(:read).with(4).and_return(session_header)
         expect(response_socket).to receive(:read).with(packet_length).and_return('A' * packet_length)
         smb_socket.recv_packet
       end
@@ -116,6 +117,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
           session_header.packet_length = packet_length
           allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
 
+          expect(response_socket).to receive(:read).with(4).and_return(session_header)
           loop do
             expect(response_socket).to receive(:read).with(packet_length).and_return('A' * returned_length).once
             packet_length -= returned_length
