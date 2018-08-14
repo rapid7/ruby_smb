@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_SESSION_SETUP Legacy Response Packet as defined in
       # [2.2.4.53.2 Response](https://msdn.microsoft.com/en-us/library/ee442143.aspx)
       class SessionSetupLegacyResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -24,7 +26,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+          smb_header.command = COMMAND
           smb_header.flags.reply = 1
         end
       end

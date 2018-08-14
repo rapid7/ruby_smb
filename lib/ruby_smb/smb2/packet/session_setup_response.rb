@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 SessionSetupResponse Packet as defined in
       # [2.2.6 SMB2 SESSION_SETUP Response](https://msdn.microsoft.com/en-us/library/cc246564.aspx)
       class SessionSetupResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::SESSION_SETUP
+
         endian :little
         smb2_header         :smb2_header
         uint16              :structure_size, label: 'Structure Size', initial_value: 9
@@ -14,7 +16,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::SESSION_SETUP
+          smb2_header.command = COMMAND
           smb2_header.flags.reply = 1
         end
 

@@ -54,14 +54,10 @@ module RubySMB
       end
 
       def smb1_anonymous_auth_response(raw_response)
-        begin
-          packet = RubySMB::SMB1::Packet::SessionSetupLegacyResponse.read(raw_response)
-        rescue
-          packet = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
-        end
+        packet = RubySMB::SMB1::Packet::SessionSetupLegacyResponse.read(raw_response)
 
-        unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
-          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SessionSetupLegacyResponse packet'
         end
         packet
       end
@@ -147,14 +143,10 @@ module RubySMB
 
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
       def smb1_ntlmssp_final_packet(raw_response)
-        begin
-          packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
-        rescue
-          packet = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
-        end
+        packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
 
-        unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
-          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SessionSetupResponse packet'
         end
         packet
       end
@@ -162,15 +154,15 @@ module RubySMB
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
       def smb1_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
-        status_code = packet.status_code
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SessionSetupResponse packet'
+        end
 
+        status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
         end
 
-        unless packet.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
-          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb_header.command} and not #{RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP}"
-        end
         packet
       end
 
@@ -212,22 +204,23 @@ module RubySMB
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
       def smb2_ntlmssp_final_packet(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
-        unless packet.smb2_header.command == RubySMB::SMB2::Commands::SESSION_SETUP
-          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb2_header.command} and not #{RubySMB::SMB2::Commands::SESSION_SETUP}"
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SessionSetup packet'
         end
+
         packet
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
       def smb2_ntlmssp_challenge_packet(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SessionSetupResponse packet'
+        end
+
         status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
           raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
-        end
-
-        unless packet.smb2_header.command == RubySMB::SMB2::Commands::SESSION_SETUP
-          raise RubySMB::Error::InvalidPacket, "Command was #{packet.smb2_header.command} and not #{RubySMB::SMB2::Commands::SESSION_SETUP}"
         end
         packet
       end
