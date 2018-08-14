@@ -45,14 +45,16 @@ module RubySMB
       rescue IOError => e
         case self.to_s
           when /EmptyPacket|ErrorPacket/
-            raise e
+            raise RubySMB::Error::InvalidPacket, 'Not a valid SMB packet'
           when /SMB1/
-            RubySMB::SMB1::Packet::EmptyPacket.read(val)
+            packet = RubySMB::SMB1::Packet::EmptyPacket.read(val)
           when /SMB2/
-            RubySMB::SMB2::Packet::ErrorPacket.read(val)
+            packet = RubySMB::SMB2::Packet::ErrorPacket.read(val)
           else
-            raise e
+            raise RubySMB::Error::InvalidPacket, 'Not a valid SMB packet'
         end
+        packet.original_command = self::COMMAND
+        packet
       end
     end
 
@@ -70,6 +72,20 @@ module RubySMB
         status_code = WindowsError::ErrorCode.new("0x#{value.to_s(16)}", value, "Unknown 0x#{value.to_s(16)}")
       end
       status_code
+    end
+
+    # Validates the packet protocol ID and the SMB command
+    #
+    # @return [TrueClass, FalseClass] true if the packet is valid, false otherwise
+    def valid?
+      case packet_smb_version
+      when 'SMB1'
+        return smb_header.protocol == RubySMB::SMB1::SMB_PROTOCOL_ID &&
+          smb_header.command == self.class::COMMAND
+      when 'SMB2'
+        return smb2_header.protocol == RubySMB::SMB2::SMB2_PROTOCOL_ID &&
+          smb2_header.command == self.class::COMMAND
+      end
     end
 
     # Returns an array of hashes representing the
