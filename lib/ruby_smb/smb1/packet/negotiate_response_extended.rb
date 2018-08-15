@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_NEGOTIATE Extended Security Response Packet as defined in
       # [2.2.4.5.2.1 Extended Security Response](https://msdn.microsoft.com/en-us/library/cc246326.aspx)
       class NegotiateResponseExtended < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+
         # An SMB_Parameters Block as defined by the {NegotiateResponseExtended}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           uint16          :dialect_index, label: 'Dialect Index'
@@ -31,13 +33,12 @@ module RubySMB
 
         def initialize_instance
           super
-          header = smb_header
-          header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
-          header.flags.reply = 1
+          smb_header.command = COMMAND
+          smb_header.flags.reply = 1
         end
 
         def valid?
-          return false unless smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          return false unless super
           return false unless parameter_block.capabilities.extended_security == 1
           true
         end

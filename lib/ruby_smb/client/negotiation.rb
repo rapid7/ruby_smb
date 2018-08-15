@@ -47,23 +47,15 @@ module RubySMB
       def negotiate_response(raw_data)
         response = nil
         if smb1
-          begin
-            packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
-          rescue StandardError => e
-            raise RubySMB::Error::InvalidPacket, "Not a Valid SMB1 Negoitate Response #{e.message}"
-          end
+          packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
           response = packet if packet.valid?
         end
         if smb2 && response.nil?
-          begin
-            packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
-          rescue StandardError => e
-            raise RubySMB::Error::InvalidPacket, "Not a Valid SMB2 Negoitate Response #{e.message}"
-          end
-          response = packet
+          packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
+          response = packet if packet.valid?
         end
         if response.nil?
-          raise RubySMB::Error::InvalidPacket, 'No Valid Negotiate Response found'
+          raise RubySMB::Error::InvalidPacket, 'No valid Negotiate Response found'
         end
         response
       end
