@@ -16,7 +16,11 @@ module RubySMB
         (count - 1).times do
           raw_response = dispatcher.recv_packet
         end
-        RubySMB::SMB1::Packet::EchoResponse.read(raw_response)
+        response = RubySMB::SMB1::Packet::EchoResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a EchoResponse packet'
+        end
+        response
       end
 
       # Sends an ECHO request packet and returns the
@@ -26,7 +30,11 @@ module RubySMB
       def smb2_echo
         request      = RubySMB::SMB2::Packet::EchoRequest.new
         raw_response = send_recv(request)
-        RubySMB::SMB2::Packet::EchoResponse.read(raw_response)
+        response = RubySMB::SMB2::Packet::EchoResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a EchoResponse packet'
+        end
+        response
       end
     end
   end
