@@ -26,5 +26,9 @@ module RubySMB
     # Raised when Protocol Negotiation fails, possibly due to an
     # unsupported protocol.
     class NegotiationFailure < RubySMBError; end
+
+    # Raised when trying to parse raw binary into a BitField and the data
+    # is invalid.
+    class InvalidBitField < RubySMBError; end
   end
 end
