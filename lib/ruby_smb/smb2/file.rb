@@ -79,11 +79,19 @@ module RubySMB
       # Closes the handle to the remote file.
       #
       # @return [WindowsError::ErrorCode] the NTStatus code returned by the operation
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a CloseResponse packet
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def close
         close_request = set_header_fields(RubySMB::SMB2::Packet::CloseRequest.new)
         raw_response  = tree.client.send_recv(close_request)
         response = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
-        response.smb2_header.nt_status.to_nt_status
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a CloseResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
+        response.status_code
       end
 
       # Read from the file, a specific number of bytes
@@ -93,6 +101,8 @@ module RubySMB
       # @param bytes [Integer] the number of bytes to read
       # @param offset [Integer] the byte offset in the file to start reading from
       # @return [String] the data read from the file
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a ReadResponse packet
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def read(bytes: size, offset: 0)
         atomic_read_size = if bytes > tree.client.server_max_read_size
                              tree.client.server_max_read_size
@@ -103,6 +113,12 @@ module RubySMB
         read_request = read_packet(read_length: atomic_read_size, offset: offset)
         raw_response = tree.client.send_recv(read_request)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
 
         data = response.buffer.to_binary_s
 
@@ -115,6 +131,12 @@ module RubySMB
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
           raw_response = tree.client.send_recv(read_request)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+          unless response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+          end
+          unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          end
 
           data << response.buffer.to_binary_s
           remaining_bytes -= atomic_read_size
@@ -138,10 +160,16 @@ module RubySMB
         read_request = read_packet(read_length: read_length, offset: offset)
         raw_response = tree.client.send_recv(read_request)
         response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+        end
         if response.status_code == WindowsError::NTStatus::STATUS_PENDING
           sleep 1
           raw_response = tree.client.dispatcher.recv_packet
           response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
+          unless response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+          end
         elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
@@ -151,9 +179,13 @@ module RubySMB
       # Delete a file on close
       #
       # @return [WindowsError::ErrorCode] the NTStatus Response code
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a SetInfoResponse packet
       def delete
         raw_response = tree.client.send_recv(delete_packet)
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SetInfoResponse packet'
+        end
         response.smb2_header.nt_status.to_nt_status
       end
 
@@ -182,6 +214,7 @@ module RubySMB
       # @param data [String] the data to write to the file
       # @param offset [Integer] the offset in the file to start writing from
       # @return [WindowsError::ErrorCode] the NTStatus code returned from the operation
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a WriteResponse packet
       def write(data:'', offset: 0)
         buffer            = data.dup
         bytes             = data.length
@@ -195,6 +228,9 @@ module RubySMB
           write_request = write_packet(data: buffer.slice!(0,atomic_write_size), offset: offset)
           raw_response  = tree.client.send_recv(write_request)
           response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+          unless response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+          end
           status        = response.smb2_header.nt_status.to_nt_status
 
           offset+= atomic_write_size
@@ -220,10 +256,16 @@ module RubySMB
         pkt = write_packet(data: data, offset: offset)
         raw_response = tree.client.send_recv(pkt)
         response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+        end
         if response.status_code == WindowsError::NTStatus::STATUS_PENDING
           sleep 1
           raw_response = tree.client.dispatcher.recv_packet
           response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
+          unless response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+          end
         elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
@@ -234,9 +276,13 @@ module RubySMB
       #
       # @param new_file_name [String] the new name
       # @return [WindowsError::ErrorCode] the NTStatus Response code
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a SetInfoResponse packet
       def rename(new_file_name)
         raw_response = tree.client.send_recv(rename_packet(new_file_name))
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a SetInfoResponse packet'
+        end
         response.smb2_header.nt_status.to_nt_status
       end
 

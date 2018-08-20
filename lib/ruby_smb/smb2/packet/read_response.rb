@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Read Response Packet as defined in
       # [2.2.20 SMB2 READ Response](https://msdn.microsoft.com/en-us/library/cc246531.aspx)
       class ReadResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::READ
+
         endian :little
 
         smb2_header   :smb2_header
@@ -17,7 +19,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command     = RubySMB::SMB2::Commands::READ
+          smb2_header.command     = COMMAND
           smb2_header.flags.reply = 1
         end
       end
