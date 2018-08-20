@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Ioctl Response Packet as defined in
       # [2.2.32 SMB2 IOCTL Response](https://msdn.microsoft.com/en-us/library/cc246548.aspx)
       class IoctlResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::IOCTL
+
         endian :little
 
         smb2_header   :smb2_header
@@ -22,7 +24,7 @@ module RubySMB
         def initialize_instance
           super
           smb2_header.flags.reply = 1
-          smb2_header.command     = RubySMB::SMB2::Commands::IOCTL
+          smb2_header.command     = COMMAND
         end
 
         def input_data
