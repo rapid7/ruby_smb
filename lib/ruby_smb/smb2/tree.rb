@@ -34,11 +34,15 @@ module RubySMB
       # Disconnects this Tree from the current session
       #
       # @return [WindowsError::ErrorCode] the NTStatus sent back by the server.
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a TreeDisconnectResponse packet
       def disconnect!
         request = RubySMB::SMB2::Packet::TreeDisconnectRequest.new
         request = set_header_fields(request)
         raw_response = client.send_recv(request)
         response = RubySMB::SMB2::Packet::TreeDisconnectResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a TreeDisconnectResponse packet'
+        end
         response.status_code
       end
 
@@ -89,9 +93,11 @@ module RubySMB
 
         raw_response  = client.send_recv(create_request)
         response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
-
-        if response.is_a?(RubySMB::SMB2::Packet::ErrorPacket)
-          raise RubySMB::Error::RubySMBError
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a CreateResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
 
         case @share_type
@@ -102,7 +108,7 @@ module RubySMB
         # when 0x03
         #   it's a printer!
         else
-          raise RubySMB::Error::RubySMBError
+          raise RubySMB::Error::RubySMBError, 'Unsupported share type'
         end
       end
 
@@ -116,6 +122,7 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a QueryDirectoryResponse packet
       def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation)
         create_response = open_directory(directory: directory)
         file_id         = create_response.file_id
@@ -133,13 +140,15 @@ module RubySMB
         loop do
           response            = client.send_recv(directory_request)
           directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
+          unless directory_response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a QueryDirectoryResponse packet'
+          end
 
           status_code         = directory_response.smb2_header.nt_status.to_nt_status
 
           break if status_code == WindowsError::NTStatus::STATUS_NO_MORE_FILES
 
           unless status_code == WindowsError::NTStatus::STATUS_SUCCESS
-
             raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
           end
 
@@ -162,6 +171,7 @@ module RubySMB
       # @param write [Boolean] whether to request write access
       # @param delete [Boolean] whether to request delete access
       # @return [RubySMB::SMB2::Packet::CreateResponse] the response packet returned from the server
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a CreateResponse packet
       def open_directory(directory: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                          impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
                          read: true, write: false, delete: false)
@@ -169,7 +179,15 @@ module RubySMB
         create_request  = open_directory_packet(directory: directory, disposition: disposition,
                                                 impersonation: impersonation, read: read, write: write, delete: delete)
         raw_response    = client.send_recv(create_request)
-        RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        response = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a CreateResponse packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
+
+        response
       end
 
       # Creates the Packet for the #open_directory method.

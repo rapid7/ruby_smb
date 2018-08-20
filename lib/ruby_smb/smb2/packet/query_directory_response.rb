@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Query Directory Response Packet as defined in
       # [2.2.34 SMB2 QUERY_DIRECTORY Response](https://msdn.microsoft.com/en-us/library/cc246552.aspx)
       class QueryDirectoryResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::QUERY_DIRECTORY
+
         endian       :little
         smb2_header  :smb2_header
         uint16       :structure_size,  label: 'Structure Size',       initial_value: 9
@@ -13,7 +15,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::QUERY_DIRECTORY
+          smb2_header.command = COMMAND
           smb2_header.flags.reply = 1
         end
 
@@ -23,6 +25,7 @@ module RubySMB
         #
         # @param klass [Class] the FileInformationClass class to read the data as
         # @return [array<BinData::Record>] An array of structs holding the requested information
+        # @raise [RubySMB::Error::InvalidPacket] if the string buffer is not a valid File Information
         def results(klass)
           information_classes = []
           blob = buffer.to_binary_s.dup
@@ -35,7 +38,11 @@ module RubySMB
                      blob.slice!(0, length)
                    end
 
-            information_classes << klass.read(data)
+            begin
+              information_classes << klass.read(data)
+            rescue IOError
+              raise RubySMB::Error::InvalidPacket, "Invalid #{klass} File Information in the string buffer"
+            end
           end
           information_classes
         end
