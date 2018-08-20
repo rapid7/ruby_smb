@@ -6,6 +6,7 @@ module RubySMB
         # A Trans TRANSACT_NMPIPE Response Packet as defined in
         # [2.2.5.6.2 Response](https://msdn.microsoft.com/en-us/library/ee442003.aspx)
         class TransactNmpipeResponse < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
 
           class ParameterBlock < RubySMB::SMB1::Packet::Trans::Response::ParameterBlock
           end
@@ -33,7 +34,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+            smb_header.command = COMMAND
             smb_header.flags.reply = 1
           end
 

@@ -43,7 +43,7 @@ module RubySMB
 
         trans_nmpipe_raw_response = @tree.client.send_recv(request)
         trans_nmpipe_response = RubySMB::SMB1::Packet::Trans::TransactNmpipeResponse.read(trans_nmpipe_raw_response)
-        unless trans_nmpipe_response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+        unless trans_nmpipe_response.valid?
           raise RubySMB::Error::InvalidPacket, 'Not a Trans packet'
         end
         unless trans_nmpipe_response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
