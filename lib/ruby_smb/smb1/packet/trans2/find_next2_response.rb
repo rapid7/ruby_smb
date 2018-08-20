@@ -5,6 +5,8 @@ module RubySMB
         # This class represents an SMB1 Trans2 FIND_NEXT2 Response Packet as defined in
         # [2.2.6.3.2 Response](https://msdn.microsoft.com/en-us/library/ee441871.aspx)
         class FindNext2Response < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock
           end
 
@@ -50,7 +52,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+            smb_header.command = COMMAND
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_NEXT2
             smb_header.flags.reply = 1
           end
@@ -61,6 +63,7 @@ module RubySMB
           #
           # @param klass [Class] the FileInformationClass class to read the data as
           # @return [array<BinData::Record>] An array of structs holding the requested information
+          # @raise [RubySMB::Error::InvalidPacket] if the string buffer is not a valid File Information packet
           def results(klass, unicode:)
             information_classes = []
             blob = data_block.trans2_data.buffer.to_binary_s.dup
@@ -75,7 +78,11 @@ module RubySMB
 
               file_info = klass.new
               file_info.unicode = unicode
-              information_classes << file_info.read(data)
+              begin
+                information_classes << file_info.read(data)
+              rescue IOError
+                raise RubySMB::Error::InvalidPacket, "Invalid #{klass} File Information packet in the string buffer"
+              end
             end
             information_classes
           end

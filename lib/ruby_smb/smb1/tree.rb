@@ -39,11 +39,15 @@ module RubySMB
       # Disconnects this Tree from the current session
       #
       # @return [WindowsError::ErrorCode] the NTStatus sent back by the server.
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a TreeDisconnectResponse packet
       def disconnect!
         request = RubySMB::SMB1::Packet::TreeDisconnectRequest.new
         request = set_header_fields(request)
         raw_response = client.send_recv(request)
         response = RubySMB::SMB1::Packet::TreeDisconnectResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a TreeDisconnectResponse packet'
+        end
         response.status_code
       end
 
@@ -113,7 +117,7 @@ module RubySMB
 
         raw_response = @client.send_recv(nt_create_andx_request)
         response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
-        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
+        unless response.valid?
           raise RubySMB::Error::InvalidPacket, 'Not a NtCreateAndxResponse packet'
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -140,6 +144,8 @@ module RubySMB
       # @param pattern [String] search pattern
       # @param type [Class] file information class
       # @return [Array] array of directory structures
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a Trans2 packet
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def list(directory: '\\', pattern: '*', unicode: true,
                type: RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo)
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
@@ -166,6 +172,12 @@ module RubySMB
 
         raw_response  = client.send_recv(find_first_request)
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket, 'Not a Trans2 packet'
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        end
 
         results = response.results(type, unicode: unicode)
 
@@ -190,6 +202,12 @@ module RubySMB
 
           raw_response  = client.send_recv(find_next_request)
           response      = RubySMB::SMB1::Packet::Trans2::FindNext2Response.read(raw_response)
+          unless response.valid?
+            raise RubySMB::Error::InvalidPacket, 'Not a Trans2 packet'
+          end
+          unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          end
 
           results += response.results(type, unicode: unicode)
 
