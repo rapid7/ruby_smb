@@ -55,7 +55,7 @@ module RubySMB
         request.buffer = action.to_binary_s
         ioctl_raw_response = @tree.client.send_recv(request)
         ioctl_response = RubySMB::SMB2::Packet::IoctlResponse.read(ioctl_raw_response)
-        unless ioctl_response.smb2_header.command == RubySMB::SMB2::Commands::IOCTL
+        unless ioctl_response.valid?
           raise RubySMB::Error::InvalidPacket, 'Not a IoctlResponse packet'
         end
         unless ioctl_response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
