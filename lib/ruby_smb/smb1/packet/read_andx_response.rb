@@ -5,6 +5,8 @@ module RubySMB
       # [2.2.4.42.2 Response](https://msdn.microsoft.com/en-us/library/ee441872.aspx)
       # [2.2.4.2.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/ff470017.aspx)
       class ReadAndxResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+
         # A SMB1 Parameter Block as defined by the {ReadAndxResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
@@ -38,7 +40,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+          smb_header.command = COMMAND
           smb_header.flags.reply = 1
         end
       end
