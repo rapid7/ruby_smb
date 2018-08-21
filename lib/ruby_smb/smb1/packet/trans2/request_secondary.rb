@@ -5,6 +5,8 @@ module RubySMB
         # This class represents a generic SMB1 Trans2 Secondary Request Packet as defined in
         # [2.2.4.47.1 Request](https://msdn.microsoft.com/en-us/library/ee442105.aspx)
         class RequestSecondary < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2_SECONDARY
+
           # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
@@ -28,7 +30,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2_SECONDARY
+            smb_header.command = COMMAND
           end
         end
       end

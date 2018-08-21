@@ -5,6 +5,8 @@ module RubySMB
         # A Trans2 FIND_NEXT2 Request Packet as defined in
         # [2.2.6.3.1 Request](https://msdn.microsoft.com/en-us/library/ee441844.aspx)
         class FindNext2Request < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
 
@@ -67,7 +69,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+            smb_header.command = COMMAND
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_NEXT2
           end
         end

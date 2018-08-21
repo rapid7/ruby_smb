@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_CLOSE Request Packet as defined in
       # [2.2.4.5.1 Request](https://msdn.microsoft.com/en-us/library/ee442151.aspx)
       class CloseRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_CLOSE
+
         # A SMB1 Parameter Block as defined by the {CloseRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian  :little
@@ -22,7 +24,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_CLOSE
+          smb_header.command = COMMAND
         end
 
       end

@@ -6,6 +6,7 @@ module RubySMB
         # A Trans TRANSACT_NMPIPE Request Packet as defined in
         # [2.2.5.6.1 Request](https://msdn.microsoft.com/en-us/library/ee441832.aspx)
         class TransactNmpipeRequest < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
 
           class ParameterBlock < RubySMB::SMB1::Packet::Trans::Request::ParameterBlock
           end
@@ -42,7 +43,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+            smb_header.command = COMMAND
             parameter_block.max_parameter_count = 0x0000
             parameter_block.max_setup_count = 0x00
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::TRANSACT_NMPIPE

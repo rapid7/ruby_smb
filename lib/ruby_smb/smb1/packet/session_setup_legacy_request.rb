@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_SESSION_SETUP_ANDX Request Packet, without NTLMSSP as defined in
       # [2.2.4.53.1 Request](https://msdn.microsoft.com/en-us/library/ee441849.aspx)
       class SessionSetupLegacyRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -37,7 +39,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+          smb_header.command = COMMAND
           parameter_block.capabilities.extended_security = 0
         end
       end

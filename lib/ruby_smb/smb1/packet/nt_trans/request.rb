@@ -5,6 +5,8 @@ module RubySMB
         # Class representing a generic NT Transaction request packet as defined in
         # [2.2.4.62.1 Request](https://msdn.microsoft.com/en-us/library/ee441534.aspx)
         class Request < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_NT_TRANSACT
+
           # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             endian :little
@@ -38,7 +40,7 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NT_TRANSACT
+            smb_header.command = COMMAND
           end
         end
       end

@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_NEGOTIATE Non-Extended Security Response Packet as defined in
       # [2.2.4.5.2.2 Non-Extended Security Response](https://msdn.microsoft.com/en-us/library/cc246327.aspx)
       class NegotiateResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+
         # An SMB_Parameters Block as defined by the {NegotiateResponse}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           uint16          :dialect_index, label: 'Dialect Index'
@@ -32,13 +34,8 @@ module RubySMB
 
         def initialize_instance
           super
-          header = smb_header
-          header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
-          header.flags.reply = 1
-        end
-
-        def valid?
-          smb_header.command == RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
+          smb_header.command = COMMAND
+          smb_header.flags.reply = 1
         end
 
         # Stores the list of {RubySMB::SMB1::Dialect} that were sent to the

@@ -4,6 +4,8 @@ module RubySMB
       # This class represents an SMB1 Echo Request Packet as defined in
       # [2.2.4.39.1 Request](https://msdn.microsoft.com/en-us/library/ee441746.aspx)
       class EchoRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_ECHO
+
         # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           uint16 :echo_count, label: 'Echo Count', initial_value: 1
@@ -20,7 +22,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+          smb_header.command = COMMAND
         end
       end
     end

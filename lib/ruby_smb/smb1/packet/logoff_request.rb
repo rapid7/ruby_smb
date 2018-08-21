@@ -4,6 +4,8 @@ module RubySMB
       # This class represents an SMB1 LOGOFF Request Packet as defined in
       # [2.2.4.54.1 Request](https://msdn.microsoft.com/en-us/library/ee442167.aspx)
       class LogoffRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_LOGOFF
+
         # The Parameter Block for this packet is empty save the Word Count and ANDX Block
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block :andx_block
@@ -19,7 +21,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_LOGOFF
+          smb_header.command = COMMAND
         end
       end
     end
