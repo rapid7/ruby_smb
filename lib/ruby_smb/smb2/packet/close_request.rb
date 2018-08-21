@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Close Request Packet as defined in
       # [2.2.15 SMB2 CLOSE Request](https://msdn.microsoft.com/en-us/library/cc246523.aspx)
       class CloseRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::CLOSE
+
         endian :little
 
         smb2_header           :smb2_header
@@ -14,7 +16,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::CLOSE
+          smb2_header.command = COMMAND
         end
       end
     end

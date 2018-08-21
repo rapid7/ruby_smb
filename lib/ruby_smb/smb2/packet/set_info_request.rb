@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Set Info Request Packet as defined in
       # [2.2.39 SMB2 SET_INFO Request](https://msdn.microsoft.com/en-us/library/cc246560.aspx)
       class SetInfoRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::SET_INFO
+
         include RubySMB::Fscc::FileInformation
 
         endian :little
@@ -50,7 +52,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::SET_INFO
+          smb2_header.command = COMMAND
         end
       end
     end

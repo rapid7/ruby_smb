@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 SessionSetupRequest Packet as defined in
       # [2.2.5 SMB2 SESSION_SETUP Request](https://msdn.microsoft.com/en-us/library/cc246563.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::SESSION_SETUP
+
         endian                     :little
         smb2_header                :smb2_header
         uint16                     :structure_size,          label: 'Structure Size',          initial_value: 25
@@ -18,7 +20,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::SESSION_SETUP
+          smb2_header.command = COMMAND
         end
 
         # Takes a serialized NTLM Type 1 message and wraps it in the GSS ASN1 encoding

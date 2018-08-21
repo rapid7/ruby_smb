@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 NEGOTIATE Request packet as defined by
       # [2.2.3 SMB2 NEGOTIATE Request](https://msdn.microsoft.com/en-us/library/cc246543.aspx)
       class NegotiateRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::NEGOTIATE
+
         endian              :little
         smb2_header         :smb2_header
         uint16              :structure_size,      label: 'Structure Size', initial_value: 36
@@ -17,7 +19,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
+          smb2_header.command = COMMAND
         end
 
         # Adds a dialect to the Dialects array and increments the dialect count

@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Write Request Packet as defined in
       # [2.2.21 SMB2 WRITE Request](https://msdn.microsoft.com/en-us/library/cc246532.aspx)
       class WriteRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::WRITE
+
         endian :little
 
         smb2_header           :smb2_header
@@ -21,7 +23,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::WRITE
+          smb2_header.command = COMMAND
         end
       end
     end

@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Ioctl Request Packet as defined in
       # [2.2.31 SMB2 IOCTL Request](https://msdn.microsoft.com/en-us/library/cc246545.aspx)
       class IoctlRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::IOCTL
+
         endian :little
 
         smb2_header   :smb2_header
@@ -32,7 +34,7 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::IOCTL
+          smb2_header.command = COMMAND
         end
 
         # Calculates the value for the input_offset field.
