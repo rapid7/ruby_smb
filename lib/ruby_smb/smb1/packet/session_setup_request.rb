@@ -32,11 +32,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = COMMAND
-        end
-
         # Takes an NTLM Type 1 Message and creates the GSS Security Blob
         # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
         # field. It also automaticaly sets the length in

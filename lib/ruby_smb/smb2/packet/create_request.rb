@@ -46,10 +46,6 @@ module RubySMB
 
         array :context, label: 'Contexts', type: :create_context, read_until: :eof
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

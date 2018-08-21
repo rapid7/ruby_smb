@@ -21,10 +21,6 @@ module RubySMB
         uint32                :flags,                 label: 'Flags'
         string                :buffer,                label: 'Write Data Buffer'
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

@@ -17,11 +17,6 @@ module RubySMB
         file_time           :client_start_time,   label: 'Client Start Time',  initial_value: 0
         array               :dialects,            label: 'Dialects',           type: :uint16, read_until: :eof
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
-
         # Adds a dialect to the Dialects array and increments the dialect count
         #
         # @param [Fixnum] the numeric code for the dialect you wish to add

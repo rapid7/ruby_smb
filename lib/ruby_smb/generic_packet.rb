@@ -88,6 +88,19 @@ module RubySMB
       end
     end
 
+    def initialize_instance
+      super
+
+      unless [RubySMB::SMB1::Packet::EmptyPacket, RubySMB::SMB2::Packet::ErrorPacket].any? {|klass| self.is_a? klass}
+        case packet_smb_version
+        when 'SMB1'
+          smb_header.command = self.class::COMMAND
+        when 'SMB2'
+          smb2_header.command = self.class::COMMAND
+        end
+      end
+    end
+
     # Returns an array of hashes representing the
     # fields for this record.
     #

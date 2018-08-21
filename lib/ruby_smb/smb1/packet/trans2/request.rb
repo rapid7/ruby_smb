@@ -41,10 +41,6 @@ module RubySMB
           parameter_block   :parameter_block
           data_block        :data_block
 
-          def initialize_instance
-            super
-            smb_header.command = COMMAND
-          end
         end
       end
     end

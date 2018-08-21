@@ -56,11 +56,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = COMMAND
-        end
-
         # Sets the read_from_named_pipe flag to `read_from_named_pipe` value (true or false).
         # When reading from a named pipe, this flag needs to be set to true, which forces
         # the use of Timeout field in Timeout_or_MaxCountHigh. When set to false (default),

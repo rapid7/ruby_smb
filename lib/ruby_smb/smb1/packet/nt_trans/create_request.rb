@@ -83,7 +83,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = COMMAND
             parameter_block.function = RubySMB::SMB1::Packet::NtTrans::Subcommands::CREATE
           end
         end

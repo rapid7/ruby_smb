@@ -43,7 +43,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = COMMAND
             parameter_block.max_parameter_count = 0x0000
             parameter_block.max_setup_count = 0x00
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::TRANSACT_NMPIPE

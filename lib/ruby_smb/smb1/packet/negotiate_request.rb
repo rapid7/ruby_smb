@@ -15,11 +15,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = COMMAND
-        end
-
         # Add an individual Dialect string to the list of
         # Dialects in the packet.
         #

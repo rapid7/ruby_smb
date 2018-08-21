@@ -22,10 +22,6 @@ module RubySMB
         uint16                :channel_length,        label: 'Read Channel Info Length'
         string                :buffer,                label: 'Read Channel info Buffer', initial_value: 0x00
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

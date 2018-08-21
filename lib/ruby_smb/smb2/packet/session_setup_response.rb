@@ -16,7 +16,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = COMMAND
           smb2_header.flags.reply = 1
         end
 

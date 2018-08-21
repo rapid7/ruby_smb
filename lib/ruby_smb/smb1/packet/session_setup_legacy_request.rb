@@ -39,7 +39,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = COMMAND
           parameter_block.capabilities.extended_security = 0
         end
       end

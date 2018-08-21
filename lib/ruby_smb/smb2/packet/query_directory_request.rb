@@ -27,10 +27,6 @@ module RubySMB
         uint32        :output_length, label: 'Output Buffer Length'
         string16      :name,          label: 'Name/Search Pattern'
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

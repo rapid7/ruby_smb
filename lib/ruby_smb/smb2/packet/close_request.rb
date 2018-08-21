@@ -14,10 +14,6 @@ module RubySMB
         uint32                :reserved,              label: 'Reserved Space'
         smb2_fileid           :file_id,               label: 'File ID'
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

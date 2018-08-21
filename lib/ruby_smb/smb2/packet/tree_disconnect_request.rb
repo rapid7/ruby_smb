@@ -11,10 +11,6 @@ module RubySMB
         uint16       :structure_size, label: 'Structure Size', initial_value: 4
         uint16       :reserved, label: 'Reserved', initial_value: 0
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
       end
     end
   end

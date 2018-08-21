@@ -51,11 +51,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = COMMAND
-        end
-
         # Specifies whether the offset is a 32-bit (default) or 64-bit value. When `is_64_bit`
         # is true, a 64-bit offset will be used and the OffsetHigh field will be added to the structure.
         #

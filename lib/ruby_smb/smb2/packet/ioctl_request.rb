@@ -32,11 +32,6 @@ module RubySMB
         uint32  :reserved2, label: 'Reserved Space'
         string  :buffer,    label: 'Input Buffer', read_length: -> { input_count + output_count }
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
-
         # Calculates the value for the input_offset field.
         # If the input buffer is empty then this should be set to 0,
         # otherwise it should return the absolute offset of the input buffer.

@@ -14,11 +14,6 @@ module RubySMB
         uint16       :path_length,    label: 'Path Length',    initial_value: -> { path.length }
         string       :path,           label: 'Path Buffer'
 
-        def initialize_instance
-          super
-          smb2_header.command = COMMAND
-        end
-
         def encode_path(path)
           self.path = path.encode('utf-16le')
         end
