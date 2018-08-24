@@ -99,7 +99,17 @@ RSpec.describe RubySMB::SMB2::File do
   describe '#read' do
     context 'for a small file' do
       let(:small_read) { file.read_packet(read_length: 108) }
-      let(:small_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data') }
+      let(:small_response) {
+        response = RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data')
+        response.smb2_header.command = RubySMB::SMB2::Commands::READ
+        response
+      }
+
+      before :example do
+        allow(file).to receive(:read_packet)
+        allow(client).to receive(:send_recv)
+        allow(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).and_return(small_response)
+      end
 
       it 'uses a single packet to read the entire file' do
         expect(file).to receive(:read_packet).with(read_length: 108, offset: 0).and_return(small_read)
@@ -107,11 +117,35 @@ RSpec.describe RubySMB::SMB2::File do
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with('fake data').and_return(small_response)
         expect(file.read).to eq 'fake data'
       end
+
+      context 'when the response is not valid' do
+        it 'raise an InvalidPacket exception' do
+          small_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+          expect { file.read }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raise an UnexpectedStatusCode exception' do
+          small_response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { file.read }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
+      end
     end
 
     context 'for a larger file' do
       let(:big_read) { file.read_packet(read_length: 108) }
-      let(:big_response) { RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data') }
+      let(:big_response) {
+        response = RubySMB::SMB2::Packet::ReadResponse.new(data_length: 9, buffer: 'fake data')
+        response.smb2_header.command = RubySMB::SMB2::Commands::READ
+        response
+      }
+
+      before :example do
+        allow(file).to receive(:read_packet)
+        allow(client).to receive(:send_recv)
+        allow(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).and_return(big_response)
+      end
 
       it 'uses a multiple packet to read the file in chunks' do
         expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: 0).and_return(big_read)
@@ -119,6 +153,24 @@ RSpec.describe RubySMB::SMB2::File do
         expect(client).to receive(:send_recv).twice.and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with('fake data').and_return(big_response)
         file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
+      end
+
+      context 'when the second response is not valid' do
+        it 'raise an InvalidPacket exception' do
+          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE) do
+            big_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+          end
+          expect { file.read(bytes: (described_class::MAX_PACKET_SIZE * 2)) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the second response status code is not STATUS_SUCCESS' do
+        it 'raise an UnexpectedStatusCode exception' do
+          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE) do
+            big_response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          end
+          expect { file.read(bytes: (described_class::MAX_PACKET_SIZE * 2)) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
       end
     end
   end
@@ -160,6 +212,13 @@ RSpec.describe RubySMB::SMB2::File do
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
       end
     end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).and_return(write_response)
+      allow(write_response).to receive(:valid?).and_return(false)
+      expect { file.write(data: 'test') }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
   end
 
   describe '#delete_packet' do
@@ -192,6 +251,14 @@ RSpec.describe RubySMB::SMB2::File do
         expect(client).to receive(:send_recv).with(small_delete).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
         expect(file.delete).to eq WindowsError::NTStatus::STATUS_SUCCESS
+      end
+
+      it 'raises an InvalidPacket exception if the response is not valid' do
+        allow(file).to receive(:delete_packet)
+        allow(client).to receive(:send_recv)
+        allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
+        allow(small_response).to receive(:valid?).and_return(false)
+        expect { file.delete }.to raise_error(RubySMB::Error::InvalidPacket)
       end
     end
   end
@@ -228,6 +295,229 @@ RSpec.describe RubySMB::SMB2::File do
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
         expect(file.rename('new_file.txt')).to eq WindowsError::NTStatus::STATUS_SUCCESS
       end
+
+      it 'raises an InvalidPacket exception if the response is not valid' do
+        allow(client).to receive(:send_recv)
+        allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
+        allow(small_response).to receive(:valid?).and_return(false)
+        expect { file.rename('new_file.txt') }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+  end
+
+  describe '#close' do
+    let(:request)  { double('CloseRequest') }
+    let(:response) { double('CloseResponse') }
+    let(:raw_response) { double('Raw response') }
+
+    before :example do
+      allow(RubySMB::SMB2::Packet::CloseRequest).to receive(:new).and_return(request)
+      allow(file).to receive(:set_header_fields).and_return(request)
+      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(RubySMB::SMB2::Packet::CloseResponse).to receive(:read).and_return(response)
+      allow(response).to receive(:valid?).and_return(true)
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+
+    it 'creates a new SMB2 CloseRequest packet' do
+      expect(RubySMB::SMB2::Packet::CloseRequest).to receive(:new)
+      file.close
+    end
+
+    it 'calls Tree #set_header_fields to set SetFileInformationRequest headers' do
+      expect(file).to receive(:set_header_fields).with(request)
+      file.close
+    end
+
+    it 'calls Client #send_recv with the expected request' do
+      expect(client).to receive(:send_recv).with(request)
+      file.close
+    end
+
+    it 'parses the response as a SMB2 CloseResponse packet' do
+      expect(RubySMB::SMB2::Packet::CloseResponse).to receive(:read).with(raw_response)
+      file.close
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(response).to receive(:valid?).and_return(false)
+      expect { file.close }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
+    it 'raises an UnexpectedStatusCode exception if the response status code is not STATUS_SUCCESS' do
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND)
+      expect { file.close }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+
+    it 'returns the response status code' do
+      expect(file.close).to eq WindowsError::NTStatus::STATUS_SUCCESS
+    end
+  end
+
+  describe '#send_recv_read' do
+    let(:read_data) { 'read data' }
+    let(:raw_response) { double('fake raw response data') }
+    let(:read_response) {
+      res = RubySMB::SMB2::Packet::ReadResponse.new
+      res.data_length = read_data.size
+      res.buffer = read_data
+      res
+    }
+
+    before :example do
+      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with(raw_response).and_return(read_response)
+    end
+
+    context 'when the number of bytes to read is not provided' do
+      it 'reads 0 bytes by default' do
+        expect(file).to receive(:read_packet).with(read_length: 0, offset: 0).once.and_call_original
+        file.send_recv_read
+      end
+    end
+
+    it 'only reads the number of bytes provided as argument' do
+      bytes = 5
+      expect(file).to receive(:read_packet).with(read_length: bytes, offset: 0).once.and_call_original
+      file.send_recv_read(read_length: bytes)
+    end
+
+    it 'reads from the offset provided as argument' do
+      offset = 3
+      expect(file).to receive(:read_packet).with(read_length: 0, offset: offset).once.and_call_original
+      file.send_recv_read(offset: offset)
+    end
+
+    it 'calls Client #send_recv with the expected request' do
+      request = double('Request')
+      allow(file).to receive(:read_packet).and_return(request)
+      expect(client).to receive(:send_recv).with(request)
+      file.send_recv_read
+    end
+
+    it 'parses the response as a SMB2 ReadResponse packet' do
+      expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with(raw_response)
+      file.send_recv_read
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(read_response).to receive(:valid?).and_return(false)
+      expect { file.send_recv_read }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
+    context 'when the response status code is STATUS_PENDING' do
+      before :example do
+        allow(file).to receive(:sleep)
+        allow(read_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
+        allow(dispatcher).to receive(:recv_packet).and_return(raw_response)
+      end
+
+      it 'wait 1 second and calls Client dispatcher #recv_packet method one more time' do
+        expect(file).to receive(:sleep).with(1)
+        expect(dispatcher).to receive(:recv_packet)
+        file.send_recv_read
+      end
+
+      it 'parses the response as a SMB2 ReadResponse packet' do
+        expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with(raw_response)
+        file.send_recv_read
+      end
+
+      it 'raises an InvalidPacket exception if the response is not valid' do
+        allow(dispatcher).to receive(:recv_packet) do
+          allow(read_response).to receive(:valid?).and_return(false)
+          raw_response
+        end
+        expect { file.send_recv_read }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    it 'raises an UnexpectedStatusCode exception if the response status code is not STATUS_SUCCESS' do
+      allow(read_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND)
+      expect { file.send_recv_read }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+
+    it 'returns the expected string' do
+      expect(file.send_recv_read).to eq(read_data)
+    end
+  end
+
+  describe '#send_recv_write' do
+    let(:write_data) { 'write data' }
+    let(:request) { double('Request') }
+    let(:raw_response) { double('fake raw response data') }
+    let(:write_response) {
+      res = RubySMB::SMB2::Packet::WriteResponse.new
+      res.write_count = write_data.size
+      res
+    }
+
+    before :example do
+      allow(file).to receive(:write_packet).and_return(request)
+      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).with(raw_response).and_return(write_response)
+    end
+
+    it 'reads 0 bytes from offset 0 by default' do
+      expect(file).to receive(:write_packet).with(data: '', offset: 0).once.and_call_original
+      file.send_recv_write
+    end
+
+    it 'writes the data provided as argument' do
+      expect(file).to receive(:write_packet).with(data: write_data, offset: 0).once.and_call_original
+      file.send_recv_write(data: write_data)
+    end
+
+    it 'reads from the offset provided as argument' do
+      offset = 3
+      expect(file).to receive(:write_packet).with(data: '', offset: offset).once.and_call_original
+      file.send_recv_write(offset: offset)
+    end
+
+    it 'calls Client #send_recv with the expected request' do
+      expect(client).to receive(:send_recv).with(request)
+      file.send_recv_write
+    end
+
+    it 'parses the response as a SMB1 WriteResponse packet' do
+      expect(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).with(raw_response)
+      file.send_recv_write
+    end
+
+    context 'when the response status code is STATUS_PENDING' do
+      before :example do
+        allow(file).to receive(:sleep)
+        allow(write_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
+        allow(dispatcher).to receive(:recv_packet).and_return(raw_response)
+      end
+
+      it 'wait 1 second and calls Client dispatcher #recv_packet method one more time' do
+        expect(file).to receive(:sleep).with(1)
+        expect(dispatcher).to receive(:recv_packet)
+        file.send_recv_write
+      end
+
+      it 'parses the response as a SMB2 WriteResponse packet' do
+        expect(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).twice.with(raw_response)
+        file.send_recv_write
+      end
+
+      it 'raises an InvalidPacket exception if the response is not valid' do
+        allow(dispatcher).to receive(:recv_packet) do
+          allow(write_response).to receive(:valid?).and_return(false)
+          raw_response
+        end
+        expect { file.send_recv_write }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(write_response).to receive(:valid?).and_return(false)
+      expect { file.send_recv_write }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
+    it 'returns the expected response #write_count value' do
+      expect(file.send_recv_write).to eq(write_data.size)
     end
   end
 end

@@ -80,6 +80,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
 
     let(:names_blob) { names_array.collect(&:to_binary_s).join('') }
 
+    let(:find_info) { FindFileFullDirectoryInfo.new }
+
     it 'returns an array of parsed FindFileFullDirectoryInfo structs' do
       packet.data_block.trans2_data.buffer = names_blob
       expect(packet.results(FindFileFullDirectoryInfo, unicode: false)).to eq names_array
@@ -87,7 +89,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
 
     it 'sets the FindFileFullDirectoryInfo unicode attribute when unicode argument is true' do
       packet.data_block.trans2_data.buffer = names1.to_binary_s
-      find_info = FindFileFullDirectoryInfo.new
       allow(FindFileFullDirectoryInfo).to receive(:new).and_return find_info
       expect(find_info).to receive(:unicode=).with(true).once
       packet.results(FindFileFullDirectoryInfo, unicode: true)
@@ -95,10 +96,18 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
 
     it 'does not set the FindFileFullDirectoryInfo unicode attribute when unicode argument is false' do
       packet.data_block.trans2_data.buffer = names1.to_binary_s
-      find_info = FindFileFullDirectoryInfo.new
       allow(FindFileFullDirectoryInfo).to receive(:new).and_return find_info
       expect(find_info).to receive(:unicode=).with(false).once
       packet.results(FindFileFullDirectoryInfo, unicode: false)
+    end
+
+    context 'when the File Information is not a valid' do
+      it 'raises an InvalidPacket exception' do
+        packet.data_block.trans2_data.buffer = names1.to_binary_s
+        allow(FindFileFullDirectoryInfo).to receive(:new).and_return(find_info)
+        allow(find_info).to receive(:read).and_raise(IOError)
+        expect { packet.results(FindFileFullDirectoryInfo, unicode: false) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
     end
   end
 end

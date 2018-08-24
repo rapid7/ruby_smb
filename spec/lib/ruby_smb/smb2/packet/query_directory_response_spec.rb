@@ -60,5 +60,13 @@ RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryResponse do
       packet.buffer = names_blob
       expect(packet.results(RubySMB::Fscc::FileInformation::FileNamesInformation)).to eq names_array
     end
+
+    context 'when the File Information is not a valid' do
+      it 'raises an InvalidPacket exception' do
+        packet.buffer = names_blob
+        allow(RubySMB::Fscc::FileInformation::FileNamesInformation).to receive(:read).and_raise(IOError)
+        expect { packet.results(RubySMB::Fscc::FileInformation::FileNamesInformation) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
   end
 end

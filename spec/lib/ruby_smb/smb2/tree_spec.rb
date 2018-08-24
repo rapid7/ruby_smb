@@ -48,6 +48,13 @@ RSpec.describe RubySMB::SMB2::Tree do
       tree.disconnect!
     end
 
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB2::Packet::TreeDisconnectResponse).to receive(:read).and_return(disco_resp)
+      allow(disco_resp).to receive(:valid?).and_return(false)
+      expect { tree.disconnect! }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
     it 'returns the NTStatus code from the response' do
       allow(client).to receive(:send_recv).and_return(disco_resp.to_binary_s)
       expect(tree.disconnect!).to eq disco_resp.status_code
@@ -129,6 +136,15 @@ RSpec.describe RubySMB::SMB2::Tree do
       expect(client).to receive(:send_recv).with(create_req).and_return(create_response.to_binary_s)
       tree.open_directory
     end
+
+    context 'when the response is not a valid packet' do
+      it 'raises an InvalidPacket exception' do
+        allow(client).to receive(:send_recv)
+        allow(RubySMB::SMB2::Packet::CreateResponse).to receive(:read).and_return(create_response)
+        create_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+        expect { tree.open_directory }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
   end
 
   describe '#list' do
@@ -202,6 +218,13 @@ RSpec.describe RubySMB::SMB2::Tree do
       expect(tree.list).to eq([file1])
     end
 
+    context 'when the response is not a valid packet' do
+      it 'raises an InvalidPacket exception' do
+        query_dir_res.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+        expect { tree.list }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
     context 'when multiple requests are needed to retrieve the full directory list' do
       before :example do
         query_dir_res.smb2_header.nt_status = WindowsError::NTStatus::STATUS_SUCCESS.value
@@ -237,5 +260,196 @@ RSpec.describe RubySMB::SMB2::Tree do
       end
     end
 
+  end
+
+  describe '#open_file' do
+    let(:create_request)      { RubySMB::SMB2::Packet::CreateRequest.new }
+    let(:create_response) { RubySMB::SMB2::Packet::CreateResponse.new }
+    let(:filename) { "test_file\x00".encode('UTF-16LE') }
+
+    before :each do
+      allow(RubySMB::SMB2::Packet::CreateRequest).to receive(:new).and_return(create_request)
+      allow(RubySMB::SMB2::Packet::CreateResponse).to receive(:read).and_return(create_response)
+    end
+
+    it 'calls #set_header_fields' do
+      allow(client).to receive(:send_recv).and_return(create_response.to_binary_s)
+      expect(tree).to receive(:set_header_fields).with(create_request).and_call_original
+      tree.open_file(filename: filename)
+    end
+
+    describe 'filename' do
+      it 'takes the filename as an argument' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.name).to eq(filename)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename)
+      end
+    end
+
+    describe 'attributes' do
+      it 'has the correct default fields set' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.file_attributes.directory).to eq(0)
+          expect(packet.file_attributes.normal).to eq(1)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename)
+      end
+
+      it 'can take the Attributes as an argument' do
+        attributes = { normal: 0 }
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.file_attributes.normal).to eq(0)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, attributes: attributes)
+      end
+    end
+
+    describe 'options' do
+      it 'has the correct default fields set' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.create_options.directory_file).to eq(0)
+          expect(packet.create_options.non_directory_file).to eq(1)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename)
+      end
+
+      it 'can take the Create Options as an argument' do
+        options = RubySMB::SMB1::BitField::CreateOptions.new(directory_file: 1)
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.create_options.directory_file).to eq(1)
+          expect(packet.create_options.non_directory_file).to eq(0)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, options: options)
+      end
+    end
+
+    describe 'disposition' do
+      it 'defaults to FILE_OPEN' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.create_disposition).to eq(RubySMB::Dispositions::FILE_OPEN)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename)
+      end
+
+      it 'can take the Disposition as an argument' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.create_disposition).to eq(RubySMB::Dispositions::FILE_OPEN_IF)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, disposition: RubySMB::Dispositions::FILE_OPEN_IF)
+      end
+    end
+
+    describe 'impersonation level' do
+      it 'defaults to SEC_IMPERSONATE' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.impersonation_level).to eq(RubySMB::ImpersonationLevels::SEC_IMPERSONATE)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename)
+      end
+
+      it 'can take the Impersonation Level as an argument' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.impersonation_level).to eq(RubySMB::ImpersonationLevels::SEC_DELEGATE)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, impersonation: RubySMB::ImpersonationLevels::SEC_DELEGATE)
+      end
+    end
+
+    describe 'RWD access permissions' do
+      it 'will set the read permission from the parameters' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.share_access.read_access).to    eq(1)
+          expect(packet.desired_access.read_data).to    eq(1)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, read: true)
+      end
+
+      it 'will set the write permission from the parameters' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.share_access.write_access).to   eq(1)
+          expect(packet.desired_access.write_data).to  eq(1)
+          expect(packet.desired_access.append_data).to eq(1)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, write: true)
+      end
+
+      it 'will set the delete permission from the parameters' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.share_access.delete_access).to    eq(1)
+          expect(packet.desired_access.delete_access).to eq(1)
+          create_response.to_binary_s
+        end
+        tree.open_file(filename: filename, delete: true)
+      end
+    end
+
+    it 'sets #requested_oplock to 0xFF' do
+      allow(client).to receive(:send_recv) do |packet|
+        expect(packet.requested_oplock).to eq(0xFF)
+        create_response.to_binary_s
+      end
+      tree.open_file(filename: filename, delete: true)
+    end
+
+    it 'sends the CreateRequest request packet and gets the expected CreateResponse response back' do
+      expect(client).to receive(:send_recv).with(create_request).and_return(create_response.to_binary_s)
+      tree.open_file(filename: filename)
+    end
+
+    context 'when sending the request packet and gets a response back' do
+      before :example do
+        allow(client).to receive(:send_recv).with(create_request).and_return(create_response.to_binary_s)
+      end
+
+      context 'when it is a file' do
+        it 'returns the expected RubySMB::SMB2::File object' do
+          file_obj = RubySMB::SMB2::File.new(name: filename, tree: tree, response: create_response)
+          expect(RubySMB::SMB2::File).to receive(:new).with(name: filename, tree: tree, response: create_response).and_return(file_obj)
+          expect(tree.open_file(filename: filename)).to eq(file_obj)
+        end
+      end
+
+      context 'when it is a pipe' do
+        it 'returns the expected RubySMB::SMB2::Pipe object' do
+          response.share_type = 0x02
+          pipe_obj = RubySMB::SMB2::Pipe.new(name: filename, tree: tree, response: create_response)
+          expect(RubySMB::SMB2::Pipe).to receive(:new).with(name: filename, tree: tree, response: create_response).and_return(pipe_obj)
+          expect(tree.open_file(filename: filename)).to eq(pipe_obj)
+        end
+      end
+
+      context 'when it is an unsupported share type' do
+        it 'raises a RubySMBError exception' do
+          response.share_type = 0x03
+          expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::RubySMBError)
+        end
+      end
+
+      context 'when the response is not a CreateResponse packet' do
+        it 'raises an InvalidPacket exception' do
+          create_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+          expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raises an UnexpectedStatusCode exception' do
+          create_response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
+      end
+    end
   end
 end

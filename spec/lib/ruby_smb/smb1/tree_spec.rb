@@ -46,24 +46,33 @@ RSpec.describe RubySMB::SMB1::Tree do
   end
 
   describe '#disconnect!' do
-    it 'calls #set_header_fields' do
+    let(:disco_response) { double('Response') }
+
+    before :example do
       allow(RubySMB::SMB1::Packet::TreeDisconnectRequest).to receive(:new).and_return(disco_req)
-      allow(client).to receive(:send_recv).and_return(disco_resp.to_binary_s)
+      allow(RubySMB::SMB1::Packet::TreeDisconnectResponse).to receive(:read).and_return(disco_resp)
+      allow(client).to receive(:send_recv)
+    end
+
+    it 'calls #set_header_fields' do
       expect(tree).to receive(:set_header_fields).with(disco_req)
       tree.disconnect!
     end
 
     it 'sends a TreeDisconnectRequest with the Tree ID in the header' do
-      allow(RubySMB::SMB1::Packet::TreeDisconnectRequest).to receive(:new).and_return(disco_req)
       modified_req = disco_req
       modified_req.smb_header.tid = tree.id
-      expect(client).to receive(:send_recv).with(modified_req).and_return(disco_resp.to_binary_s)
+      expect(client).to receive(:send_recv).with(modified_req)
       tree.disconnect!
     end
 
     it 'returns the NTStatus code from the response' do
-      allow(client).to receive(:send_recv).and_return(disco_resp.to_binary_s)
       expect(tree.disconnect!).to eq disco_resp.status_code
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(disco_resp).to receive(:valid?).and_return(false)
+      expect { tree.disconnect! }.to raise_error(RubySMB::Error::InvalidPacket)
     end
   end
 
@@ -239,14 +248,14 @@ RSpec.describe RubySMB::SMB1::Tree do
       end
 
       context 'when the response is not a NtCreateAndxResponse packet' do
-        it 'raise an InvalidPacket exception' do
+        it 'raises an InvalidPacket exception' do
           nt_create_andx_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
           expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
       context 'when the response status code is not STATUS_SUCCESS' do
-        it 'raise an UnexpectedStatusCode exception' do
+        it 'raises an UnexpectedStatusCode exception' do
           nt_create_andx_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
           expect { tree.open_file(filename: filename) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
@@ -342,6 +351,20 @@ RSpec.describe RubySMB::SMB1::Tree do
       expect(tree.list).to eq([file_info1, file_info2])
     end
 
+    context 'when the response is not a valid Trans2 FindFirst2Response' do
+      it 'raises an InvalidPacket exception' do
+        find_first2_res.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+        expect { tree.list }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response status code is not STATUS_SUCCESS' do
+      it 'raises an UnexpectedStatusCode exception' do
+        find_first2_res.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+        expect { tree.list }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+    end
+
     context 'when more requests are needed to get all the information' do
       let(:find_next2_req) { RubySMB::SMB1::Packet::Trans2::FindNext2Request.new }
       let(:file_info2) do
@@ -413,6 +436,20 @@ RSpec.describe RubySMB::SMB1::Tree do
 
       it 'returns the expected FindFileFullDirectoryInfo structures' do
         expect(tree.list).to eq([file_info1, file_info2])
+      end
+
+      context 'when the response is not a valid Trans2 FindFirst2Response' do
+        it 'raises an InvalidPacket exception' do
+          find_next2_res.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
+          expect { tree.list }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response status code is not STATUS_SUCCESS' do
+        it 'raises an UnexpectedStatusCode exception' do
+          find_next2_res.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
+          expect { tree.list }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
       end
     end
   end
