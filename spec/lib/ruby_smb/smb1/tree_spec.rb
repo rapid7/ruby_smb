@@ -438,7 +438,7 @@ RSpec.describe RubySMB::SMB1::Tree do
         expect(tree.list).to eq([file_info1, file_info2])
       end
 
-      context 'when the response is not a valid Trans2 FindFirst2Response' do
+      context 'when the response is not a valid Trans2 FindNext2Response' do
         it 'raises an InvalidPacket exception' do
           find_next2_res.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_ECHO
           expect { tree.list }.to raise_error(RubySMB::Error::InvalidPacket)

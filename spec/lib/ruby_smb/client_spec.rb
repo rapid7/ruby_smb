@@ -211,7 +211,7 @@ RSpec.describe RubySMB::Client do
       before :example do
         allow(smb2_client).to receive(:send_recv).and_return(raw_response)
         allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
-        allow(smb1_client).to receive(:wipe_state!)
+        allow(smb2_client).to receive(:wipe_state!)
       end
 
       it 'creates a LogoffRequest packet' do
