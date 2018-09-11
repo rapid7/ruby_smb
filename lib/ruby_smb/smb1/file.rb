@@ -83,7 +83,12 @@ module RubySMB
         raw_response  = @tree.client.send_recv(close_request)
         response = RubySMB::SMB1::Packet::CloseResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a CloseResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::CloseResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -114,7 +119,12 @@ module RubySMB
           raw_response = @tree.client.send_recv(read_request)
           response = RubySMB::SMB1::Packet::ReadAndxResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a ReadAndxResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB1::Packet::ReadAndxResponse::COMMAND,
+              received_proto: response.smb_header.protocol,
+              received_cmd:   response.smb_header.command
+            )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -156,7 +166,12 @@ module RubySMB
 
         response = RubySMB::SMB1::Packet::ReadAndxResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a ReadAndxResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::ReadAndxResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -173,7 +188,12 @@ module RubySMB
         raw_response = @tree.client.send_recv(delete_packet)
         response = RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a SetFileInformationResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         response.status_code
       end
@@ -214,7 +234,12 @@ module RubySMB
           raw_response = @tree.client.send_recv(write_request)
           response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a WriteAndxResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB1::Packet::WriteAndxResponse::COMMAND,
+              received_proto: response.smb_header.protocol,
+              received_cmd:   response.smb_header.command
+            )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -249,7 +274,12 @@ module RubySMB
         raw_response = @tree.client.send_recv(pkt)
         response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a WriteAndxResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::WriteAndxResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         response.parameter_block.count_low
       end
@@ -263,7 +293,12 @@ module RubySMB
         raw_response = tree.client.send_recv(rename_packet(new_file_name))
         response = RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a SetFileInformationResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         response.status_code
       end

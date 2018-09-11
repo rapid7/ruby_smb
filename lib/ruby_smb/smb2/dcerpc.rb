@@ -56,7 +56,12 @@ module RubySMB
         ioctl_raw_response = @tree.client.send_recv(request)
         ioctl_response = RubySMB::SMB2::Packet::IoctlResponse.read(ioctl_raw_response)
         unless ioctl_response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a IoctlResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::IoctlRequest::COMMAND,
+            received_proto: ioctl_response.smb2_header.protocol,
+            received_cmd:   ioctl_response.smb2_header.command
+          )
         end
         unless ioctl_response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, ioctl_response.status_code.name

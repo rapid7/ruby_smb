@@ -303,13 +303,26 @@ module RubySMB
         request      = RubySMB::SMB2::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB2::Packet::LogoffResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::LogoffResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
+        end
       else
         request      = RubySMB::SMB1::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB1::Packet::LogoffResponse.read(raw_response)
-      end
-      unless response.valid?
-        raise RubySMB::Error::InvalidPacket, 'Not a LogoffResponse packet'
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::LogoffResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
+        end
       end
       wipe_state!
       response.status_code

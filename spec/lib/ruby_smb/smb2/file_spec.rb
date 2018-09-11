@@ -341,6 +341,9 @@ RSpec.describe RubySMB::SMB2::File do
 
     it 'raises an InvalidPacket exception if the response is not valid' do
       allow(response).to receive(:valid?).and_return(false)
+      smb2_header = double('SMB2 Header')
+      allow(response).to receive(:smb2_header).and_return(smb2_header)
+      allow(smb2_header).to receive_messages(:protocol => nil, :command => nil)
       expect { file.close }.to raise_error(RubySMB::Error::InvalidPacket)
     end
 

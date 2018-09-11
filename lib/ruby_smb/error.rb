@@ -15,7 +15,42 @@ module RubySMB
 
     # Raised when trying to parse raw binary into a Packet and the data
     # is invalid.
-    class InvalidPacket < RubySMBError; end
+    class InvalidPacket < RubySMBError
+      def initialize(args = nil)
+        if args.nil?
+          super
+        elsif args.is_a? String
+          super(args)
+        elsif args.is_a? Hash
+          expected_proto = args[:expected_proto] ? translate_protocol(args[:expected_proto]) : "???"
+          expected_cmd = args[:expected_cmd] || "???"
+          received_proto = args[:received_proto] ? translate_protocol(args[:received_proto]) : "???"
+          received_cmd = args[:received_cmd] || "???"
+          super(
+            "Expecting #{expected_proto} protocol "\
+            "with command=#{expected_cmd}"\
+            "#{(" (" + args[:expected_custom] + ")") if args[:expected_custom]}, "\
+            "got #{received_proto} protocol "\
+            "with command=#{received_cmd}"\
+            "#{(" (" + args[:received_custom] + ")") if args[:received_custom]}"
+          )
+        else
+          raise ArgumentError, "InvalidPacket expects a String or a Hash, got a #{args.class}"
+        end
+      end
+
+      def translate_protocol(proto)
+        case proto
+        when RubySMB::SMB1::SMB_PROTOCOL_ID
+          'SMB1'
+        when RubySMB::SMB2::SMB2_PROTOCOL_ID
+          'SMB2'
+        else
+          raise ArgumentError, 'Unknown SMB protocol'
+        end
+      end
+      private :translate_protocol
+    end
 
     # Raised when a response packet has a NTStatus code that was unexpected.
     class UnexpectedStatusCode < RubySMBError; end

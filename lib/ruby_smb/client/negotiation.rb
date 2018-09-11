@@ -55,7 +55,30 @@ module RubySMB
           response = packet if packet.valid?
         end
         if response.nil?
-          raise RubySMB::Error::InvalidPacket, 'No valid Negotiate Response found'
+          if packet.packet_smb_version == 'SMB1'
+            extended_security = if packet.is_a? RubySMB::SMB1::Packet::NegotiateResponseExtended
+              packet.parameter_block.capabilities.extended_security
+            else
+              "n/a"
+            end
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
+              expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
+              expected_custom: "extended_security=1",
+              received_proto:  packet.smb_header.protocol,
+              received_cmd:    packet.smb_header.command,
+              received_custom: "extended_security=#{extended_security}"
+            )
+          elsif packet.packet_smb_version == 'SMB2'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto:  RubySMB::SMB2::SMB2_PROTOCOL_ID,
+              expected_cmd:    RubySMB::SMB2::Packet::NegotiateResponse::COMMAND,
+              received_proto:  packet.smb2_header.protocol,
+              received_cmd:    packet.smb2_header.command
+            )
+          else
+            raise RubySMB::Error::InvalidPacket, 'Unknown SMB protocol version'
+          end
         end
         response
       end

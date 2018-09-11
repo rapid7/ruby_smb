@@ -46,7 +46,12 @@ module RubySMB
         raw_response = client.send_recv(request)
         response = RubySMB::SMB1::Packet::TreeDisconnectResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a TreeDisconnectResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::TreeDisconnectResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         response.status_code
       end
@@ -118,7 +123,12 @@ module RubySMB
         raw_response = @client.send_recv(nt_create_andx_request)
         response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a NtCreateAndxResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::NtCreateAndxResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -173,7 +183,12 @@ module RubySMB
         raw_response  = client.send_recv(find_first_request)
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a Trans2 packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::Trans2::FindFirst2Response::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -203,7 +218,12 @@ module RubySMB
           raw_response  = client.send_recv(find_next_request)
           response      = RubySMB::SMB1::Packet::Trans2::FindNext2Response.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a Trans2 packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB1::Packet::Trans2::FindNext2Response::COMMAND,
+              received_proto: response.smb_header.protocol,
+              received_cmd:   response.smb_header.command
+            )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name

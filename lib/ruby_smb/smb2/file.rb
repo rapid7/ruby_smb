@@ -86,7 +86,12 @@ module RubySMB
         raw_response  = tree.client.send_recv(close_request)
         response = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a CloseResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::CloseResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -114,7 +119,12 @@ module RubySMB
         raw_response = tree.client.send_recv(read_request)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -132,7 +142,12 @@ module RubySMB
           raw_response = tree.client.send_recv(read_request)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
+              received_proto: response.smb2_header.protocol,
+              received_cmd:   response.smb2_header.command
+            )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -161,14 +176,24 @@ module RubySMB
         raw_response = tree.client.send_recv(read_request)
         response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         if response.status_code == WindowsError::NTStatus::STATUS_PENDING
           sleep 1
           raw_response = tree.client.dispatcher.recv_packet
           response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a ReadResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
+              received_proto: response.smb2_header.protocol,
+              received_cmd:   response.smb2_header.command
+            )
           end
         elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -184,7 +209,12 @@ module RubySMB
         raw_response = tree.client.send_recv(delete_packet)
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a SetInfoResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::SetInfoResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         response.smb2_header.nt_status.to_nt_status
       end
@@ -229,7 +259,12 @@ module RubySMB
           raw_response  = tree.client.send_recv(write_request)
           response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB2::Packet::WriteResponse::COMMAND,
+              received_proto: response.smb2_header.protocol,
+              received_cmd:   response.smb2_header.command
+            )
           end
           status        = response.smb2_header.nt_status.to_nt_status
 
@@ -257,14 +292,24 @@ module RubySMB
         raw_response = tree.client.send_recv(pkt)
         response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::WriteResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         if response.status_code == WindowsError::NTStatus::STATUS_PENDING
           sleep 1
           raw_response = tree.client.dispatcher.recv_packet
           response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
           unless response.valid?
-            raise RubySMB::Error::InvalidPacket, 'Not a WriteResponse packet'
+            raise RubySMB::Error::InvalidPacket.new(
+              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+              expected_cmd:   RubySMB::SMB2::Packet::WriteResponse::COMMAND,
+              received_proto: response.smb2_header.protocol,
+              received_cmd:   response.smb2_header.command
+            )
           end
         elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -281,7 +326,12 @@ module RubySMB
         raw_response = tree.client.send_recv(rename_packet(new_file_name))
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
         unless response.valid?
-          raise RubySMB::Error::InvalidPacket, 'Not a SetInfoResponse packet'
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::SetInfoResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         response.smb2_header.nt_status.to_nt_status
       end
