@@ -9,6 +9,7 @@ RSpec.describe RubySMB::Client do
   let(:smb1_client) { described_class.new(dispatcher, smb2: false, username: username, password: password) }
   let(:smb2_client) { described_class.new(dispatcher, smb1: false, username: username, password: password) }
   let(:empty_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
+  let(:error_packet) { RubySMB::SMB2::Packet::ErrorPacket.new }
 
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
@@ -153,6 +154,94 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#logoff!' do
+    context 'with SMB1' do
+      let(:raw_response) { double('Raw response') }
+      let(:logoff_response) {
+        RubySMB::SMB1::Packet::LogoffResponse.new(smb_header: {:command => RubySMB::SMB1::Commands::SMB_COM_LOGOFF} )
+      }
+      before :example do
+        allow(smb1_client).to receive(:send_recv).and_return(raw_response)
+        allow(RubySMB::SMB1::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        allow(smb1_client).to receive(:wipe_state!)
+      end
+
+      it 'creates a LogoffRequest packet' do
+        expect(RubySMB::SMB1::Packet::LogoffRequest).to receive(:new).and_call_original
+        smb1_client.logoff!
+      end
+
+      it 'calls #send_recv' do
+        expect(smb1_client).to receive(:send_recv)
+        smb1_client.logoff!
+      end
+
+      it 'reads the raw response as a LogoffResponse packet' do
+        expect(RubySMB::SMB1::Packet::LogoffResponse).to receive(:read).with(raw_response)
+        smb1_client.logoff!
+      end
+
+      it 'raise an InvalidPacket exception when the response is an empty packet' do
+        allow(RubySMB::SMB1::Packet::LogoffResponse).to receive(:read).and_return(RubySMB::SMB1::Packet::EmptyPacket.new)
+        expect {smb1_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'raise an InvalidPacket exception when the response is not valid' do
+        allow(logoff_response).to receive(:valid?).and_return(false)
+        expect {smb1_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'calls #wipe_state!' do
+        expect(smb1_client).to receive(:wipe_state!)
+        smb1_client.logoff!
+      end
+
+      it 'returns the expected status code' do
+        logoff_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_PENDING.value
+        allow(RubySMB::SMB1::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        expect(smb1_client.logoff!).to eq(WindowsError::NTStatus::STATUS_PENDING)
+      end
+    end
+
+    context 'with SMB2' do
+      let(:raw_response) { double('Raw response') }
+      let(:logoff_response) {
+        RubySMB::SMB2::Packet::LogoffResponse.new(smb_header: {:command => RubySMB::SMB2::Commands::LOGOFF} )
+      }
+      before :example do
+        allow(smb2_client).to receive(:send_recv).and_return(raw_response)
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        allow(smb2_client).to receive(:wipe_state!)
+      end
+
+      it 'creates a LogoffRequest packet' do
+        expect(RubySMB::SMB2::Packet::LogoffRequest).to receive(:new).and_call_original
+        smb2_client.logoff!
+      end
+
+      it 'calls #send_recv' do
+        expect(smb2_client).to receive(:send_recv)
+        smb2_client.logoff!
+      end
+
+      it 'reads the raw response as a LogoffResponse packet' do
+        expect(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).with(raw_response)
+        smb2_client.logoff!
+      end
+
+      it 'raise an InvalidPacket exception when the response is an error packet' do
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(RubySMB::SMB2::Packet::ErrorPacket.new)
+        expect {smb2_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'raise an InvalidPacket exception when the response is not a LOGOFF command' do
+        logoff_response.smb2_header.command = RubySMB::SMB2::Commands::ECHO
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        expect {smb2_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+  end
+
   context 'NetBIOS Session Service' do
     describe '#session_request' do
       let(:session_header)  { RubySMB::Nbss::SessionHeader.new }
@@ -196,6 +285,11 @@ RSpec.describe RubySMB::Client do
         negative_session_response.error_code = 0x80
         allow(dispatcher).to receive(:recv_packet).and_return(negative_session_response.to_binary_s)
         expect { client.session_request }.to raise_error(RubySMB::Error::NetBiosSessionService)
+      end
+
+      it 'raises an InvalidPacket exception when an error occurs while reading' do
+        allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_raise(IOError)
+        expect { client.session_request }.to raise_error(RubySMB::Error::InvalidPacket)
       end
     end
 
@@ -332,8 +426,13 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
         end
 
-        it 'raises an exception if the Response is invalid' do
+        it 'raises an exception if the response is not a SMB packet' do
           expect { smb1_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+
+        it 'raises an InvalidPacket error if the response is not a valid response' do
+          empty_packet.smb_header.command = RubySMB::SMB2::Commands::NEGOTIATE
+          expect { smb1_client.negotiate_response(empty_packet.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
 
         it 'considers the response invalid if it is not an actual Negotiate Response' do
@@ -356,6 +455,12 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an exception if the Response is invalid' do
           expect { smb2_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+
+        it 'considers the response invalid if it is not an actual Negotiate Response' do
+          bogus_response = smb2_response
+          bogus_response.smb2_header.command = RubySMB::SMB2::Commands::ECHO
+          expect { smb2_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
 
@@ -624,7 +729,7 @@ RSpec.describe RubySMB::Client do
           expect { smb1_client.smb1_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
 
-        it 'raises an InvalidPacket if the Command field is wrong' do
+        it 'raise an InvalidPacket exception when the response is not valid' do
           expect { smb1_client.smb1_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
@@ -645,7 +750,7 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client.smb1_ntlmssp_final_packet(response.to_binary_s)).to eq response
         end
 
-        it 'raises an InvalidPacket if the Command field is wrong' do
+        it 'raise an InvalidPacket exception when the response is not valid' do
           expect { smb1_client.smb1_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
@@ -717,12 +822,7 @@ RSpec.describe RubySMB::Client do
             expect(smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s)).to eq anonymous_response
           end
 
-          it 'returns an empty packet if the raw data is not a valid response' do
-            empty_packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
-            expect(smb1_client.smb1_anonymous_auth_response(empty_packet.to_binary_s)).to eq empty_packet
-          end
-
-          it 'raises an InvalidPacket error if the command is wrong' do
+          it 'raise an InvalidPacket exception when the response is not valid' do
             anonymous_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
             expect { smb1_client.smb1_anonymous_auth_response(anonymous_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
           end
@@ -829,7 +929,7 @@ RSpec.describe RubySMB::Client do
           expect { smb2_client.smb2_ntlmssp_challenge_packet(response.to_binary_s) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
         end
 
-        it 'raises an InvalidPacket if the Command field is wrong' do
+        it 'raise an InvalidPacket exception when the response is not valid' do
           expect { smb2_client.smb2_ntlmssp_challenge_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
@@ -888,7 +988,7 @@ RSpec.describe RubySMB::Client do
           expect(smb2_client.smb2_ntlmssp_final_packet(response.to_binary_s)).to eq response
         end
 
-        it 'raises an InvalidPacket if the Command field is wrong' do
+        it 'raise an InvalidPacket exception when the response is not valid' do
           expect { smb2_client.smb2_ntlmssp_final_packet(wrong_command.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
@@ -1199,6 +1299,12 @@ RSpec.describe RubySMB::Client do
         expect(smb1_client).to receive(:send_recv).and_return(echo_response.to_binary_s)
         expect(smb1_client.echo).to eq WindowsError::NTStatus::STATUS_ABANDONED
       end
+
+      it 'raise an InvalidPacket exception when the response is not valid' do
+        echo_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+        allow(smb1_client).to receive(:send_recv).and_return(echo_response.to_binary_s)
+        expect { smb1_client.echo }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
     end
 
     context 'with SMB2' do
@@ -1209,6 +1315,12 @@ RSpec.describe RubySMB::Client do
         allow(RubySMB::SMB2::Packet::EchoRequest).to receive(:new).and_return(echo_request)
         expect(smb2_client).to receive(:send_recv).with(echo_request).and_return(echo_response.to_binary_s)
         expect(smb2_client.smb2_echo).to eq echo_response
+      end
+
+      it 'raise an InvalidPacket exception when the response is not valid' do
+        echo_response.smb2_header.command = RubySMB::SMB2::Commands::SESSION_SETUP
+        allow(smb2_client).to receive(:send_recv).and_return(echo_response.to_binary_s)
+        expect { smb2_client.smb2_echo }.to raise_error(RubySMB::Error::InvalidPacket)
       end
     end
   end

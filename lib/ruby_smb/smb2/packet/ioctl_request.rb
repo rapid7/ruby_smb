@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Ioctl Request Packet as defined in
       # [2.2.31 SMB2 IOCTL Request](https://msdn.microsoft.com/en-us/library/cc246545.aspx)
       class IoctlRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::IOCTL
+
         endian :little
 
         smb2_header   :smb2_header
@@ -29,11 +31,6 @@ module RubySMB
 
         uint32  :reserved2, label: 'Reserved Space'
         string  :buffer,    label: 'Input Buffer', read_length: -> { input_count + output_count }
-
-        def initialize_instance
-          super
-          smb2_header.command = RubySMB::SMB2::Commands::IOCTL
-        end
 
         # Calculates the value for the input_offset field.
         # If the input buffer is empty then this should be set to 0,

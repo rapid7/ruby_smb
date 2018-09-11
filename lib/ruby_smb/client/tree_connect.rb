@@ -17,11 +17,7 @@ module RubySMB
         request.smb_header.tid = 65_535
         request.data_block.path = share
         raw_response = send_recv(request)
-        begin
-          response = RubySMB::SMB1::Packet::TreeConnectResponse.read(raw_response)
-        rescue EOFError
-          response = RubySMB::SMB1::Packet::EmptyPacket.read(raw_response)
-        end
+        response = RubySMB::SMB1::Packet::TreeConnectResponse.read(raw_response)
         smb1_tree_from_response(share, response)
       end
 
@@ -30,9 +26,16 @@ module RubySMB
       # @param share [String] the share path to connect to
       # @param response [RubySMB::SMB1::Packet::TreeConnectResponse] the response packet to parse into our Tree
       # @return [RubySMB::SMB1::Tree]
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not a TreeConnectResponse packet
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response status code is not STATUS_SUCCESS
       def smb1_tree_from_response(share, response)
-        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
-          raise RubySMB::Error::InvalidPacket, 'Not a TreeConnectResponse'
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::TreeConnectResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
@@ -54,11 +57,7 @@ module RubySMB
         request.smb2_header.tree_id = 65_535
         request.encode_path(share)
         raw_response = send_recv(request)
-        begin
-          response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
-        rescue EOFError
-          response = RubySMB::SMB2::Packet::ErrorPacket.read(raw_response)
-        end
+        response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
         smb2_tree_from_response(share, response)
       end
 
@@ -67,9 +66,16 @@ module RubySMB
       # @param share [String] the share path to connect to
       # @param response [RubySMB::SMB2::Packet::TreeConnectResponse] the response packet to parse into our Tree
       # @return [RubySMB::SMB2::Tree]
+      # @raise [RubySMB::Error::InvalidPacket] if the response command is not a TreeConnectResponse packet
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response status code is not STATUS_SUCCESS
       def smb2_tree_from_response(share, response)
-        unless response.smb2_header.command == RubySMB::SMB2::Commands::TREE_CONNECT
-          raise RubySMB::Error::InvalidPacket, 'Not a TreeConnectResponse'
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::TreeConnectResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name

@@ -6,6 +6,8 @@ module RubySMB
         # This class represents a generic SMB1 Trans Request Packet as defined in
         # [2.2.4.33.1 Request](https://msdn.microsoft.com/en-us/library/ee441730.aspx)
         class Request < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+
           # A SMB1 Parameter Block
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16      :total_parameter_count, label: 'Total Parameter Count(bytes)', initial_value: -> { parameter_count }
@@ -47,11 +49,6 @@ module RubySMB
           smb_header        :smb_header
           parameter_block   :parameter_block
           data_block        :data_block
-
-          def initialize_instance
-            super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
-          end
 
         end
       end

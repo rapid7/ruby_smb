@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Query Directory Request Packet as defined in
       # [2.2.33 SMB2 QUERY_DIRECTORY Request](https://msdn.microsoft.com/en-us/library/cc246551.aspx)
       class QueryDirectoryRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::QUERY_DIRECTORY
+
         endian       :little
         smb2_header  :smb2_header
         uint16       :structure_size,          label: 'Structure Size', initial_value: 33
@@ -25,10 +27,6 @@ module RubySMB
         uint32        :output_length, label: 'Output Buffer Length'
         string16      :name,          label: 'Name/Search Pattern'
 
-        def initialize_instance
-          super
-          smb2_header.command = RubySMB::SMB2::Commands::QUERY_DIRECTORY
-        end
       end
     end
   end

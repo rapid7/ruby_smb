@@ -104,4 +104,44 @@ RSpec.describe RubySMB::SMB1::Packet::TreeConnectResponse do
       expect(file_response.guest_access_rights).to be_a RubySMB::SMB1::BitField::FileAccessMask
     end
   end
+
+  describe '#access_rights' do
+    it 'is a DirectoryAccessMask if the Tree is a directory' do
+      allow(packet).to receive(:is_directory?).and_return(true)
+      expect(packet.access_rights).to be_a RubySMB::SMB1::BitField::DirectoryAccessMask
+    end
+
+    it 'is a FileAccessMask if the Tree is not a directory' do
+      allow(packet).to receive(:is_directory?).and_return(false)
+      expect(packet.access_rights).to be_a RubySMB::SMB1::BitField::FileAccessMask
+    end
+
+    context 'when it is not a valid FileAccessMask' do
+      it 'raises an InvalidBitField exception' do
+        allow(packet).to receive(:is_directory?).and_return(false)
+        allow(RubySMB::SMB1::BitField::FileAccessMask).to receive(:read).and_raise(IOError)
+        expect { packet.access_rights }.to raise_error(RubySMB::Error::InvalidBitField)
+      end
+    end
+  end
+
+  describe '#guest_access_rights' do
+    it 'is a DirectoryAccessMask if the Tree is a directory' do
+      allow(packet).to receive(:is_directory?).and_return(true)
+      expect(packet.guest_access_rights).to be_a RubySMB::SMB1::BitField::DirectoryAccessMask
+    end
+
+    it 'is a FileAccessMask if the Tree is not a directory' do
+      allow(packet).to receive(:is_directory?).and_return(false)
+      expect(packet.guest_access_rights).to be_a RubySMB::SMB1::BitField::FileAccessMask
+    end
+
+    context 'when it is not a valid FileAccessMask' do
+      it 'raises an InvalidBitField exception' do
+        allow(packet).to receive(:is_directory?).and_return(false)
+        allow(RubySMB::SMB1::BitField::FileAccessMask).to receive(:read).and_raise(IOError)
+        expect { packet.guest_access_rights }.to raise_error(RubySMB::Error::InvalidBitField)
+      end
+    end
+  end
 end

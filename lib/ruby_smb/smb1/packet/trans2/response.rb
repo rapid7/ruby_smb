@@ -5,6 +5,8 @@ module RubySMB
         # This class represents a generic SMB1 Trans2 Response Packet as defined in
         # [2.2.4.46.2 Response](https://msdn.microsoft.com/en-us/library/ee441550.aspx)
         class Response < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
             uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
@@ -36,7 +38,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             smb_header.flags.reply = 1
           end
         end

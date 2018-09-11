@@ -5,6 +5,8 @@ module RubySMB
         # Class representing a NT Transaction Create response packet as defined in
         # [2.2.7.1.2 Response](https://msdn.microsoft.com/en-us/library/ee441961.aspx)
         class CreateResponse < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_NT_TRANSACT
+
           class ParameterBlock < RubySMB::SMB1::Packet::NtTrans::Response::ParameterBlock
           end
 
@@ -49,7 +51,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NT_TRANSACT
             smb_header.flags.reply = 1
           end
         end

@@ -4,6 +4,8 @@ module RubySMB
       # This class represents an SMB1 TreeConnect Request Packet as defined in
       # [2.2.4.7.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/cc246330.aspx)
       class TreeConnectRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
+
         # A SMB1 Parameter Block as defined by the {TreeConnectRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block          :andx_block
@@ -22,10 +24,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
-        end
       end
     end
   end

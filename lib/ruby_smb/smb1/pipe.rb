@@ -26,14 +26,19 @@ module RubySMB
         packet = @tree.set_header_fields(packet)
         raw_response = @tree.client.send_recv(packet)
         response = RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
+        end
 
         unless response.status_code == WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW or response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
 
-        unless response.smb_header.command == RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
-          raise RubySMB::Error::InvalidPacket, 'Not a TransResponse packet'
-        end
         response
       end
 

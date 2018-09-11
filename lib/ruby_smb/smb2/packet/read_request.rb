@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Read Request Packet as defined in
       # [2.2.19 SMB2 READ Request](https://msdn.microsoft.com/en-us/library/cc246527.aspx)
       class ReadRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::READ
+
         endian :little
 
         smb2_header           :smb2_header
@@ -20,10 +22,6 @@ module RubySMB
         uint16                :channel_length,        label: 'Read Channel Info Length'
         string                :buffer,                label: 'Read Channel info Buffer', initial_value: 0x00
 
-        def initialize_instance
-          super
-          smb2_header.command = RubySMB::SMB2::Commands::READ
-        end
       end
     end
   end

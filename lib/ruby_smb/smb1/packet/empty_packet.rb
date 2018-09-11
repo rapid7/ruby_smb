@@ -4,9 +4,16 @@ module RubySMB
       # This packet represent an SMB1 Response Packet when the parameter and
       # data blocks will be empty.
       class EmptyPacket < RubySMB::GenericPacket
+        attr_accessor :original_command
+
         smb_header        :smb_header
         parameter_block   :parameter_block
         data_block        :data_block
+
+        def valid?
+          return smb_header.protocol == RubySMB::SMB1::SMB_PROTOCOL_ID &&
+            smb_header.command == @original_command
+        end
       end
     end
   end

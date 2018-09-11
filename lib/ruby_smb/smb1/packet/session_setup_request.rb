@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_SESSION_SETUP_ANDX Request Packet as defined in
       # [2.2.4.6.1](https://msdn.microsoft.com/en-us/library/cc246328.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block   :andx_block
@@ -29,11 +31,6 @@ module RubySMB
         smb_header        :smb_header
         parameter_block   :parameter_block
         data_block        :data_block
-
-        def initialize_instance
-          super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
-        end
 
         # Takes an NTLM Type 1 Message and creates the GSS Security Blob
         # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}

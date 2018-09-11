@@ -5,6 +5,8 @@ module RubySMB
         # A Trans2 OPEN2 Request Packet as defined in
         # [2.2.6.1.1 Request](https://msdn.microsoft.com/en-us/library/ee441733.aspx)
         class Open2Request < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
 
@@ -50,7 +52,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::OPEN2
           end
         end

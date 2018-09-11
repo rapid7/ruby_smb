@@ -5,6 +5,8 @@ module RubySMB
         # This class represents an SMB1 Trans PeekNamedPipe Response Packet as defined in
         # [2.2.5.5.2 Response](https://msdn.microsoft.com/en-us/library/ee441883.aspx)
         class PeekNmpipeResponse < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans::Response::ParameterBlock
           end
 
@@ -22,7 +24,7 @@ module RubySMB
               do_num_bytes
             end
           end
-          
+
           class TransData < BinData::Record
             string :read_data, label: 'Readable data', length: -> { parent.parameter_block.total_data_count }
 
@@ -48,7 +50,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
             smb_header.flags.reply = 1
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::PEEK_NMPIPE
           end

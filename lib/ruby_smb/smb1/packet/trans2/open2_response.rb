@@ -5,6 +5,8 @@ module RubySMB
         # This class represents an SMB1 Trans2 Open2 Response Packet as defined in
         # [2.2.6.1.2 Response](https://msdn.microsoft.com/en-us/library/ee441545.aspx)
         class Open2Response < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock
           end
 
@@ -52,7 +54,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::OPEN2
             smb_header.flags.reply = 1
           end

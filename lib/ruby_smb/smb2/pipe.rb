@@ -14,7 +14,7 @@ module RubySMB
       #
       # @param peek_size [Integer] Amount of data to peek
       # @return [RubySMB::SMB2::Packet::IoctlResponse]
-      # @raise [RubySMB::Error::InvalidPacket] if not a valid FSCTL_PIPE_PEEK response
+      # @raise [RubySMB::Error::InvalidPacket] if not a valid FIoctlResponse response
       # @raise [RubySMB::Error::UnexpectedStatusCode] If status is not STATUS_BUFFER_OVERFLOW or STATUS_SUCCESS
       def peek(peek_size: 0)
         packet = RubySMB::SMB2::Packet::IoctlRequest.new
@@ -24,18 +24,18 @@ module RubySMB
         packet.max_output_response = 16 + peek_size
         packet = set_header_fields(packet)
         raw_response = @tree.client.send_recv(packet)
-        begin
-          response = RubySMB::SMB2::Packet::IoctlResponse.read(raw_response)
-        rescue IOError
-          response = RubySMB::SMB2::Packet::ErrorPacket.read(raw_response)
+        response = RubySMB::SMB2::Packet::IoctlResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::IoctlResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
         end
 
         unless response.status_code == WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW or response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
-        end
-
-        unless response.smb2_header.command == RubySMB::SMB2::Commands::IOCTL
-          raise RubySMB::Error::InvalidPacket, 'Not an IoctlResponse packet'
         end
         response
       end

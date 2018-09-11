@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 SMB_COM_CLOSE Response Packet as defined in
       # [2.2.4.5.2 Response](https://msdn.microsoft.com/en-us/library/ee441667.aspx)
       class CloseResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_CLOSE
+
         # A SMB1 Parameter Block as defined by the {CloseResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
         end
@@ -18,7 +20,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command     = RubySMB::SMB1::Commands::SMB_COM_CLOSE
           smb_header.flags.reply = 1
         end
 

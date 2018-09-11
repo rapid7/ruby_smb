@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Create Request Packet as defined in
       # [2.2.13 SMB2 CREATE Request](https://msdn.microsoft.com/en-us/library/cc246502.aspx)
       class CreateRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::CREATE
+
         require 'ruby_smb/smb1/bit_field/create_options'
 
         endian :little
@@ -44,10 +46,6 @@ module RubySMB
 
         array :context, label: 'Contexts', type: :create_context, read_until: :eof
 
-        def initialize_instance
-          super
-          smb2_header.command = RubySMB::SMB2::Commands::CREATE
-        end
       end
     end
   end

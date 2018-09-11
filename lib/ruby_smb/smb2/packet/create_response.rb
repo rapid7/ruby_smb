@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Create Response Packet as defined in
       # [2.2.14 SMB2 CREATE Response](https://msdn.microsoft.com/en-us/library/cc246512.aspx)
       class CreateResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::CREATE
+
         endian :little
         smb2_header           :smb2_header
         uint16                :structure_size,       label: 'Structure Size', initial_value: 89
@@ -26,7 +28,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::CREATE
           smb2_header.flags.reply = 1
         end
       end

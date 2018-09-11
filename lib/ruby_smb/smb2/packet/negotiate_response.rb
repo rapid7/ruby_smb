@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 NEGOTIATE Response packet as defined by
       # [2.2.4 SMB2 NEGOTIATE Response](https://msdn.microsoft.com/en-us/library/cc246561.aspx)
       class NegotiateResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::NEGOTIATE
+
         endian              :little
         smb2_header         :smb2_header
         uint16              :structure_size, label: 'Structure Size', initial_value: 65
@@ -24,7 +26,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::NEGOTIATE
           smb2_header.flags.reply = 1
         end
       end

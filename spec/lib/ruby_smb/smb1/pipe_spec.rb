@@ -37,6 +37,68 @@ RSpec.describe RubySMB::SMB1::Pipe do
     described_class.new(tree: tree, response: nt_create_andx_response, name: filename)
   }
 
+  describe '#peek' do
+    let(:request) { RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest.new }
+    let(:raw_response) { double('Raw response') }
+    let(:response) { double('Response') }
+
+    before :example do
+      allow(RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest).to receive(:new).and_return(request)
+      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse).to receive(:read).and_return(response)
+      allow(response).to receive(:valid?).and_return(true)
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+
+    it 'creates a PeekNmpipeRequest'do
+      expect(RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest).to receive(:new)
+      pipe.peek
+    end
+
+    it 'sets the request #fid field' do
+      expect(request).to receive(:fid=).with(pipe.fid)
+      pipe.peek
+    end
+
+    it 'sets the request #max_data_count fieldto the peek_size argument' do
+      peek_size = 5
+      pipe.peek(peek_size: peek_size)
+      expect(request.parameter_block.max_data_count).to eq(peek_size)
+    end
+
+    it 'calls Tree #set_header_fields' do
+      expect(tree).to receive(:set_header_fields).with(request)
+      pipe.peek
+    end
+
+    it 'calls Client #send_recv' do
+      expect(client).to receive(:send_recv).with(request)
+      pipe.peek
+    end
+
+    it 'parses the response as a SMB1 PeekNmpipeResponse packet' do
+      expect(RubySMB::SMB1::Packet::Trans::PeekNmpipeResponse).to receive(:read).with(raw_response)
+      pipe.peek
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(response).to receive(:valid?).and_return(false)
+      smb_header = double('SMB Header')
+      allow(response).to receive(:smb_header).and_return(smb_header)
+      allow(smb_header).to receive_messages(:protocol => nil, :command => nil)
+      expect { pipe.peek }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
+    it 'raises an UnexpectedStatusCode exception if the response status code is not STATUS_SUCCESS or STATUS_BUFFER_OVERFLOW' do
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND)
+      expect { pipe.peek }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+
+    it 'returns the expected response' do
+      expect(pipe.peek).to eq(response)
+    end
+  end
+
   describe '#peek_available' do
     it 'reads the correct number of bytes available' do
       allow(pipe).to receive(:peek) { peek_nmpipe_response }
@@ -227,8 +289,7 @@ RSpec.describe RubySMB::SMB1::Pipe do
       end
 
       it 'raises the expected exception when it is not a Trans packet' do
-        response = RubySMB::SMB1::Packet::Trans2::Response.new
-        allow(RubySMB::SMB1::Packet::Trans::TransactNmpipeResponse).to receive(:read).and_return(response)
+        nmpipe_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
         expect { pipe.request(opnum, options) }.to raise_error(RubySMB::Error::InvalidPacket)
       end
 

@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 Write Response Packet as defined in
       # [2.2.22 SMB2 WRITE Response](https://msdn.microsoft.com/en-us/library/cc246533.aspx)
       class WriteResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::WRITE
+
         endian :little
 
         smb2_header           :smb2_header
@@ -17,7 +19,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::WRITE
           smb2_header.flags.reply = 1
         end
       end

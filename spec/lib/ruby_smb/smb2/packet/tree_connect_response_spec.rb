@@ -52,5 +52,13 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectResponse do
       allow(packet).to receive(:is_directory?).and_return(false)
       expect(packet.access_rights).to be_a RubySMB::SMB2::BitField::FileAccessMask
     end
+
+    context 'when it is not a valid FileAccessMask' do
+      it 'raises an InvalidBitField exception' do
+        allow(packet).to receive(:is_directory?).and_return(false)
+        allow(RubySMB::SMB2::BitField::FileAccessMask).to receive(:read).and_raise(IOError)
+        expect { packet.access_rights }.to raise_error(RubySMB::Error::InvalidBitField)
+      end
+    end
   end
 end

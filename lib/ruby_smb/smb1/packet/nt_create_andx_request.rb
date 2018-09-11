@@ -5,6 +5,8 @@ module RubySMB
       # [2.2.4.64.1 Request](https://msdn.microsoft.com/en-us/library/ee442175.aspx) and
       # [2.2.4.9.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/cc246332.aspx)
       class NtCreateAndxRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
+
         # A SMB1 Parameter Block as defined by the {NtCreateAndxRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
@@ -52,10 +54,6 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
-        def initialize_instance
-          super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
-        end
       end
     end
   end

@@ -5,6 +5,8 @@ module RubySMB
       # [2.2.4.42.1 Request](https://msdn.microsoft.com/en-us/library/ee441839.aspx)
       # [2.2.4.2.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/ff470250.aspx)
       class ReadAndxRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
+
         # A SMB1 Parameter Block as defined by the {ReadAndxRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
@@ -53,11 +55,6 @@ module RubySMB
         smb_header        :smb_header
         parameter_block   :parameter_block
         data_block        :data_block
-
-        def initialize_instance
-          super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_READ_ANDX
-        end
 
         # Sets the read_from_named_pipe flag to `read_from_named_pipe` value (true or false).
         # When reading from a named pipe, this flag needs to be set to true, which forces

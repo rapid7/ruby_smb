@@ -4,6 +4,8 @@ module RubySMB
       # A SMB1 TreeConnect Response Packet as defined in
       # [2.2.4.7.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246331.aspx)
       class TreeConnectResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
+
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block                :andx_block
@@ -24,7 +26,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
           smb_header.flags.reply = 1
         end
 
@@ -34,12 +35,17 @@ module RubySMB
         #
         # @return [RubySMB::SMB1::BitField::DirectoryAccessMask] if a directory was connected to
         # @return [RubySMB::SMB1::BitField::FileAccessMask] if anything else was connected to
+        # @raise [RubySMB::Error::InvalidBitField] if ACCESS_MASK bit field is not valid
         def access_rights
           if is_directory?
             parameter_block.access_rights
           else
             mask = parameter_block.access_rights.to_binary_s
-            RubySMB::SMB1::BitField::FileAccessMask.read(mask)
+            begin
+              RubySMB::SMB1::BitField::FileAccessMask.read(mask)
+            rescue IOError
+              raise RubySMB::Error::InvalidBitField, 'Invalid ACCESS_MASK for the Maximal Share Access Rights'
+            end
           end
         end
 
@@ -54,7 +60,11 @@ module RubySMB
             parameter_block.guest_access_rights
           else
             mask = parameter_block.guest_access_rights.to_binary_s
-            RubySMB::SMB1::BitField::FileAccessMask.read(mask)
+            begin
+              RubySMB::SMB1::BitField::FileAccessMask.read(mask)
+            rescue IOError
+              raise RubySMB::Error::InvalidBitField, 'Invalid ACCESS_MASK for the Guest Share Access Rights'
+            end
           end
         end
 

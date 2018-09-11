@@ -5,6 +5,8 @@ module RubySMB
       # [2.2.4.43.1 Request](https://msdn.microsoft.com/en-us/library/ee441954.aspx)
       # [2.2.4.3.1 Client Request Extensions](https://msdn.microsoft.com/en-us/library/ff469893.aspx)
       class WriteAndxRequest < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_WRITE_ANDX
+
         # A SMB1 Parameter Block as defined by the {WriteAndxRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian      :little
@@ -48,11 +50,6 @@ module RubySMB
         smb_header        :smb_header
         parameter_block   :parameter_block
         data_block        :data_block
-
-        def initialize_instance
-          super
-          smb_header.command = RubySMB::SMB1::Commands::SMB_COM_WRITE_ANDX
-        end
 
         # Specifies whether the offset is a 32-bit (default) or 64-bit value. When `is_64_bit`
         # is true, a 64-bit offset will be used and the OffsetHigh field will be added to the structure.

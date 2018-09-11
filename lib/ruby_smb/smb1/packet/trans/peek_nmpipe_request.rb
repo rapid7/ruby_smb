@@ -12,7 +12,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION
             data_block.name = "\\PIPE\\"
             parameter_block.setup << RubySMB::SMB1::Packet::Trans::Subcommands::PEEK_NMPIPE
             parameter_block.setup_count = 2

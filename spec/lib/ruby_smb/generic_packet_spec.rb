@@ -63,8 +63,13 @@ RSpec.describe RubySMB::GenericPacket do
         expect(RubySMB::SMB1::Packet::NegotiateResponse.read(smb1_error_packet.to_binary_s)).to be_a RubySMB::SMB1::Packet::EmptyPacket
       end
 
-      it 'reraises the exception if it is not a valid error packet either' do
-        expect{RubySMB::SMB1::Packet::NegotiateResponse.read('a')}.to raise_error(EOFError)
+      it 'raises an InvaliPacket exception if it is not a valid error packet either' do
+        expect{RubySMB::SMB1::Packet::NegotiateResponse.read('a')}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'sets the EmptyPacket#original_command attribute to the original COMMAND' do
+        packet = RubySMB::SMB1::Packet::NegotiateResponse.read(smb1_error_packet.to_binary_s)
+        expect(packet.original_command).to eq RubySMB::SMB1::Packet::NegotiateResponse::COMMAND
       end
     end
 
@@ -75,8 +80,51 @@ RSpec.describe RubySMB::GenericPacket do
         expect(RubySMB::SMB2::Packet::NegotiateResponse.read(smb2_error_packet.to_binary_s)).to be_a RubySMB::SMB2::Packet::ErrorPacket
       end
 
-      it 'reraises the exception if it is not a valid error packet either' do
-        expect{RubySMB::SMB2::Packet::NegotiateResponse.read('a')}.to raise_error(EOFError)
+      it 'raises an InvaliPacket exception if it is not a valid error packet either' do
+        expect{RubySMB::SMB2::Packet::NegotiateResponse.read('a')}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'sets the ErrorPacket#original_command attribute to the original COMMAND' do
+        packet = RubySMB::SMB2::Packet::NegotiateResponse.read(smb2_error_packet.to_binary_s)
+        expect(packet.original_command).to eq RubySMB::SMB2::Packet::NegotiateResponse::COMMAND
+      end
+    end
+  end
+
+  describe '#valid?' do
+    context 'when reading an SMB1 packet' do
+      let(:packet) { RubySMB::SMB1::Packet::NegotiateResponse.new }
+
+      it 'returns true if the packet protocol ID and header command are valid' do
+        expect(packet).to be_valid
+      end
+
+      it 'returns false if the packet protocol ID is wrong' do
+        packet.smb_header.protocol = RubySMB::SMB2::SMB2_PROTOCOL_ID
+        expect(packet).to_not be_valid
+      end
+
+      it 'returns false if the packet header command is wrong' do
+        packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TREE_CONNECT
+        expect(packet).to_not be_valid
+      end
+    end
+
+    context 'when reading an SMB2 packet' do
+      let(:packet) { RubySMB::SMB2::Packet::NegotiateResponse.new }
+
+      it 'returns true if the packet protocol ID and header command are valid' do
+        expect(packet).to be_valid
+      end
+
+      it 'returns false if the packet protocol ID is wrong' do
+        packet.smb2_header.protocol = RubySMB::SMB1::SMB_PROTOCOL_ID
+        expect(packet).to_not be_valid
+      end
+
+      it 'returns false if the packet header command is wrong' do
+        packet.smb2_header.command = RubySMB::SMB2::Commands::TREE_CONNECT
+        expect(packet).to_not be_valid
       end
     end
   end

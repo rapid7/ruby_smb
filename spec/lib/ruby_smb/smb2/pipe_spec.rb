@@ -36,6 +36,72 @@ RSpec.describe RubySMB::SMB2::Pipe do
 
   subject(:pipe) { described_class.new(name: 'msf-pipe', response: create_response, tree: tree) }
 
+  describe '#peek' do
+    let(:request) { RubySMB::SMB2::Packet::IoctlRequest.new }
+    let(:raw_response) { double('Raw response') }
+    let(:response) { double('Response') }
+
+    before :example do
+      allow(RubySMB::SMB2::Packet::IoctlRequest).to receive(:new).and_return(request)
+      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(response)
+      allow(response).to receive(:valid?).and_return(true)
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+
+    it 'creates a IoctlRequest'do
+      expect(RubySMB::SMB2::Packet::IoctlRequest).to receive(:new)
+      pipe.peek
+    end
+
+    it 'sets the request #ctl_code field' do
+      expect(request).to receive(:ctl_code=).with(RubySMB::Fscc::ControlCodes::FSCTL_PIPE_PEEK)
+      pipe.peek
+    end
+
+    it 'sets the request #is_fsctl flag to true' do
+      pipe.peek
+      expect(request.flags.is_fsctl).to eq 1
+    end
+
+    it 'sets the request #max_output_response field to the expected value' do
+      pipe.peek(peek_size: 10)
+      expect(request.max_output_response).to eq(16 + 10)
+    end
+
+    it 'calls #set_header_fields' do
+      expect(pipe).to receive(:set_header_fields).with(request)
+      pipe.peek
+    end
+
+    it 'calls Client #send_recv' do
+      expect(client).to receive(:send_recv).with(request)
+      pipe.peek
+    end
+
+    it 'parses the response as a SMB2 IoctlResponse packet' do
+      expect(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(raw_response)
+      pipe.peek
+    end
+
+    it 'raises an InvalidPacket exception if the response is not valid' do
+      allow(response).to receive(:valid?).and_return(false)
+      smb2_header = double('SMB2 Header')
+      allow(response).to receive(:smb2_header).and_return(smb2_header)
+      allow(smb2_header).to receive_messages(:protocol => nil, :command => nil)
+      expect { pipe.peek }.to raise_error(RubySMB::Error::InvalidPacket)
+    end
+
+    it 'raises an UnexpectedStatusCode exception if the response status code is not STATUS_SUCCESS or STATUS_BUFFER_OVERFLOW' do
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND)
+      expect { pipe.peek }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+
+    it 'returns the expected response' do
+      expect(pipe.peek).to eq(response)
+    end
+  end
+
   describe '#peek_available' do
     it 'reads the correct number of bytes available' do
       allow(pipe).to receive(:peek) { ioctl_response }
@@ -244,9 +310,9 @@ RSpec.describe RubySMB::SMB2::Pipe do
         pipe.ioctl_send_recv(action, options)
       end
 
-      it 'raises the expected exception when it is not a IoctlResponse packet' do
-        response = RubySMB::SMB2::Packet::LogoffResponse.new
-        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(response)
+      it 'raises the expected exception when it is not a valid packet' do
+        ioctl_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
+        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(ioctl_response)
         expect { pipe.ioctl_send_recv(action, options) }.to raise_error(RubySMB::Error::InvalidPacket)
       end
 

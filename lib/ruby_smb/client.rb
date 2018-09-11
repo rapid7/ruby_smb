@@ -297,15 +297,32 @@ module RubySMB
     # Sends a LOGOFF command to the remote server to terminate the session
     #
     # @return [WindowsError::ErrorCode] the NTStatus of the response
+    # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a LogoffResponse packet
     def logoff!
       if smb2
         request      = RubySMB::SMB2::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB2::Packet::LogoffResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::LogoffResponse::COMMAND,
+            received_proto: response.smb2_header.protocol,
+            received_cmd:   response.smb2_header.command
+          )
+        end
       else
         request      = RubySMB::SMB1::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB1::Packet::LogoffResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::LogoffResponse::COMMAND,
+            received_proto: response.smb_header.protocol,
+            received_cmd:   response.smb_header.command
+          )
+        end
       end
       wipe_state!
       response.status_code
@@ -380,14 +397,19 @@ module RubySMB
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
+    # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a NBSS packet
     def session_request(name = '*SMBSERVER')
       session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
-      session_header =  RubySMB::Nbss::SessionHeader.read(raw_response)
-      if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-        negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
-        raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
+      begin
+        session_header = RubySMB::Nbss::SessionHeader.read(raw_response)
+        if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
+          negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+          raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
+        end
+      rescue IOError
+        raise RubySMB::Error::InvalidPacket, 'Not a NBSS packet'
       end
 
       return true

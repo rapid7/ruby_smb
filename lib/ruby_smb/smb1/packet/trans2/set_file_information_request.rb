@@ -5,6 +5,8 @@ module RubySMB
         # A Trans2 SET_FILE_INFORMATION Request Packet as defined in
         # [2.2.6.9.1 Request](https://msdn.microsoft.com/en-us/library/ee441527.aspx)
         class SetFileInformationRequest < RubySMB::GenericPacket
+          COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
+
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
           end
 
@@ -56,7 +58,6 @@ module RubySMB
 
           def initialize_instance
             super
-            smb_header.command = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
             parameter_block.setup << RubySMB::SMB1::Packet::Trans2::Subcommands::SET_FILE_INFORMATION
           end
         end

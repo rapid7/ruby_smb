@@ -4,6 +4,8 @@ module RubySMB
       # An SMB2 TreeConnectResponse Packet as defined in
       # [2.2.10 SMB2 TREE_CONNECT Response](https://msdn.microsoft.com/en-us/library/cc246499.aspx)
       class TreeConnectResponse < RubySMB::GenericPacket
+        COMMAND = RubySMB::SMB2::Commands::TREE_CONNECT
+
         endian :little
         smb2_header           :smb2_header
         uint16                :structure_size, label: 'Structure Size', initial_value: 16
@@ -15,7 +17,6 @@ module RubySMB
 
         def initialize_instance
           super
-          smb2_header.command = RubySMB::SMB2::Commands::TREE_CONNECT
           smb2_header.flags.reply = 1
         end
 
@@ -25,12 +26,17 @@ module RubySMB
         #
         # @return [RubySMB::SMB2::BitField::DirectoryAccessMask] if a directory was connected to
         # @return [RubySMB::SMB2::BitField::FileAccessMask] if anything else was connected to
+        # @raise [RubySMB::Error::InvalidBitField] if ACCESS_MASK bit field is not valid
         def access_rights
           if is_directory?
             maximal_access
           else
             mask = maximal_access.to_binary_s
-            RubySMB::SMB2::BitField::FileAccessMask.read(mask)
+            begin
+              RubySMB::SMB2::BitField::FileAccessMask.read(mask)
+            rescue IOError
+              raise RubySMB::Error::InvalidBitField, 'Invalid ACCESS_MASK for the Maximal Share Access Rights'
+            end
           end
         end
 
