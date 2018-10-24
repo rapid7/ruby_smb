@@ -54,5 +54,15 @@ RSpec.describe RubySMB::SMB1::Packet::EmptyPacket do
       packet.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_NEGOTIATE
       expect(packet).to_not be_valid
     end
+
+    it 'returns false if the packet parameter block size is not 0' do
+      packet.parameter_block.word_count = 10
+      expect(packet).to_not be_valid
+    end
+
+    it 'returns false if the packet data block size is not 0' do
+      packet.data_block.byte_count = 10
+      expect(packet).to_not be_valid
+    end
   end
 end
