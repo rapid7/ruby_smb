@@ -199,7 +199,7 @@ for the user, relying on reasonable defaults in many cases.
 The RubySMB Client is capabale of multi-protocol negotiation. The user simply specifies whether SMB1 and/or SMB2 should be supported, and
 the client will negotiate the propper protocol and dialect behind the scenes.
 
-In the below example, we tell the client that both SMb1 and SMB2 should be supported. The Client will then Negotiate with the
+In the below example, we tell the client that both SMB1 and SMB2 should be supported. The Client will then Negotiate with the
 server on which version should be used. The user does not have to ever worry about which version was negotiated.
 Example:
 ```ruby
