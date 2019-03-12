@@ -6,8 +6,8 @@ require 'ruby_smb/version'
 Gem::Specification.new do |spec|
   spec.name          = 'ruby_smb'
   spec.version       = RubySMB::VERSION
-  spec.authors       = ['David Maloney', 'James Lee', 'Dev Mohanty', 'Christophe De La Fuente']
-  spec.email         = ['DMaloney@rapid7.com', 'egypt@metasploit.com', 'dev_mohanty@rapid7.com', 'paristvinternet-github@yahoo.com']
+  spec.authors       = ['Metasploit Hackers', 'David Maloney', 'James Lee', 'Dev Mohanty', 'Christophe De La Fuente']
+  spec.email         = ['msfdev@metasploit.com']
   spec.summary       = 'A pure Ruby implementation of the SMB Protocol Family'
   spec.description   = ''
   spec.homepage      = 'https://github.com/rapid7/ruby_smb'
@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
     spec.platform = Gem::Platform::RUBY
   end
 
-  spec.required_ruby_version = '>= 2.2.0'
+  spec.required_ruby_version = '>= 2.3.0'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'fivemat'
