@@ -5,6 +5,10 @@ module RubySMB
       #https://msdn.microsoft.com/en-us/library/cc247293.aspx
 
       class NetShareEnumAll < BinData::Record
+        OPNUM = NET_SHARE_ENUM_ALL
+
+        mandatory_parameter :host
+
         endian :little
 
         uint32    :referent_id,  initial_value: 0x00000001

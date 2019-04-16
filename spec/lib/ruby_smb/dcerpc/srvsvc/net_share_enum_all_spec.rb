@@ -20,6 +20,12 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAll do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  context 'when \'host\' parameter is not provided' do
+    it 'raises an ArgumentError' do
+      expect { described_class.new }.to raise_error(ArgumentError)
+    end
+  end
+
   describe '#referent_id' do
     it 'should be a 32-bit unsigned integer' do
       expect(packet.referent_id).to be_a BinData::Uint32le
