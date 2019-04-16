@@ -27,14 +27,14 @@ RSpec.describe RubySMB::SMB2::Pipe do
       last_write: time
     )
   }
-
   let(:ioctl_response) {
     packet = RubySMB::SMB2::Packet::IoctlResponse.new
     packet.buffer = "\x03\x00\x00\x00" + "\x10\x20\x30\x40" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00"
     packet
   }
+  let(:filename) { 'msf-pipe' }
 
-  subject(:pipe) { described_class.new(name: 'msf-pipe', response: create_response, tree: tree) }
+  subject(:pipe) { described_class.new(name: filename, response: create_response, tree: tree) }
 
   describe '#peek' do
     let(:request) { RubySMB::SMB2::Packet::IoctlRequest.new }
@@ -127,206 +127,317 @@ RSpec.describe RubySMB::SMB2::Pipe do
     end
   end
 
-  context 'with DCERPC' do
-    describe '#net_share_enum_all' do
-      let(:host) { '1.2.3.4' }
-      let(:dcerpc_response) { RubySMB::Dcerpc::Response.new }
-
-      before :example do
-        allow(pipe).to receive(:bind)
-        allow(pipe).to receive(:request).and_return(dcerpc_response)
-        allow(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll).to receive(:parse_response).and_return([])
-      end
-
-      it 'calls #bind with the expected arguments' do
-        expect(pipe).to receive(:bind).with(endpoint: RubySMB::Dcerpc::Srvsvc)
-        pipe.net_share_enum_all(host)
-      end
-
-      it 'calls #request with the expected arguments' do
-        expect(pipe).to receive(:request).with(RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: host)
-        pipe.net_share_enum_all(host)
-      end
-
-      it 'parse the response with NetShareEnumAll #parse_response method' do
-        stub = 'ABCD'
-        dcerpc_response.alloc_hint = stub.size
-        dcerpc_response.stub = stub
-        expect(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll).to receive(:parse_response).with(stub)
-        pipe.net_share_enum_all(host)
-      end
-
-      it 'returns the remote shares' do
-        shares = [
-          ["C$", "DISK", "Default share"],
-          ["Shared", "DISK", ""],
-          ["IPC$", "IPC", "Remote IPC"],
-          ["ADMIN$", "DISK", "Remote Admin"]
-        ]
-        output = [
-          {:name=>"C$", :type=>"DISK", :comment=>"Default share"},
-          {:name=>"Shared", :type=>"DISK", :comment=>""},
-          {:name=>"IPC$", :type=>"IPC", :comment=>"Remote IPC"},
-          {:name=>"ADMIN$", :type=>"DISK", :comment=>"Remote Admin"},
-        ]
-        allow(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll).to receive(:parse_response).and_return(shares)
-        expect(pipe.net_share_enum_all(host)).to eq(output)
+  describe '#initialize' do
+    context 'when name is not provided' do
+      it 'raises an ArgumentError' do
+        expect {
+          described_class.new(tree: tree, response: create_response, name: nil)
+        }.to raise_error(ArgumentError)
       end
     end
 
-    describe '#bind' do
-      let(:options) { { endpoint: RubySMB::Dcerpc::Srvsvc } }
-      let(:bind_packet) { RubySMB::Dcerpc::Bind.new(options) }
-      let(:bind_ack_packet) { RubySMB::Dcerpc::BindAck.new }
+    it 'calls the superclass with the expected arguments' do
+      expect(pipe.tree).to eq(tree)
+      expect(pipe.name).to eq(filename)
+      expect(pipe.attributes).to eq(create_response.file_attributes)
+      expect(pipe.guid).to eq(create_response.file_id)
+      expect(pipe.last_access).to eq(create_response.last_access.to_datetime)
+      expect(pipe.last_change).to eq(create_response.last_change.to_datetime)
+      expect(pipe.last_write).to eq(create_response.last_write.to_datetime)
+      expect(pipe.size).to eq(create_response.end_of_file)
+      expect(pipe.size_on_disk).to eq(create_response.allocation_size)
+    end
 
-      before :example do
-        allow(RubySMB::Dcerpc::Bind).to receive(:new).and_return(bind_packet)
-        allow(pipe).to receive(:write)
-        allow(pipe).to receive(:read)
-        bind_ack_packet.p_result_list.n_results = 1
-        bind_ack_packet.p_result_list.p_results[0].result = RubySMB::Dcerpc::BindAck::ACCEPTANCE
-        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(bind_ack_packet)
-      end
-
-      it 'creates a Bind packet' do
-        expect(RubySMB::Dcerpc::Bind).to receive(:new).with(options).and_return(bind_packet)
-        pipe.bind(options)
-      end
-
-      it 'writes to the named pipe' do
-        expect(pipe).to receive(:write).with(data: bind_packet.to_binary_s)
-        pipe.bind(options)
-      end
-
-      it 'reads the socket' do
-        expect(pipe).to receive(:read)
-        pipe.bind(options)
-      end
-
-      it 'creates a BindAck packet from the response' do
-        raw_response = RubySMB::Dcerpc::BindAck.new.to_binary_s
-        allow(pipe).to receive(:read).and_return(raw_response)
-        expect(RubySMB::Dcerpc::BindAck).to receive(:read).with(raw_response).and_return(bind_ack_packet)
-        pipe.bind(options)
-      end
-
-      it 'raises the expected exception when an invalid packet is received' do
-        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_raise(IOError)
-        expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
-      end
-
-      it 'raises the expected exception when it is not a BindAck packet' do
-        response = RubySMB::Dcerpc::Bind.new
-        allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(response)
-        expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
-      end
-
-      it 'raises an exception when no result is returned' do
-        bind_ack_packet.p_result_list.n_results = 0
-        expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
-      end
-
-      it 'raises an exception when result is not ACCEPTANCE' do
-        bind_ack_packet.p_result_list.p_results[0].result = RubySMB::Dcerpc::BindAck::USER_REJECTION
-        expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
-      end
-
-      it 'returns the expected BindAck packet' do
-        expect(pipe.bind(options)).to eq(bind_ack_packet)
+    context 'with \'srvsvc\' filename' do
+      it 'extends Srvsvc class' do
+        pipe = described_class.new(tree: tree, response: create_response, name: 'srvsvc')
+        expect(pipe.respond_to?(:net_share_enum_all)).to be true
       end
     end
 
-    describe '#request' do
-      let(:options) { { host: '1.2.3.4' } }
-      let(:opnum) { RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }
-      let(:req_packet) { RubySMB::Dcerpc::Request.new({ :opnum => opnum }, options) }
-      let(:ioctl_response) { RubySMB::SMB2::Packet::IoctlResponse.new }
-      let(:res_packet) { RubySMB::Dcerpc::Response.new }
-
-      before :example do
-        allow(RubySMB::Dcerpc::Request).to receive(:new).and_return(req_packet)
-        allow(pipe).to receive(:ioctl_send_recv).and_return(ioctl_response)
-        allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(res_packet)
-      end
-
-      it 'creates a Request packet' do
-        expect(RubySMB::Dcerpc::Request).to receive(:new).and_return(req_packet)
-        pipe.request(opnum, options)
-      end
-
-      it 'calls #ioctl_send_recv' do
-        expect(pipe).to receive(:ioctl_send_recv).with(req_packet, options)
-        pipe.request(opnum, options)
-      end
-
-      it 'creates a DCERPC Response packet from the response' do
-        expect(RubySMB::Dcerpc::Response).to receive(:read).with(ioctl_response.output_data)
-        pipe.request(opnum, options)
-      end
-
-      it 'raises the expected exception when an invalid packet is received' do
-        allow(RubySMB::Dcerpc::Response).to receive(:read).and_raise(IOError)
-        expect { pipe.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
-      end
-
-      it 'raises the expected exception when it is not a BindAck packet' do
-        response = RubySMB::Dcerpc::Request.new
-        allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(response)
-        expect { pipe.request(opnum, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
-      end
-
-      it 'returns the expected DCERPC Response' do
-        expect(pipe.request(opnum, options)).to eq(res_packet)
-      end
-    end
-
-    describe '#ioctl_send_recv' do
-      let(:action) { RubySMB::Dcerpc::Request.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4') }
-      let(:options) { {} }
-      let(:ioctl_request) { RubySMB::SMB2::Packet::IoctlRequest.new(options) }
-      let(:ioctl_response) { RubySMB::SMB2::Packet::IoctlResponse.new }
-
-      before :example do
-        allow(client).to receive(:send_recv).and_return(ioctl_response.to_binary_s)
-      end
-
-      it 'calls #set_header_fields' do
-        expect(pipe).to receive(:set_header_fields).with(ioctl_request).and_call_original
-        pipe.ioctl_send_recv(action, options)
-      end
-
-      it 'calls Client #send_recv with the expected request' do
-        expect(client).to receive(:send_recv) do |req|
-          expect(req.ctl_code).to eq(0x0011C017)
-          expect(req.flags.is_fsctl).to eq(0x00000001)
-          expect(req.buffer).to eq(action.to_binary_s)
-          ioctl_response.to_binary_s
-        end
-        pipe.ioctl_send_recv(action, options)
-      end
-
-      it 'creates a IoctlResponse packet from the response' do
-        expect(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_response.to_binary_s).and_call_original
-        pipe.ioctl_send_recv(action, options)
-      end
-
-      it 'raises the expected exception when it is not a valid packet' do
-        ioctl_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
-        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(ioctl_response)
-        expect { pipe.ioctl_send_recv(action, options) }.to raise_error(RubySMB::Error::InvalidPacket)
-      end
-
-      it 'raises the expected exception when the status code is not STATUS_SUCCESS' do
-        ioctl_response_packet = RubySMB::SMB2::Packet::IoctlResponse.new
-        ioctl_response_packet.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
-        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_response.to_binary_s).and_return(ioctl_response_packet)
-        expect { pipe.ioctl_send_recv(action, options) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
-      end
-
-      it 'returns the expected DCERPC Response' do
-        expect(pipe.ioctl_send_recv(action, options)).to eq(ioctl_response)
+    context 'with \'winreg\' filename' do
+      it 'extends Winreg class' do
+        pipe = described_class.new(tree: tree, response: create_response, name: 'winreg')
+        expect(pipe.respond_to?(:has_registry_key?)).to be true
       end
     end
   end
-end
 
+  describe '#dcerpc_request' do
+    let(:options) { { host: '1.2.3.4' } }
+    let(:stub_packet ) { RubySMB::Dcerpc::Winreg::OpenKeyRequest.new }
+    let(:dcerpc_request) { double('DCERPC Request') }
+    let(:request_stub) { double('Request stub') }
+    before :example do
+      allow(RubySMB::Dcerpc::Request).to receive(:new).and_return(dcerpc_request)
+      allow(dcerpc_request).to receive(:stub).and_return(request_stub)
+      allow(request_stub).to receive(:read)
+      allow(pipe).to receive(:ioctl_send_recv)
+    end
+
+    it 'creates a Request packet with the expected arguments' do
+      pipe.dcerpc_request(stub_packet, options)
+      expect(options).to eq( { host: '1.2.3.4', endpoint: 'Winreg' })
+      expect(RubySMB::Dcerpc::Request).to have_received(:new).with({ opnum: stub_packet.opnum }, options)
+    end
+
+    it 'sets DCERPC request stub to the stub packet passed as argument' do
+      pipe.dcerpc_request(stub_packet, options)
+      expect(request_stub).to have_received(:read).with(stub_packet.to_binary_s)
+    end
+
+    it 'calls #ioctl_send_recv with the expected arguments' do
+      pipe.dcerpc_request(stub_packet, options)
+      expect(pipe).to have_received(:ioctl_send_recv).with(dcerpc_request, options)
+    end
+  end
+
+  describe '#ioctl_send_recv' do
+    let(:ioctl_request_packet) { double('IoctlRequest') }
+    let(:flags) { double('Flags') }
+    let(:dcerpc_request) { double('DCERPC Request') }
+    let(:binary_dcerpc_request)     { double('Binary DCERPC Request') }
+    let(:options) { { host: '1.2.3.4' } }
+    let(:ioctl_raw_response)     { double('IOCTL raw response') }
+    let(:ioctl_response)     { double('IOCTL response') }
+    let(:raw_data)                  { double('Raw data') }
+    let(:dcerpc_response)           { double('DCERPC Response') }
+    let(:result)                    { 'Result' }
+    before :example do
+      allow(RubySMB::SMB2::Packet::IoctlRequest).to receive(:new).and_return(ioctl_request_packet)
+      allow(pipe).to receive(:set_header_fields).and_return(ioctl_request_packet)
+      allow(ioctl_request_packet).to receive_messages(
+        :ctl_code= => nil,
+        :flags     => flags,
+        :buffer=   => nil
+      )
+      allow(flags).to receive(:is_fsctl=)
+      allow(dcerpc_request).to receive(:to_binary_s).and_return(binary_dcerpc_request)
+      allow(client).to receive(:send_recv).and_return(ioctl_raw_response)
+      allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).and_return(ioctl_response)
+      allow(ioctl_response).to receive_messages(
+        :valid? => true,
+        :status_code => WindowsError::NTStatus::STATUS_SUCCESS,
+        :output_data => raw_data
+      )
+      allow(RubySMB::Dcerpc::Response).to receive(:read).and_return(dcerpc_response)
+      allow(dcerpc_response).to receive_message_chain(:pdu_header, :ptype => RubySMB::Dcerpc::PTypes::RESPONSE)
+      allow(dcerpc_response).to receive(:stub).and_return(result)
+    end
+
+    it 'creates an IoctlRequest packet' do
+      pipe.ioctl_send_recv(dcerpc_request, options)
+      expect(RubySMB::SMB2::Packet::IoctlRequest).to have_received(:new).with(options)
+    end
+
+    it 'calls #set_header_fields' do
+      pipe.ioctl_send_recv(dcerpc_request, options)
+      expect(pipe).to have_received(:set_header_fields).with(ioctl_request_packet)
+    end
+
+    it 'sets the expected properties on the request packet' do
+      pipe.ioctl_send_recv(dcerpc_request, options)
+      expect(ioctl_request_packet).to have_received(:ctl_code=).with(0x11C017)
+      expect(flags).to have_received(:is_fsctl=).with(0x1)
+      expect(ioctl_request_packet).to have_received(:buffer=).with(binary_dcerpc_request)
+    end
+
+    it 'sends the expected request' do
+      pipe.ioctl_send_recv(dcerpc_request, options)
+      expect(client).to have_received(:send_recv).with(ioctl_request_packet)
+    end
+
+    it 'creates an IoctlResponse packet from the response' do
+      pipe.ioctl_send_recv(dcerpc_request, options)
+      expect(RubySMB::SMB2::Packet::IoctlResponse).to have_received(:read).with(ioctl_raw_response)
+    end
+
+    context 'when the response is not an IoctlResponse packet' do
+      it 'raises an InvalidPacket exception' do
+        allow(ioctl_response).to receive_message_chain(:smb2_header, :protocol)
+        allow(ioctl_response).to receive_message_chain(:smb2_header, :command)
+        allow(ioctl_response).to receive(:valid?).and_return(false)
+        expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response status code is STATUS_PENDING' do
+      let(:ioctl_raw_response2) { double('IOCTL raw response #2') }
+      let(:ioctl_response2)     { double('IOCTL response #2') }
+      before :example do
+        allow(ioctl_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
+        allow(pipe).to receive(:sleep)
+        allow(dispatcher).to receive(:recv_packet).and_return(ioctl_raw_response2)
+        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_raw_response2).and_return(ioctl_response2)
+        allow(ioctl_response2).to receive_messages(
+          :valid? => true,
+          :output_data => raw_data,
+          :status_code => WindowsError::NTStatus::STATUS_SUCCESS
+        )
+      end
+
+      it 'waits 1 second' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(pipe).to have_received(:sleep).with(1)
+      end
+
+      it 'calls dispatcher #recv_packet' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(dispatcher).to have_received(:recv_packet)
+      end
+
+      it 'creates an IoctlResponse packet from the response' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(RubySMB::SMB2::Packet::IoctlResponse).to have_received(:read).with(ioctl_raw_response2)
+      end
+
+      context 'when the response is not an IoctlResponse packet' do
+        it 'raises an InvalidPacket exception' do
+          allow(ioctl_response2).to receive_message_chain(:smb2_header, :protocol)
+          allow(ioctl_response2).to receive_message_chain(:smb2_header, :command)
+          allow(ioctl_response2).to receive(:valid?).and_return(false)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+    end
+
+    context 'when the response status code is not STATUS_SUCCESS or STATUS_BUFFER_OVERFLOW' do
+      it 'raises an UnexpectedStatusCode exception' do
+        allow(ioctl_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_INVALID_HANDLE)
+        expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+    end
+
+    context 'when the response status code is STATUS_SUCCESS' do
+      it 'does not raise any exception' do
+        expect { pipe.ioctl_send_recv(dcerpc_request, options)}.not_to raise_error
+      end
+
+      it 'creates a DCERPC Response packet from the response' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(RubySMB::Dcerpc::Response).to have_received(:read).with(raw_data)
+      end
+
+      context 'when an IOError occurs while parsing the DCERPC response' do
+        it 'raises an InvalidPacket exception' do
+          allow(RubySMB::Dcerpc::Response).to receive(:read).and_raise(IOError)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response is not a DCERPC Response packet' do
+        it 'raises an InvalidPacket exception' do
+          allow(dcerpc_response).to receive_message_chain(:pdu_header, :ptype => RubySMB::Dcerpc::PTypes::FAULT)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        end
+      end
+
+      it 'returns the expected stub data' do
+        expect(pipe.ioctl_send_recv(dcerpc_request, options)).to eq(result)
+      end
+    end
+
+    context 'when the response status code is STATUS_BUFFER_OVERFLOW' do
+      let(:data_count) { 100 }
+      let(:added_raw_data) { double('Added raw data') }
+      before :example do
+        allow(ioctl_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW)
+        allow(ioctl_response).to receive(:output_count).and_return(data_count)
+        allow(pipe).to receive(:read).and_return(added_raw_data)
+        allow(raw_data).to receive(:<<)
+        allow(dcerpc_response).to receive_message_chain(:pdu_header, :pfc_flags, :first_frag => 1)
+        allow(dcerpc_response).to receive_message_chain(:pdu_header, :pfc_flags, :last_frag => 1)
+      end
+
+      it 'does not raise any exception' do
+        expect { pipe.ioctl_send_recv(dcerpc_request, options) }.not_to raise_error
+      end
+
+      it 'reads the expected number of bytes and concatenate it the first response raw data' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(pipe).to have_received(:read).with(bytes: tree.client.max_buffer_size - data_count)
+        expect(raw_data).to have_received(:<<).with(added_raw_data)
+      end
+
+      it 'creates a DCERPC Response packet from the updated raw data' do
+        pipe.ioctl_send_recv(dcerpc_request, options)
+        expect(RubySMB::Dcerpc::Response).to have_received(:read).with(raw_data)
+      end
+
+      context 'when an IOError occurs while parsing the DCERPC response' do
+        it 'raises an InvalidPacket exception' do
+          allow(RubySMB::Dcerpc::Response).to receive(:read).and_raise(IOError)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response is not a DCERPC Response packet' do
+        it 'raises an InvalidPacket exception' do
+          allow(dcerpc_response).to receive_message_chain(:pdu_header, :ptype => RubySMB::Dcerpc::PTypes::FAULT)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response is not the first fragment' do
+        it 'raises an InvalidPacket exception' do
+          allow(dcerpc_response).to receive_message_chain(:pdu_header, :pfc_flags, :first_frag => 0)
+          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        end
+      end
+
+      context 'when the response is the last fragment' do
+        it 'only reads the pipe once' do
+          pipe.ioctl_send_recv(dcerpc_request, options)
+          expect(RubySMB::Dcerpc::Response).to have_received(:read).once
+        end
+
+        it 'returns the expected stub data' do
+          expect(pipe.ioctl_send_recv(dcerpc_request, options)).to eq(result)
+        end
+      end
+
+      context 'when the response is not the last fragment' do
+        let(:raw_data2)        { double('Raw data #2') }
+        let(:dcerpc_response2) { double('DCERPC Response #2') }
+        let(:result2)          { 'Result #2' }
+        before :example do
+          allow(dcerpc_response).to receive_message_chain(:pdu_header, :pfc_flags, :last_frag => 0)
+          allow(pipe).to receive(:read).with(bytes: tree.client.max_buffer_size).and_return(raw_data2)
+          allow(RubySMB::Dcerpc::Response).to receive(:read).with(raw_data2).and_return(dcerpc_response2)
+          allow(dcerpc_response2).to receive_message_chain(:pdu_header, :ptype => RubySMB::Dcerpc::PTypes::RESPONSE)
+          allow(dcerpc_response2).to receive_message_chain(:pdu_header, :pfc_flags, :last_frag => 1)
+          allow(dcerpc_response2).to receive(:stub).and_return(result2)
+        end
+
+        it 'reads the expected number of bytes' do
+          pipe.ioctl_send_recv(dcerpc_request, options)
+          expect(pipe).to have_received(:read).with(bytes: tree.client.max_buffer_size)
+        end
+
+        it 'creates a DCERPC Response packet from the new raw data' do
+          pipe.ioctl_send_recv(dcerpc_request, options)
+          expect(RubySMB::Dcerpc::Response).to have_received(:read).with(raw_data2)
+        end
+
+        context 'when an IOError occurs while parsing the new DCERPC response' do
+          it 'raises an InvalidPacket exception' do
+            allow(RubySMB::Dcerpc::Response).to receive(:read).with(raw_data2).and_raise(IOError)
+            expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+          end
+        end
+
+        context 'when the new response is not a DCERPC Response packet' do
+          it 'raises an InvalidPacket exception' do
+            allow(dcerpc_response2).to receive_message_chain(:pdu_header, :ptype => RubySMB::Dcerpc::PTypes::FAULT)
+            expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+          end
+        end
+
+        it 'returns the expected stub data' do
+          expect(pipe.ioctl_send_recv(dcerpc_request, options)).to eq(result)
+        end
+      end
+    end
+  end
+
+end
