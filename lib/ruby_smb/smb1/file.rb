@@ -156,6 +156,8 @@ module RubySMB
       def read_packet(read_length: 0, offset: 0)
         read_request = set_header_fields(RubySMB::SMB1::Packet::ReadAndxRequest.new)
         read_request.parameter_block.max_count_of_bytes_to_return = read_length
+        read_request.parameter_block.min_count_of_bytes_to_return = read_length
+        read_request.parameter_block.remaining = read_length
         read_request.parameter_block.offset = offset
         read_request
       end
