@@ -335,27 +335,29 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
   end
 
   describe '#enum_key' do
-    let(:handle)                  { double('Handle') }
-    let(:index)                   { double('Index') }
-    let(:enum_key_request_packet) { double('enum_key Request Packet') }
-    let(:lp_name)                 { double('Lp Name') }
-    let(:buffer)                  { double('Buffer') }
-    let(:ndr_str)                 { double('NdrStr') }
-    let(:response)                { double('Response') }
-    let(:enum_key_response)       { double('enum_key Response') }
-    let(:result_str)              { double('Result String') }
+    let(:handle)                   { double('Handle') }
+    let(:index)                    { double('Index') }
+    let(:enum_key_request_packet)  { double('enum_key Request Packet') }
+    let(:lp_class)                 { double('Lp Class') }
+    let(:lp_name)                  { double('Lp Name') }
+    let(:buffer)                   { double('Buffer') }
+    let(:lp_class_buffer_referent) { double('Lp Class buffer referent') }
+    let(:lp_name_buffer_referent)  { double('Lp Name buffer referent') }
+    let(:response)                 { double('Response') }
+    let(:enum_key_response)        { double('enum_key Response') }
+    let(:result_str)               { double('Result String') }
     before :example do
       allow(described_class::EnumKeyRequest).to receive(:new).and_return(enum_key_request_packet)
       allow(enum_key_request_packet).to receive_messages(
         :lpft_last_write_time= => nil,
+        :lp_class              => lp_class,
         :lp_name               => lp_name
       )
-      allow(lp_name).to receive_messages(
-        :maximum_length= => nil,
-        :buffer          => buffer
-      )
-      allow(buffer).to receive(:ndr_str).and_return(ndr_str)
-      allow(ndr_str).to receive(:max_count=)
+      allow(lp_class).to receive(:referent).and_return(lp_class_buffer_referent)
+      allow(lp_name).to receive(:buffer).and_return(buffer)
+      allow(buffer).to receive(:referent).and_return(lp_name_buffer_referent)
+      allow(lp_class_buffer_referent).to receive(:buffer=)
+      allow(lp_name_buffer_referent).to receive(:max_count=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumKeyResponse).to receive(:read).and_return(enum_key_response)
       allow(enum_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -370,8 +372,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'sets the expected user rights on the request packet' do
       winreg.enum_key(handle, index)
       expect(enum_key_request_packet).to have_received(:lpft_last_write_time=).with(0)
-      expect(lp_name).to have_received(:maximum_length=).with(512)
-      expect(ndr_str).to have_received(:max_count=).with(256)
+      expect(lp_class_buffer_referent).to have_received(:buffer=).with(0)
+      expect(lp_name_buffer_referent).to have_received(:max_count=).with(256)
     end
 
     it 'sends the expected dcerpc request' do
@@ -410,7 +412,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:lp_value_name)             { double('Lp Value Name') }
     let(:lp_data)                   { double('Lp Data') }
     let(:buffer)                    { double('Buffer') }
-    let(:ndr_str)                   { double('NdrStr') }
+    let(:referent)                  { double('Referent') }
     let(:response)                  { double('Response') }
     let(:enum_value_response)       { double('EnumValue Response') }
     let(:result_str)                { double('Result String') }
@@ -420,12 +422,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
         :lp_value_name => lp_value_name,
         :lp_data       => lp_data
       )
-      allow(lp_value_name).to receive_messages(
-        :maximum_length= => nil,
-        :buffer          => buffer
-      )
-      allow(buffer).to receive(:ndr_str).and_return(ndr_str)
-      allow(ndr_str).to receive(:max_count=)
+      allow(lp_value_name).to receive(:buffer).and_return(buffer)
+      allow(buffer).to receive(:referent).and_return(referent)
+      allow(referent).to receive(:max_count=)
       allow(lp_data).to receive(:referent_identifier=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumValueResponse).to receive(:read).and_return(enum_value_response)
@@ -440,8 +439,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'sets the expected user rights on the request packet' do
       winreg.enum_value(handle, index)
-      expect(lp_value_name).to have_received(:maximum_length=).with(512)
-      expect(ndr_str).to have_received(:max_count=).with(256)
+      expect(referent).to have_received(:max_count=).with(256)
       expect(lp_data).to have_received(:referent_identifier=).with(0)
     end
 

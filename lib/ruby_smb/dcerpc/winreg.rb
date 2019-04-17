@@ -209,8 +209,8 @@ module RubySMB
       def enum_key(handle, index)
         enum_key_request_packet = RubySMB::Dcerpc::Winreg::EnumKeyRequest.new(hkey: handle, dw_index: index)
         enum_key_request_packet.lpft_last_write_time = 0
-        enum_key_request_packet.lp_name.maximum_length = 512
-        enum_key_request_packet.lp_name.buffer.ndr_str.max_count = 256
+        enum_key_request_packet.lp_class.referent.buffer = 0
+        enum_key_request_packet.lp_name.buffer.referent.max_count = 256
         response = dcerpc_request(enum_key_request_packet)
         begin
           enum_key_response = RubySMB::Dcerpc::Winreg::EnumKeyResponse.read(response)
@@ -234,9 +234,8 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_value(handle, index)
         enum_value_request_packet = RubySMB::Dcerpc::Winreg::EnumValueRequest.new(hkey: handle, dw_index: index)
-        enum_value_request_packet.lp_value_name.maximum_length = 512
-        enum_value_request_packet.lp_value_name.buffer.ndr_str.max_count = 256
         enum_value_request_packet.lp_data.referent_identifier = 0
+        enum_value_request_packet.lp_value_name.buffer.referent.max_count = 256
         response = dcerpc_request(enum_value_request_packet)
         begin
           enum_value_response = RubySMB::Dcerpc::Winreg::EnumValueResponse.read(response)
