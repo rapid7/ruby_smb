@@ -15,7 +15,7 @@ module RubySMB
         uint32              :dw_index
         rrp_unicode_string  :lp_name
         string              :pad1,     length: -> { pad_length1 }
-        prrp_unicode_string :lp_class, initial_value: 0
+        prrp_unicode_string :lp_class
         string              :pad2,     length: -> { pad_length2 }
         ndr_lp_file_time    :lpft_last_write_time
 
