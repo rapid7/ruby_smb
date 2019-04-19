@@ -5,7 +5,7 @@ module RubySMB
       #https://msdn.microsoft.com/en-us/library/cc247293.aspx
 
       class NetShareEnumAll < BinData::Record
-        OPNUM = NET_SHARE_ENUM_ALL
+        attr_reader :opnum
 
         mandatory_parameter :host
 
@@ -30,6 +30,11 @@ module RubySMB
 
         uint32 :resume_referent_id, initial_value: 0x00000001
         uint32 :resume_handle,    initial_value: 0
+
+        def initialize_instance
+          super
+          @opnum = NET_SHARE_ENUM_ALL
+        end
 
         def pad_length
           offset = (server_unc.abs_offset + server_unc.to_binary_s.length) % 4

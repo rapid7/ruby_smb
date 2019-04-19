@@ -17,7 +17,7 @@ module RubySMB
         net_share_enum_all_request_packet = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host)
         response = dcerpc_request(net_share_enum_all_request_packet)
 
-        shares = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(response.stub.to_binary_s)
+        shares = RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.parse_response(response)
         shares.map{|s|{name: s[0], type: s[1], comment: s[2]}}
       end
     end
