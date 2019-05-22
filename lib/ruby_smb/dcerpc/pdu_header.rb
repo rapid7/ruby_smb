@@ -21,7 +21,7 @@ module RubySMB
       end
 
       uint32 :packed_drep, label: 'NDR data representation format label', initial_value: 0x10
-      uint16 :frag_length, label: 'Total length of fragment',             initial_value: -> { parent.do_num_bytes }
+      uint16 :frag_length, label: 'Total length of fragment',             initial_value: -> { parent.num_bytes }
       uint16 :auth_length, label: 'Length of auth_value'
       uint32 :call_id,     label: 'Call identifier',                      initial_value: 1
     end

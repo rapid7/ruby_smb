@@ -8,6 +8,7 @@ module RubySMB
     require 'ruby_smb/client/tree_connect'
     require 'ruby_smb/client/echo'
     require 'ruby_smb/client/utils'
+    require 'ruby_smb/client/winreg'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
@@ -15,6 +16,7 @@ module RubySMB
     include RubySMB::Client::TreeConnect
     include RubySMB::Client::Echo
     include RubySMB::Client::Utils
+    include RubySMB::Client::Winreg
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze

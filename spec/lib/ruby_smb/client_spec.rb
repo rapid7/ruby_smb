@@ -1325,5 +1325,153 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  context 'Winreg' do
+    describe '#connect_to_winreg' do
+      let(:host)       { '1.2.3.4' }
+      let(:share)      { "\\\\#{host}\\IPC$" }
+      let(:ipc_tree)   { double('IPC$ tree') }
+      let(:named_pipe) { double('Named pipe') }
+      before :example do
+        allow(ipc_tree).to receive_messages(
+          :share     => share,
+          :open_file => named_pipe
+        )
+        allow(client).to receive(:tree_connect).and_return(ipc_tree)
+      end
+
+      context 'when the client is already connected to the IPC$ share' do
+        before :example do
+          client.tree_connects << ipc_tree
+          allow(ipc_tree).to receive(:share).and_return(share)
+        end
+
+        it 'does not connect to the already connected tree' do
+          client.connect_to_winreg(host)
+          expect(client).to_not have_received(:tree_connect)
+        end
+      end
+
+      it 'calls #tree_connect' do
+        client.connect_to_winreg(host)
+        expect(client).to have_received(:tree_connect).with(share)
+      end
+
+      it 'open \'winreg\' file on the IPC$ Tree' do
+        client.connect_to_winreg(host)
+        expect(ipc_tree).to have_received(:open_file).with(filename: "winreg", write: true, read: true)
+      end
+
+      it 'returns the expected opened named pipe' do
+        expect(client.connect_to_winreg(host)).to eq(named_pipe)
+      end
+
+      context 'when a block is given' do
+        before :example do
+          allow(named_pipe).to receive(:close)
+        end
+
+        it 'yields the expected named_pipe' do
+          client.connect_to_winreg(host) do |np|
+            expect(np).to eq(named_pipe)
+          end
+        end
+
+        it 'closes the named pipe' do
+          client.connect_to_winreg(host) { |np| }
+          expect(named_pipe).to have_received(:close)
+        end
+
+        it 'returns the block return value' do
+          result = double('Result')
+          expect(client.connect_to_winreg(host) { |np| result }).to eq(result)
+        end
+      end
+    end
+
+    describe '#has_registry_key?' do
+      let(:host)       { '1.2.3.4' }
+      let(:key)        { 'HKLM\\Registry\\Key' }
+      let(:named_pipe) { double('Named pipe') }
+      let(:result)     { double('Result') }
+      before :example do
+        allow(client).to receive(:connect_to_winreg).and_yield(named_pipe)
+        allow(named_pipe).to receive(:has_registry_key?).and_return(result)
+      end
+
+      it 'calls #connect_to_winreg to wrap the main logic around' do
+        client.has_registry_key?(host, key)
+        expect(client).to have_received(:connect_to_winreg).with(host)
+      end
+
+      it 'calls Pipe #has_registry_key?' do
+        client.has_registry_key?(host, key)
+        expect(named_pipe).to have_received(:has_registry_key?).with(key)
+      end
+    end
+
+    describe '#read_registry_key_value' do
+      let(:host)        { '1.2.3.4' }
+      let(:key)         { 'HKLM\\Registry\\Key' }
+      let(:value_name)  { 'Value' }
+      let(:named_pipe)  { double('Named pipe') }
+      let(:result)      { double('Result') }
+      before :example do
+        allow(client).to receive(:connect_to_winreg).and_yield(named_pipe)
+        allow(named_pipe).to receive(:read_registry_key_value).and_return(result)
+      end
+
+      it 'calls #connect_to_winreg to wrap the main logic around' do
+        client.read_registry_key_value(host, key, value_name)
+        expect(client).to have_received(:connect_to_winreg).with(host)
+      end
+
+      it 'calls Pipe #read_registry_key_value' do
+        client.read_registry_key_value(host, key, value_name)
+        expect(named_pipe).to have_received(:read_registry_key_value).with(key, value_name)
+      end
+    end
+
+    describe '#enum_registry_key' do
+      let(:host)       { '1.2.3.4' }
+      let(:key)        { 'HKLM\\Registry\\Key' }
+      let(:named_pipe) { double('Named pipe') }
+      let(:result)     { double('Result') }
+      before :example do
+        allow(client).to receive(:connect_to_winreg).and_yield(named_pipe)
+        allow(named_pipe).to receive(:enum_registry_key).and_return(result)
+      end
+
+      it 'calls #connect_to_winreg to wrap the main logic around' do
+        client.enum_registry_key(host, key)
+        expect(client).to have_received(:connect_to_winreg).with(host)
+      end
+
+      it 'calls Pipe #enum_registry_key' do
+        client.enum_registry_key(host, key)
+        expect(named_pipe).to have_received(:enum_registry_key).with(key)
+      end
+    end
+
+    describe '#enum_registry_values' do
+      let(:host)       { '1.2.3.4' }
+      let(:key)        { 'HKLM\\Registry\\Key' }
+      let(:named_pipe) { double('Named pipe') }
+      let(:result)     { double('Result') }
+      before :example do
+        allow(client).to receive(:connect_to_winreg).and_yield(named_pipe)
+        allow(named_pipe).to receive(:enum_registry_values).and_return(result)
+      end
+
+      it 'calls #connect_to_winreg to wrap the main logic around' do
+        client.enum_registry_values(host, key)
+        expect(client).to have_received(:connect_to_winreg).with(host)
+      end
+
+      it 'calls Pipe #enum_registry_values' do
+        client.enum_registry_values(host, key)
+        expect(named_pipe).to have_received(:enum_registry_values).with(key)
+      end
+    end
+  end
 end
 

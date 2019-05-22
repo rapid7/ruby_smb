@@ -110,8 +110,16 @@ RSpec.describe RubySMB::SMB1::File do
       file.read_packet
     end
 
-    it 'sets the read_length of the packet' do
+    it 'sets the #max_count_of_bytes_to_return of the packet' do
       expect(file.read_packet(read_length: 55).parameter_block.max_count_of_bytes_to_return).to eq 55
+    end
+
+    it 'sets the #min_count_of_bytes_to_return of the packet' do
+      expect(file.read_packet(read_length: 55).parameter_block.min_count_of_bytes_to_return).to eq 55
+    end
+    
+    it 'sets the #remaining of the packet' do
+      expect(file.read_packet(read_length: 55).parameter_block.remaining).to eq 55
     end
 
     it 'sets the offset of the packet' do

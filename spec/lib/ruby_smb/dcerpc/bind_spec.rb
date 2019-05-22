@@ -41,7 +41,7 @@ RSpec.describe RubySMB::Dcerpc::Bind do
     end
 
     it 'should have a default value of 0xFFFF' do
-      expect(packet.max_xmit_frag).to eq 0xFFFF
+      expect(packet.max_xmit_frag).to eq RubySMB::Dcerpc::MAX_XMIT_FRAG
     end
   end
 
@@ -51,7 +51,7 @@ RSpec.describe RubySMB::Dcerpc::Bind do
     end
 
     it 'should have a default value of 0xFFFF' do
-      expect(packet.max_recv_frag).to eq 0xFFFF
+      expect(packet.max_recv_frag).to eq RubySMB::Dcerpc::MAX_RECV_FRAG
     end
   end
 

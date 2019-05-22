@@ -69,11 +69,51 @@ RSpec.describe RubySMB::Dcerpc::Request do
       expect(packet.stub).to be_a BinData::Choice
     end
 
-    context 'with a NetShareEnumAll stub' do
+    context 'with a Srvsvc endpoint' do
+      let(:host) { '1.2.3.4' }
+      let(:packet) do
+        described_class.new(
+          { :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL },
+          { :endpoint => 'Srvsvc', :host => host }
+        )
+      end
 
-      it 'uses opnum as a selector' do
-        packet = described_class.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4')
-        expect(packet.stub.selection).to eq(packet.opnum)
+      it 'uses endpoint parameter to select a Srvsvc stub packet' do
+        expect(packet.stub.selection).to eq('Srvsvc')
+      end
+
+      it 'selects the expected packet structure' do
+        expect(packet.stub).to eq(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host))
+      end
+    end
+
+    context 'with a Winreg endpoint' do
+      let(:opnum) { RubySMB::Dcerpc::Winreg::OPEN_HKCR }
+      let(:packet) do
+        described_class.new(
+          { :opnum => opnum },
+          { :endpoint => 'Winreg' }
+        )
+      end
+
+      it 'uses endpoint parameter to select a Winreg stub packet' do
+        expect(packet.stub.selection).to eq('Winreg')
+      end
+
+      it 'selects the expected packet structure' do
+        expect(packet.stub).to eq(RubySMB::Dcerpc::Winreg::OpenRootKeyRequest.new(opnum: opnum))
+      end
+    end
+
+    context 'with an unknown endpoint' do
+      let(:packet) do
+        described_class.new(
+          { :endpoint => 'Unknown' }
+        )
+      end
+
+      it 'sets #stub to an empty string' do
+        expect(packet.stub).to eq('')
       end
     end
   end
@@ -102,13 +142,16 @@ RSpec.describe RubySMB::Dcerpc::Request do
   end
 
   it 'reads its own binary representation and output the same packet' do
-    packet = described_class.new({ :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL }, host: '1.2.3.4')
+    packet = described_class.new(
+      { :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL },
+      { :endpoint => 'Srvsvc', :host => '1.2.3.4' }
+    )
     packet.pdu_header.pfc_flags.object_uuid = 1
     packet.object = '8a885d04-1ceb-11c9-9fe8-08002b104860'
     packet.auth_verifier = '123456'
     packet.pdu_header.auth_length = 6
     binary = packet.to_binary_s
-    expect(described_class.read(binary)).to eq(packet)
+    packet2 = described_class.new( { :endpoint => 'Srvsvc' } )
+    expect(packet2.read(binary)).to eq(packet)
   end
 end
-

@@ -15,9 +15,16 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAll do
   it { is_expected.to respond_to :max_buffer }
   it { is_expected.to respond_to :resume_referent_id }
   it { is_expected.to respond_to :resume_handle }
+  it { is_expected.to respond_to :opnum }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  end
+
+  context 'when \'host\' parameter is not provided' do
+    it 'raises an ArgumentError' do
+      expect { described_class.new }.to raise_error(ArgumentError)
+    end
   end
 
   describe '#referent_id' do
@@ -153,6 +160,12 @@ RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAll do
 
     it 'should have a default value of 0' do
       expect(packet.resume_handle).to eq 0
+    end
+  end
+
+  describe '#initialize_instance' do
+    it 'sets #opnum to REG_CLOSE_KEY constant' do
+      expect(packet.opnum).to eq(RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL)
     end
   end
 

@@ -35,8 +35,8 @@ module RubySMB
 
       pdu_header :pdu_header,        label: 'PDU header'
 
-      uint16 :max_xmit_frag,         label: 'max transmit frag size',    initial_value: 0xFFFF
-      uint16 :max_recv_frag,         label: 'max receive  frag size',    initial_value: 0xFFFF
+      uint16 :max_xmit_frag,         label: 'max transmit frag size',    initial_value: RubySMB::Dcerpc::MAX_XMIT_FRAG
+      uint16 :max_recv_frag,         label: 'max receive  frag size',    initial_value: RubySMB::Dcerpc::MAX_RECV_FRAG
       uint32 :assoc_group_id,        label: 'ncarnation of client-server assoc group'
 
       p_cont_list_t :p_context_list, label: 'Presentation context list', endpoint: -> { endpoint }
