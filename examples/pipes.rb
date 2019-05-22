@@ -33,7 +33,7 @@ end
 
 client.authenticate
 client.tree_connect("\\\\#{address}\\IPC$")
-pipe = client.create_pipe(pipename, nil)
+pipe = client.create_pipe(pipename)
 
 puts "Available:       #{pipe.peek_available}"
 puts "PipeState:       #{pipe.peek_state}" # 3 == OK
