@@ -32,6 +32,7 @@ module RubySMB
            file.fid.to_binary_s
          end
          @open_files[@last_file_id] = file
+         @last_file_id
       end
 
       def create_pipe(path, disposition=RubySMB::Dispositions::FILE_OPEN_IF)
