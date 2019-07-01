@@ -48,7 +48,7 @@ module RubySMB
           end
 
         rescue IOError, Errno::ECONNABORTED, Errno::ECONNRESET => e
-          raise RubySMB::Error::CommunicationError, "An error occured writing to the Socket: #{e.message}"
+          raise RubySMB::Error::CommunicationError, "An error occurred writing to the Socket: #{e.message}"
         end
         nil
       end
@@ -84,7 +84,7 @@ module RubySMB
         end
         data
       rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, TypeError, NoMethodError => e
-        raise RubySMB::Error::CommunicationError, "An error occured reading from the Socket #{e.message}"
+        raise RubySMB::Error::CommunicationError, "An error occurred reading from the Socket #{e.message}"
       end
     end
   end
