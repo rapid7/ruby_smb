@@ -91,7 +91,12 @@ module RubySMB
     def initialize_instance
       super
 
-      unless [RubySMB::SMB1::Packet::EmptyPacket, RubySMB::SMB2::Packet::ErrorPacket].any? {|klass| self.is_a? klass}
+      excluded_packet_classes = [
+          RubySMB::SMB1::Packet::EmptyPacket,
+          RubySMB::SMB2::Packet::ErrorPacket,
+          RubySMB::SMB2::Packet::TransformHeader
+      ]
+      unless excluded_packet_classes.any? {|klass| self.is_a? klass}
         case packet_smb_version
         when 'SMB1'
           smb_header.command = self.class::COMMAND

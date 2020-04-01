@@ -9,6 +9,7 @@ module RubySMB
     require 'ruby_smb/client/echo'
     require 'ruby_smb/client/utils'
     require 'ruby_smb/client/winreg'
+    require 'ruby_smb/client/encryption'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
@@ -17,6 +18,7 @@ module RubySMB
     include RubySMB::Client::Echo
     include RubySMB::Client::Utils
     include RubySMB::Client::Winreg
+    include RubySMB::Client::Encryption
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze
@@ -189,11 +191,16 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :server_max_transact_size
 
+    attr_accessor :preauth_integrity_hash_value
+    attr_accessor :preauth_integrity_hash_id
+    attr_accessor :encryption_required
+    attr_accessor :compression_required
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     # @param smb3 [Boolean] whether or not to enable SMB3 support
-    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION', encryption: false, compression: false)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -216,6 +223,10 @@ module RubySMB
       @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
+
+      # SMB 3.x options
+      @encryption_required = encryption
+      @compression_required = compression
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
@@ -362,8 +373,18 @@ module RubySMB
       else
         packet = packet
       end
-      dispatcher.send_packet(packet)
-      raw_response = dispatcher.recv_packet
+      if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
+         @dialect == "0x0311" &&
+         @encryption_required
+        transform_request = smb3_1_encrypt(packet.to_binary_s, @session_id, @session_key, @preauth_integrity_hash_value)
+        dispatcher.send_packet(transform_request)
+        raw_response = dispatcher.recv_packet
+        transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
+        raw_response = smb3_1_decrypt(transform_response, @session_key, @preauth_integrity_hash_value)
+      else
+        dispatcher.send_packet(packet)
+        raw_response = dispatcher.recv_packet
+      end
 
       self.sequence_counter += 1 if signing_required && !session_key.empty?
       raw_response

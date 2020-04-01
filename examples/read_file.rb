@@ -19,8 +19,8 @@ path     = "\\\\#{address}\\#{share}"
 sock = TCPSocket.new address, 445
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password)
-protocol = client.negotiate(encryption: false, compression: false, servername: 'servertest')
+client = RubySMB::Client.new(dispatcher, smb1: true, smb2: true, username: username, password: password)
+protocol = client.negotiate
 status = client.authenticate
 
 puts "#{protocol} : #{status}"

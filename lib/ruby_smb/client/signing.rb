@@ -40,6 +40,20 @@ module RubySMB
         end
         packet
       end
+
+      #def smb2_sign(packet)
+      #  if signing_required && !session_key.empty?
+      #    packet.smb2_header.flags.signed = 1
+      #    packet.smb2_header.signature = "\x00" * 16
+      #    if ["0x0202", "0x0210"].include?(self.dialect)
+      #      sig = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, packet.to_binary_s)
+      #    elsif ["0x0300", "0x0302", "0x0311"].include?(self.dialect)
+      #      sig = OpenSSL::CMAC.digest('AES', packet.to_binary_s, 'Session.SigningKey')
+      #    end
+      #    packet.smb2_header.signature = sig[0, 16]
+      #  end
+      #  packet
+      #end
     end
   end
 end

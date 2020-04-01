@@ -33,7 +33,11 @@ module RubySMB
           smb2_header.flags.reply = 1
         end
 
-        
+        def find_negotiate_context(type)
+          negotiate_context_list.find { |nc| nc.context_type == type }
+        end
+
+
         private
 
         def pad_length
@@ -44,6 +48,7 @@ module RubySMB
         def has_negotiate_context?
           dialect_revision == 0x0311
         end
+
       end
     end
   end

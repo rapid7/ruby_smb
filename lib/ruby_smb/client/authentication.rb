@@ -256,6 +256,15 @@ module RubySMB
       # @return [String] the binary string response from the server
       def smb2_ntlmssp_negotiate
         packet = smb2_ntlmssp_negotiate_packet
+        if self.dialect == '0x0311' && @encryption_required
+          hash_algoritm_map = {
+            RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512 => 'SHA512'
+          }
+          @preauth_integrity_hash_value = OpenSSL::Digest.digest(
+            hash_algoritm_map[self.preauth_integrity_hash_id],
+            @preauth_integrity_hash_value + packet.to_binary_s
+          )
+        end
         send_recv(packet)
       end
 

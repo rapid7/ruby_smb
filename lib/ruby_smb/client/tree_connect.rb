@@ -56,6 +56,14 @@ module RubySMB
         request = RubySMB::SMB2::Packet::TreeConnectRequest.new
         request.smb2_header.tree_id = 65_535
         request.path = share
+        #if @dialect == "0x0311" && @encryption_required
+        #  transform_request = smb3_1_encrypt(request.to_binary_s, @session_id, @session_key, @preauth_integrity_hash_value)
+        #  raw_response = send_recv(transform_request)
+        #  transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
+        #  raw_response = smb3_1_decrypt(transform_response, @session_key, @preauth_integrity_hash_value)
+        #else
+        #  raw_response = send_recv(request)
+        #end
         raw_response = send_recv(request)
         response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
         smb2_tree_from_response(share, response)
