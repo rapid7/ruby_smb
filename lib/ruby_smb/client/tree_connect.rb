@@ -55,7 +55,7 @@ module RubySMB
       def smb2_tree_connect(share)
         request = RubySMB::SMB2::Packet::TreeConnectRequest.new
         request.smb2_header.tree_id = 65_535
-        request.encode_path(share)
+        request.path = share
         raw_response = send_recv(request)
         response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
         smb2_tree_from_response(share, response)

@@ -272,6 +272,7 @@ module RubySMB
         # the Message ID can be out of sync at this point so we re-synch it here.
         packet.smb2_header.message_id = 1
         self.smb2_message_id = 2
+        packet.security_mode.signing_enabled = 1
         packet
       end
 
@@ -307,6 +308,7 @@ module RubySMB
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.smb2_header.session_id = session_id
         packet.set_type3_blob(type3_message.serialize)
+        packet.security_mode.signing_enabled = 1
         packet
       end
 

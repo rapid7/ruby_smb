@@ -22,8 +22,14 @@ module RubySMB
     SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze
     # The Default SMB2 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB2_DEFAULT = 'SMB 2.002'.freeze
+    # The SMB2 wildcard revision number Dialect string used in an SMB1 Negotiate Request
+    # It indicates that the server implements SMB 2.1 or future dialect revisions
+    # Note that this must be used for SMB3
+    SMB1_DIALECT_SMB2_WILDCARD = 'SMB 2.???'.freeze
     # Dialect value for SMB2 Default (Version 2.02)
     SMB2_DIALECT_DEFAULT = 0x0202
+    # Dialect value for SMB3 Default (Version 3.1.1)
+    SMB3_DIALECT_DEFAULT = 0x0311
     # The default maximum size of a SMB message that the Client accepts (in bytes)
     MAX_BUFFER_SIZE = 64512
     # The default maximum size of a SMB message that the Server accepts (in bytes)
@@ -135,6 +141,11 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :smb2
 
+    # Whether or not the Client should support SMB3
+    # @!attribute [rw] smb3
+    #   @return [Boolean]
+    attr_accessor :smb3
+
     #  Tracks the current SMB2 Message ID that keeps communication in sync
     # @!attribute [rw] smb2_message_id
     #   @return [Integer]
@@ -181,9 +192,10 @@ module RubySMB
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
-    def initialize(dispatcher, smb1: true, smb2: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
+    # @param smb3 [Boolean] whether or not to enable SMB3 support
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
-      if smb1 == false && smb2 == false
+      if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
       @dispatcher        = dispatcher
@@ -196,6 +208,7 @@ module RubySMB
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
+      @smb3              = smb3
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modifed during negotiation
@@ -243,7 +256,7 @@ module RubySMB
     # @param data [String] the data the server should echo back (ignored in SMB2)
     # @return [WindowsError::ErrorCode] the NTStatus of the last response received
     def echo(count: 1, data: '')
-      response = if smb2
+      response = if smb2 || smb3
                    smb2_echo
                  else
                    smb1_echo(count: count, data: data)
@@ -301,7 +314,7 @@ module RubySMB
     # @return [WindowsError::ErrorCode] the NTStatus of the response
     # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a LogoffResponse packet
     def logoff!
-      if smb2
+      if smb2 || smb3
         request      = RubySMB::SMB2::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB2::Packet::LogoffResponse.read(raw_response)
@@ -362,7 +375,7 @@ module RubySMB
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
     def tree_connect(share)
-      connected_tree = if smb2
+      connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
         smb1_tree_connect(share)

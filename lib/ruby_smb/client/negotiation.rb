@@ -9,8 +9,8 @@ module RubySMB
       # It also keeps track of the negotiated dialect.
       #
       # @return [void]
-      def negotiate
-        request_packet  = negotiate_request
+      def negotiate(opts = {})
+        request_packet  = negotiate_request(opts)
         raw_response    = send_recv(request_packet)
         response_packet = negotiate_response(raw_response)
         # The list of dialect identifiers sent to the server is stored
@@ -18,6 +18,16 @@ module RubySMB
         # This is only valid for SMB1.
         response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
         parse_negotiate_response(response_packet)
+        # If the response contains the SMB2 wildcard revision number dialect;
+        # it indicates that the server implements SMB 2.1 or future dialect
+        # revisions and expects the client to send a subsequent SMB2 Negotiate
+        # request to negotiate the actual SMB 2 Protocol revision to be used.
+        # The wildcard revision number is sent only in response to a
+        # multi-protocol negotiate request with the "SMB 2.???" dialect string.
+        if self.dialect == "0x02ff"
+          self.smb2_message_id += 1
+          negotiate(opts)
+        end
       rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
         error = 'Unable to Negotiate with remote host'
         error << ', SMB1 may be disabled' if smb1 && !smb2
@@ -29,11 +39,13 @@ module RubySMB
       #
       # @return [RubySMB::SMB1::Packet::NegotiateRequest] a SMB1 Negotiate Request packet if SMB1 is used
       # @return [RubySMB::SMB1::Packet::NegotiateRequest] a SMB2 Negotiate Request packet if SMB2 is used
-      def negotiate_request
+      def negotiate_request(opts = {})
         if smb1
           smb1_negotiate_request
         elsif smb2
           smb2_negotiate_request
+        elsif smb3
+          smb3_negotiate_request(opts)
         end
       end
 
@@ -50,7 +62,7 @@ module RubySMB
           packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
           response = packet if packet.valid?
         end
-        if smb2 && response.nil?
+        if (smb2 || smb3) && response.nil?
           packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
           response = packet if packet.valid?
         end
@@ -95,6 +107,7 @@ module RubySMB
         when RubySMB::SMB1::Packet::NegotiateResponseExtended
           self.smb1 = true
           self.smb2 = false
+          self.smb3 = false
           self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
           self.dialect = packet.negotiated_dialect.to_s
           # MaxBufferSize is largest message server will receive, measured from start of the SMB header. Subtract 260
@@ -104,8 +117,13 @@ module RubySMB
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
-          self.smb2 = true
-          self.signing_required = packet.security_mode.signing_required == 1
+          unless packet.dialect_revision.to_i == 0x02ff
+            self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
+            self.smb3 = packet.dialect_revision.to_i > 0x0300
+          end
+          self.signing_required = packet.security_mode.signing_required == 1 if self.smb2
+          # TODO: SMB3: check if signing is required/allowed when the message is encrypted
+          self.signing_required = true if self.smb3
           self.dialect = "0x%04x" % packet.dialect_revision
           self.server_max_read_size = packet.max_read_size
           self.server_max_write_size = packet.max_write_size
@@ -131,6 +149,7 @@ module RubySMB
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
         packet.add_dialect(SMB1_DIALECT_SMB2_DEFAULT) if smb2
+        packet.add_dialect(SMB1_DIALECT_SMB2_WILDCARD) if smb3
         packet
       end
 
@@ -144,6 +163,47 @@ module RubySMB
         packet.security_mode.signing_enabled = 1
         packet.add_dialect(SMB2_DIALECT_DEFAULT)
         packet.client_guid = SecureRandom.random_bytes(16)
+        packet
+      end
+
+      def smb3_negotiate_request(opts = {})
+        packet = RubySMB::SMB2::Packet::NegotiateRequest.new
+        packet.security_mode.signing_enabled = 1
+        packet.add_dialect(SMB3_DIALECT_DEFAULT)
+        packet.client_guid = SecureRandom.random_bytes(16)
+
+        nc = RubySMB::SMB2::NegotiateContext.new(
+          context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+        )
+        nc.data.hash_algorithms << RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512
+        nc.data.salt = SecureRandom.random_bytes(32)
+        packet.negotiate_context_list << nc
+
+        if opts[:encryption]
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+          )
+          #nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+          packet.negotiate_context_list << nc
+        end
+
+        if opts[:compression]
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+          )
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::NONE
+          packet.negotiate_context_list << nc
+        end
+
+        if opts[:servername]
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_NETNAME_NEGOTIATE_CONTEXT_ID
+          )
+          nc.data.net_name = opts[:servername].to_s
+          packet.negotiate_context_list << nc
+        end
+
         packet
       end
     end
