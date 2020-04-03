@@ -192,7 +192,7 @@ module RubySMB
     attr_accessor :server_max_transact_size
 
     attr_accessor :preauth_integrity_hash_value
-    attr_accessor :preauth_integrity_hash_id
+    attr_accessor :preauth_integrity_hash_algorithm
     attr_accessor :encryption_required
     attr_accessor :compression_required
 

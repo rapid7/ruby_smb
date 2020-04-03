@@ -23,8 +23,8 @@ module RubySMB
         end
         file_time           :client_start_time,      label: 'Client Start Time',  initial_value: 0, onlyif: -> { !need_negotiate_context? }
         array               :dialects,               label: 'Dialects', type: :uint16, initial_length: -> { dialect_count }
-        string              :pad,                    label: 'Padding', length: -> { pad_length }, onlyif: -> { need_negotiate_context? }
-        array               :negotiate_context_list, label: 'Negotiate Context List', type: :negotiate_context, onlyif: -> { need_negotiate_context? }
+        string              :pad,                    label: 'Padding', length: -> { pad_length(self.dialects) }, onlyif: -> { need_negotiate_context? }
+        array               :negotiate_context_list, label: 'Negotiate Context List', type: :negotiate_context, onlyif: -> { need_negotiate_context? }, read_until: :eof
 
         # Adds a dialect to the Dialects array and increments the dialect count
         #
@@ -50,13 +50,22 @@ module RubySMB
           dialects
         end
 
+        def add_negotiate_context(nc)
+          return ArgumentError, 'Must be a NegotiateContext' unless nc.is_a? NegotiateContext
+          previous_element = negotiate_context_list.last || negotiate_context_list
+          pad_length = pad_length(previous_element)
+          self.negotiate_context_list << nc
+          self.negotiate_context_list.last.pad = "\x00" * pad_length
+        end
+
+
         private
 
         # Determines the correct length for the padding between the #dialects
         # array and the first negotiate context, so that the first negotiate
         # context is 8-byte aligned.
-        def pad_length
-          offset = (dialects.abs_offset + dialects.to_binary_s.length) % 8
+        def pad_length(prev_element)
+          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 8
           (8 - offset) % 8
         end
 

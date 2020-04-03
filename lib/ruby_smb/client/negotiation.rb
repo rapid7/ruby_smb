@@ -18,16 +18,16 @@ module RubySMB
         # This is only valid for SMB1.
         response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
         version = parse_negotiate_response(response_packet)
-        if self.dialect == '0x0311' && @encryption_required
-          nc = response_packet.find_negotiate_context(RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES)
-          @preauth_integrity_hash_id = nc&.data&.hash_algorithms&.first
-          hash_algoritm_map = {
-            RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512 => 'SHA512'
-          }
-          @preauth_integrity_hash_value = OpenSSL::Digest.digest(
-            hash_algoritm_map[self.preauth_integrity_hash_id],
-            request_packet.to_binary_s
+        if @dialect == '0x0311' && @encryption_required
+          nc = response_packet.find_negotiate_context(
+            RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
           )
+          @preauth_integrity_hash_algorithm = RubySMB::SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
+          unless @preauth_integrity_hash_algorithm
+            raise RubySMB::Error::EncryptionError.new('Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response')
+          end
+          @preauth_integrity_hash_value = OpenSSL::Digest.digest(@preauth_integrity_hash_algorithm, @preauth_integrity_hash_value + request_packet.to_binary_s)
+          @preauth_integrity_hash_value = OpenSSL::Digest.digest(@preauth_integrity_hash_algorithm, @preauth_integrity_hash_value + response_packet.to_binary_s)
         end
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
@@ -187,15 +187,17 @@ module RubySMB
         )
         nc.data.hash_algorithms << RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512
         nc.data.salt = SecureRandom.random_bytes(32)
-        packet.negotiate_context_list << nc
+        packet.add_negotiate_context(nc)
 
         if @encryption_required
+          @preauth_integrity_hash_value = "\x00" * 64
+          packet.capabilities.encryption = 1
           nc = RubySMB::SMB2::NegotiateContext.new(
             context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
           )
           #nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
           nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
-          packet.negotiate_context_list << nc
+          packet.add_negotiate_context(nc)
         end
 
         if @compression_required

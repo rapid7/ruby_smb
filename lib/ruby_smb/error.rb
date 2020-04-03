@@ -65,5 +65,8 @@ module RubySMB
     # Raised when trying to parse raw binary into a BitField and the data
     # is invalid.
     class InvalidBitField < RubySMBError; end
+
+    # Raised when an encryption operation fails
+    class EncryptionError < RubySMBError; end
   end
 end

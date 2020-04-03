@@ -3,6 +3,9 @@ module RubySMB
 
     class PreauthIntegrityCapabilities < BinData::Record
       SHA_512 = 0x0001
+      HASH_ALGORITM_MAP = {
+        SHA_512 => 'SHA512'
+      }
 
       endian  :little
 
@@ -66,6 +69,7 @@ module RubySMB
       endian  :little
 
       # Constants defined in RubySMB::SMB2::ContextType
+      string :pad, label: 'Padding', read_length: -> { pad_length }
       uint16 :context_type, label: 'Context Type'
       uint16 :data_length,  label: 'Data Length', initial_value: -> { data.num_bytes }
       uint32 :reserved,     label: 'Reserved',    initial_value: 0
@@ -75,22 +79,26 @@ module RubySMB
         compression_capabilities       SMB2_COMPRESSION_CAPABILITIES,       label: 'Compression Capabilities'
         netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID'
       end
-      string :pad, label: 'Padding', length: -> { pad_length }, onlyif: -> { need_padding? }
+      #string :pad, label: 'Padding', length: -> { pad_length }, onlyif: -> { need_padding? }
 
       def pad_length
         offset = pad.abs_offset % 8
         (8 - offset) % 8
       end
 
-      def need_padding?
-        # Padding is needed to make sure the next NegotiateContext structure
-        # is 8-bytes aligned. No padding is needed if this structure is the
-        # last one or if it is the only one.
-        return !self.equal?(self.parent.last)
-      rescue NoMethodError
-        # This structure is not part of an BinData::Array, no padding needed
-        return false
-      end
+      #def need_padding?
+      #  puts('--------- in need_padding?')
+      #  puts("self class=#{self.class}, parent class=#{self.parent.class}, parent last class=#{self.parent.last.class}")
+      #  puts("result: #{!self.equal?(self.parent.last)}" )
+      #  # Padding is needed to make sure the next NegotiateContext structure
+      #  # is 8-bytes aligned. No padding is needed if this structure is the
+      #  # last one or if it is the only one.
+      #  require 'pry';binding.pry
+      #  return !self.equal?(self.parent.last)
+      #rescue NoMethodError
+      #  # This structure is not part of an BinData::Array, no padding needed
+      #  return false
+      #end
 
     end
   end
