@@ -1,6 +1,8 @@
 module RubySMB
   module SMB2
 
+    # An SMB2 PREAUTH_INTEGRITY_CAPABILITIES context struct as defined in
+    # [2.2.3.1.1 SMB2_PREAUTH_INTEGRITY_CAPABILITIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/5a07bd66-4734-4af8-abcf-5a44ff7ee0e5)
     class PreauthIntegrityCapabilities < BinData::Record
       SHA_512 = 0x0001
       HASH_ALGORITM_MAP = {
@@ -15,9 +17,15 @@ module RubySMB
       string :salt,                 label: 'Salt',                 read_length: -> { salt_length }
     end
 
+    # An SMB2 ENCRYPTION_CAPABILITIES context struct as defined in
+    # [2.2.3.1.2 SMB2_ENCRYPTION_CAPABILITIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/16693be7-2b27-4d3b-804b-f605bde5bcdd)
     class EncryptionCapabilities < BinData::Record
       AES_128_CCM = 0x0001
       AES_128_GCM = 0x0002
+      ENCRYPTION_ALGORITM_MAP = {
+        AES_128_CCM => 'AES-128-CCM',
+        AES_128_GCM => 'AES-128-GCM'
+      }
 
       endian  :little
 
@@ -25,6 +33,8 @@ module RubySMB
       array  :ciphers,      label: 'Ciphers',      type: :uint16, initial_length: -> { cipher_count }
     end
 
+    # An SMB2 COMPRESSION_CAPABILITIES context struct as defined in
+    # [2.2.3.1.3 SMB2_COMPRESSION_CAPABILITIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/78e0c942-ab41-472b-b117-4a95ebe88271)
     class CompressionCapabilities < BinData::Record
       # Flags
       # Chained compression is not supported.
@@ -47,6 +57,8 @@ module RubySMB
       array  :compression_algorithms,      label: 'Compression Algorithms',      type: :uint16, initial_length: -> { compression_algorithm_count }
     end
 
+    # An SMB2 NETNAME_NEGOTIATE_CONTEXT_ID context struct as defined in
+    # [2.2.3.1.4 SMB2_NETNAME_NEGOTIATE_CONTEXT_ID](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ca6726bd-b9cf-43d9-b0bc-d127d3c993b3)
     class NetnameNegotiateContextId < BinData::Record
       endian  :little
 
@@ -68,8 +80,7 @@ module RubySMB
 
       endian  :little
 
-      # Constants defined in RubySMB::SMB2::ContextType
-      string :pad, label: 'Padding', read_length: -> { pad_length }
+      string :pad,          label: 'Padding', read_length: -> { pad_length }
       uint16 :context_type, label: 'Context Type'
       uint16 :data_length,  label: 'Data Length', initial_value: -> { data.num_bytes }
       uint32 :reserved,     label: 'Reserved',    initial_value: 0
@@ -79,26 +90,11 @@ module RubySMB
         compression_capabilities       SMB2_COMPRESSION_CAPABILITIES,       label: 'Compression Capabilities'
         netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID'
       end
-      #string :pad, label: 'Padding', length: -> { pad_length }, onlyif: -> { need_padding? }
 
       def pad_length
         offset = pad.abs_offset % 8
         (8 - offset) % 8
       end
-
-      #def need_padding?
-      #  puts('--------- in need_padding?')
-      #  puts("self class=#{self.class}, parent class=#{self.parent.class}, parent last class=#{self.parent.last.class}")
-      #  puts("result: #{!self.equal?(self.parent.last)}" )
-      #  # Padding is needed to make sure the next NegotiateContext structure
-      #  # is 8-bytes aligned. No padding is needed if this structure is the
-      #  # last one or if it is the only one.
-      #  require 'pry';binding.pry
-      #  return !self.equal?(self.parent.last)
-      #rescue NoMethodError
-      #  # This structure is not part of an BinData::Array, no padding needed
-      #  return false
-      #end
 
     end
   end

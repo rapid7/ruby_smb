@@ -22,6 +22,8 @@ module RubySMB
         end
 
         return result[0...(length / 8)]
+      rescue OpenSSL::OpenSSLError => e
+        raise RubySMB::Error::EncryptionError, "Crypto::KDF.counter_mode OpenSSL error: #{e.message}"
       end
     end
   end

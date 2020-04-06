@@ -3,7 +3,7 @@ module RubySMB
     module Packet
       # An SMB2 TRANSFORM_HEADER Packet as defined in
       # [2.2.41 SMB2 TRANSFORM_HEADER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/d6ce2327-a4c9-4793-be66-7b5bad2175fa)
-      class TransformHeader < RubySMB::GenericPacket
+      class TransformHeader < BinData::Record
         endian :little
         hide   :reserved0
 
@@ -15,15 +15,18 @@ module RubySMB
         uint16           :reserved0
         uint16           :flags,                 label: 'Flags / Encryption Algorithm'
         uint64           :session_id,            label: 'Session ID'
-        string           :encrypted_data,        label: 'Encrypted Data'
+        array            :encrypted_data,        label: 'Encrypted Data', type: :uint8, read_until: :eof
 
         def decrypt(key, algorithm: 'AES-128-GCM')
           cipher = build_cipher(:decrypt, algorithm, key)
           cipher.iv = self.nonce[0...cipher.iv_len]
 
+          cipher.ccm_data_len = self.encrypted_data.size if algorithm == 'AES-128-CCM'
+          cipher.auth_data = self.to_binary_s[20...52]
+
           cipher.auth_tag = self.signature
 
-          cipher.update(self.encrypted_data)[0...self.original_message_size]
+          cipher.update(self.encrypted_data.to_ary.pack('C*'))[0...self.original_message_size]
         end
 
         def encrypt(unencrypted_data, key, algorithm: 'AES-128-GCM')
@@ -36,8 +39,11 @@ module RubySMB
 
           self.original_message_size.assign(unencrypted_data.length)
 
+          cipher.ccm_data_len = unencrypted_data.length if algorithm == 'AES-128-CCM'
+
           cipher.auth_data = self.to_binary_s[20...52]
-          self.encrypted_data.assign(cipher.update(unencrypted_data) + cipher.final)
+          enc_data = cipher.update(unencrypted_data) + cipher.final
+          self.encrypted_data.assign(enc_data.bytes)
 
           self.signature.assign(cipher.auth_tag)
 
@@ -47,7 +53,7 @@ module RubySMB
         private
 
         def build_cipher(mode, algorithm, key)
-          unless ['AES-128-GCM'].include?(algorithm)
+          unless ['AES-128-CCM', 'AES-128-GCM'].include?(algorithm)
             # Only GCM is supported right now due to a bug in the Ruby OpenSSL implementation that
             # prevents setting the data length.
             # see: https://github.com/ruby/openssl/pull/359

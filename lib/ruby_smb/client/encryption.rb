@@ -20,16 +20,18 @@ module RubySMB
       def smb3_1_encrypt(data, session_id, session_key, context)
         # handle the 3.1.1 dialect
         encryption_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMBC2SCipherKey\x00", context)
+        puts "Encryption key = #{encryption_key.each_byte.map {|e| '%02x' % e}.join}"
 
         # in this dialect, flags = 1 means encrypted
         th = RubySMB::SMB2::Packet::TransformHeader.new(flags: 1, session_id: session_id)
-        th.encrypt(data, encryption_key, algorithm: 'AES-128-GCM')
+        th.encrypt(data, encryption_key, algorithm: @encryption_algorithm)
         th
       end
 
       def smb3_1_decrypt(th, session_key, context)
         decryption_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMBS2CCipherKey\x00", context)
-        th.decrypt(decryption_key)
+        puts "Decryption key = #{decryption_key.each_byte.map {|e| '%02x' % e}.join}"
+        th.decrypt(decryption_key, algorithm: @encryption_algorithm)
       end
     end
   end

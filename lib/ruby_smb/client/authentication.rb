@@ -202,10 +202,7 @@ module RubySMB
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
         if @dialect == '0x0311' && @encryption_required
-          unless @preauth_integrity_hash_algorithm
-            raise RubySMB::Error::EncryptionError.new('Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil')
-          end
-          @preauth_integrity_hash_value = OpenSSL::Digest.digest(@preauth_integrity_hash_algorithm, @preauth_integrity_hash_value + challenge_packet.to_binary_s)
+          update_preauth_hash(challenge_packet)
         end
         @session_id = challenge_packet.smb2_header.session_id
         type2_b64_message = smb2_type2_message(challenge_packet)
@@ -218,6 +215,13 @@ module RubySMB
 
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
+
+        ######
+        # DEBUG
+        puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
+        puts "Session key = #{@session_key.each_byte.map {|e| '%02x' % e}.join}"
+        puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}"
+        ######
 
         response.status_code
       end
@@ -262,13 +266,12 @@ module RubySMB
       # @return [String] the binary string response from the server
       def smb2_ntlmssp_negotiate
         packet = smb2_ntlmssp_negotiate_packet
+        response = send_recv(packet)
         if @dialect == '0x0311' && @encryption_required
-          unless @preauth_integrity_hash_algorithm
-            raise RubySMB::Error::EncryptionError.new('Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil')
-          end
-          @preauth_integrity_hash_value = OpenSSL::Digest.digest(@preauth_integrity_hash_algorithm, @preauth_integrity_hash_value + packet.to_binary_s)
+          #@saved_preauth_integrity_hash_value = @preauth_integrity_hash_value
+          update_preauth_hash(packet)
         end
-        send_recv(packet)
+        response
       end
 
       # Creates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet
@@ -307,13 +310,11 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb2_ntlmssp_authenticate(type3_message, user_id)
         packet = smb2_ntlmssp_auth_packet(type3_message, user_id)
+        response = send_recv(packet)
         if @dialect == '0x0311' && @encryption_required
-          unless @preauth_integrity_hash_algorithm
-            raise RubySMB::Error::EncryptionError.new('Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil')
-          end
-          @preauth_integrity_hash_value = OpenSSL::Digest.digest(@preauth_integrity_hash_algorithm, @preauth_integrity_hash_value + packet.to_binary_s)
+          update_preauth_hash(packet)
         end
-        send_recv(packet)
+        response
       end
 
       # Generates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet

@@ -19,15 +19,12 @@ path     = "\\\\#{address}\\#{share}"
 sock = TCPSocket.new address, 445
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password, encryption: true, compression: false)
+client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password, encryption: true)
 protocol = client.negotiate
 status = client.authenticate
 
-puts "#{protocol} : #{status}"
-
 begin
   tree = client.tree_connect(path)
-  puts "Connected to #{path} successfully!"
 rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end

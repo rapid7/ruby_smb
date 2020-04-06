@@ -26,7 +26,7 @@ module RubySMB
         uint32              :reserved2,                 label: 'Reserved', initial_value: 0, onlyif: -> { !has_negotiate_context? }
         string              :security_buffer,           label: 'Security Buffer', read_length: :security_buffer_length
         string              :pad,                       label: 'Padding', read_length: -> { pad_length }, onlyif: -> { has_negotiate_context? }
-        array               :negotiate_context_list,    label: 'Negotiate Context List', initial_length: -> {negotiate_context_count}, type: :negotiate_context, onlyif: -> { has_negotiate_context? }
+        array               :negotiate_context_list,    label: 'Negotiate Context List', initial_length: -> { negotiate_context_count }, type: :negotiate_context, onlyif: -> { has_negotiate_context? }
 
         def initialize_instance
           super

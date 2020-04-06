@@ -191,9 +191,29 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :server_max_transact_size
 
-    attr_accessor :preauth_integrity_hash_value
+    # The algorithm to compute the preauthentication integrity hash (SMB 3.1.1).
+    # @!attribute [rw] preauth_integrity_hash_algorithm
+    #   @return [String]
     attr_accessor :preauth_integrity_hash_algorithm
+
+    # The the preauthentication integrity hash value (SMB 3.1.1).
+    # @!attribute [rw] preauth_integrity_hash_value
+    #   @return [String]
+    attr_accessor :preauth_integrity_hash_value
+
+    # The the algorithm for encryption (SMB 3.x).
+    # @!attribute [rw] encryption_algorithm
+    #   @return [String]
+    attr_accessor :encryption_algorithm
+
+    # Whether or not encryption is required (SMB 3.x)
+    # @!attribute [rw] encryption_required
+    #   @return [Boolean]
     attr_accessor :encryption_required
+
+    # Whether or not compression is required (SMB 3.1.1)
+    # @!attribute [rw] compression_required
+    #   @return [Boolean]
     attr_accessor :compression_required
 
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
@@ -376,11 +396,23 @@ module RubySMB
       if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
          @dialect == "0x0311" &&
          @encryption_required
-        transform_request = smb3_1_encrypt(packet.to_binary_s, @session_id, @session_key, @preauth_integrity_hash_value)
+        begin
+          transform_request = smb3_1_encrypt(packet.to_binary_s, @session_id, @session_key, @preauth_integrity_hash_value)
+        rescue RubySMB::RubySMBError => e
+          raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB 3.1.1): #{e}"
+        end
         dispatcher.send_packet(transform_request)
         raw_response = dispatcher.recv_packet
-        transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
-        raw_response = smb3_1_decrypt(transform_response, @session_key, @preauth_integrity_hash_value)
+        begin
+          transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
+        rescue IOError
+          raise RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet'
+        end
+        begin
+          raw_response = smb3_1_decrypt(transform_response, @session_key, @preauth_integrity_hash_value)
+        rescue RubySMB::RubySMBError => e
+          raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB 3.1.1): #{e}"
+        end
       else
         dispatcher.send_packet(packet)
         raw_response = dispatcher.recv_packet
@@ -468,5 +500,16 @@ module RubySMB
       session_request
     end
 
+    def update_preauth_hash(data)
+      unless @preauth_integrity_hash_algorithm
+        raise RubySMB::Error::EncryptionError.new(
+          'Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil'
+        )
+      end
+      @preauth_integrity_hash_value = OpenSSL::Digest.digest(
+        @preauth_integrity_hash_algorithm,
+        @preauth_integrity_hash_value + data.to_binary_s
+      )
+    end
   end
 end
