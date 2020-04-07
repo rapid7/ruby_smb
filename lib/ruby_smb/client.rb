@@ -394,10 +394,10 @@ module RubySMB
         packet = packet
       end
       if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
-         @dialect == "0x0311" &&
+          ["0x0300", "0x0302", "0x0311"].include?(@dialect) &&
          @encryption_required
         begin
-          transform_request = smb3_1_encrypt(packet.to_binary_s, @session_id, @session_key, @preauth_integrity_hash_value)
+          transform_request = smb3_encrypt(packet.to_binary_s)
         rescue RubySMB::RubySMBError => e
           raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB 3.1.1): #{e}"
         end
@@ -409,7 +409,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet'
         end
         begin
-          raw_response = smb3_1_decrypt(transform_response, @session_key, @preauth_integrity_hash_value)
+          raw_response = smb3_decrypt(transform_response)
         rescue RubySMB::RubySMBError => e
           raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB 3.1.1): #{e}"
         end

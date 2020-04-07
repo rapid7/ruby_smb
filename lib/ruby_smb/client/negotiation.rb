@@ -18,8 +18,13 @@ module RubySMB
         # This is only valid for SMB1.
         response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
         version = parse_negotiate_response(response_packet)
-        if @dialect == '0x0311' && @encryption_required
-          parse_smb3_encryption_data(request_packet, response_packet)
+        if @encryption_required
+          case @dialect
+          when '0x0300', '0x0302'
+            @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          when '0x0311'
+            parse_smb3_encryption_data(request_packet, response_packet)
+          end
         end
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
