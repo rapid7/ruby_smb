@@ -6,7 +6,6 @@ module RubySMB
       class CompressionTransformHeader < RubySMB::GenericPacket
         endian :little
 
-        endian           :little
         bit32            :protocol,                         label: 'Protocol ID Field',      initial_value: 0xFC534D42
         uint32           :original_compressed_segment_size, label: 'Original Compressed Segment Size'
         uint16           :compression_algorithm,            label: 'Compression Algorithm'
@@ -20,10 +19,9 @@ module RubySMB
         endian :little
         hide   :reserved
 
-        endian           :little
         uint16           :algorithm_id,                     label: 'Algorithm ID'
         uint16           :reserved
-        uint32           :length,                           label: 'Length'
+        uint32           :payload_length,                   label: 'Compressed Payload Length'
       end
 
       # An SMB2 SMB2_COMPRESSION_PATTERN_PAYLOAD_V1 Packet as defined in
