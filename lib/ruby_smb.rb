@@ -2,6 +2,7 @@ require 'bindata'
 require 'net/ntlm'
 require 'net/ntlm/client'
 require 'openssl'
+require 'openssl/cmac'
 require 'windows_error'
 require 'windows_error/nt_status'
 # A packet parsing and manipulation library for the SMB1 and SMB2 protocols

@@ -128,7 +128,7 @@ module RubySMB
             self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
             self.smb3 = packet.dialect_revision.to_i >= 0x0300
           end
-          self.signing_required = packet.security_mode.signing_required == 1 if self.smb2
+          self.signing_required = packet.security_mode.signing_required == 1 if self.smb2 || self.smb3
           self.dialect = "0x%04x" % packet.dialect_revision
           self.server_max_read_size = packet.max_read_size
           self.server_max_write_size = packet.max_write_size

@@ -40,6 +40,23 @@ module RubySMB
         end
         packet
       end
+
+      def smb3_sign(packet)
+        if signing_required && !session_key.empty?
+          case @dialect
+          when '0x0300', '0x0302'
+            signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
+          else
+            raise RuntimeError.new('Dialect is incompatible with SMBv3 signing')
+          end
+
+          packet.smb2_header.flags.signed = 1
+          packet.smb2_header.signature = "\x00" * 16
+          hmac = OpenSSL::CMAC.digest('AES', signing_key, packet.to_binary_s)
+          packet.smb2_header.signature = hmac[0, 16]
+        end
+        packet
+      end
     end
   end
 end
