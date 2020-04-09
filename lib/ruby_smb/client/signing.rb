@@ -42,7 +42,7 @@ module RubySMB
       end
 
       def smb3_sign(packet)
-        if packet.is_a? RubySMB::SMB2::Packet::TreeConnectRequest || (signing_required && !session_key.empty?)
+        if !session_key.empty? && (signing_required || packet.is_a?(RubySMB::SMB2::Packet::TreeConnectRequest))
           case @dialect
           when '0x0300', '0x0302'
             signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
