@@ -46,6 +46,8 @@ module RubySMB
           case @dialect
           when '0x0300', '0x0302'
             signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
+          when '0x0311'
+            signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMBSigningKey\x00", @preauth_integrity_hash_value)
           else
             raise RuntimeError.new('Dialect is incompatible with SMBv3 signing')
           end
