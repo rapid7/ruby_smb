@@ -201,7 +201,7 @@ module RubySMB
       def smb2_authenticate
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
-        if @dialect == '0x0311' && (@encryption_required || @signing_required)
+        if @dialect == '0x0311'
           update_preauth_hash(challenge_packet)
         end
         @session_id = challenge_packet.smb2_header.session_id
@@ -267,7 +267,7 @@ module RubySMB
       def smb2_ntlmssp_negotiate
         packet = smb2_ntlmssp_negotiate_packet
         response = send_recv(packet)
-        if @dialect == '0x0311' && (@encryption_required || @signing_required)
+        if @dialect == '0x0311'
           update_preauth_hash(packet)
         end
         response
@@ -310,7 +310,7 @@ module RubySMB
       def smb2_ntlmssp_authenticate(type3_message, user_id)
         packet = smb2_ntlmssp_auth_packet(type3_message, user_id)
         response = send_recv(packet)
-        if @dialect == '0x0311' && (@encryption_required || @signing_required)
+        if @dialect == '0x0311'
           update_preauth_hash(packet)
         end
         response
