@@ -5,7 +5,8 @@ module RubySMB
       # [2.2.10 SMB2 TREE_CONNECT Response](https://msdn.microsoft.com/en-us/library/cc246499.aspx)
       class ShareFlags < BinData::Record
         endian  :little
-        bit2    :reserved1,                 label: 'Reserved Space'
+        bit1    :reserved1,                 label: 'Reserved Space'
+        bit1    :no_caching,                label: 'No Caching'
         bit1    :vdo_caching,               label: 'VDO Caching'
         bit1    :auto_caching,              label: 'Auto Caching'
         bit2    :reserved2
@@ -20,9 +21,11 @@ module RubySMB
         bit1    :namespace_caching,         label: 'Namespace Caching'
         bit1    :shared_delete,             label: 'Force Shared Delete'
         bit1    :restrict_exclusive_opens,  label: 'Restrict Exclusive Opens'
-
-        bit8    :reserved3,                 label: 'Reserved Space'
-        bit8    :reserved4,                 label: 'Reserved Space'
+        # byte boundary
+        bit5    :reserved3,                 label: 'Reserved Space'
+        bit1    :identity_remoting,         label: 'Identity Remoting'
+        bit2    :reserved4,                 label: 'Reserved Space'
+        bit8    :reserved5,                 label: 'Reserved Space'
 
         def caching_type
           if vdo_caching == 1 && auto_caching.zero?

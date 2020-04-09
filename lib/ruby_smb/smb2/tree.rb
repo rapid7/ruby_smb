@@ -23,12 +23,18 @@ module RubySMB
       #   @return [Integer]
       attr_accessor :id
 
-      def initialize(client:, share:, response:)
-        @client             = client
-        @share              = share
-        @id                 = response.smb2_header.tree_id
-        @permissions        = response.maximal_access
-        @share_type         = response.share_type
+      # Whether or not encryption is required (SMB 3.x)
+      # @!attribute [rw] encryption_required
+      #   @return [Boolean]
+      attr_accessor :encryption_required
+
+      def initialize(client:, share:, response:, encrypt: false)
+        @client              = client
+        @share               = share
+        @id                  = response.smb2_header.tree_id
+        @permissions         = response.maximal_access
+        @share_type          = response.share_type
+        @encryption_required = encrypt
       end
 
       # Disconnects this Tree from the current session
@@ -38,7 +44,7 @@ module RubySMB
       def disconnect!
         request = RubySMB::SMB2::Packet::TreeDisconnectRequest.new
         request = set_header_fields(request)
-        raw_response = client.send_recv(request)
+        raw_response = client.send_recv(request, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::TreeDisconnectResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -96,7 +102,7 @@ module RubySMB
         create_request.create_disposition   = disposition
         create_request.name                 = filename
 
-        raw_response  = client.send_recv(create_request)
+        raw_response  = client.send_recv(create_request, encrypt: @encryption_required)
         response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -111,11 +117,11 @@ module RubySMB
         end
 
         case @share_type
-        when 0x01
-          RubySMB::SMB2::File.new(name: filename, tree: self, response: response)
-        when 0x02
+        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_DISK
+          RubySMB::SMB2::File.new(name: filename, tree: self, response: response, encrypt: @encryption_required)
+        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PIPE
           RubySMB::SMB2::Pipe.new(name: filename, tree: self, response: response)
-        # when 0x03
+        # when RubySMB::SMB2::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
         #   it's a printer!
         else
           raise RubySMB::Error::RubySMBError, 'Unsupported share type'
@@ -148,7 +154,7 @@ module RubySMB
         files = []
 
         loop do
-          response            = client.send_recv(directory_request)
+          response            = client.send_recv(directory_request, encrypt: @encryption_required)
           directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
           unless directory_response.valid?
             raise RubySMB::Error::InvalidPacket.new(
@@ -193,7 +199,7 @@ module RubySMB
 
         create_request  = open_directory_packet(directory: directory, disposition: disposition,
                                                 impersonation: impersonation, read: read, write: write, delete: delete)
-        raw_response    = client.send_recv(create_request)
+        raw_response    = client.send_recv(create_request, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(

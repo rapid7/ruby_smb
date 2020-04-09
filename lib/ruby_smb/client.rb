@@ -379,7 +379,7 @@ module RubySMB
     #
     # @param packet [RubySMB::GenericPacket] the request to be sent
     # @return [String] the raw response data received
-    def send_recv(packet)
+    def send_recv(packet, encrypt: false)
       case packet.packet_smb_version
       when 'SMB1'
         packet.smb_header.uid = user_id if user_id
@@ -395,11 +395,11 @@ module RubySMB
       end
       if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
           ["0x0300", "0x0302", "0x0311"].include?(@dialect) &&
-         @encryption_required
+          (@encryption_required || encrypt)
         begin
           transform_request = smb3_encrypt(packet.to_binary_s)
         rescue RubySMB::RubySMBError => e
-          raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB 3.1.1): #{e}"
+          raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB #{@dialect}): #{e}"
         end
         dispatcher.send_packet(transform_request)
         raw_response = dispatcher.recv_packet
@@ -411,7 +411,7 @@ module RubySMB
         begin
           raw_response = smb3_decrypt(transform_response)
         rescue RubySMB::RubySMBError => e
-          raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB 3.1.1): #{e}"
+          raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB #@dialect}): #{e}"
         end
       else
         dispatcher.send_packet(packet)

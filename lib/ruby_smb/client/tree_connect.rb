@@ -80,7 +80,7 @@ module RubySMB
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
-        RubySMB::SMB2::Tree.new(client: self, share: share, response: response)
+        RubySMB::SMB2::Tree.new(client: self, share: share, response: response, encrypt: response.share_flags.encrypt == 1)
       end
     end
   end

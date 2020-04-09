@@ -6,6 +6,14 @@ module RubySMB
       class TreeConnectResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB2::Commands::TREE_CONNECT
 
+        # Share Types
+        # Physical disk share
+        SMB2_SHARE_TYPE_DISK  = 0x01
+        # Named pipe share
+        SMB2_SHARE_TYPE_PIPE  = 0x02
+        # Printer share
+        SMB2_SHARE_TYPE_PRINT = 0x03
+
         endian :little
         smb2_header           :smb2_header
         uint16                :structure_size, label: 'Structure Size', initial_value: 16
@@ -20,32 +28,6 @@ module RubySMB
           smb2_header.flags.reply = 1
         end
 
-        # Returns the ACCESS_MASK for the Maximal Share Access Rights. The packet
-        # defaults this to a {RubySMB::SMB2::BitField::DirectoryAccessMask}. If it is anything other than
-        # a directory that has been connected to, it will re-cast it as a {RubySMB::SMB2::BitField::FileAccessMask}
-        #
-        # @return [RubySMB::SMB2::BitField::DirectoryAccessMask] if a directory was connected to
-        # @return [RubySMB::SMB2::BitField::FileAccessMask] if anything else was connected to
-        # @raise [RubySMB::Error::InvalidBitField] if ACCESS_MASK bit field is not valid
-        def access_rights
-          if is_directory?
-            maximal_access
-          else
-            mask = maximal_access.to_binary_s
-            begin
-              RubySMB::SMB2::BitField::FileAccessMask.read(mask)
-            rescue IOError
-              raise RubySMB::Error::InvalidBitField, 'Invalid ACCESS_MASK for the Maximal Share Access Rights'
-            end
-          end
-        end
-
-        # Checks if the remote Tree is a directory
-        #
-        # @return [Boolean]
-        def is_directory?
-          share_type == 0x01
-        end
       end
     end
   end

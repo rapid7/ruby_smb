@@ -220,7 +220,7 @@ module RubySMB
         # DEBUG
         puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
         puts "Session key = #{@session_key.each_byte.map {|e| '%02x' % e}.join}"
-        puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}"
+        puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}" if @preauth_integrity_hash_value
         ######
 
         response.status_code
@@ -268,7 +268,6 @@ module RubySMB
         packet = smb2_ntlmssp_negotiate_packet
         response = send_recv(packet)
         if @dialect == '0x0311' && @encryption_required
-          #@saved_preauth_integrity_hash_value = @preauth_integrity_hash_value
           update_preauth_hash(packet)
         end
         response
