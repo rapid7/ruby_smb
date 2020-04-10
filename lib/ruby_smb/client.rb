@@ -388,7 +388,11 @@ module RubySMB
         packet = increment_smb_message_id(packet)
         packet.smb2_header.session_id = session_id
         unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
-          packet = smb2_sign(packet)
+          if self.smb2
+            packet = smb2_sign(packet)
+          elsif self.smb3
+            packet = smb3_sign(packet)
+          end
         end
       else
         packet = packet
