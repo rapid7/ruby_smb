@@ -43,7 +43,6 @@ module RubySMB
         # @return [Array<Fixnum>] the current value of the dialects array
         def set_dialects(add_dialects = [])
           self.dialects = []
-          self.dialect_count = 0
           add_dialects.each do |dialect|
             add_dialect(dialect)
           end

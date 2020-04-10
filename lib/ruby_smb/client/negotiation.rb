@@ -49,10 +49,8 @@ module RubySMB
       def negotiate_request
         if smb1
           smb1_negotiate_request
-        elsif smb2
-          smb2_negotiate_request
-        elsif smb3
-          smb3_negotiate_request
+        else
+          smb2_3_negotiate_request
         end
       end
 
@@ -182,7 +180,7 @@ module RubySMB
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
         packet.add_dialect(SMB1_DIALECT_SMB2_DEFAULT) if smb2
-        packet.add_dialect(SMB1_DIALECT_SMB2_WILDCARD) if smb3
+        packet.add_dialect(SMB1_DIALECT_SMB2_WILDCARD) if smb2 || smb3
         packet
       end
 
@@ -191,19 +189,19 @@ module RubySMB
       # may want to communicate over SMB1
       #
       # @ return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB2 Negotiate Request packet
-      def smb2_negotiate_request
+      def smb2_3_negotiate_request
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
         packet.security_mode.signing_enabled = 1
-        packet.add_dialect(SMB2_DIALECT_DEFAULT)
         packet.client_guid = SecureRandom.random_bytes(16)
+        packet.set_dialects(SMB2_DIALECT_DEFAULT) if smb2
+        packet = add_smb3_to_negotiate_request(packet) if smb3
         packet
       end
 
-      def smb3_negotiate_request
-        packet = RubySMB::SMB2::Packet::NegotiateRequest.new
-        packet.security_mode.signing_enabled = 1
-        packet.add_dialect(SMB3_DIALECT_DEFAULT)
-        packet.client_guid = SecureRandom.random_bytes(16)
+      def add_smb3_to_negotiate_request(packet)
+        SMB3_DIALECT_DEFAULT.each do |dialect|
+          packet.add_dialect(dialect)
+        end
         packet.capabilities.encryption = 1
 
         if packet.dialects.include?(0x0311)
