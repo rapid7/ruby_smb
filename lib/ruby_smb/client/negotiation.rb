@@ -151,19 +151,24 @@ module RubySMB
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
         )
-        ciphers = nc&.data&.ciphers
-        unless ciphers
+        @server_encryption_algorithms = nc&.data&.ciphers.to_ary
+        unless @server_encryption_algorithms
           raise RubySMB::Error::EncryptionError.new(
             'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
           )
         end
-        if ciphers.include?(RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM)
+        if @server_encryption_algorithms.include?(RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM)
           @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM]
         else
           @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
         end
         update_preauth_hash(request_packet)
         update_preauth_hash(response_packet)
+
+        nc = response_packet.find_negotiate_context(
+          RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+        )
+        @server_compression_algorithms = nc&.data&.compression_algorithms.to_ary
       end
 
       # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
@@ -220,13 +225,17 @@ module RubySMB
           nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
           packet.add_negotiate_context(nc)
 
-          if @compression_required
-            nc = RubySMB::SMB2::NegotiateContext.new(
-              context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
-            )
-            nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::NONE
-            packet.negotiate_context_list << nc
-          end
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+          )
+          # Adding all possible compression algorithm even if we don't support
+          # them yet. This will force the server to disclose the support
+          # algorithms in the repsonse.
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZNT1
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::Pattern_V1
+          packet.add_negotiate_context(nc)
         end
 
         packet

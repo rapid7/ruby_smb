@@ -211,16 +211,23 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :encryption_required
 
-    # Whether or not compression is required (SMB 3.1.1)
-    # @!attribute [rw] compression_required
-    #   @return [Boolean]
-    attr_accessor :compression_required
+    # The encryption algorithms supported by the server (SMB 3.x).
+    # @!attribute [rw] server_encryption_algorithms
+    #   @return [Array<Integer>] list of supported encryption algorithms
+    #     (constants defined in RubySMB::SMB2::EncryptionCapabilities)
+    attr_accessor :server_encryption_algorithms
+
+    # The compression algorithms supported by the server (SMB 3.x).
+    # @!attribute [rw] server_compression_algorithms
+    #   @return [Array<Integer>] list of supported compression algorithms
+    #     (constants defined in RubySMB::SMB2::CompressionCapabilities)
+    attr_accessor :server_compression_algorithms
 
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     # @param smb3 [Boolean] whether or not to enable SMB3 support
-    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION', encryption: false, compression: false)
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION', force_encryption: false)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -245,8 +252,7 @@ module RubySMB
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
 
       # SMB 3.x options
-      @encryption_required = encryption
-      @compression_required = compression
+      @encryption_required = force_encryption
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |

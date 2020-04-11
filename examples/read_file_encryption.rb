@@ -19,18 +19,18 @@ path     = "\\\\#{address}\\#{share}"
 sock = TCPSocket.new address, 445
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-# Testing full encryption (encryption = true):
-# On the server, run this in an elevated Powershell:
+# To require encryption on the server, run this in an elevated Powershell:
 # C:\> Set-SmbServerConfiguration -EncryptData $true
-encryption = true
 
-# Testing per-share encryption (encryption = false):
-# On the server, run this in an elevated Powershell:
+# To enable per-share encrytion on the server, run this in an elevated Powershell:
 # C:\ Set-SmbServerConfiguration -EncryptData $false
 # C:\ Set-SmbShare -Name <share name> -EncryptData 1
-#encryption = false
 
-client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password, encryption: encryption)
+# When encryption is not required by the server, the client can still use
+# encryption. Set this to true to force encryption:
+force_encryption = false
+
+client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password, force_encryption: force_encryption)
 protocol = client.negotiate
 status = client.authenticate
 

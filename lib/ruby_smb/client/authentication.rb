@@ -216,6 +216,9 @@ module RubySMB
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
 
+        if @smb3 && !@encryption_required && response.session_flags.encrypt_data == 1
+          @encryption_required = true
+        end
         ######
         # DEBUG
         puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
