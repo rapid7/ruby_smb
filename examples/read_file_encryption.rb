@@ -26,11 +26,18 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 # C:\ Set-SmbServerConfiguration -EncryptData $false
 # C:\ Set-SmbShare -Name <share name> -EncryptData 1
 
-# When encryption is not required by the server, the client can still use
-# encryption. Set this to true to force encryption:
-force_encryption = false
+opts = {
+  smb1: false,
+  smb2: false,
+  smb3: true,
+  username: username,
+  password: password,
+}
 
-client = RubySMB::Client.new(dispatcher, smb1: false, smb2: false, smb3: true, username: username, password: password, force_encryption: force_encryption)
+# By default, the client uses encryption even if it is not required by the server. Disable this by setting always_encrypt to false
+#opts[:always_encrypt] = false
+
+client = RubySMB::Client.new(dispatcher, opts)
 protocol = client.negotiate
 status = client.authenticate
 

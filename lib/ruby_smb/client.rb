@@ -227,7 +227,7 @@ module RubySMB
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     # @param smb3 [Boolean] whether or not to enable SMB3 support
-    def initialize(dispatcher, smb1: true, smb2: true, smb3: false, username:, password:, domain: '.', local_workstation: 'WORKSTATION', force_encryption: false)
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION', always_encrypt: true)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -252,7 +252,7 @@ module RubySMB
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
 
       # SMB 3.x options
-      @encryption_required = force_encryption
+      @encryption_required = always_encrypt
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
