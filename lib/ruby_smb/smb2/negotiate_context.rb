@@ -22,7 +22,7 @@ module RubySMB
     class EncryptionCapabilities < BinData::Record
       AES_128_CCM = 0x0001
       AES_128_GCM = 0x0002
-      ENCRYPTION_ALGORITM_MAP = {
+      ENCRYPTION_ALGORITHM_MAP = {
         AES_128_CCM => 'AES-128-CCM',
         AES_128_GCM => 'AES-128-GCM'
       }
