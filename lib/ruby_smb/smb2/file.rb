@@ -176,7 +176,7 @@ module RubySMB
         read_request.offset       = offset
         read_request
       end
-      
+
       def send_recv_read(read_length: 0, offset: 0)
         read_request = read_packet(read_length: read_length, offset: offset)
         raw_response = tree.client.send_recv(read_request, encrypt: @encryption_required)
@@ -189,19 +189,7 @@ module RubySMB
             received_cmd:   response.smb2_header.command
           )
         end
-        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
-          sleep 1
-          raw_response = tree.client.dispatcher.recv_packet
-          response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
-          unless response.valid?
-            raise RubySMB::Error::InvalidPacket.new(
-              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
-              expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
-              received_proto: response.smb2_header.protocol,
-              received_cmd:   response.smb2_header.command
-            )
-          end
-        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
         response.buffer.to_binary_s
@@ -292,7 +280,7 @@ module RubySMB
         write_request.buffer        = data
         write_request
       end
-      
+
       def send_recv_write(data:'', offset: 0)
         pkt = write_packet(data: data, offset: offset)
         raw_response = tree.client.send_recv(pkt, encrypt: @encryption_required)
@@ -305,24 +293,12 @@ module RubySMB
             received_cmd:   response.smb2_header.command
           )
         end
-        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
-          sleep 1
-          raw_response = tree.client.dispatcher.recv_packet
-          response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
-          unless response.valid?
-            raise RubySMB::Error::InvalidPacket.new(
-              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
-              expected_cmd:   RubySMB::SMB2::Packet::WriteResponse::COMMAND,
-              received_proto: response.smb2_header.protocol,
-              received_cmd:   response.smb2_header.command
-            )
-          end
-        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
         end
         response.write_count
       end
-      
+
       # Rename a file
       #
       # @param new_file_name [String] the new name

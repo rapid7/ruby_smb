@@ -386,7 +386,8 @@ module RubySMB
     # @param packet [RubySMB::GenericPacket] the request to be sent
     # @return [String] the raw response data received
     def send_recv(packet, encrypt: false)
-      case packet.packet_smb_version
+      version = packet.packet_smb_version
+      case version
       when 'SMB1'
         packet.smb_header.uid = user_id if user_id
         packet = smb1_sign(packet)
@@ -403,33 +404,69 @@ module RubySMB
       else
         packet = packet
       end
+
       if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
           ["0x0300", "0x0302", "0x0311"].include?(@dialect) &&
           (@encryption_required || encrypt)
-        begin
-          transform_request = smb3_encrypt(packet.to_binary_s)
-        rescue RubySMB::RubySMBError => e
-          raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB #{@dialect}): #{e}"
-        end
-        dispatcher.send_packet(transform_request)
-        raw_response = dispatcher.recv_packet
-        begin
-          transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
-        rescue IOError
-          raise RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet'
-        end
-        begin
-          raw_response = smb3_decrypt(transform_response)
-        rescue RubySMB::RubySMBError => e
-          raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB #@dialect}): #{e}"
+        send_encrypt(packet)
+        raw_response = recv_encrypt
+        loop do
+          break unless is_status_pending?(raw_response)
+          sleep 1
+          raw_response = recv_encrypt
         end
       else
         dispatcher.send_packet(packet)
         raw_response = dispatcher.recv_packet
+        loop do
+          break unless is_status_pending?(raw_response)
+          sleep 1
+          raw_response = dispatcher.recv_packet
+        end unless version == 'SMB1'
       end
 
       self.sequence_counter += 1 if signing_required && !session_key.empty?
       raw_response
+    end
+
+    # Check if the response is an asynchronous operation with STATUS_PENDING
+    # status code.
+    #
+    # @param raw_response [String] the raw response packet
+    # @return [Boolean] true if it is a status pending operation, false otherwise
+    def is_status_pending?(raw_response)
+      smb2_header = RubySMB::SMB2::SMB2Header.read(raw_response)
+      value = smb2_header.nt_status.value
+      status_code = WindowsError::NTStatus.find_by_retval(value).first
+      status_code == WindowsError::NTStatus::STATUS_PENDING &&
+        smb2_header.flags.async_command == 1
+    end
+
+    # Encrypt and send a packet
+    def send_encrypt(packet)
+      begin
+        transform_request = smb3_encrypt(packet.to_binary_s)
+      rescue RubySMB::Error::RubySMBError => e
+        raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB #{@dialect}): #{e}"
+      end
+      dispatcher.send_packet(transform_request)
+    end
+
+    # Receives the raw response through the Dispatcher and decrypt the packet.
+    #
+    # @return [String] the raw unencrypted packet
+    def recv_encrypt
+      raw_response = dispatcher.recv_packet
+      begin
+        transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
+      rescue IOError
+        raise RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet'
+      end
+      begin
+        smb3_decrypt(transform_response)
+      rescue RubySMB::Error::RubySMBError => e
+        raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB #@dialect}): #{e}"
+      end
     end
 
     # Connects to the supplied share
