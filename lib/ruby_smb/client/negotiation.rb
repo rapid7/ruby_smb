@@ -30,14 +30,16 @@ module RubySMB
         # request to negotiate the actual SMB 2 Protocol revision to be used.
         # The wildcard revision number is sent only in response to a
         # multi-protocol negotiate request with the "SMB 2.???" dialect string.
-        if self.dialect == '0x02ff'
+        if @dialect == '0x02ff'
           self.smb2_message_id += 1
-          negotiate
+          version = negotiate
         end
         version
-      rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
-        error = 'Unable to Negotiate with remote host'
-        error << ', SMB1 may be disabled' if smb1 && !smb2
+      rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET, RubySMB::Error::CommunicationError => e
+        version = request_packet.packet_smb_version
+        version = 'SMB3' if version == 'SMB2' && !@smb2 && @smb3
+        version = 'SMB2 or SMB3' if version == 'SMB2' && @smb2 && @smb3
+        error = "Unable to negotiate #{version} with the remote host: #{e.message}"
         raise RubySMB::Error::NegotiationFailure, error
       end
 
@@ -134,6 +136,14 @@ module RubySMB
           # This value is used in SMB1 only but calculate a valid value anyway
           self.server_max_buffer_size = [self.server_max_read_size, self.server_max_write_size, self.server_max_transact_size].min
           return self.smb2 ? 'SMB2' : 'SMB3'
+        else
+          error = 'Unable to negotiate with remote host'
+          if packet.status_code == WindowsError::NTStatus::STATUS_NOT_SUPPORTED
+            error << ", SMB2" if @smb2
+            error << ", SMB3" if @smb3
+            error << ' not supported'
+          end
+          raise RubySMB::Error::NegotiationFailure, error
         end
       end
 
@@ -151,8 +161,8 @@ module RubySMB
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
         )
-        @server_encryption_algorithms = nc&.data&.ciphers.to_ary
-        unless @server_encryption_algorithms
+        @server_encryption_algorithms = nc&.data&.ciphers&.to_ary
+        if @server_encryption_algorithms.nil? || @server_encryption_algorithms.empty?
           raise RubySMB::Error::EncryptionError.new(
             'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
           )
@@ -168,7 +178,7 @@ module RubySMB
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
         )
-        @server_compression_algorithms = nc&.data&.compression_algorithms.to_ary
+        @server_compression_algorithms = nc&.data&.compression_algorithms&.to_ary || []
       end
 
       # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
