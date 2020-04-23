@@ -18,15 +18,29 @@ module RubySMB
         array            :encrypted_data,        label: 'Encrypted Data', type: :uint8, read_until: :eof
 
         def decrypt(key, algorithm: 'AES-128-GCM')
-          cipher = build_cipher(:decrypt, algorithm, key)
-          cipher.iv = self.nonce[0...cipher.iv_len]
+          auth_data = self.to_binary_s[20...52]
+          encrypted_data = self.encrypted_data.to_ary.pack('C*')
 
-          cipher.ccm_data_len = self.encrypted_data.size if algorithm == 'AES-128-CCM'
-          cipher.auth_data = self.to_binary_s[20...52]
+          case algorithm
+          when 'AES-128-CCM'
+            cipher = OpenSSL::CCM.new('AES', key, 16)
+            unencrypted_data = cipher.decrypt(encrypted_data + self.signature, self.nonce[0...11], auth_data)
+            unless unencrypted_data.length > 0
+              raise Openssl::Cipher::CipherError  # raised for consistency with GCM mode
+            end
+          when 'AES-128-GCM'
+            cipher = OpenSSL::Cipher.new(algorithm).decrypt
+            cipher.key = key
+            cipher.iv = self.nonce[0...12]
+            cipher.auth_data = auth_data
+            cipher.auth_tag = self.signature
+            unencrypted_data = cipher.update(encrypted_data)
+            cipher.final # raises OpenSSL::Cipher::CipherError on signature failure
+          else
+            raise ArgumentError.new('Invalid algorithm, must be either AES-128-CCM or AES-128-GCM')
+          end
 
-          cipher.auth_tag = self.signature
-
-          cipher.update(self.encrypted_data.to_ary.pack('C*'))[0...self.original_message_size]
+          unencrypted_data[0...self.original_message_size]
         end
 
         def encrypt(unencrypted_data, key, algorithm: 'AES-128-GCM')
@@ -34,45 +48,31 @@ module RubySMB
             unencrypted_data = unencrypted_data.to_binary_s
           end
 
-          cipher = build_cipher(:encrypt, algorithm, key)
-          self.nonce.assign(cipher.random_iv)
-
           self.original_message_size.assign(unencrypted_data.length)
-
-          cipher.ccm_data_len = unencrypted_data.length if algorithm == 'AES-128-CCM'
-
-          cipher.auth_data = self.to_binary_s[20...52]
-          enc_data = cipher.update(unencrypted_data) + cipher.final
-          self.encrypted_data.assign(enc_data.bytes)
-
-          self.signature.assign(cipher.auth_tag)
-
-          nil
-        end
-
-        private
-
-        def build_cipher(mode, algorithm, key)
-          unless ['AES-128-CCM', 'AES-128-GCM'].include?(algorithm)
-            # Only GCM is supported right now due to a bug in the Ruby OpenSSL implementation that
-            # prevents setting the data length.
-            # see: https://github.com/ruby/openssl/pull/359
-            raise ArgumentError.new('Invalid algorithm, must be either AES-128-CCM or AES-128-GCM')
-          end
-
-          cipher = OpenSSL::Cipher.new(algorithm)
-          cipher.send(mode)
 
           case algorithm
           when 'AES-128-CCM'
-            cipher.auth_tag_len = 16
-            cipher.iv_len = 11
+            cipher = OpenSSL::CCM.new('AES', key, 16)
+            random_iv = OpenSSL::Random.random_bytes(11)
+            self.nonce.assign(random_iv)
+            result = cipher.encrypt(unencrypted_data, random_iv, self.to_binary_s[20...52])
+            encrypted_data = result[0...-16]
+            auth_tag = result[-16..-1]
           when 'AES-128-GCM'
+            cipher = OpenSSL::Cipher.new(algorithm).encrypt
             cipher.iv_len = 12
+            cipher.key = key
+            self.nonce.assign(cipher.random_iv)
+            cipher.auth_data = self.to_binary_s[20...52]
+            encrypted_data = cipher.update(unencrypted_data) + cipher.final
+            auth_tag = cipher.auth_tag
+          else
+            raise ArgumentError.new('Invalid algorithm, must be either AES-128-CCM or AES-128-GCM')
           end
-          cipher.key = key
 
-          cipher
+          self.encrypted_data.assign(encrypted_data.bytes)
+          self.signature.assign(auth_tag)
+          nil
         end
       end
     end

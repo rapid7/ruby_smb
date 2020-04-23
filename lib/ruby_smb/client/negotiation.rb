@@ -20,7 +20,7 @@ module RubySMB
         version = parse_negotiate_response(response_packet)
         case @dialect
         when '0x0300', '0x0302'
-          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
         when '0x0311'
           parse_smb3_encryption_data(request_packet, response_packet)
         end
@@ -168,9 +168,9 @@ module RubySMB
           )
         end
         if @server_encryption_algorithms.include?(RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM)
-          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM]
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM]
         else
-          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
         end
         update_preauth_hash(request_packet)
         update_preauth_hash(response_packet)

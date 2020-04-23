@@ -36,5 +36,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'rubyntlm'
   spec.add_runtime_dependency 'windows_error'
   spec.add_runtime_dependency 'bindata'
+  spec.add_runtime_dependency 'openssl-ccm'
   spec.add_runtime_dependency 'openssl-cmac'
 end
