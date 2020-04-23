@@ -285,10 +285,6 @@ module RubySMB
         type1_message = ntlm_client.init_context
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.set_type1_blob(type1_message.serialize)
-        # This Message ID should always be 1, but thanks to Multi-Protocol Negotiation
-        # the Message ID can be out of sync at this point so we re-synch it here.
-        packet.smb2_header.message_id = 1
-        self.smb2_message_id = 2
         packet.security_mode.signing_enabled = 1
         packet
       end

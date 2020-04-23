@@ -308,10 +308,8 @@ module RubySMB
     # @param packet [RubySMB::GenericPacket] the packet to set the message id for
     # @return [RubySMB::GenericPacket] the modified packet
     def increment_smb_message_id(packet)
-      if packet.smb2_header.message_id.zero? && smb2_message_id != 0
-        packet.smb2_header.message_id = smb2_message_id
-        self.smb2_message_id += 1
-      end
+      packet.smb2_header.message_id = smb2_message_id
+      self.smb2_message_id += 1
       packet
     end
 
