@@ -201,10 +201,20 @@ module RubySMB
     #   @return [String]
     attr_accessor :preauth_integrity_hash_value
 
-    # The the algorithm for encryption (SMB 3.x).
+    # The algorithm for encryption (SMB 3.x).
     # @!attribute [rw] encryption_algorithm
     #   @return [String]
     attr_accessor :encryption_algorithm
+
+    # The client encryption key (SMB 3.x).
+    # @!attribute [rw] client_encryption_key
+    #   @return [String]
+    attr_accessor :client_encryption_key
+
+    # The server encryption key (SMB 3.x).
+    # @!attribute [rw] server_encryption_key
+    #   @return [String]
+    attr_accessor :server_encryption_key
 
     # Whether or not encryption is required (SMB 3.x)
     # @!attribute [rw] encryption_required
@@ -503,6 +513,8 @@ module RubySMB
       self.session_key      = ''
       self.sequence_counter = 0
       self.smb2_message_id  = 0
+      self.client_encryption_key = nil
+      self.server_encryption_key = nil
     end
 
     # Requests a NetBIOS Session Service using the provided name.

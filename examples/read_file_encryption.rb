@@ -13,7 +13,7 @@ address  = ARGV[0]
 username = ARGV[1]
 password = ARGV[2]
 share    = ARGV[3]
-file     = ARGV[4]
+filename = ARGV[4]
 path     = "\\\\#{address}\\#{share}"
 
 sock = TCPSocket.new address, 445
@@ -47,7 +47,7 @@ rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
 end
 
-file = tree.open_file(filename: file)
+file = tree.open_file(filename: filename)
 
 data = file.read
 puts data
