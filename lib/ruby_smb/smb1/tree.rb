@@ -131,7 +131,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         case response.parameter_block.resource_type 
@@ -191,7 +191,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         results = response.results(type, unicode: unicode)
@@ -226,7 +226,7 @@ module RubySMB
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
           results += response.results(type, unicode: unicode)

@@ -113,7 +113,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         case @share_type
@@ -170,7 +170,7 @@ module RubySMB
           break if status_code == WindowsError::NTStatus::STATUS_NO_MORE_FILES
 
           unless status_code == WindowsError::NTStatus::STATUS_SUCCESS
-            raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+            raise RubySMB::Error::UnexpectedStatusCode, status_code
           end
 
           files += directory_response.results(type)
@@ -210,7 +210,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         response

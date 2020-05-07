@@ -175,7 +175,7 @@ module RubySMB
 
         status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
-          raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+          raise RubySMB::Error::UnexpectedStatusCode, status_code
         end
 
         packet
@@ -258,7 +258,7 @@ module RubySMB
 
         status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
-          raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+          raise RubySMB::Error::UnexpectedStatusCode, status_code
         end
         packet
       end

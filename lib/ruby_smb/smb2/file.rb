@@ -100,7 +100,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.status_code
       end
@@ -133,7 +133,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         data = response.buffer.to_binary_s
@@ -156,7 +156,7 @@ module RubySMB
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
           data << response.buffer.to_binary_s
@@ -190,7 +190,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.buffer.to_binary_s
       end
@@ -294,7 +294,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.write_count
       end
