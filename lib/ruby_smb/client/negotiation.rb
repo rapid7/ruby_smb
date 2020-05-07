@@ -121,6 +121,7 @@ module RubySMB
           # for protocol overhead. Then this value can be used for max read/write size without having to factor in
           # protocol overhead every time.
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
+          self.negotiated_smb_version = 1
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
@@ -135,7 +136,8 @@ module RubySMB
           self.server_max_transact_size = packet.max_transact_size
           # This value is used in SMB1 only but calculate a valid value anyway
           self.server_max_buffer_size = [self.server_max_read_size, self.server_max_write_size, self.server_max_transact_size].min
-          return self.smb2 ? 'SMB2' : 'SMB3'
+          self.negotiated_smb_version = self.smb2 ? 2 : 3
+          return "SMB#{self.negotiated_smb_version}"
         else
           error = 'Unable to negotiate with remote host'
           if packet.status_code == WindowsError::NTStatus::STATUS_NOT_SUPPORTED

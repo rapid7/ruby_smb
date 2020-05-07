@@ -233,6 +233,12 @@ module RubySMB
     #     (constants defined in RubySMB::SMB2::CompressionCapabilities)
     attr_accessor :server_compression_algorithms
 
+    # The SMB version that has been successfully negotiated. This value is only
+    # set after the NEGOTIATE handshake has been performed.
+    # @!attribute [rw] negotiated_smb_version
+    #   @return [Integer] the negotiated SMB version
+    attr_accessor :negotiated_smb_version
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
