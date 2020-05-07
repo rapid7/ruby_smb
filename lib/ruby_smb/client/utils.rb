@@ -49,8 +49,9 @@ module RubySMB
         data.bytes
       end
 
-      def delete(path)
-        file = last_tree.open_file(filename: path.sub(/^\\/, ''), delete: true)
+      def delete(path, tree_id = last_tree_id)
+        tree = @tree_connects.detect{ |tree| tree.id == tree_id }
+        file = tree.open_file(filename: path.sub(/^\\/, ''), delete: true)
         file.delete
         file.close
       end
