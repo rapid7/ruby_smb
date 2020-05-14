@@ -4,7 +4,7 @@ module RubySMB
       # A SMB1 SMB_COM_SESSION_SETUP_ANDX Request Packet as defined in
       # [2.2.4.6.1](https://msdn.microsoft.com/en-us/library/cc246328.aspx)
       class SessionSetupRequest < RubySMB::GenericPacket
-        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
 
         # A SMB1 Parameter Block as defined by the {SessionSetupRequest}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock

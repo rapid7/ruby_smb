@@ -1,10 +1,10 @@
 module RubySMB
   module SMB1
     module Packet
-      # A SMB1 SMB_COM_SESSION_SETUP Response Packet as defined in
+      # A SMB1 SMB_COM_SESSION_SETUP_ANDX Response Packet as defined in
       # [2.2.4.6.2](https://msdn.microsoft.com/en-us/library/cc246329.aspx)
       class SessionSetupResponse < RubySMB::GenericPacket
-        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+        COMMAND = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
 
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock

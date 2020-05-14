@@ -43,7 +43,7 @@ module RubySMB
 
         # Represents the specific layout of the DataBlock for a {WriteAndxRequest} Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          uint8  :pad,  label: 'Pad'
+          string :pad,  label: 'Pad', length: 1
           string :data, label: 'Data'
         end
 
