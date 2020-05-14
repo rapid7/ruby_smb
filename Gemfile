@@ -10,13 +10,10 @@ group :test do
   gem 'simplecov', require: false
 end
 
-group :development do
+group :debug do
   # for development and testing purposes
   gem 'pry-byebug'
   gem 'pry-rescue'
   gem 'pry-stack_explorer'
 end
 
-group :development, :test do
-  gem 'rake'
-end
