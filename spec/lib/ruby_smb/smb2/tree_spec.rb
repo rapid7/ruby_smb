@@ -44,7 +44,7 @@ RSpec.describe RubySMB::SMB2::Tree do
       allow(RubySMB::SMB2::Packet::TreeDisconnectRequest).to receive(:new).and_return(disco_req)
       modified_req = disco_req
       modified_req.smb2_header.tree_id = tree.id
-      expect(client).to receive(:send_recv).with(modified_req).and_return(disco_resp.to_binary_s)
+      expect(client).to receive(:send_recv).with(modified_req, encrypt: false).and_return(disco_resp.to_binary_s)
       tree.disconnect!
     end
 
@@ -133,7 +133,7 @@ RSpec.describe RubySMB::SMB2::Tree do
 
     it 'sends the create request packet and gets a response back' do
       allow(tree).to receive(:open_directory_packet).and_return(create_req)
-      expect(client).to receive(:send_recv).with(create_req).and_return(create_response.to_binary_s)
+      expect(client).to receive(:send_recv).with(create_req, encrypt: false).and_return(create_response.to_binary_s)
       tree.open_directory
     end
 
@@ -404,19 +404,19 @@ RSpec.describe RubySMB::SMB2::Tree do
     end
 
     it 'sends the CreateRequest request packet and gets the expected CreateResponse response back' do
-      expect(client).to receive(:send_recv).with(create_request).and_return(create_response.to_binary_s)
+      expect(client).to receive(:send_recv).with(create_request, encrypt: false).and_return(create_response.to_binary_s)
       tree.open_file(filename: filename)
     end
 
     context 'when sending the request packet and gets a response back' do
       before :example do
-        allow(client).to receive(:send_recv).with(create_request).and_return(create_response.to_binary_s)
+        allow(client).to receive(:send_recv).with(create_request, encrypt: false).and_return(create_response.to_binary_s)
       end
 
       context 'when it is a file' do
         it 'returns the expected RubySMB::SMB2::File object' do
-          file_obj = RubySMB::SMB2::File.new(name: filename, tree: tree, response: create_response)
-          expect(RubySMB::SMB2::File).to receive(:new).with(name: filename, tree: tree, response: create_response).and_return(file_obj)
+          file_obj = RubySMB::SMB2::File.new(name: filename, tree: tree, response: create_response, encrypt: false)
+          expect(RubySMB::SMB2::File).to receive(:new).with(name: filename, tree: tree, response: create_response, encrypt: false).and_return(file_obj)
           expect(tree.open_file(filename: filename)).to eq(file_obj)
         end
       end

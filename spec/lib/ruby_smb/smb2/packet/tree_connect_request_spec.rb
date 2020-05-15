@@ -29,19 +29,4 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
       expect(header.flags.reply).to eq 0
     end
   end
-
-  describe '#encode_path' do
-    let(:path) { '\\192.168.1.1\\example' }
-    let(:encoded_path) { path.encode('utf-16le').force_encoding('binary') }
-
-    it 'sets the path string to a UTF-16LE version of the supplied string' do
-      packet.encode_path(path)
-      expect(packet.path).to eq encoded_path
-    end
-
-    it 'updates the #path_length' do
-      packet.encode_path(path)
-      expect(packet.path_length).to eq encoded_path.length
-    end
-  end
 end

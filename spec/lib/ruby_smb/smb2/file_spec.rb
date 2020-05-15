@@ -43,6 +43,7 @@ RSpec.describe RubySMB::SMB2::File do
   it { is_expected.to respond_to :size }
   it { is_expected.to respond_to :size_on_disk }
   it { is_expected.to respond_to :tree }
+  it { is_expected.to respond_to :encryption_required }
 
   it 'pulls the attributes from the response packet' do
     expect(file.attributes).to eq create_response.file_attributes
@@ -52,8 +53,16 @@ RSpec.describe RubySMB::SMB2::File do
     expect(file.guid).to eq create_response.file_id
   end
 
-  it 'pulls the timestamps from the response packet' do
+  it 'pulls the last access timestamps from the response packet' do
     expect(file.last_access).to eq create_response.last_access.to_datetime
+  end
+
+  it 'pulls the last change timestamps from the response packet' do
+    expect(file.last_change).to eq create_response.last_change.to_datetime
+  end
+
+  it 'pulls the last write timestamps from the response packet' do
+    expect(file.last_write).to eq create_response.last_write.to_datetime
   end
 
   it 'pulls the size from the response packet' do
@@ -62,6 +71,10 @@ RSpec.describe RubySMB::SMB2::File do
 
   it 'pulls the size_on_disk from the response packet' do
     expect(file.size_on_disk).to eq create_response.allocation_size
+  end
+
+  it 'sets the encryption_required flag to false by default' do
+    expect(file.encryption_required).to be false
   end
 
   describe '#set_header_fields' do
@@ -113,7 +126,7 @@ RSpec.describe RubySMB::SMB2::File do
 
       it 'uses a single packet to read the entire file' do
         expect(file).to receive(:read_packet).with(read_length: 108, offset: 0).and_return(small_read)
-        expect(client).to receive(:send_recv).with(small_read).and_return 'fake data'
+        expect(client).to receive(:send_recv).with(small_read, encrypt: false).and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with('fake data').and_return(small_response)
         expect(file.read).to eq 'fake data'
       end
@@ -248,7 +261,7 @@ RSpec.describe RubySMB::SMB2::File do
 
       it 'uses a single packet to delete the entire file' do
         expect(file).to receive(:delete_packet).and_return(small_delete)
-        expect(client).to receive(:send_recv).with(small_delete).and_return 'raw_response'
+        expect(client).to receive(:send_recv).with(small_delete, encrypt: false).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
         expect(file.delete).to eq WindowsError::NTStatus::STATUS_SUCCESS
       end
@@ -291,7 +304,7 @@ RSpec.describe RubySMB::SMB2::File do
 
       it 'uses a single packet to rename the entire file' do
         expect(file).to receive(:rename_packet).and_return(small_rename)
-        expect(client).to receive(:send_recv).with(small_rename).and_return 'raw_response'
+        expect(client).to receive(:send_recv).with(small_rename, encrypt: false).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
         expect(file.rename('new_file.txt')).to eq WindowsError::NTStatus::STATUS_SUCCESS
       end
@@ -330,7 +343,7 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'calls Client #send_recv with the expected request' do
-      expect(client).to receive(:send_recv).with(request)
+      expect(client).to receive(:send_recv).with(request, encrypt: false)
       file.close
     end
 
@@ -394,7 +407,7 @@ RSpec.describe RubySMB::SMB2::File do
     it 'calls Client #send_recv with the expected request' do
       request = double('Request')
       allow(file).to receive(:read_packet).and_return(request)
-      expect(client).to receive(:send_recv).with(request)
+      expect(client).to receive(:send_recv).with(request, encrypt: false)
       file.send_recv_read
     end
 
@@ -406,33 +419,6 @@ RSpec.describe RubySMB::SMB2::File do
     it 'raises an InvalidPacket exception if the response is not valid' do
       allow(read_response).to receive(:valid?).and_return(false)
       expect { file.send_recv_read }.to raise_error(RubySMB::Error::InvalidPacket)
-    end
-
-    context 'when the response status code is STATUS_PENDING' do
-      before :example do
-        allow(file).to receive(:sleep)
-        allow(read_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
-        allow(dispatcher).to receive(:recv_packet).and_return(raw_response)
-      end
-
-      it 'wait 1 second and calls Client dispatcher #recv_packet method one more time' do
-        expect(file).to receive(:sleep).with(1)
-        expect(dispatcher).to receive(:recv_packet)
-        file.send_recv_read
-      end
-
-      it 'parses the response as a SMB2 ReadResponse packet' do
-        expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with(raw_response)
-        file.send_recv_read
-      end
-
-      it 'raises an InvalidPacket exception if the response is not valid' do
-        allow(dispatcher).to receive(:recv_packet) do
-          allow(read_response).to receive(:valid?).and_return(false)
-          raw_response
-        end
-        expect { file.send_recv_read }.to raise_error(RubySMB::Error::InvalidPacket)
-      end
     end
 
     it 'raises an UnexpectedStatusCode exception if the response status code is not STATUS_SUCCESS' do
@@ -457,7 +443,7 @@ RSpec.describe RubySMB::SMB2::File do
 
     before :example do
       allow(file).to receive(:write_packet).and_return(request)
-      allow(client).to receive(:send_recv).and_return(raw_response)
+      allow(client).to receive(:send_recv).and_return(raw_response, encrypt: false)
       allow(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).with(raw_response).and_return(write_response)
     end
 
@@ -478,40 +464,13 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'calls Client #send_recv with the expected request' do
-      expect(client).to receive(:send_recv).with(request)
+      expect(client).to receive(:send_recv).with(request, encrypt: false)
       file.send_recv_write
     end
 
     it 'parses the response as a SMB1 WriteResponse packet' do
       expect(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).with(raw_response)
       file.send_recv_write
-    end
-
-    context 'when the response status code is STATUS_PENDING' do
-      before :example do
-        allow(file).to receive(:sleep)
-        allow(write_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
-        allow(dispatcher).to receive(:recv_packet).and_return(raw_response)
-      end
-
-      it 'wait 1 second and calls Client dispatcher #recv_packet method one more time' do
-        expect(file).to receive(:sleep).with(1)
-        expect(dispatcher).to receive(:recv_packet)
-        file.send_recv_write
-      end
-
-      it 'parses the response as a SMB2 WriteResponse packet' do
-        expect(RubySMB::SMB2::Packet::WriteResponse).to receive(:read).twice.with(raw_response)
-        file.send_recv_write
-      end
-
-      it 'raises an InvalidPacket exception if the response is not valid' do
-        allow(dispatcher).to receive(:recv_packet) do
-          allow(write_response).to receive(:valid?).and_return(false)
-          raw_response
-        end
-        expect { file.send_recv_write }.to raise_error(RubySMB::Error::InvalidPacket)
-      end
     end
 
     it 'raises an InvalidPacket exception if the response is not valid' do
