@@ -131,6 +131,12 @@ RSpec.describe RubySMB::SMB2::File do
         expect(file.read).to eq 'fake data'
       end
 
+      it 'calls Client #send_recv with encryption set if required' do
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).with(small_read, encrypt: true)
+        file.read
+      end
+
       context 'when the response is not valid' do
         it 'raise an InvalidPacket exception' do
           small_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
@@ -165,6 +171,14 @@ RSpec.describe RubySMB::SMB2::File do
         expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE).and_return(big_read)
         expect(client).to receive(:send_recv).twice.and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with('fake data').and_return(big_response)
+        file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
+      end
+
+      it 'calls Client #send_recv with encryption set if required' do
+        read_request = double('Read Request')
+        allow(file).to receive(:read_packet).and_return(read_request)
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).twice.with(read_request, encrypt: true)
         file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
       end
 
@@ -217,11 +231,27 @@ RSpec.describe RubySMB::SMB2::File do
         expect(client).to receive(:send_recv).once.and_return(write_response.to_binary_s)
         file.write(data: 'test')
       end
+
+      it 'calls Client #send_recv with encryption set if required' do
+        write_request = double('Write Request')
+        allow(file).to receive(:write_packet).and_return(write_request)
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).once.with(write_request, encrypt: true).and_return(write_response.to_binary_s)
+        file.write(data: 'test')
+      end
     end
 
     context 'for a large write' do
       it 'sends multiple packets' do
         expect(client).to receive(:send_recv).twice.and_return(write_response.to_binary_s)
+        file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
+      end
+
+      it 'calls Client #send_recv with encryption set if required' do
+        write_request = double('Write Request')
+        allow(file).to receive(:write_packet).and_return(write_request)
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).twice.with(write_request, encrypt: true).and_return(write_response.to_binary_s)
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
       end
     end
@@ -273,6 +303,14 @@ RSpec.describe RubySMB::SMB2::File do
         allow(small_response).to receive(:valid?).and_return(false)
         expect { file.delete }.to raise_error(RubySMB::Error::InvalidPacket)
       end
+
+      it 'calls Client #send_recv with encryption set if required' do
+        allow(file).to receive(:delete_packet)
+        allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).with(small_delete, encrypt: true)
+        file.delete
+      end
     end
   end
 
@@ -307,6 +345,13 @@ RSpec.describe RubySMB::SMB2::File do
         expect(client).to receive(:send_recv).with(small_rename, encrypt: false).and_return 'raw_response'
         expect(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).with('raw_response').and_return(small_response)
         expect(file.rename('new_file.txt')).to eq WindowsError::NTStatus::STATUS_SUCCESS
+      end
+
+      it 'calls Client #send_recv with encryption set if required' do
+        allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
+        file.encryption_required = true
+        expect(client).to receive(:send_recv).with(small_rename, encrypt: true)
+        file.rename('new_file.txt')
       end
 
       it 'raises an InvalidPacket exception if the response is not valid' do
@@ -344,6 +389,12 @@ RSpec.describe RubySMB::SMB2::File do
 
     it 'calls Client #send_recv with the expected request' do
       expect(client).to receive(:send_recv).with(request, encrypt: false)
+      file.close
+    end
+
+    it 'calls Client #send_recv with encryption set if required' do
+      file.encryption_required = true
+      expect(client).to receive(:send_recv).with(request, encrypt: true)
       file.close
     end
 
@@ -411,6 +462,14 @@ RSpec.describe RubySMB::SMB2::File do
       file.send_recv_read
     end
 
+    it 'calls Client #send_recv with encryption set if required' do
+      request = double('Request')
+      allow(file).to receive(:read_packet).and_return(request)
+      file.encryption_required = true
+      expect(client).to receive(:send_recv).with(request, encrypt: true)
+      file.send_recv_read
+    end
+
     it 'parses the response as a SMB2 ReadResponse packet' do
       expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with(raw_response)
       file.send_recv_read
@@ -465,6 +524,12 @@ RSpec.describe RubySMB::SMB2::File do
 
     it 'calls Client #send_recv with the expected request' do
       expect(client).to receive(:send_recv).with(request, encrypt: false)
+      file.send_recv_write
+    end
+
+    it 'calls Client #send_recv with encryption set if required' do
+      file.encryption_required = true
+      expect(client).to receive(:send_recv).with(request, encrypt: true)
       file.send_recv_write
     end
 

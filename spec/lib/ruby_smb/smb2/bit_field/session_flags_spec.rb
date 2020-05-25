@@ -5,6 +5,7 @@ RSpec.describe RubySMB::SMB2::BitField::SessionFlags do
 
   it { is_expected.to respond_to :guest }
   it { is_expected.to respond_to :null }
+  it { is_expected.to respond_to :encrypt_data }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -24,5 +25,13 @@ RSpec.describe RubySMB::SMB2::BitField::SessionFlags do
     end
 
     it_behaves_like 'bit field with one flag set', :null, 'v', 0x00000002
+  end
+
+  describe '#encrypt_data' do
+    it 'should be a 1-bit field per the SMB spec' do
+      expect(flags.encrypt_data).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :encrypt_data, 'v', 0x00000004
   end
 end

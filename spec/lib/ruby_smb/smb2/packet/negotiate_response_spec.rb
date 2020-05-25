@@ -61,12 +61,28 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
   end
 
   describe '#negotiate_context_count' do
+    it 'only exists if the 0x0311 dialect is included' do
+      packet.dialect_revision = 0x0311
+      expect(packet.negotiate_context_count?).to be true
+    end
+
+    it 'does not exist if the 0x0311 dialect is not included' do
+      packet.dialect_revision = 0x0300
+      expect(packet.negotiate_context_count?).to be false
+    end
+
     it 'is a 16-bit unsigned integer' do
       expect(packet.negotiate_context_count).to be_a BinData::Uint16le
     end
 
-    it 'has a default value of 0' do
-      expect(packet.negotiate_context_count).to eq 0
+    it 'is set to the #negotiate_context_list array sise' do
+      packet.dialect_revision = 0x0311
+      nc = RubySMB::SMB2::NegotiateContext.new(
+        context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+      )
+      packet.negotiate_context_list << nc
+      packet.negotiate_context_list << nc
+      expect(packet.negotiate_context_count).to eq(2)
     end
   end
 
@@ -134,6 +150,16 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
   end
 
   describe '#negotiate_context_offset' do
+    it 'only exists if the 0x0311 dialect is included' do
+      packet.dialect_revision = 0x0311
+      expect(packet.negotiate_context_offset?).to be true
+    end
+
+    it 'does not exist if the 0x0311 dialect is not included' do
+      packet.dialect_revision = 0x0300
+      expect(packet.negotiate_context_offset?).to be false
+    end
+
     it 'is a 32-bit unsigned integer' do
       expect(packet.negotiate_context_offset).to be_a BinData::Uint32le
     end
@@ -142,6 +168,98 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
   describe '#security_buffer' do
     it 'should be a binary string' do
       expect(packet.security_buffer).to be_a BinData::String
+    end
+  end
+
+  describe '#pad' do
+    it 'only exists if the 0x0311 dialect is included' do
+      packet.dialect_revision = 0x0311
+      expect(packet.pad?).to be true
+    end
+
+    it 'does not exist if the 0x0311 dialect is not included' do
+      packet.dialect_revision = 0x0300
+      expect(packet.pad?).to be false
+    end
+
+    it 'should be a binary string' do
+      expect(packet.pad).to be_a BinData::String
+    end
+
+    it 'should keep #negotiate_context_list 8-byte aligned' do
+      packet.dialect_revision = 0x0311
+      expect(packet.negotiate_context_list.abs_offset % 8).to eq 0
+    end
+  end
+
+  describe '#negotiate_context_list' do
+    it 'only exists if the 0x0311 dialect is included' do
+      packet.dialect_revision = 0x0311
+      expect(packet.negotiate_context_list?).to be true
+    end
+
+    it 'does not exist if the 0x0311 dialect is not included' do
+      packet.dialect_revision = 0x0300
+      expect(packet.negotiate_context_list?).to be false
+    end
+
+    it 'is an array field as per the SMB spec' do
+      expect(packet.negotiate_context_list).to be_a BinData::Array
+    end
+  end
+
+  describe '#find_negotiate_context' do
+    before :example do
+      packet.add_negotiate_context(
+        RubySMB::SMB2::NegotiateContext.new(context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES)
+      )
+      packet.add_negotiate_context(
+        RubySMB::SMB2::NegotiateContext.new(context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
+      )
+    end
+
+    it 'returns the expected Negotiate Context structure' do
+      expect(packet.find_negotiate_context(RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)).to eq(packet.negotiate_context_list[1])
+    end
+
+    it 'returns nil if the Negotiate Context structure is not found' do
+      expect(packet.find_negotiate_context(10)).to be nil
+    end
+  end
+
+  describe '#add_negotiate_context' do
+    it 'raises an ArgumentError exception if it is not a NegotiateContext structure' do
+      expect { packet.add_negotiate_context('nc') }.to raise_error(ArgumentError)
+    end
+
+    it 'updates the NegotiateContext#pad length to make sure the structure is 8-byte aligned' do
+      packet.dialect_revision = 0x0311
+      [
+        RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
+        RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
+        RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES,
+        RubySMB::SMB2::NegotiateContext::SMB2_NETNAME_NEGOTIATE_CONTEXT_ID
+      ].each do |context_type|
+        nc = RubySMB::SMB2::NegotiateContext.new(context_type: context_type)
+        packet.add_negotiate_context(nc)
+        expect(packet.negotiate_context_list.last.context_type.abs_offset % 8).to eq 0
+      end
+    end
+  end
+
+  it 'reads a binary data as expected' do
+    data = described_class.new
+    data.dialect_revision = 0x0311
+    data.security_buffer = 'security buf test'
+    [
+      RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
+      RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
+      RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES,
+      RubySMB::SMB2::NegotiateContext::SMB2_NETNAME_NEGOTIATE_CONTEXT_ID
+    ].each do |context_type|
+      nc = RubySMB::SMB2::NegotiateContext.new(context_type: context_type)
+      data.add_negotiate_context(nc)
+      expect(described_class.read(data.to_binary_s)).to eq(data)
     end
   end
 end
