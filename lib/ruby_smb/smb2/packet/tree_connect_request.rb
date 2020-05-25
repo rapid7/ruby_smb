@@ -5,24 +5,24 @@ module RubySMB
 
       # An SMB2 RemotedIdentityTreeConnectContext Packet as defined in
       # [2.2.9.2.1 SMB2_REMOTED_IDENTITY_TREE_CONNECT Context](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ee7ff411-93e0-484f-9f73-31916fee4cb8)
-      # TODO: finish this
+      # TODO: implement helper methods to add each Remote Identity element
       class RemotedIdentityTreeConnectContext < BinData::Record
         endian :little
-        uint16 :ticket_type, label: 'Ticket Type', initial_value: 0x0001
-        uint16 :ticket_size, label: 'Ticket Size', initial_value: -> { num_bytes }
-        uint16 :user, label: 'User'
-        uint16 :user_name, label: 'Ticket Type'
-        uint16 :domain, label: 'Ticket Type'
-        uint16 :groups, label: 'Ticket Type'
-        uint16 :restricted_groups, label: 'Ticket Type'
-        uint16 :privileges, label: 'Ticket Type'
-        uint16 :primary_group, label: 'Ticket Type'
-        uint16 :owner, label: 'Ticket Type'
-        uint16 :default_dacl, label: 'Ticket Type'
-        uint16 :device_groups, label: 'Ticket Type'
-        uint16 :user_claims, label: 'Ticket Type'
-        uint16 :device_claims, label: 'Ticket Type'
-        string :ticket_info, label: 'Ticket Type'
+        uint16 :ticket_type,       label: 'Ticket Type', initial_value: 0x0001
+        uint16 :ticket_size,       label: 'Ticket Size', initial_value: -> { num_bytes }
+        uint16 :user,              label: 'User'
+        uint16 :user_name,         label: 'User Name'
+        uint16 :domain,            label: 'Domain'
+        uint16 :groups,            label: 'Groups'
+        uint16 :restricted_groups, label: 'Restricted Groups'
+        uint16 :privileges,        label: 'Privileges'
+        uint16 :primary_group,     label: 'Primary Group'
+        uint16 :owner,             label: 'Owner'
+        uint16 :default_dacl,      label: 'Default DACL'
+        uint16 :device_groups,     label: 'Device Groups'
+        uint16 :user_claims,       label: 'User Claims'
+        uint16 :device_claims,     label: 'Device Claims'
+        string :ticket_info,       label: 'Ticket Info', read_length: -> { ticket_size - ticket_info.rel_offset}
       end
 
       # An SMB2 TreeConnectContext Packet as defined in
@@ -33,14 +33,15 @@ module RubySMB
 
         # This value is reserved.
         SMB2_RESERVED_TREE_CONNECT_CONTEXT_ID = 0x0000
-        # The Data field contains remoted identity tree connect context data as specified in section [2.2.9.2.1](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ee7ff411-93e0-484f-9f73-31916fee4cb8)
+        # The Data field contains remoted identity tree connect context data as
+        # specified in section [2.2.9.2.1](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/ee7ff411-93e0-484f-9f73-31916fee4cb8)
         SMB2_REMOTED_IDENTITY_TREE_CONNECT_CONTEXT_ID = 0x0001
 
         endian :little
         uint16 :context_type, label: 'Context Type'
-        uint16 :data_length, label: 'Data Length', initial_value: -> { data.to_binary_s.size }
-        uint32 :reserved, label: 'Reserved'
-        choice :data, label: 'Data', selection: -> { context_type } do
+        uint16 :data_length,  label: 'Data Length', initial_value: -> { data.to_binary_s.size }
+        uint32 :reserved,     label: 'Reserved'
+        choice :data,         label: 'Data', selection: -> { context_type } do
           remoted_identity_tree_connect_context SMB2_REMOTED_IDENTITY_TREE_CONNECT_CONTEXT_ID, label: 'Remoted Identity Tree Connect Context'
         end
 
@@ -50,14 +51,12 @@ module RubySMB
       # [2.2.9.1 SMB2 TREE_CONNECT Request Extension](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/9ca7328b-b6ca-41a7-9773-0fa237261b76)
       class TreeConnectRequestExtension < BinData::Record
         endian :little
-        uint32 :tree_connect_context_offset, label: 'Tree Connect Context Offset', initial_value: -> { tree_connect_contexts.abs_offset }
-        uint16 :tree_connect_context_count, label: 'Tree Connect Context Count', initial_value: -> { tree_connect_contexts.size }
-        string :reserved, label: 'Reserved', length: 10
-        string16 :path, label: 'Path Buffer'
-        array :tree_connect_contexts, label: 'Tree Connect Contexts', type: :tree_connect_context, initial_length: -> { tree_connect_context_count }
+        uint32   :tree_connect_context_offset, label: 'Tree Connect Context Offset', initial_value: -> { tree_connect_contexts.rel_offset }
+        uint16   :tree_connect_context_count,  label: 'Tree Connect Context Count', initial_value: -> { tree_connect_contexts.size }
+        string   :reserved,                    label: 'Reserved', length: 10
+        string16 :path,                        label: 'Path Buffer'
+        array    :tree_connect_contexts,       label: 'Tree Connect Contexts', type: :tree_connect_context, initial_length: -> { tree_connect_context_count }
       end
-
-
 
       # An SMB2 TreeConnectRequest Packet as defined in
       # [2.2.9 SMB2 TREE_CONNECT Request](https://msdn.microsoft.com/en-us/library/cc246567.aspx)
@@ -82,8 +81,26 @@ module RubySMB
         uint16       :structure_size, label: 'Structure Size', initial_value: 9
         # The flags field is only used by SMB 3.1.1, it must be 0 for other versions
         uint16       :flags,          label: 'Flags',          initial_value: 0x00
-        uint16       :path_offset,    label: 'Path Offset',    initial_value: 0x48
-        uint16       :path_length,    label: 'Path Length',    initial_value: -> { path.to_binary_s.length }
+        # if SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT flag is set, #path_offset
+        # will have to be updated with the correct offset of the path name,
+        # which is located in the TreeConnect Context.
+        uint16       :path_offset,    label: 'Path Offset',    initial_value: -> do
+          if flags == SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT
+            tree_connect_request_extension.path.abs_offset
+          else
+            path.abs_offset
+          end
+        end
+        # if SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT flag is set, #path_length
+        # will have to be updated with the correct full share path name,
+        # which is located in the TreeConnect Context.
+        uint16       :path_length,    label: 'Path Length',    initial_value: -> do
+          if flags == SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT
+            tree_connect_request_extension.path.to_binary_s.length
+          else
+            path.to_binary_s.length
+          end
+        end
         string16     :path,           label: 'Path Buffer',    onlyif: -> { flags != SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT }
         tree_connect_request_extension :tree_connect_request_extension, label: 'Tree Connect Request Extension', onlyif: -> { flags == SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT }
       end

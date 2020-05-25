@@ -1,3 +1,5 @@
+require 'ruby_smb/smb2/negotiate_context'
+
 module RubySMB
   module SMB2
     module Packet
@@ -25,7 +27,7 @@ module RubySMB
         uint32              :negotiate_context_offset,  label: 'Offset to Negotiate Context', onlyif: -> { has_negotiate_context? }
         uint32              :reserved2,                 label: 'Reserved', initial_value: 0, onlyif: -> { !has_negotiate_context? }
         string              :security_buffer,           label: 'Security Buffer', read_length: :security_buffer_length
-        string              :pad,                       label: 'Padding', read_length: -> { pad_length }, onlyif: -> { has_negotiate_context? }
+        string              :pad,                       label: 'Padding', length: -> { pad_length(self.security_buffer) }, onlyif: -> { has_negotiate_context? }
         array               :negotiate_context_list,    label: 'Negotiate Context List', initial_length: -> { negotiate_context_count }, type: :negotiate_context, onlyif: -> { has_negotiate_context? }
 
         def initialize_instance
@@ -33,18 +35,41 @@ module RubySMB
           smb2_header.flags.reply = 1
         end
 
+        # Find the first Negotiate Context structure that matches the given
+        # context type
+        #
+        # @param [Integer] the Negotiate Context structure you wish to add
+        # @return [NegotiateContext] the Negotiate Context structure or nil if
+        # not found
         def find_negotiate_context(type)
           negotiate_context_list.find { |nc| nc.context_type == type }
+        end
+
+        # Adds a Negotiate Context to the #negotiate_context_list
+        #
+        # @param [NegotiateContext] the Negotiate Context structure you wish to add
+        # @return [Array<Fixnum>] the array of all currently added Negotiate Contexts
+        # @raise [ArgumentError] if the dialect is not a NegotiateContext structure
+        def add_negotiate_context(nc)
+          raise ArgumentError, 'Must be a NegotiateContext' unless nc.is_a? NegotiateContext
+          previous_element = negotiate_context_list.last || negotiate_context_list
+          pad_length = pad_length(previous_element)
+          self.negotiate_context_list << nc
+          self.negotiate_context_list.last.pad = "\x00" * pad_length
+          self.negotiate_context_list
         end
 
 
         private
 
-        def pad_length
-          offset = (security_buffer.abs_offset + security_buffer.to_binary_s.length) % 8
+        # Determines the correct length for the padding, so that the next
+        # field is 8-byte aligned.
+        def pad_length(prev_element)
+          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 8
           (8 - offset) % 8
         end
 
+        # Return true if the dialect version requires Negotiate Contexts
         def has_negotiate_context?
           dialect_revision == 0x0311
         end

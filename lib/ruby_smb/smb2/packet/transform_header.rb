@@ -26,7 +26,7 @@ module RubySMB
             cipher = OpenSSL::CCM.new('AES', key, 16)
             unencrypted_data = cipher.decrypt(encrypted_data + self.signature, self.nonce[0...11], auth_data)
             unless unencrypted_data.length > 0
-              raise Openssl::Cipher::CipherError  # raised for consistency with GCM mode
+              raise OpenSSL::Cipher::CipherError  # raised for consistency with GCM mode
             end
           when 'AES-128-GCM'
             cipher = OpenSSL::Cipher.new(algorithm).decrypt

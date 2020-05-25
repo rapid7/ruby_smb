@@ -89,5 +89,8 @@ module RubySMB
 
     # Raised when an encryption operation fails
     class EncryptionError < RubySMBError; end
+
+    # Raised when an signing operation fails
+    class SigningError < RubySMBError; end
   end
 end

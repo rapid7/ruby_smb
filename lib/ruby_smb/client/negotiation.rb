@@ -172,7 +172,12 @@ module RubySMB
         if @server_encryption_algorithms.include?(RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM)
           @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM]
         else
-          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@server_encryption_algorithms.first]
+        end
+        unless @encryption_algorithm
+          raise RubySMB::Error::EncryptionError.new(
+            'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
+          )
         end
         update_preauth_hash(request_packet)
         update_preauth_hash(response_packet)
@@ -215,8 +220,8 @@ module RubySMB
         packet
       end
 
-      def add_smb3_to_negotiate_request(packet)
-        SMB3_DIALECT_DEFAULT.each do |dialect|
+      def add_smb3_to_negotiate_request(packet, dialects = SMB3_DIALECT_DEFAULT)
+        dialects.each do |dialect|
           packet.add_dialect(dialect)
         end
         packet.capabilities.encryption = 1

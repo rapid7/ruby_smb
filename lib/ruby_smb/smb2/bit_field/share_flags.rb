@@ -5,11 +5,10 @@ module RubySMB
       # [2.2.10 SMB2 TREE_CONNECT Response](https://msdn.microsoft.com/en-us/library/cc246499.aspx)
       class ShareFlags < BinData::Record
         endian  :little
-        bit1    :reserved1,                 label: 'Reserved Space'
-        bit1    :no_caching,                label: 'No Caching'
+        bit2    :reserved1,                 label: 'Reserved Space'
         bit1    :vdo_caching,               label: 'VDO Caching'
         bit1    :auto_caching,              label: 'Auto Caching'
-        bit2    :reserved2
+        bit2    :reserved2,                 label: 'Reserved Space'
         bit1    :dfs_root,                  label: 'DFS Root'
         bit1    :dfs,                       label: 'DFS'
         # byte boundary

@@ -80,7 +80,7 @@ module RubySMB
 
       endian  :little
 
-      string :pad,          label: 'Padding', read_length: -> { pad_length }
+      string :pad,          label: 'Padding',     length: -> { pad_length }
       uint16 :context_type, label: 'Context Type'
       uint16 :data_length,  label: 'Data Length', initial_value: -> { data.num_bytes }
       uint32 :reserved,     label: 'Reserved',    initial_value: 0
