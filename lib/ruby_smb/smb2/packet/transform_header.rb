@@ -41,6 +41,8 @@ module RubySMB
           end
 
           unencrypted_data[0...self.original_message_size]
+        rescue Exception => e
+          raise RubySMB::Error::EncryptionError, "Error while decrypting with '#{algorithm}' (#{e.class}: #{e})"
         end
 
         def encrypt(unencrypted_data, key, algorithm: 'AES-128-GCM')
@@ -73,6 +75,8 @@ module RubySMB
           self.encrypted_data.assign(encrypted_data.bytes)
           self.signature.assign(auth_tag)
           nil
+        rescue Exception => e
+          raise RubySMB::Error::EncryptionError, "Error while encrypting with '#{algorithm}' (#{e.class}: #{e})"
         end
       end
     end

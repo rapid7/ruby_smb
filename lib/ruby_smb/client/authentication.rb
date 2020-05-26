@@ -221,9 +221,9 @@ module RubySMB
         end
         ######
         # DEBUG
-        puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
-        puts "Session key = #{@session_key.each_byte.map {|e| '%02x' % e}.join}"
-        puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}" if @preauth_integrity_hash_value
+        #puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
+        #puts "Session key = #{@session_key.each_byte.map {|e| '%02x' % e}.join}"
+        #puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}" if @preauth_integrity_hash_value
         ######
 
         response.status_code

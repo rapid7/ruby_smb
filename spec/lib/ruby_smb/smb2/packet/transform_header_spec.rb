@@ -67,7 +67,10 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     end
 
     it 'raises the expected exception if the given algorithm is invalid' do
-      expect { packet.decrypt(key, algorithm: 'RC4') }.to raise_error(ArgumentError)
+      expect { packet.decrypt(key, algorithm: 'RC4') }.to raise_error(
+        RubySMB::Error::EncryptionError,
+        'Error while decrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be either AES-128-CCM or AES-128-GCM)'
+      )
     end
 
     context 'with AES-128-GCM algorithm (default)' do
@@ -84,6 +87,15 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
 
       it 'returns the expected decrypted string' do
         expect(packet.decrypt(key)).to eq(data)
+      end
+
+      it 'raises the expected exception if an error occurs' do
+        allow(OpenSSL::Cipher).to receive(:new).and_raise(
+          RuntimeError.new('unsupported cipher algorithm (AES-128-GCM)'))
+        expect { packet.decrypt(key) }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Error while decrypting with \'AES-128-GCM\' (RuntimeError: unsupported cipher algorithm (AES-128-GCM))'
+        )
       end
     end
 
@@ -102,6 +114,15 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
       it 'returns the expected decrypted string' do
         expect(packet.decrypt(key, algorithm: 'AES-128-CCM')).to eq(data)
       end
+
+      it 'raises the expected exception if an error occurs' do
+        allow(OpenSSL::CCM).to receive(:new).and_raise(
+          OpenSSL::CCMError.new('unsupported cipher algorithm (AES-128-CCM)'))
+        expect { packet.decrypt(key, algorithm: 'AES-128-CCM') }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Error while decrypting with \'AES-128-CCM\' (OpenSSL::CCMError: unsupported cipher algorithm (AES-128-CCM))'
+        )
+      end
     end
   end
 
@@ -110,7 +131,10 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     let(:struct) { RubySMB::SMB2::Packet::TreeConnectRequest.new }
 
     it 'raises the expected exception if the given algorithm is invalid' do
-      expect { packet.encrypt(struct, key, algorithm: 'RC4') }.to raise_error(ArgumentError)
+      expect { packet.encrypt(struct, key, algorithm: 'RC4') }.to raise_error(
+        RubySMB::Error::EncryptionError,
+        'Error while encrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be either AES-128-CCM or AES-128-GCM)'
+      )
     end
 
     context 'with AES-128-GCM algorithm (default)' do
@@ -128,6 +152,15 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
         packet.encrypt('data', key)
         expect(packet.decrypt(key)).to eq('data')
       end
+
+      it 'raises the expected exception if an error occurs' do
+        allow(OpenSSL::Cipher).to receive(:new).and_raise(
+          RuntimeError.new('unsupported cipher algorithm (AES-128-GCM)'))
+        expect { packet.encrypt('data', key) }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Error while encrypting with \'AES-128-GCM\' (RuntimeError: unsupported cipher algorithm (AES-128-GCM))'
+        )
+      end
     end
 
     context 'with AES-128-CCM algorithm' do
@@ -144,6 +177,15 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
       it 'encrypts a string' do
         packet.encrypt('data', key, algorithm: 'AES-128-CCM')
         expect(packet.decrypt(key, algorithm: 'AES-128-CCM')).to eq('data')
+      end
+
+      it 'raises the expected exception if an error occurs' do
+        allow(OpenSSL::CCM).to receive(:new).and_raise(
+          OpenSSL::CCMError.new('unsupported cipher algorithm (AES-128-CCM)'))
+        expect { packet.encrypt('data', key, algorithm: 'AES-128-CCM') }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Error while encrypting with \'AES-128-CCM\' (OpenSSL::CCMError: unsupported cipher algorithm (AES-128-CCM))'
+        )
       end
     end
   end

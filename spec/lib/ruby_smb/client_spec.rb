@@ -2509,6 +2509,11 @@ RSpec.describe RubySMB::Client do
         end
       end
 
+      it 'raises the expected exception if the dialect is incompatible' do
+        client.dialect = '0x0202'
+        expect { client.smb3_encrypt(data) }.to raise_error(RubySMB::Error::EncryptionError)
+      end
+
       it 'creates a TransformHeader packet and encrypt the data' do
         client.dialect = '0x0300'
         client.encryption_algorithm = 'AES-128-CCM'
@@ -2586,6 +2591,11 @@ RSpec.describe RubySMB::Client do
           ).and_call_original
           client.smb3_decrypt(transform_packet)
         end
+      end
+
+      it 'raises the expected exception if the dialect is incompatible' do
+        client.dialect = '0x0202'
+        expect { client.smb3_decrypt(transform_packet) }.to raise_error(RubySMB::Error::EncryptionError)
       end
 
       it 'creates a TransformHeader packet and encrypt the data' do

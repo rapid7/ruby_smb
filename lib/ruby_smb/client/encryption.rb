@@ -18,11 +18,11 @@ module RubySMB
               @preauth_integrity_hash_value
             )
           else
-            raise RuntimeError.new('Dialect is incompatible with SMBv3 encryption')
+            raise RubySMB::Error::EncryptionError.new('Dialect is incompatible with SMBv3 encryption')
           end
           ######
           # DEBUG
-          puts "Client encryption key = #{@client_encryption_key.each_byte.map {|e| '%02x' % e}.join}"
+          #puts "Client encryption key = #{@client_encryption_key.each_byte.map {|e| '%02x' % e}.join}"
           ######
         end
 
@@ -47,11 +47,11 @@ module RubySMB
               @preauth_integrity_hash_value
             )
           else
-            raise RuntimeError.new('Dialect is incompatible with SMBv3 decryption')
+            raise RubySMB::Error::EncryptionError.new('Dialect is incompatible with SMBv3 decryption')
           end
           ######
           # DEBUG
-          puts "Server encryption key = #{@server_encryption_key.each_byte.map {|e| '%02x' % e}.join}"
+          #puts "Server encryption key = #{@server_encryption_key.each_byte.map {|e| '%02x' % e}.join}"
           ######
         end
 
