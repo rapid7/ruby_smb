@@ -1,7 +1,11 @@
+dist: trusty
+sudo: false
+group: stable
+bundler_args: --without debug
+cache: bundler
 language: ruby
 sudo: false
 rvm:
   - '2.5.8'
   - '2.6.6'
   - 'jruby-9.2.11.1'
-bundler_args: --without debug
