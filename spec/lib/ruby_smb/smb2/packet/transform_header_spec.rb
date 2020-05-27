@@ -75,6 +75,12 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
 
     context 'with AES-128-GCM algorithm (default)' do
       before :example do
+        unless OpenSSL::Cipher.ciphers.include?('aes-128-gcm')
+          skip(
+            "This test cannot be run since the version of OpenSSL the ruby "\
+            "OpenSSL extension was built with (#{OpenSSL::OPENSSL_VERSION}) "\
+            "does not support AES-128-GCM cipher")
+        end
         packet.encrypted_data = "\x06\x45\x16\x36".bytes
         packet.signature = "\x63\xb2\xf9\xe0\xb7\x43\xdb\xaf\x26\x8e\xd7\x42\xd3\xb2\xde\x0d"
         packet.nonce = "\xe1\xb0\xa7\x20\xd9\xd9\x69\x3c\x79\xd0\x9c\x53\x00\x00\x00\x00"
@@ -138,6 +144,15 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     end
 
     context 'with AES-128-GCM algorithm (default)' do
+      before :example do
+        unless OpenSSL::Cipher.ciphers.include?('aes-128-gcm')
+          skip(
+            "This test cannot be run since the version of OpenSSL the ruby "\
+            "OpenSSL extension was built with (#{OpenSSL::OPENSSL_VERSION}) "\
+            "does not support AES-128-GCM cipher")
+        end
+      end
+
       it 'generates a cipher using OpenSSL::Cipher' do
         expect(OpenSSL::Cipher).to receive(:new).with('AES-128-GCM').and_call_original
         packet.encrypt(struct, key)
@@ -194,7 +209,7 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     data = described_class.new
     key = "\x56\x89\xd1\xbb\xf7\x45\xc0\xb6\x68\x81\x07\xe4\x7d\x35\xaf\xd3".b
     struct = RubySMB::SMB2::Packet::TreeConnectRequest.new
-    data.encrypt(struct, key)
+    data.encrypt(struct, key, algorithm: 'AES-128-CCM')
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end
 end
