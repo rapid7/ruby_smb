@@ -75,7 +75,9 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
 
     context 'with AES-128-GCM algorithm (default)' do
       before :example do
-        unless OpenSSL::Cipher.ciphers.include?('aes-128-gcm')
+        begin
+          OpenSSL::Cipher.new('AES-128-GCM')
+        rescue
           skip(
             "This test cannot be run since the version of OpenSSL the ruby "\
             "OpenSSL extension was built with (#{OpenSSL::OPENSSL_VERSION}) "\
@@ -145,7 +147,9 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
 
     context 'with AES-128-GCM algorithm (default)' do
       before :example do
-        unless OpenSSL::Cipher.ciphers.include?('aes-128-gcm')
+        begin
+          OpenSSL::Cipher.new('AES-128-GCM')
+        rescue
           skip(
             "This test cannot be run since the version of OpenSSL the ruby "\
             "OpenSSL extension was built with (#{OpenSSL::OPENSSL_VERSION}) "\
