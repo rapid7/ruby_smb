@@ -316,6 +316,34 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#can_be_encrypted?' do
+    it 'returns true if the packet can be encrypted' do
+      packet = RubySMB::SMB2::Packet::TreeConnectRequest.new
+      expect(client.can_be_encrypted?(packet)).to be true
+    end
+
+    [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].each do |klass|
+      it "returns false if the packet is a #{klass}" do
+        packet = klass.new
+        expect(client.can_be_encrypted?(packet)).to be false
+      end
+    end
+  end
+
+  describe '#encryption_supported?' do
+    ['0x0300', '0x0302', '0x0311'].each do |dialect|
+      it "returns true if the dialect is #{dialect}" do
+        client.dialect = dialect
+        expect(client.encryption_supported?).to be true
+      end
+    end
+
+    it "returns false if the dialect does not support encryption" do
+      client.dialect = '0x0202'
+      expect(client.encryption_supported?).to be false
+    end
+  end
+
   describe '#send_encrypt' do
     let(:packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
     before :example do
@@ -749,11 +777,15 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'sets the default SMB2 Dialect if SMB2 support is enabled' do
-        expect(client.smb2_3_negotiate_request.dialects).to include(*RubySMB::Client::SMB2_DIALECT_DEFAULT)
+        expect(client.smb2_3_negotiate_request.dialects).to include(
+          *(RubySMB::Client::SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
       end
 
       it 'does not set the default SMB2 Dialect if SMB2 support is disabled' do
-        expect(smb3_client.smb2_3_negotiate_request.dialects).to_not include(*RubySMB::Client::SMB2_DIALECT_DEFAULT)
+        expect(smb3_client.smb2_3_negotiate_request.dialects).to_not include(
+          *(RubySMB::Client::SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
       end
 
       it 'sets the Message ID to 0' do
@@ -761,11 +793,15 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'adds SMB3 dialects if if SMB3 support is enabled' do
-        expect(client.smb2_3_negotiate_request.dialects).to include(*RubySMB::Client::SMB3_DIALECT_DEFAULT)
+        expect(client.smb2_3_negotiate_request.dialects).to include(
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
       end
 
       it 'does not set the default SMB3 Dialect if SMB3 support is disabled' do
-        expect(smb2_client.smb2_3_negotiate_request.dialects).to_not include(*RubySMB::Client::SMB3_DIALECT_DEFAULT)
+        expect(smb2_client.smb2_3_negotiate_request.dialects).to_not include(
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
       end
     end
 
@@ -774,8 +810,13 @@ RSpec.describe RubySMB::Client do
 
       it 'adds the default SMB3 dialects' do
         expect(client.add_smb3_to_negotiate_request(negotiate_request).dialects).to include(
-          *RubySMB::Client::SMB3_DIALECT_DEFAULT
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
         )
+      end
+
+      it 'raises the expected exception when the dialects is not an array of strings' do
+        dialects = ['0x0300', 0x0302, '0x0311']
+        expect { client.add_smb3_to_negotiate_request(negotiate_request, dialects) }.to raise_error(ArgumentError)
       end
 
       it 'sets encryption capability flag' do
@@ -784,7 +825,7 @@ RSpec.describe RubySMB::Client do
 
       context 'when the negotiate packet includes the 0x0311 dialect' do
         before :example do
-          client.add_smb3_to_negotiate_request(negotiate_request, [0x0311])
+          client.add_smb3_to_negotiate_request(negotiate_request, ['0x0311'])
         end
 
         it 'adds 3 Negotiate Contexts' do
@@ -829,8 +870,9 @@ RSpec.describe RubySMB::Client do
       end
 
       context 'when the negotiate packet does not include the 0x0311 dialect' do
-        before :example do
-          client.add_smb3_to_negotiate_request(negotiate_request, [0x0300, 0x0302])
+        it 'does not add any Negotiate Context' do
+          client.add_smb3_to_negotiate_request(negotiate_request, ['0x0300', '0x0302'])
+          expect(negotiate_request.negotiate_context_list?). to be false
         end
       end
     end

@@ -1,11 +1,10 @@
 source 'https://rubygems.org'
 gemspec
 
-group :debug do
+group :development do
   # for development and testing purposes
   gem 'pry-byebug'
   gem 'pry-rescue'
-  gem 'pry-stack_explorer'
 end
 
 group :test do

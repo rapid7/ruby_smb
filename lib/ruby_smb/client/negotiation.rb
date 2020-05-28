@@ -215,14 +215,24 @@ module RubySMB
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
         packet.security_mode.signing_enabled = 1
         packet.client_guid = SecureRandom.random_bytes(16)
-        packet.set_dialects(SMB2_DIALECT_DEFAULT) if smb2
+        packet.set_dialects(SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)}) if smb2
         packet = add_smb3_to_negotiate_request(packet) if smb3
         packet
       end
 
+      # This adds SMBv3 specific information: SMBv3 supported dialects,
+      # encryption capability, Negotiate Contexts if the dialect requires them
+      #
+      # @param packet [RubySMB::SMB2::Packet::NegotiateRequest] the NegotiateRequest
+      #   to add SMB3 specific info to
+      # @param dialects [Array<String>] the dialects to negotiate. This must be
+      #   an array of strings. Default is SMB3_DIALECT_DEFAULT
+      # @return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB3 Negotiate Request packet
+      # @raise [ArgumentError] if dialects is not an array of strings
       def add_smb3_to_negotiate_request(packet, dialects = SMB3_DIALECT_DEFAULT)
         dialects.each do |dialect|
-          packet.add_dialect(dialect)
+          raise ArgumentError, 'Must be an array of strings' unless dialect.is_a? String
+          packet.add_dialect(dialect.to_i(16))
         end
         packet.capabilities.encryption = 1
 

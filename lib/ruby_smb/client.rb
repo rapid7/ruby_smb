@@ -29,9 +29,9 @@ module RubySMB
     # Note that this must be used for SMB3
     SMB1_DIALECT_SMB2_WILDCARD = 'SMB 2.???'.freeze
     # Dialect values for SMB2
-    SMB2_DIALECT_DEFAULT = [0x0202, 0x0210]
+    SMB2_DIALECT_DEFAULT = ['0x0202', '0x0210']
     # Dialect values for SMB3
-    SMB3_DIALECT_DEFAULT = [0x0300, 0x0302, 0x0311]
+    SMB3_DIALECT_DEFAULT = ['0x0300', '0x0302', '0x0311']
     # The default maximum size of a SMB message that the Client accepts (in bytes)
     MAX_BUFFER_SIZE = 64512
     # The default maximum size of a SMB message that the Server accepts (in bytes)
@@ -419,9 +419,7 @@ module RubySMB
         packet = packet
       end
 
-      if [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? {|klass| packet.is_a? klass} &&
-          ["0x0300", "0x0302", "0x0311"].include?(@dialect) &&
-          (@encryption_required || encrypt)
+      if can_be_encrypted?(packet) && encryption_supported? && (@encryption_required || encrypt)
         send_encrypt(packet)
         raw_response = recv_encrypt
         loop do
@@ -454,6 +452,24 @@ module RubySMB
       status_code = WindowsError::NTStatus.find_by_retval(value).first
       status_code == WindowsError::NTStatus::STATUS_PENDING &&
         smb2_header.flags.async_command == 1
+    end
+
+    # Check if the request packet can be encrypted. Per the SMB spec,
+    # SessionSetupRequest and NegotiateRequest must not be encrypted.
+    #
+    # @param packet [RubySMB::GenericPacket] the request packet
+    # @return [Boolean] true if the packet can be encrypted
+    def can_be_encrypted?(packet)
+      [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? do |klass|
+        packet.is_a?(klass)
+      end
+    end
+
+    # Check if the current dialect support encryption.
+    #
+    # @return [Boolean] true if encryption is supported
+    def encryption_supported?
+      ['0x0300', '0x0302', '0x0311'].include?(@dialect)
     end
 
     # Encrypt and send a packet
