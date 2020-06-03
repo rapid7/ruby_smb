@@ -45,7 +45,7 @@ RSpec.describe RubySMB::SMB2::Packet::CompressionTransformHeader do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end
@@ -73,7 +73,7 @@ RSpec.describe RubySMB::SMB2::Packet::Smb2CompressionPayloadHeader do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end
@@ -101,7 +101,7 @@ RSpec.describe RubySMB::SMB2::Packet::Smb2CompressionPatternPayloadV1 do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end

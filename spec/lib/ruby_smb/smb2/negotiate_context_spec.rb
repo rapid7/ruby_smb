@@ -57,7 +57,7 @@ RSpec.describe RubySMB::SMB2::PreauthIntegrityCapabilities do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(
       hash_algorithms: [described_class::SHA_512],
       salt: 'test salt'
@@ -99,7 +99,7 @@ RSpec.describe RubySMB::SMB2::EncryptionCapabilities do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(
       ciphers: [described_class::AES_128_CCM, described_class::AES_128_GCM]
     )
@@ -154,7 +154,7 @@ RSpec.describe RubySMB::SMB2::CompressionCapabilities do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(
       compression_algorithms: [described_class::LZNT1, described_class::LZ77]
     )
@@ -177,7 +177,7 @@ RSpec.describe RubySMB::SMB2::NetnameNegotiateContextId  do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(
       net_name: 'netname test'
     )
@@ -283,7 +283,7 @@ RSpec.describe RubySMB::SMB2::NegotiateContext do
   end
 
   context 'with a SMB2_PREAUTH_INTEGRITY_CAPABILITIES context type' do
-    it 'reads a binary data as expected' do
+    it 'reads binary data as expected' do
       data = described_class.new(
         context_type: described_class::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
       )
@@ -294,7 +294,7 @@ RSpec.describe RubySMB::SMB2::NegotiateContext do
   end
 
   context 'with a SMB2_ENCRYPTION_CAPABILITIES context type' do
-    it 'reads a binary data as expected' do
+    it 'reads binary data as expected' do
       data = described_class.new(
         context_type: described_class::SMB2_ENCRYPTION_CAPABILITIES
       )
@@ -307,7 +307,7 @@ RSpec.describe RubySMB::SMB2::NegotiateContext do
   end
 
   context 'with a SMB2_COMPRESSION_CAPABILITIES context type' do
-    it 'reads a binary data as expected' do
+    it 'reads binary data as expected' do
       data = described_class.new(
         context_type: described_class::SMB2_COMPRESSION_CAPABILITIES
       )
@@ -320,7 +320,7 @@ RSpec.describe RubySMB::SMB2::NegotiateContext do
   end
 
   context 'with a SMB2_NETNAME_NEGOTIATE_CONTEXT_ID context type' do
-    it 'reads a binary data as expected' do
+    it 'reads binary data as expected' do
       data = described_class.new(
         context_type: described_class::SMB2_NETNAME_NEGOTIATE_CONTEXT_ID
       )

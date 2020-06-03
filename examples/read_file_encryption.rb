@@ -26,6 +26,8 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 # C:\ Set-SmbServerConfiguration -EncryptData $false
 # C:\ Set-SmbShare -Name <share name> -EncryptData 1
 
+# For this encryption to work, it has to be SMBv3. By only setting smb3 to true,
+# we make sure the server will negotiate this version, if it supports it
 opts = {
   smb1: false,
   smb2: false,

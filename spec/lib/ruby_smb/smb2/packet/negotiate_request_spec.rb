@@ -240,7 +240,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateRequest do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     data.set_dialects([0x0202, 0x0210, 0x0311])
     [

@@ -127,7 +127,7 @@ module RubySMB
           self.smb1 = false
           unless packet.dialect_revision.to_i == 0x02ff
             self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
-            self.smb3 = packet.dialect_revision.to_i >= 0x0300
+            self.smb3 = packet.dialect_revision.to_i >= 0x0300 && packet.dialect_revision.to_i < 0x0400
           end
           self.signing_required = packet.security_mode.signing_required == 1 if self.smb2 || self.smb3
           self.dialect = "0x%04x" % packet.dialect_revision

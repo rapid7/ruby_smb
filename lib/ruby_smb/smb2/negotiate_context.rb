@@ -48,6 +48,13 @@ module RubySMB
       LZ77         = 0x0002
       LZ77_Huffman = 0x0003
       Pattern_V1   = 0x0004
+      COMPRESSION_ALGORITHM_MAP = {
+        NONE         => 'NONE',
+        LZNT1        => 'LZNT1',
+        LZ77         => 'LZ77',
+        LZ77_Huffman => 'LZ77_Huffman',
+        Pattern_V1   => 'Pattern_V1'
+      }
 
       endian  :little
 

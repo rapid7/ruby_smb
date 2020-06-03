@@ -247,7 +247,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     data.dialect_revision = 0x0311
     data.security_buffer = 'security buf test'

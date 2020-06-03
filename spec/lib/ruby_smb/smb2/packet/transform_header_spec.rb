@@ -209,7 +209,7 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     key = "\x56\x89\xd1\xbb\xf7\x45\xc0\xb6\x68\x81\x07\xe4\x7d\x35\xaf\xd3".b
     struct = RubySMB::SMB2::Packet::TreeConnectRequest.new

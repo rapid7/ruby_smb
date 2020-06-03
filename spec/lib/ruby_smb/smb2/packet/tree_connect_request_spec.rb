@@ -111,7 +111,7 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequest do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     expect(described_class.read(data.to_binary_s)).to eq(data)
     data = described_class.new(flags: described_class::SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT)
@@ -163,7 +163,7 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequestExtension do
       expect(packet.reserved).to be_a BinData::String
     end
 
-    it 'is is 10-bytes long' do
+    it 'is 10-bytes long' do
       expect(packet.reserved.length).to eq(10)
     end
   end
@@ -185,7 +185,7 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectRequestExtension do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new
     expect(described_class.read(data.to_binary_s)).to eq(data)
     data.tree_connect_contexts << RubySMB::SMB2::Packet::TreeConnectContext.new(context_type: 1)
@@ -242,7 +242,7 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectContext do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(context_type: 1)
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end
@@ -370,7 +370,7 @@ RSpec.describe RubySMB::SMB2::Packet::RemotedIdentityTreeConnectContext do
     end
   end
 
-  it 'reads a binary data as expected' do
+  it 'reads binary data as expected' do
     data = described_class.new(ticket_info: 'ticket info')
     expect(described_class.read(data.to_binary_s)).to eq(data)
   end

@@ -196,7 +196,7 @@ module RubySMB
     #   @return [String]
     attr_accessor :preauth_integrity_hash_algorithm
 
-    # The the preauthentication integrity hash value (SMB 3.1.1).
+    # The preauthentication integrity hash value (SMB 3.1.1).
     # @!attribute [rw] preauth_integrity_hash_value
     #   @return [String]
     attr_accessor :preauth_integrity_hash_value
