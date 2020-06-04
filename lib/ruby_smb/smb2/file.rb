@@ -52,7 +52,12 @@ module RubySMB
       #   @return [RubySMB::SMB2::Tree]
       attr_accessor :tree
 
-      def initialize(tree:, response:, name:)
+      # Whether or not encryption is required (SMB 3.x)
+      # @!attribute [rw] encryption_required
+      #   @return [Boolean]
+      attr_accessor :encryption_required
+
+      def initialize(tree:, response:, name:, encrypt: false)
         raise ArgumentError, 'No Tree Provided' if tree.nil?
         raise ArgumentError, 'No Response Provided' if response.nil?
 
@@ -66,6 +71,7 @@ module RubySMB
         @last_write   = response.last_write.to_datetime
         @size         = response.end_of_file
         @size_on_disk = response.allocation_size
+        @encryption_required = encrypt
       end
 
       # Appends the supplied data to the end of the file.
@@ -83,7 +89,7 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def close
         close_request = set_header_fields(RubySMB::SMB2::Packet::CloseRequest.new)
-        raw_response  = tree.client.send_recv(close_request)
+        raw_response  = tree.client.send_recv(close_request, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::CloseResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -94,7 +100,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.status_code
       end
@@ -116,7 +122,7 @@ module RubySMB
                            end
 
         read_request = read_packet(read_length: atomic_read_size, offset: offset)
-        raw_response = tree.client.send_recv(read_request)
+        raw_response = tree.client.send_recv(read_request, encrypt: @encryption_required)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -127,7 +133,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         data = response.buffer.to_binary_s
@@ -139,7 +145,7 @@ module RubySMB
           atomic_read_size = remaining_bytes if remaining_bytes < tree.client.server_max_read_size
 
           read_request = read_packet(read_length: atomic_read_size, offset: offset)
-          raw_response = tree.client.send_recv(read_request)
+          raw_response = tree.client.send_recv(read_request, encrypt: @encryption_required)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
           unless response.valid?
             raise RubySMB::Error::InvalidPacket.new(
@@ -150,7 +156,7 @@ module RubySMB
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-            raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+            raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
           data << response.buffer.to_binary_s
@@ -170,10 +176,10 @@ module RubySMB
         read_request.offset       = offset
         read_request
       end
-      
+
       def send_recv_read(read_length: 0, offset: 0)
         read_request = read_packet(read_length: read_length, offset: offset)
-        raw_response = tree.client.send_recv(read_request)
+        raw_response = tree.client.send_recv(read_request, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -183,20 +189,8 @@ module RubySMB
             received_cmd:   response.smb2_header.command
           )
         end
-        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
-          sleep 1
-          raw_response = tree.client.dispatcher.recv_packet
-          response = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
-          unless response.valid?
-            raise RubySMB::Error::InvalidPacket.new(
-              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
-              expected_cmd:   RubySMB::SMB2::Packet::ReadResponse::COMMAND,
-              received_proto: response.smb2_header.protocol,
-              received_cmd:   response.smb2_header.command
-            )
-          end
-        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.buffer.to_binary_s
       end
@@ -206,7 +200,7 @@ module RubySMB
       # @return [WindowsError::ErrorCode] the NTStatus Response code
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a SetInfoResponse packet
       def delete
-        raw_response = tree.client.send_recv(delete_packet)
+        raw_response = tree.client.send_recv(delete_packet, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -256,7 +250,7 @@ module RubySMB
 
         while buffer.length > 0 do
           write_request = write_packet(data: buffer.slice!(0,atomic_write_size), offset: offset)
-          raw_response  = tree.client.send_recv(write_request)
+          raw_response  = tree.client.send_recv(write_request, encrypt: @encryption_required)
           response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
           unless response.valid?
             raise RubySMB::Error::InvalidPacket.new(
@@ -286,10 +280,10 @@ module RubySMB
         write_request.buffer        = data
         write_request
       end
-      
+
       def send_recv_write(data:'', offset: 0)
         pkt = write_packet(data: data, offset: offset)
-        raw_response = tree.client.send_recv(pkt)
+        raw_response = tree.client.send_recv(pkt, encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -299,31 +293,19 @@ module RubySMB
             received_cmd:   response.smb2_header.command
           )
         end
-        if response.status_code == WindowsError::NTStatus::STATUS_PENDING
-          sleep 1
-          raw_response = tree.client.dispatcher.recv_packet
-          response = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
-          unless response.valid?
-            raise RubySMB::Error::InvalidPacket.new(
-              expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
-              expected_cmd:   RubySMB::SMB2::Packet::WriteResponse::COMMAND,
-              received_proto: response.smb2_header.protocol,
-              received_cmd:   response.smb2_header.command
-            )
-          end
-        elsif response.status_code != WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         response.write_count
       end
-      
+
       # Rename a file
       #
       # @param new_file_name [String] the new name
       # @return [WindowsError::ErrorCode] the NTStatus Response code
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a SetInfoResponse packet
       def rename(new_file_name)
-        raw_response = tree.client.send_recv(rename_packet(new_file_name))
+        raw_response = tree.client.send_recv(rename_packet(new_file_name), encrypt: @encryption_required)
         response = RubySMB::SMB2::Packet::SetInfoResponse.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(

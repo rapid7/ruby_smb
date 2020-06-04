@@ -261,46 +261,6 @@ RSpec.describe RubySMB::SMB2::Pipe do
       end
     end
 
-    context 'when the response status code is STATUS_PENDING' do
-      let(:ioctl_raw_response2) { double('IOCTL raw response #2') }
-      let(:ioctl_response2)     { double('IOCTL response #2') }
-      before :example do
-        allow(ioctl_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_PENDING)
-        allow(pipe).to receive(:sleep)
-        allow(dispatcher).to receive(:recv_packet).and_return(ioctl_raw_response2)
-        allow(RubySMB::SMB2::Packet::IoctlResponse).to receive(:read).with(ioctl_raw_response2).and_return(ioctl_response2)
-        allow(ioctl_response2).to receive_messages(
-          :valid? => true,
-          :output_data => raw_data,
-          :status_code => WindowsError::NTStatus::STATUS_SUCCESS
-        )
-      end
-
-      it 'waits 1 second' do
-        pipe.ioctl_send_recv(dcerpc_request, options)
-        expect(pipe).to have_received(:sleep).with(1)
-      end
-
-      it 'calls dispatcher #recv_packet' do
-        pipe.ioctl_send_recv(dcerpc_request, options)
-        expect(dispatcher).to have_received(:recv_packet)
-      end
-
-      it 'creates an IoctlResponse packet from the response' do
-        pipe.ioctl_send_recv(dcerpc_request, options)
-        expect(RubySMB::SMB2::Packet::IoctlResponse).to have_received(:read).with(ioctl_raw_response2)
-      end
-
-      context 'when the response is not an IoctlResponse packet' do
-        it 'raises an InvalidPacket exception' do
-          allow(ioctl_response2).to receive_message_chain(:smb2_header, :protocol)
-          allow(ioctl_response2).to receive_message_chain(:smb2_header, :command)
-          allow(ioctl_response2).to receive(:valid?).and_return(false)
-          expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Error::InvalidPacket)
-        end
-      end
-    end
-
     context 'when the response status code is not STATUS_SUCCESS or STATUS_BUFFER_OVERFLOW' do
       it 'raises an UnexpectedStatusCode exception' do
         allow(ioctl_response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_INVALID_HANDLE)

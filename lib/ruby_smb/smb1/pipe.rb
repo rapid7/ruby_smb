@@ -47,7 +47,7 @@ module RubySMB
         end
 
         unless response.status_code == WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW or response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
         response
@@ -106,7 +106,7 @@ module RubySMB
         end
         unless [WindowsError::NTStatus::STATUS_SUCCESS,
                 WindowsError::NTStatus::STATUS_BUFFER_OVERFLOW].include?(trans_nmpipe_response.status_code)
-          raise RubySMB::Error::UnexpectedStatusCode, trans_nmpipe_response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, trans_nmpipe_response.status_code
         end
 
         raw_data = trans_nmpipe_response.data_block.trans_data.read_data.to_binary_s

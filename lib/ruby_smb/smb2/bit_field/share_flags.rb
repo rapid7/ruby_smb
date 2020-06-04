@@ -8,7 +8,7 @@ module RubySMB
         bit2    :reserved1,                 label: 'Reserved Space'
         bit1    :vdo_caching,               label: 'VDO Caching'
         bit1    :auto_caching,              label: 'Auto Caching'
-        bit2    :reserved2
+        bit2    :reserved2,                 label: 'Reserved Space'
         bit1    :dfs_root,                  label: 'DFS Root'
         bit1    :dfs,                       label: 'DFS'
         # byte boundary
@@ -20,9 +20,11 @@ module RubySMB
         bit1    :namespace_caching,         label: 'Namespace Caching'
         bit1    :shared_delete,             label: 'Force Shared Delete'
         bit1    :restrict_exclusive_opens,  label: 'Restrict Exclusive Opens'
-
-        bit8    :reserved3,                 label: 'Reserved Space'
-        bit8    :reserved4,                 label: 'Reserved Space'
+        # byte boundary
+        bit5    :reserved3,                 label: 'Reserved Space'
+        bit1    :identity_remoting,         label: 'Identity Remoting'
+        bit2    :reserved4,                 label: 'Reserved Space'
+        bit8    :reserved5,                 label: 'Reserved Space'
 
         def caching_type
           if vdo_caching == 1 && auto_caching.zero?

@@ -9,6 +9,7 @@ module RubySMB
     require 'ruby_smb/client/echo'
     require 'ruby_smb/client/utils'
     require 'ruby_smb/client/winreg'
+    require 'ruby_smb/client/encryption'
 
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
@@ -17,13 +18,20 @@ module RubySMB
     include RubySMB::Client::Echo
     include RubySMB::Client::Utils
     include RubySMB::Client::Winreg
+    include RubySMB::Client::Encryption
 
     # The Default SMB1 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB1_DEFAULT = 'NT LM 0.12'.freeze
     # The Default SMB2 Dialect string used in an SMB1 Negotiate Request
     SMB1_DIALECT_SMB2_DEFAULT = 'SMB 2.002'.freeze
-    # Dialect value for SMB2 Default (Version 2.02)
-    SMB2_DIALECT_DEFAULT = 0x0202
+    # The SMB2 wildcard revision number Dialect string used in an SMB1 Negotiate Request
+    # It indicates that the server implements SMB 2.1 or future dialect revisions
+    # Note that this must be used for SMB3
+    SMB1_DIALECT_SMB2_WILDCARD = 'SMB 2.???'.freeze
+    # Dialect values for SMB2
+    SMB2_DIALECT_DEFAULT = ['0x0202', '0x0210']
+    # Dialect values for SMB3
+    SMB3_DIALECT_DEFAULT = ['0x0300', '0x0302', '0x0311']
     # The default maximum size of a SMB message that the Client accepts (in bytes)
     MAX_BUFFER_SIZE = 64512
     # The default maximum size of a SMB message that the Server accepts (in bytes)
@@ -135,6 +143,11 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :smb2
 
+    # Whether or not the Client should support SMB3
+    # @!attribute [rw] smb3
+    #   @return [Boolean]
+    attr_accessor :smb3
+
     #  Tracks the current SMB2 Message ID that keeps communication in sync
     # @!attribute [rw] smb2_message_id
     #   @return [Integer]
@@ -178,12 +191,61 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :server_max_transact_size
 
+    # The algorithm to compute the preauthentication integrity hash (SMB 3.1.1).
+    # @!attribute [rw] preauth_integrity_hash_algorithm
+    #   @return [String]
+    attr_accessor :preauth_integrity_hash_algorithm
+
+    # The preauthentication integrity hash value (SMB 3.1.1).
+    # @!attribute [rw] preauth_integrity_hash_value
+    #   @return [String]
+    attr_accessor :preauth_integrity_hash_value
+
+    # The algorithm for encryption (SMB 3.x).
+    # @!attribute [rw] encryption_algorithm
+    #   @return [String]
+    attr_accessor :encryption_algorithm
+
+    # The client encryption key (SMB 3.x).
+    # @!attribute [rw] client_encryption_key
+    #   @return [String]
+    attr_accessor :client_encryption_key
+
+    # The server encryption key (SMB 3.x).
+    # @!attribute [rw] server_encryption_key
+    #   @return [String]
+    attr_accessor :server_encryption_key
+
+    # Whether or not encryption is required (SMB 3.x)
+    # @!attribute [rw] encryption_required
+    #   @return [Boolean]
+    attr_accessor :encryption_required
+
+    # The encryption algorithms supported by the server (SMB 3.x).
+    # @!attribute [rw] server_encryption_algorithms
+    #   @return [Array<Integer>] list of supported encryption algorithms
+    #     (constants defined in RubySMB::SMB2::EncryptionCapabilities)
+    attr_accessor :server_encryption_algorithms
+
+    # The compression algorithms supported by the server (SMB 3.x).
+    # @!attribute [rw] server_compression_algorithms
+    #   @return [Array<Integer>] list of supported compression algorithms
+    #     (constants defined in RubySMB::SMB2::CompressionCapabilities)
+    attr_accessor :server_compression_algorithms
+
+    # The SMB version that has been successfully negotiated. This value is only
+    # set after the NEGOTIATE handshake has been performed.
+    # @!attribute [rw] negotiated_smb_version
+    #   @return [Integer] the negotiated SMB version
+    attr_accessor :negotiated_smb_version
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
-    def initialize(dispatcher, smb1: true, smb2: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION')
+    # @param smb3 [Boolean] whether or not to enable SMB3 support
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION', always_encrypt: true)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
-      if smb1 == false && smb2 == false
+      if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
       @dispatcher        = dispatcher
@@ -196,6 +258,7 @@ module RubySMB
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
+      @smb3              = smb3
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modifed during negotiation
@@ -203,6 +266,9 @@ module RubySMB
       @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
+
+      # SMB 3.x options
+      @encryption_required = always_encrypt
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
@@ -243,7 +309,7 @@ module RubySMB
     # @param data [String] the data the server should echo back (ignored in SMB2)
     # @return [WindowsError::ErrorCode] the NTStatus of the last response received
     def echo(count: 1, data: '')
-      response = if smb2
+      response = if smb2 || smb3
                    smb2_echo
                  else
                    smb1_echo(count: count, data: data)
@@ -258,10 +324,8 @@ module RubySMB
     # @param packet [RubySMB::GenericPacket] the packet to set the message id for
     # @return [RubySMB::GenericPacket] the modified packet
     def increment_smb_message_id(packet)
-      if packet.smb2_header.message_id.zero? && smb2_message_id != 0
-        packet.smb2_header.message_id = smb2_message_id
-        self.smb2_message_id += 1
-      end
+      packet.smb2_header.message_id = smb2_message_id
+      self.smb2_message_id += 1
       packet
     end
 
@@ -301,7 +365,7 @@ module RubySMB
     # @return [WindowsError::ErrorCode] the NTStatus of the response
     # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a LogoffResponse packet
     def logoff!
-      if smb2
+      if smb2 || smb3
         request      = RubySMB::SMB2::Packet::LogoffRequest.new
         raw_response = send_recv(request)
         response     = RubySMB::SMB2::Packet::LogoffResponse.read(raw_response)
@@ -335,8 +399,9 @@ module RubySMB
     #
     # @param packet [RubySMB::GenericPacket] the request to be sent
     # @return [String] the raw response data received
-    def send_recv(packet)
-      case packet.packet_smb_version
+    def send_recv(packet, encrypt: false)
+      version = packet.packet_smb_version
+      case version
       when 'SMB1'
         packet.smb_header.uid = user_id if user_id
         packet = smb1_sign(packet)
@@ -344,16 +409,94 @@ module RubySMB
         packet = increment_smb_message_id(packet)
         packet.smb2_header.session_id = session_id
         unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
-          packet = smb2_sign(packet)
+          if self.smb2
+            packet = smb2_sign(packet)
+          elsif self.smb3
+            packet = smb3_sign(packet)
+          end
         end
       else
         packet = packet
       end
-      dispatcher.send_packet(packet)
-      raw_response = dispatcher.recv_packet
+
+      if can_be_encrypted?(packet) && encryption_supported? && (@encryption_required || encrypt)
+        send_encrypt(packet)
+        raw_response = recv_encrypt
+        loop do
+          break unless is_status_pending?(raw_response)
+          sleep 1
+          raw_response = recv_encrypt
+        end
+      else
+        dispatcher.send_packet(packet)
+        raw_response = dispatcher.recv_packet
+        loop do
+          break unless is_status_pending?(raw_response)
+          sleep 1
+          raw_response = dispatcher.recv_packet
+        end unless version == 'SMB1'
+      end
 
       self.sequence_counter += 1 if signing_required && !session_key.empty?
       raw_response
+    end
+
+    # Check if the response is an asynchronous operation with STATUS_PENDING
+    # status code.
+    #
+    # @param raw_response [String] the raw response packet
+    # @return [Boolean] true if it is a status pending operation, false otherwise
+    def is_status_pending?(raw_response)
+      smb2_header = RubySMB::SMB2::SMB2Header.read(raw_response)
+      value = smb2_header.nt_status.value
+      status_code = WindowsError::NTStatus.find_by_retval(value).first
+      status_code == WindowsError::NTStatus::STATUS_PENDING &&
+        smb2_header.flags.async_command == 1
+    end
+
+    # Check if the request packet can be encrypted. Per the SMB spec,
+    # SessionSetupRequest and NegotiateRequest must not be encrypted.
+    #
+    # @param packet [RubySMB::GenericPacket] the request packet
+    # @return [Boolean] true if the packet can be encrypted
+    def can_be_encrypted?(packet)
+      [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? do |klass|
+        packet.is_a?(klass)
+      end
+    end
+
+    # Check if the current dialect support encryption.
+    #
+    # @return [Boolean] true if encryption is supported
+    def encryption_supported?
+      ['0x0300', '0x0302', '0x0311'].include?(@dialect)
+    end
+
+    # Encrypt and send a packet
+    def send_encrypt(packet)
+      begin
+        transform_request = smb3_encrypt(packet.to_binary_s)
+      rescue RubySMB::Error::RubySMBError => e
+        raise RubySMB::Error::EncryptionError, "Error while encrypting #{packet.class.name} packet (SMB #{@dialect}): #{e}"
+      end
+      dispatcher.send_packet(transform_request)
+    end
+
+    # Receives the raw response through the Dispatcher and decrypt the packet.
+    #
+    # @return [String] the raw unencrypted packet
+    def recv_encrypt
+      raw_response = dispatcher.recv_packet
+      begin
+        transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
+      rescue IOError
+        raise RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet'
+      end
+      begin
+        smb3_decrypt(transform_response)
+      rescue RubySMB::Error::RubySMBError => e
+        raise RubySMB::Error::EncryptionError, "Error while decrypting #{transform_response.class.name} packet (SMB #@dialect}): #{e}"
+      end
     end
 
     # Connects to the supplied share
@@ -362,7 +505,7 @@ module RubySMB
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
     def tree_connect(share)
-      connected_tree = if smb2
+      connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
         smb1_tree_connect(share)
@@ -392,6 +535,8 @@ module RubySMB
       self.session_key      = ''
       self.sequence_counter = 0
       self.smb2_message_id  = 0
+      self.client_encryption_key = nil
+      self.server_encryption_key = nil
     end
 
     # Requests a NetBIOS Session Service using the provided name.
@@ -434,5 +579,16 @@ module RubySMB
       session_request
     end
 
+    def update_preauth_hash(data)
+      unless @preauth_integrity_hash_algorithm
+        raise RubySMB::Error::EncryptionError.new(
+          'Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil'
+        )
+      end
+      @preauth_integrity_hash_value = OpenSSL::Digest.digest(
+        @preauth_integrity_hash_algorithm,
+        @preauth_integrity_hash_value + data.to_binary_s
+      )
+    end
   end
 end

@@ -175,7 +175,7 @@ module RubySMB
 
         status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
-          raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+          raise RubySMB::Error::UnexpectedStatusCode, status_code
         end
 
         packet
@@ -201,6 +201,9 @@ module RubySMB
       def smb2_authenticate
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
+        if @dialect == '0x0311'
+          update_preauth_hash(challenge_packet)
+        end
         @session_id = challenge_packet.smb2_header.session_id
         type2_b64_message = smb2_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
@@ -212,6 +215,16 @@ module RubySMB
 
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
+
+        if @smb3 && !@encryption_required && response.session_flags.encrypt_data == 1
+          @encryption_required = true
+        end
+        ######
+        # DEBUG
+        #puts "Session ID = #{@session_id.to_binary_s.each_byte.map {|e| '%02x' % e}.join}"
+        #puts "Session key = #{@session_key.each_byte.map {|e| '%02x' % e}.join}"
+        #puts "PreAuthHash = #{@preauth_integrity_hash_value.each_byte.map {|e| '%02x' % e}.join}" if @preauth_integrity_hash_value
+        ######
 
         response.status_code
       end
@@ -245,7 +258,7 @@ module RubySMB
 
         status_code = packet.status_code
         unless status_code.name == 'STATUS_MORE_PROCESSING_REQUIRED'
-          raise RubySMB::Error::UnexpectedStatusCode, status_code.to_s
+          raise RubySMB::Error::UnexpectedStatusCode, status_code
         end
         packet
       end
@@ -256,7 +269,11 @@ module RubySMB
       # @return [String] the binary string response from the server
       def smb2_ntlmssp_negotiate
         packet = smb2_ntlmssp_negotiate_packet
-        send_recv(packet)
+        response = send_recv(packet)
+        if @dialect == '0x0311'
+          update_preauth_hash(packet)
+        end
+        response
       end
 
       # Creates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet
@@ -268,10 +285,7 @@ module RubySMB
         type1_message = ntlm_client.init_context
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.set_type1_blob(type1_message.serialize)
-        # This Message ID should always be 1, but thanks to Multi-Protocol Negotiation
-        # the Message ID can be out of sync at this point so we re-synch it here.
-        packet.smb2_header.message_id = 1
-        self.smb2_message_id = 2
+        packet.security_mode.signing_enabled = 1
         packet
       end
 
@@ -294,7 +308,11 @@ module RubySMB
       # @return [String] the raw binary response from the server
       def smb2_ntlmssp_authenticate(type3_message, user_id)
         packet = smb2_ntlmssp_auth_packet(type3_message, user_id)
-        send_recv(packet)
+        response = send_recv(packet)
+        if @dialect == '0x0311'
+          update_preauth_hash(packet)
+        end
+        response
       end
 
       # Generates the {RubySMB::SMB2::Packet::SessionSetupRequest} packet
@@ -307,6 +325,7 @@ module RubySMB
         packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
         packet.smb2_header.session_id = session_id
         packet.set_type3_blob(type3_message.serialize)
+        packet.security_mode.signing_enabled = 1
         packet
       end
 

@@ -44,8 +44,8 @@ RSpec.describe RubySMB::SMB2::SMB2Header do
       expect(header.credit_charge).to be_a BinData::Uint16le
     end
 
-    it 'has a default value of 0' do
-      expect(header.credit_charge).to eq 0
+    it 'has a default value of 1' do
+      expect(header.credit_charge).to eq 1
     end
   end
 

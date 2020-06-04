@@ -30,35 +30,8 @@ RSpec.describe RubySMB::SMB2::Packet::TreeConnectResponse do
     end
   end
 
-  describe '#is_directory?' do
-    it 'returns true if #share_type is 0x01' do
-      packet.share_type = 0x01
-      expect(packet.is_directory?).to be true
-    end
-
-    it 'returns false if #share_type is not 0x01' do
-      packet.share_type = 0x02
-      expect(packet.is_directory?).to be false
-    end
-  end
-
-  describe '#access_rights' do
-    it 'is a DirectoryAccessMask if the Tree is a directory' do
-      allow(packet).to receive(:is_directory?).and_return(true)
-      expect(packet.access_rights).to be_a RubySMB::SMB2::BitField::DirectoryAccessMask
-    end
-
-    it 'is a FileAccessMask if the Tree is not a directory' do
-      allow(packet).to receive(:is_directory?).and_return(false)
-      expect(packet.access_rights).to be_a RubySMB::SMB2::BitField::FileAccessMask
-    end
-
-    context 'when it is not a valid FileAccessMask' do
-      it 'raises an InvalidBitField exception' do
-        allow(packet).to receive(:is_directory?).and_return(false)
-        allow(RubySMB::SMB2::BitField::FileAccessMask).to receive(:read).and_raise(IOError)
-        expect { packet.access_rights }.to raise_error(RubySMB::Error::InvalidBitField)
-      end
-    end
+  it 'reads binary data as expected' do
+    data = described_class.new
+    expect(described_class.read(data.to_binary_s)).to eq(data)
   end
 end

@@ -53,7 +53,28 @@ module RubySMB
     end
 
     # Raised when a response packet has a NTStatus code that was unexpected.
-    class UnexpectedStatusCode < RubySMBError; end
+    class UnexpectedStatusCode < RubySMBError
+      attr_reader :status_code
+
+      def initialize(status_code)
+        case status_code
+        when WindowsError::ErrorCode
+          @status_code = status_code
+        when Integer
+          @status_code = WindowsError::NTStatus.find_by_retval(status_code).first
+          if @status_code.nil?
+            @status_code = WindowsError::ErrorCode.new("0x#{status_code.to_s(16)}", status_code, "Unknown 0x#{status_code.to_s(16)}")
+          end
+        else
+          raise ArgumentError, "Status code must be a WindowsError::ErrorCode or an Integer, got #{status_code.class}"
+        end
+        super
+      end
+
+      def to_s
+        "The server responded with an unexpected status code: #{status_code.name}"
+      end
+    end
 
     # Raised when an error occurs with the underlying socket.
     class CommunicationError < RubySMBError; end
@@ -65,5 +86,11 @@ module RubySMB
     # Raised when trying to parse raw binary into a BitField and the data
     # is invalid.
     class InvalidBitField < RubySMBError; end
+
+    # Raised when an encryption operation fails
+    class EncryptionError < RubySMBError; end
+
+    # Raised when an signing operation fails
+    class SigningError < RubySMBError; end
   end
 end

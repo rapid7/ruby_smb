@@ -38,7 +38,7 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
         RubySMB::SMB1::Tree.new(client: self, share: share, response: response)
       end
@@ -55,7 +55,7 @@ module RubySMB
       def smb2_tree_connect(share)
         request = RubySMB::SMB2::Packet::TreeConnectRequest.new
         request.smb2_header.tree_id = 65_535
-        request.encode_path(share)
+        request.path = share
         raw_response = send_recv(request)
         response = RubySMB::SMB2::Packet::TreeConnectResponse.read(raw_response)
         smb2_tree_from_response(share, response)
@@ -78,9 +78,9 @@ module RubySMB
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code.name
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
-        RubySMB::SMB2::Tree.new(client: self, share: share, response: response)
+        RubySMB::SMB2::Tree.new(client: self, share: share, response: response, encrypt: response.share_flags.encrypt == 1)
       end
     end
   end

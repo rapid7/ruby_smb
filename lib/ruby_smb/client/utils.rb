@@ -40,27 +40,28 @@ module RubySMB
       end
 
       #Writes data to an open file handle
-      def write(file_id, offset = 0, data = '', do_recv = true)
+      def write(file_id = last_file_id, offset = 0, data = '', do_recv = true)
         @open_files[file_id].send_recv_write(data: data, offset: offset)
       end
 
-      def read(file_id, offset = 0, length = last_file.size)
+      def read(file_id = last_file_id, offset = 0, length = last_file.size, do_recv = true)
         data = @open_files[file_id].send_recv_read(read_length: length, offset: offset)
         data.bytes
       end
 
-      def delete(path)
-        file = last_tree.open_file(filename: path.sub(/^\\/, ''), delete: true)
+      def delete(path, tree_id = last_tree_id, do_recv = true)
+        tree = @tree_connects.detect{ |tree| tree.id == tree_id }
+        file = tree.open_file(filename: path.sub(/^\\/, ''), delete: true)
         file.delete
         file.close
       end
 
-      def close(file_id, tree_id)
+      def close(file_id = last_file_id, tree_id = last_tree_id, do_recv = true)
        @open_files[file_id].close
       end
 
-      def tree_disconnect(share)
-       @tree_connects.detect{|tree| tree.id == share }.disconnect!
+      def tree_disconnect(tree_id = last_tree_id, do_recv = true)
+       @tree_connects.detect{|tree| tree.id == tree_id }.disconnect!
       end
 
       def native_os

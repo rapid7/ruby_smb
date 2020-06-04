@@ -6,10 +6,65 @@ RSpec.describe RubySMB::Client do
   let(:username) { 'msfadmin' }
   let(:password) { 'msfpasswd' }
   subject(:client) { described_class.new(dispatcher, username: username, password: password) }
-  let(:smb1_client) { described_class.new(dispatcher, smb2: false, username: username, password: password) }
-  let(:smb2_client) { described_class.new(dispatcher, smb1: false, username: username, password: password) }
+  let(:smb1_client) { described_class.new(dispatcher, smb2: false, smb3: false, username: username, password: password) }
+  let(:smb2_client) { described_class.new(dispatcher, smb1: false, smb3: false, username: username, password: password) }
+  let(:smb3_client) { described_class.new(dispatcher, smb1: false, smb2: false, username: username, password: password) }
   let(:empty_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
   let(:error_packet) { RubySMB::SMB2::Packet::ErrorPacket.new }
+
+  it { is_expected.to respond_to :dispatcher }
+  it { is_expected.to respond_to :domain }
+  it { is_expected.to respond_to :local_workstation }
+  it { is_expected.to respond_to :ntlm_client }
+  it { is_expected.to respond_to :password }
+  it { is_expected.to respond_to :peer_native_os }
+  it { is_expected.to respond_to :peer_native_lm }
+  it { is_expected.to respond_to :primary_domain }
+  it { is_expected.to respond_to :default_name }
+  it { is_expected.to respond_to :default_domain }
+  it { is_expected.to respond_to :dns_host_name }
+  it { is_expected.to respond_to :dns_domain_name }
+  it { is_expected.to respond_to :dns_tree_name }
+  it { is_expected.to respond_to :os_version }
+  it { is_expected.to respond_to :dialect }
+  it { is_expected.to respond_to :sequence_counter }
+  it { is_expected.to respond_to :session_id }
+  it { is_expected.to respond_to :signing_required }
+  it { is_expected.to respond_to :smb1 }
+  it { is_expected.to respond_to :smb2 }
+  it { is_expected.to respond_to :smb3 }
+  it { is_expected.to respond_to :smb2_message_id }
+  it { is_expected.to respond_to :username }
+  it { is_expected.to respond_to :user_id }
+  it { is_expected.to respond_to :max_buffer_size }
+  it { is_expected.to respond_to :server_max_buffer_size }
+  it { is_expected.to respond_to :server_max_write_size }
+  it { is_expected.to respond_to :server_max_read_size }
+  it { is_expected.to respond_to :server_max_transact_size }
+  it { is_expected.to respond_to :preauth_integrity_hash_algorithm }
+  it { is_expected.to respond_to :preauth_integrity_hash_value }
+  it { is_expected.to respond_to :encryption_algorithm }
+  it { is_expected.to respond_to :client_encryption_key }
+  it { is_expected.to respond_to :server_encryption_key }
+  it { is_expected.to respond_to :encryption_required }
+  it { is_expected.to respond_to :server_encryption_algorithms }
+  it { is_expected.to respond_to :server_compression_algorithms }
+  it { is_expected.to respond_to :negotiated_smb_version }
+  it { is_expected.to respond_to :session_key }
+  it { is_expected.to respond_to :tree_connects }
+  it { is_expected.to respond_to :open_files }
+  it { is_expected.to respond_to :use_ntlmv2 }
+  it { is_expected.to respond_to :usentlm2_session }
+  it { is_expected.to respond_to :send_lm }
+  it { is_expected.to respond_to :use_lanman_key }
+  it { is_expected.to respond_to :send_ntlm }
+  it { is_expected.to respond_to :spnopt }
+  it { is_expected.to respond_to :evasion_opts }
+  it { is_expected.to respond_to :native_os }
+  it { is_expected.to respond_to :native_lm }
+  it { is_expected.to respond_to :verify_signature }
+  it { is_expected.to respond_to :auth_user }
+  it { is_expected.to respond_to :last_file_id }
 
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
@@ -26,14 +81,21 @@ RSpec.describe RubySMB::Client do
 
     it 'accepts an argument to disable smb1 support' do
       expect(smb2_client.smb1).to be false
+      expect(smb3_client.smb1).to be false
     end
 
     it 'accepts an argument to disable smb2 support' do
       expect(smb1_client.smb2).to be false
+      expect(smb3_client.smb2).to be false
     end
 
-    it 'raises an exception if both SMB1 and SMB2 are disabled' do
-      expect { described_class.new(dispatcher, smb1: false, smb2: false, username: username, password: password) }.to raise_error(ArgumentError, 'You must enable at least one Protocol')
+    it 'accepts an argument to disable smb3 support' do
+      expect(smb1_client.smb3).to be false
+      expect(smb2_client.smb3).to be false
+    end
+
+    it 'raises an exception if SMB1, SMB2 and SMB3 are disabled' do
+      expect { described_class.new(dispatcher, smb1: false, smb2: false, smb3: false, username: username, password: password) }.to raise_error(ArgumentError, 'You must enable at least one Protocol')
     end
 
     it 'sets the username attribute' do
@@ -42,6 +104,11 @@ RSpec.describe RubySMB::Client do
 
     it 'sets the password attribute' do
       expect(client.password).to eq password
+    end
+
+    it 'sets the encryption_required attribute' do
+      client =  described_class.new(dispatcher, username: username, password: password, always_encrypt: true)
+      expect(client.encryption_required).to eq true
     end
 
     it 'creates an NTLM client' do
@@ -76,13 +143,52 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#echo' do
+    let(:response) { double('Echo Response') }
+    before :example do
+      allow(response).to receive(:status_code).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+
+    context 'with SMB1' do
+      it 'calls #smb1_echo with the expected arguments' do
+        allow(smb1_client).to receive(:smb1_echo).and_return(response)
+        count = 3
+        data  = 'testing...'
+        smb1_client.echo(count: count, data: data)
+        expect(smb1_client).to have_received(:smb1_echo).with(count: count, data: data)
+      end
+    end
+
+    context 'with SMB2' do
+      it 'calls #smb2_echo without arguments' do
+        allow(smb2_client).to receive(:smb2_echo).and_return(response)
+        smb2_client.echo
+        expect(smb2_client).to have_received(:smb2_echo)
+      end
+    end
+
+    context 'with SMB3' do
+      it 'calls #smb2_echo without arguments' do
+        allow(smb3_client).to receive(:smb2_echo).and_return(response)
+        smb3_client.echo
+        expect(smb3_client).to have_received(:smb2_echo)
+      end
+    end
+
+    it 'returns the expected status code' do
+      allow(smb2_client).to receive(:smb2_echo).and_return(response)
+      expect(smb2_client.echo).to eq(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+  end
+
   describe '#send_recv' do
     let(:smb1_request) { RubySMB::SMB1::Packet::TreeConnectRequest.new }
     let(:smb2_request) { RubySMB::SMB2::Packet::TreeConnectRequest.new }
 
     before(:each) do
-      expect(dispatcher).to receive(:send_packet).and_return(nil)
-      expect(dispatcher).to receive(:recv_packet).and_return('A')
+      allow(client).to receive(:is_status_pending?).and_return(false)
+      allow(dispatcher).to receive(:send_packet).and_return(nil)
+      allow(dispatcher).to receive(:recv_packet).and_return('A')
     end
 
     it 'checks the packet version' do
@@ -90,14 +196,218 @@ RSpec.describe RubySMB::Client do
       client.send_recv(smb1_request)
     end
 
-    it 'calls #smb1_sign if it is an SMB1 packet' do
-      expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
+    context 'when signing' do
+      it 'calls #smb1_sign if it is an SMB1 packet' do
+        expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
+        client.send_recv(smb1_request)
+      end
+
+      context 'with an SMB2 packet' do
+        it 'does not sign a SessionSetupRequest packet' do
+          expect(smb2_client).to_not receive(:smb2_sign)
+          expect(smb2_client).to_not receive(:smb3_sign)
+          client.send_recv(RubySMB::SMB2::Packet::SessionSetupRequest.new)
+        end
+
+        it 'calls #smb2_sign if it is an SMB2 client' do
+          allow(smb2_client).to receive(:is_status_pending?).and_return(false)
+          expect(smb2_client).to receive(:smb2_sign).with(smb2_request).and_call_original
+          smb2_client.send_recv(smb2_request)
+        end
+
+        it 'calls #smb3_sign if it is an SMB3 client' do
+          allow(smb3_client).to receive(:is_status_pending?).and_return(false)
+          expect(smb3_client).to receive(:smb3_sign).with(smb2_request).and_call_original
+          smb3_client.send_recv(smb2_request)
+        end
+      end
+    end
+
+    it 'sends the expected packet and gets the response' do
+      expect(dispatcher).to receive(:send_packet).with(smb1_request)
+      expect(dispatcher).to receive(:recv_packet)
       client.send_recv(smb1_request)
     end
 
-    it 'calls #smb2_sign if it is an SMB2 packet' do
-      expect(client).to receive(:smb2_sign).with(smb2_request).and_call_original
-      client.send_recv(smb2_request)
+    context 'with SMB1' do
+      it 'does not check if it is a STATUS_PENDING response' do
+        expect(smb1_client).to_not receive(:is_status_pending?)
+        smb1_client.send_recv(smb1_request)
+      end
+    end
+
+    context 'with SMB2' do
+      context 'when receiving a STATUS_PENDING response' do
+        it 'waits 1 second and reads/decrypts again' do
+          allow(smb2_client).to receive(:is_status_pending?).and_return(true, false)
+          expect(smb2_client).to receive(:sleep).with(1)
+          expect(dispatcher).to receive(:recv_packet).twice
+          smb2_client.send_recv(smb2_request)
+        end
+      end
+    end
+
+    context 'with SMB3 and encryption' do
+      before :example do
+        smb3_client.dialect = '0x0300'
+        allow(smb3_client).to receive(:is_status_pending?).and_return(false)
+      end
+
+      context 'with a SessionSetupRequest' do
+        it 'does not encrypt/decrypt' do
+          request = RubySMB::SMB2::Packet::SessionSetupRequest.new
+          expect(smb3_client).to_not receive(:send_encrypt).with(request)
+          expect(smb3_client).to_not receive(:recv_encrypt)
+          expect(dispatcher).to receive(:send_packet).with(request)
+          expect(dispatcher).to receive(:recv_packet)
+          smb3_client.send_recv(request)
+        end
+      end
+
+      context 'with a NegotiateRequest' do
+        it 'does not encrypt/decrypt' do
+          request = RubySMB::SMB2::Packet::NegotiateRequest.new
+          expect(smb3_client).to_not receive(:send_encrypt).with(request)
+          expect(smb3_client).to_not receive(:recv_encrypt)
+          expect(dispatcher).to receive(:send_packet).with(request)
+          expect(dispatcher).to receive(:recv_packet)
+          smb3_client.send_recv(request)
+        end
+      end
+
+      it 'encrypts and decrypts' do
+        expect(smb3_client).to receive(:send_encrypt).with(smb2_request)
+        expect(smb3_client).to receive(:recv_encrypt)
+        smb3_client.send_recv(smb2_request)
+      end
+
+      context 'when receiving a STATUS_PENDING response' do
+        it 'waits 1 second and reads/decrypts again' do
+          allow(smb3_client).to receive(:is_status_pending?).and_return(true, false)
+          expect(smb3_client).to receive(:sleep).with(1)
+          expect(smb3_client).to receive(:send_encrypt).with(smb2_request)
+          expect(smb3_client).to receive(:recv_encrypt).twice
+          smb3_client.send_recv(smb2_request)
+        end
+      end
+    end
+  end
+
+  describe '#is_status_pending?' do
+    let(:response) {
+      res = RubySMB::SMB2::Packet::SessionSetupRequest.new
+      res.smb2_header.nt_status= WindowsError::NTStatus::STATUS_PENDING.value
+      res.smb2_header.flags.async_command = 1
+      res
+    }
+
+    it 'returns true when the response has a STATUS_PENDING status code and the async_command flag set' do
+      expect(client.is_status_pending?(response.to_binary_s)).to be true
+    end
+
+    it 'returns false when the response has a STATUS_PENDING status code and the async_command flag not set' do
+      response.smb2_header.flags.async_command = 0
+      expect(client.is_status_pending?(response.to_binary_s)).to be false
+    end
+
+    it 'returns false when the response has no STATUS_PENDING status code but the async_command flag set' do
+      response.smb2_header.nt_status= WindowsError::NTStatus::STATUS_SUCCESS.value
+      expect(client.is_status_pending?(response.to_binary_s)).to be false
+    end
+  end
+
+  describe '#can_be_encrypted?' do
+    it 'returns true if the packet can be encrypted' do
+      packet = RubySMB::SMB2::Packet::TreeConnectRequest.new
+      expect(client.can_be_encrypted?(packet)).to be true
+    end
+
+    [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].each do |klass|
+      it "returns false if the packet is a #{klass}" do
+        packet = klass.new
+        expect(client.can_be_encrypted?(packet)).to be false
+      end
+    end
+  end
+
+  describe '#encryption_supported?' do
+    ['0x0300', '0x0302', '0x0311'].each do |dialect|
+      it "returns true if the dialect is #{dialect}" do
+        client.dialect = dialect
+        expect(client.encryption_supported?).to be true
+      end
+    end
+
+    it "returns false if the dialect does not support encryption" do
+      client.dialect = '0x0202'
+      expect(client.encryption_supported?).to be false
+    end
+  end
+
+  describe '#send_encrypt' do
+    let(:packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+    before :example do
+      allow(dispatcher).to receive(:send_packet)
+      client.dialect = '0x0300'
+    end
+
+    it 'creates a Transform request' do
+      expect(client).to receive(:smb3_encrypt).with(packet.to_binary_s)
+      client.send_encrypt(packet)
+    end
+
+    it 'raises an EncryptionError exception if an error occurs while encrypting' do
+      allow(client).to receive(:smb3_encrypt).and_raise(RubySMB::Error::RubySMBError.new('Error'))
+      expect { client.send_encrypt(packet) }.to raise_error(
+        RubySMB::Error::EncryptionError,
+        "Error while encrypting #{packet.class.name} packet (SMB 0x0300): Error"
+      )
+    end
+
+    it 'sends the encrypted packet' do
+      encrypted_packet = double('Encrypted packet')
+      allow(client).to receive(:smb3_encrypt).and_return(encrypted_packet)
+      client.send_encrypt(packet)
+      expect(dispatcher).to have_received(:send_packet).with(encrypted_packet)
+    end
+  end
+
+  describe '#recv_encrypt' do
+    let(:packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
+    before :example do
+      allow(dispatcher).to receive(:recv_packet).and_return(packet.to_binary_s)
+      client.dialect = '0x0300'
+      allow(client).to receive(:smb3_decrypt)
+    end
+
+    it 'reads the response packet' do
+      client.recv_encrypt
+      expect(dispatcher).to have_received(:recv_packet)
+    end
+
+    it 'parses the response as a Transform response packet' do
+      expect(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).with(packet.to_binary_s)
+      client.recv_encrypt
+    end
+
+    it 'raises an InvalidPacket exception if an error occurs while parsing the response' do
+      allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_raise(IOError)
+      expect { client.recv_encrypt}.to raise_error(RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet')
+    end
+
+    it 'decrypts the Transform response packet' do
+      transform = double('Transform header packet')
+      allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_return(transform)
+      client.recv_encrypt
+      expect(client).to have_received(:smb3_decrypt).with(transform)
+    end
+
+    it 'raises an EncryptionError exception if an error occurs while decrypting' do
+      allow(client).to receive(:smb3_decrypt).and_raise(RubySMB::Error::RubySMBError )
+      expect { client.recv_encrypt}.to raise_error(
+        RubySMB::Error::EncryptionError,
+        "Error while decrypting RubySMB::SMB2::Packet::TransformHeader packet (SMB 0x0300}): RubySMB::Error::RubySMBError"
+      )
     end
   end
 
@@ -240,6 +550,44 @@ RSpec.describe RubySMB::Client do
         expect {smb2_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
       end
     end
+
+    context 'with SMB3' do
+      let(:raw_response) { double('Raw response') }
+      let(:logoff_response) {
+        RubySMB::SMB2::Packet::LogoffResponse.new(smb_header: {:command => RubySMB::SMB2::Commands::LOGOFF} )
+      }
+      before :example do
+        allow(smb3_client).to receive(:send_recv).and_return(raw_response)
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        allow(smb3_client).to receive(:wipe_state!)
+      end
+
+      it 'creates a LogoffRequest packet' do
+        expect(RubySMB::SMB2::Packet::LogoffRequest).to receive(:new).and_call_original
+        smb3_client.logoff!
+      end
+
+      it 'calls #send_recv' do
+        expect(smb3_client).to receive(:send_recv)
+        smb3_client.logoff!
+      end
+
+      it 'reads the raw response as a LogoffResponse packet' do
+        expect(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).with(raw_response)
+        smb3_client.logoff!
+      end
+
+      it 'raise an InvalidPacket exception when the response is an error packet' do
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(RubySMB::SMB2::Packet::ErrorPacket.new)
+        expect {smb3_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+
+      it 'raise an InvalidPacket exception when the response is not a LOGOFF command' do
+        logoff_response.smb2_header.command = RubySMB::SMB2::Commands::ECHO
+        allow(RubySMB::SMB2::Packet::LogoffResponse).to receive(:read).and_return(logoff_response)
+        expect {smb3_client.logoff!}.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
   end
 
   context 'NetBIOS Session Service' do
@@ -365,7 +713,8 @@ RSpec.describe RubySMB::Client do
       smb1_extended_response.to_binary_s
     }
 
-    let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new }
+    let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x200) }
+    let(:smb3_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x300) }
 
     describe '#smb1_negotiate_request' do
       it 'returns an SMB1 Negotiate Request packet' do
@@ -373,33 +722,158 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'sets the default SMB1 Dialect' do
-        expect(client.smb1_negotiate_request.dialects).to include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT)
+        expect(client.smb1_negotiate_request.dialects).to include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT
+        )
       end
 
       it 'sets the SMB2.02 dialect if SMB2 support is enabled' do
-        expect(client.smb1_negotiate_request.dialects).to include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT)
+        expect(client.smb1_negotiate_request.dialects).to include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT
+        )
       end
 
       it 'excludes the SMB2.02 Dialect if SMB2 support is disabled' do
-        expect(smb1_client.smb1_negotiate_request.dialects).to_not include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT)
+        expect(smb1_client.smb1_negotiate_request.dialects).to_not include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_DEFAULT
+        )
       end
 
       it 'excludes the default SMB1 Dialect if SMB1 support is disabled' do
-        expect(smb2_client.smb1_negotiate_request.dialects).to_not include(buffer_format: 2, dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT)
+        expect(smb2_client.smb1_negotiate_request.dialects).to_not include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB1_DEFAULT
+        )
+      end
+
+      it 'sets the SMB wildcard dialect if SMB2 support is enabled' do
+        expect(client.smb1_negotiate_request.dialects).to include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_WILDCARD
+        )
+      end
+
+      it 'sets the SMB wildcard dialect if SMB3 support is enabled' do
+        expect(smb3_client.smb1_negotiate_request.dialects).to include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_WILDCARD
+        )
+      end
+
+      it 'excludes the SMB wildcard dialect if both SMB2 and SMB3 supports are disabled' do
+        expect(smb1_client.smb1_negotiate_request.dialects).to_not include(
+          buffer_format: 2,
+          dialect_string: RubySMB::Client::SMB1_DIALECT_SMB2_WILDCARD
+        )
       end
     end
 
-    describe '#smb2_negotiate_request' do
+    describe '#smb2_3_negotiate_request' do
       it 'return an SMB2 Negotiate Request packet' do
-        expect(client.smb2_negotiate_request).to be_a(RubySMB::SMB2::Packet::NegotiateRequest)
+        expect(client.smb2_3_negotiate_request).to be_a(RubySMB::SMB2::Packet::NegotiateRequest)
       end
 
-      it 'sets the default SMB2 Dialect' do
-        expect(client.smb2_negotiate_request.dialects).to include(RubySMB::Client::SMB2_DIALECT_DEFAULT)
+      it 'sets the default SMB2 Dialect if SMB2 support is enabled' do
+        expect(client.smb2_3_negotiate_request.dialects).to include(
+          *(RubySMB::Client::SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
+      end
+
+      it 'does not set the default SMB2 Dialect if SMB2 support is disabled' do
+        expect(smb3_client.smb2_3_negotiate_request.dialects).to_not include(
+          *(RubySMB::Client::SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
       end
 
       it 'sets the Message ID to 0' do
-        expect(client.smb2_negotiate_request.smb2_header.message_id).to eq 0
+        expect(client.smb2_3_negotiate_request.smb2_header.message_id).to eq 0
+      end
+
+      it 'adds SMB3 dialects if if SMB3 support is enabled' do
+        expect(client.smb2_3_negotiate_request.dialects).to include(
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
+      end
+
+      it 'does not set the default SMB3 Dialect if SMB3 support is disabled' do
+        expect(smb2_client.smb2_3_negotiate_request.dialects).to_not include(
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
+      end
+    end
+
+    describe '#add_smb3_to_negotiate_request' do
+      let(:negotiate_request) { RubySMB::SMB2::Packet::NegotiateRequest.new }
+
+      it 'adds the default SMB3 dialects' do
+        expect(client.add_smb3_to_negotiate_request(negotiate_request).dialects).to include(
+          *(RubySMB::Client::SMB3_DIALECT_DEFAULT.map {|d| d.to_i(16)})
+        )
+      end
+
+      it 'raises the expected exception when the dialects is not an array of strings' do
+        dialects = ['0x0300', 0x0302, '0x0311']
+        expect { client.add_smb3_to_negotiate_request(negotiate_request, dialects) }.to raise_error(ArgumentError)
+      end
+
+      it 'sets encryption capability flag' do
+        expect(client.add_smb3_to_negotiate_request(negotiate_request).capabilities.encryption).to eq(1)
+      end
+
+      context 'when the negotiate packet includes the 0x0311 dialect' do
+        before :example do
+          client.add_smb3_to_negotiate_request(negotiate_request, ['0x0311'])
+        end
+
+        it 'adds 3 Negotiate Contexts' do
+          expect(negotiate_request.negotiate_context_info.negotiate_context_count).to eq(3)
+        end
+
+        it 'adds a Preauth Integrity Negotiate Context with the expected hash algorithms' do
+          nc = negotiate_request.negotiate_context_list.select do |n|
+              n.context_type == RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+          end
+          expect(nc.length).to eq(1)
+          expect(nc.first.data.hash_algorithms).to eq([RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512])
+        end
+
+        it 'adds Encryption Negotiate Contexts with the expected encryption algorithms' do
+          nc = negotiate_request.negotiate_context_list.select do |n|
+              n.context_type == RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+          end
+          expect(nc.length).to eq(1)
+          expect(nc.first.data.ciphers).to eq(
+            [
+              RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM,
+              RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+            ]
+          )
+        end
+
+        it 'adds Compression Negotiate Contexts with the expected compression algorithms' do
+          nc = negotiate_request.negotiate_context_list.select do |n|
+              n.context_type == RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+          end
+          expect(nc.length).to eq(1)
+          expect(nc.first.data.compression_algorithms).to eq(
+            [
+              RubySMB::SMB2::CompressionCapabilities::LZNT1,
+              RubySMB::SMB2::CompressionCapabilities::LZ77,
+              RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman,
+              RubySMB::SMB2::CompressionCapabilities::Pattern_V1
+            ]
+          )
+        end
+      end
+
+      context 'when the negotiate packet does not include the 0x0311 dialect' do
+        it 'does not add any Negotiate Context' do
+          client.add_smb3_to_negotiate_request(negotiate_request, ['0x0300', '0x0302'])
+          expect(negotiate_request.negotiate_context_list?). to be false
+        end
       end
     end
 
@@ -414,9 +888,14 @@ RSpec.describe RubySMB::Client do
         client.negotiate_request
       end
 
-      it 'calls #smb2_negotiate_request if SMB2 is enabled' do
-        expect(smb2_client).to receive(:smb2_negotiate_request)
+      it 'calls #smb2_3_negotiate_request if SMB2 is enabled' do
+        expect(smb2_client).to receive(:smb2_3_negotiate_request)
         smb2_client.negotiate_request
+      end
+
+      it 'calls #smb2_3_negotiate_request if SMB3 is enabled' do
+        expect(smb3_client).to receive(:smb2_3_negotiate_request)
+        smb3_client.negotiate_request
       end
     end
 
@@ -464,12 +943,28 @@ RSpec.describe RubySMB::Client do
         end
       end
 
-      context 'with SMB1 and SMB2 enabled' do
+      context 'with only SMB3' do
+        it 'returns a properly formed packet' do
+          expect(smb3_client.negotiate_response(smb2_response.to_binary_s)).to eq smb2_response
+        end
+
+        it 'raises an exception if the Response is invalid' do
+          expect { smb3_client.negotiate_response(random_junk) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+
+        it 'considers the response invalid if it is not an actual Negotiate Response' do
+          bogus_response = smb2_response
+          bogus_response.smb2_header.command = RubySMB::SMB2::Commands::ECHO
+          expect { smb3_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
+        end
+      end
+
+      context 'with SMB1, SMB2 and SMB3 enabled' do
         it 'returns an SMB1 NegotiateResponse if it looks like SMB1' do
           expect(client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
         end
 
-        it 'returns an SMB2 NegotiateResponse if it looks like SMB2' do
+        it 'returns an SMB2 NegotiateResponse if it looks like SMB2 or SMB3' do
           expect(client.negotiate_response(smb2_response.to_binary_s)).to eq smb2_response
         end
       end
@@ -477,9 +972,10 @@ RSpec.describe RubySMB::Client do
 
     describe '#parse_negotiate_response' do
       context 'when SMB1 was Negotiated' do
-        it 'turns off SMB2 support' do
+        it 'turns off SMB2 and SMB3 support' do
           client.parse_negotiate_response(smb1_extended_response)
           expect(client.smb2).to be false
+          expect(client.smb3).to be false
         end
 
         it 'sets whether or not signing is required' do
@@ -502,12 +998,18 @@ RSpec.describe RubySMB::Client do
         it 'returns the string \'SMB1\'' do
           expect(client.parse_negotiate_response(smb1_extended_response)).to eq ('SMB1')
         end
+
+        it 'sets #negotiated_smb_version to 1' do
+          client.parse_negotiate_response(smb1_extended_response)
+          expect(client.negotiated_smb_version).to eq(1)
+        end
       end
 
       context 'when SMB2 was negotiated' do
-        it 'turns off SMB1 support' do
+        it 'turns off SMB1 and SMB3 support' do
           client.parse_negotiate_response(smb2_response)
           expect(client.smb1).to be false
+          expect(client.smb3).to be false
         end
 
         it 'sets whether or not signing is required' do
@@ -526,9 +1028,81 @@ RSpec.describe RubySMB::Client do
           expect(client.parse_negotiate_response(smb2_response)).to eq ('SMB2')
         end
       end
+
+      context 'when SMB3 was negotiated' do
+        it 'turns off SMB1 and SMB2 support' do
+          client.parse_negotiate_response(smb3_response)
+          expect(client.smb1).to be false
+          expect(client.smb2).to be false
+        end
+
+        it 'sets whether or not signing is required' do
+          smb3_response.security_mode.signing_required = 1
+          client.parse_negotiate_response(smb3_response)
+          expect(client.signing_required).to be true
+        end
+
+        it 'sets #dialect to the negotiated dialect' do
+          client.parse_negotiate_response(smb3_response)
+          expect(client.dialect).to eq '0x0300'
+        end
+
+        it 'returns the string \'SMB2\'' do
+          expect(client.parse_negotiate_response(smb3_response)).to eq ('SMB3')
+        end
+      end
+
+      context 'when the response contains the SMB2 wildcard revision number dialect' do
+        it 'only turns off SMB1 support' do
+          smb2_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x02ff)
+          client.parse_negotiate_response(smb2_response)
+          expect(client.smb1).to be false
+          expect(client.smb2).to be true
+          expect(client.smb3).to be true
+        end
+      end
+
+      context 'when the negotiation failed' do
+        context 'with a STATUS_NOT_SUPPORTED status code' do
+          before :example do
+            error_packet.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED.value
+          end
+
+          it 'raises the expected exception with SMB2' do
+            expect { smb2_client.parse_negotiate_response(error_packet) }.to raise_error(
+            RubySMB::Error::NegotiationFailure,
+            'Unable to negotiate with remote host, SMB2 not supported'
+            )
+          end
+
+          it 'raises the expected exception with SMB3' do
+            expect { smb3_client.parse_negotiate_response(error_packet) }.to raise_error(
+            RubySMB::Error::NegotiationFailure,
+            'Unable to negotiate with remote host, SMB3 not supported'
+            )
+          end
+        end
+
+        context 'with an unknown status code' do
+          it 'raises the expected exception' do
+            expect { client.parse_negotiate_response(empty_packet) }.to raise_error(
+            RubySMB::Error::NegotiationFailure,
+            'Unable to negotiate with remote host'
+            )
+          end
+        end
+      end
     end
 
     describe '#negotiate' do
+      let(:request_packet) { client.smb1_negotiate_request }
+      before :example do
+        allow(client).to receive(:negotiate_request)
+        allow(client).to receive(:send_recv)
+        allow(client).to receive(:negotiate_response)
+        allow(client).to receive(:parse_negotiate_response)
+      end
+
       it 'calls the backing methods' do
         expect(client).to receive(:negotiate_request)
         expect(client).to receive(:send_recv)
@@ -537,18 +1111,264 @@ RSpec.describe RubySMB::Client do
         client.negotiate
       end
 
-      it 'sets the response-packet #dialects array with the dialects sent in the request' do
-        request_packet = client.smb1_negotiate_request
-        allow(client).to receive(:negotiate_request).and_return(request_packet)
-        allow(client).to receive(:send_recv)
-        allow(client).to receive(:negotiate_response).and_return(smb1_extended_response)
-        expect(smb1_extended_response).to receive(:dialects=).with(request_packet.dialects)
-        client.negotiate
+      context 'with SMB1' do
+        it 'sets the response-packet #dialects array with the dialects sent in the request' do
+          request_packet = client.smb1_negotiate_request
+          allow(client).to receive(:negotiate_request).and_return(request_packet)
+          allow(client).to receive(:negotiate_response).and_return(smb1_extended_response)
+          expect(smb1_extended_response).to receive(:dialects=).with(request_packet.dialects)
+          client.negotiate
+        end
       end
 
-      it 'raise the expected exception if an error occurs' do
-        allow(client).to receive(:send_recv).and_raise(RubySMB::Error::InvalidPacket)
-        expect { client.negotiate }.to raise_error(RubySMB::Error::NegotiationFailure)
+      ['0x0300', '0x0302'].each do |dialect|
+        context "with #{dialect} dialect" do
+          before :example do
+            client.dialect = dialect
+          end
+
+          it 'sets the expected encryption algorithm' do
+            client.negotiate
+            expect(client.encryption_algorithm).to eq(RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM])
+          end
+        end
+      end
+
+      context "with 0x0311 dialect" do
+        it 'calls #parse_smb3_encryption_data' do
+          client.dialect = '0x0311'
+          request_packet = client.smb2_3_negotiate_request
+          allow(client).to receive(:negotiate_request).and_return(request_packet)
+          allow(client).to receive(:negotiate_response).and_return(smb3_response)
+          expect(client).to receive(:parse_smb3_encryption_data).with(request_packet, smb3_response)
+          client.negotiate
+        end
+      end
+
+      context 'with a wildcard revision number response' do
+        before :example do
+          client.dialect = '0x02ff'
+          allow(client).to receive(:smb2_message_id=) do
+            client.dialect = '0x0202'
+          end
+        end
+
+        it 'increments the message ID' do
+          expect(client).to receive(:smb2_message_id=).with(1)
+          client.negotiate
+        end
+
+        it 're-negotiates' do
+          expect(client).to receive(:negotiate_request).twice
+          expect(client).to receive(:send_recv).twice
+          expect(client).to receive(:negotiate_response).twice
+          expect(client).to receive(:parse_negotiate_response).twice
+          client.negotiate
+        end
+      end
+
+      context 'when an error occurs' do
+        before :example do
+          allow(client).to receive(:negotiate_request).and_return(request_packet)
+          allow(client).to receive(:send_recv).and_raise(RubySMB::Error::InvalidPacket)
+          client.smb1 = false
+          client.smb2 = false
+          client.smb3 = false
+        end
+
+        context 'with SMB1' do
+          let(:request_packet) { client.smb1_negotiate_request }
+
+          it 'raise the expected exception' do
+            client.smb1 = true
+            expect { client.negotiate }.to raise_error(
+              RubySMB::Error::NegotiationFailure,
+              "Unable to negotiate SMB1 with the remote host: RubySMB::Error::InvalidPacket"
+            )
+          end
+        end
+
+        context 'with SMB2' do
+          let(:request_packet) { client.smb2_3_negotiate_request }
+
+          it 'raise the expected exception' do
+            client.smb2 = true
+            expect { client.negotiate }.to raise_error(
+              RubySMB::Error::NegotiationFailure,
+              "Unable to negotiate SMB2 with the remote host: RubySMB::Error::InvalidPacket"
+            )
+          end
+        end
+
+        context 'with SMB3' do
+          let(:request_packet) { client.smb2_3_negotiate_request }
+
+          it 'raise the expected exception' do
+            client.smb3 = true
+            expect { client.negotiate }.to raise_error(
+              RubySMB::Error::NegotiationFailure,
+              "Unable to negotiate SMB3 with the remote host: RubySMB::Error::InvalidPacket"
+            )
+          end
+        end
+      end
+
+      describe '#parse_smb3_encryption_data' do
+        let(:request_packet) { client.smb2_3_negotiate_request }
+        let(:smb3_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311) }
+        let(:nc_encryption) do
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+          )
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
+          nc
+        end
+        let(:nc_integrity) do
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+          )
+          nc.data.hash_algorithms << RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512
+          nc
+        end
+
+        before :example do
+          allow(smb3_client).to receive(:update_preauth_hash)
+          smb3_response.add_negotiate_context(nc_encryption)
+          smb3_response.add_negotiate_context(nc_integrity)
+        end
+
+        context 'when selecting the integrity hash algorithm' do
+          context 'with one algorithm' do
+            it 'selects the expected algorithm' do
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.preauth_integrity_hash_algorithm).to eq('SHA512')
+            end
+          end
+
+          context 'with multiple algorithms' do
+            it 'selects the first algorithm' do
+              nc = smb3_response.find_negotiate_context(
+                RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+              )
+              nc.data.hash_algorithms << 3
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.preauth_integrity_hash_algorithm).to eq('SHA512')
+            end
+          end
+
+          context 'without integrity negotiate context' do
+            it 'raises the expected exception' do
+              smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
+              smb3_response.add_negotiate_context(nc_encryption)
+              expect { smb3_client.parse_smb3_encryption_data(request_packet, smb3_response) }.to raise_error(
+                RubySMB::Error::EncryptionError,
+                'Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response'
+              )
+            end
+          end
+
+          context 'with an unknown integrity hash algorithm' do
+            it 'raises the expected exception' do
+              smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
+              smb3_response.add_negotiate_context(nc_encryption)
+              nc = RubySMB::SMB2::NegotiateContext.new(
+                context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+              )
+              nc.data.hash_algorithms << 5
+              smb3_response.add_negotiate_context(nc)
+              expect { smb3_client.parse_smb3_encryption_data(request_packet, smb3_response) }.to raise_error(
+                RubySMB::Error::EncryptionError,
+                'Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response'
+              )
+            end
+          end
+        end
+
+        context 'when selecting the encryption algorithm' do
+          context 'with one algorithm' do
+            it 'selects the expected algorithm' do
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.encryption_algorithm).to eq('AES-128-CCM')
+            end
+          end
+
+          context 'with multiple algorithms' do
+            it 'selects the AES-128-GCM algorithm if included' do
+              nc = smb3_response.find_negotiate_context(
+                RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+              )
+              nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.encryption_algorithm).to eq('AES-128-GCM')
+            end
+
+            it 'selects the first algorithm if AES-128-GCM is not included' do
+              nc = smb3_response.find_negotiate_context(
+                RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+              )
+              nc.data.ciphers << 3
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.encryption_algorithm).to eq('AES-128-CCM')
+            end
+
+            it 'keep tracks of the server supported algorithms' do
+              nc = smb3_response.find_negotiate_context(
+                RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+              )
+              nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+              smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+              expect(smb3_client.server_encryption_algorithms).to eq([1, 2])
+            end
+          end
+
+          context 'without encryption context' do
+            it 'raises the expected exception' do
+              smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
+              smb3_response.add_negotiate_context(nc_integrity)
+              expect { smb3_client.parse_smb3_encryption_data(request_packet, smb3_response) }.to raise_error(
+                RubySMB::Error::EncryptionError,
+                'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
+              )
+            end
+          end
+
+          context 'with an unknown encryption algorithm' do
+            it 'raises the expected exception' do
+              smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
+              smb3_response.add_negotiate_context(nc_integrity)
+              nc = RubySMB::SMB2::NegotiateContext.new(
+                context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+              )
+              nc.data.ciphers << 14
+              smb3_response.add_negotiate_context(nc)
+              expect { smb3_client.parse_smb3_encryption_data(request_packet, smb3_response) }.to raise_error(
+                RubySMB::Error::EncryptionError,
+                'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
+              )
+            end
+          end
+        end
+
+        context 'when selecting the compression algorithm' do
+          it 'keep tracks of the server supported algorithms' do
+            nc = RubySMB::SMB2::NegotiateContext.new(
+              context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+            )
+            nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZNT1
+            nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77
+            nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman
+            nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::Pattern_V1
+            smb3_response.add_negotiate_context(nc)
+            smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+            expect(smb3_client.server_compression_algorithms).to eq([1, 2, 3, 4])
+          end
+        end
+
+        it 'updates the preauth hash' do
+          expect(smb3_client).to receive(:update_preauth_hash).with(request_packet)
+          expect(smb3_client).to receive(:update_preauth_hash).with(smb3_response)
+          smb3_client.parse_smb3_encryption_data(request_packet, smb3_response)
+        end
       end
     end
   end
@@ -875,6 +1695,39 @@ RSpec.describe RubySMB::Client do
           smb2_client.smb2_authenticate
           expect(smb2_client.os_version).to eq '6.1.7601'
         end
+
+        ['0x0202', '0x0210', '0x0300', '0x0302'].each do |dialect|
+          it "does not update the preauth hash with dialect #{dialect}" do
+            smb2_client.dialect = dialect
+            expect(smb2_client).to_not receive(:update_preauth_hash)
+            smb2_client.smb2_authenticate
+          end
+        end
+
+        it "updates the preauth hash with dialect 0x0311" do
+          smb2_client.dialect = '0x0311'
+          expect(smb2_client).to receive(:update_preauth_hash).with(response_packet)
+          smb2_client.smb2_authenticate
+        end
+
+        context 'when setting the encryption_required parameter' do
+          before :example do
+            smb2_client.smb3 = true
+            smb2_client.encryption_required = false
+          end
+
+          it 'sets the encryption_required parameter to true if the server requires encryption' do
+            final_response_packet.session_flags.encrypt_data = 1
+            smb2_client.smb2_authenticate
+            expect(smb2_client.encryption_required).to be true
+          end
+
+          it 'does not set the encryption_required parameter if the server does not require encryption' do
+            final_response_packet.session_flags.encrypt_data = 0
+            smb2_client.smb2_authenticate
+            expect(smb2_client.encryption_required).to be false
+          end
+        end
       end
 
       describe '#smb2_ntlmssp_negotiate_packet' do
@@ -890,20 +1743,34 @@ RSpec.describe RubySMB::Client do
           smb2_client.smb2_ntlmssp_negotiate_packet
         end
 
-        it 'sets the message ID in the packet header to 1' do
-          expect(smb2_client.smb2_ntlmssp_negotiate_packet.smb2_header.message_id).to eq 1
-        end
-
-        it 'increments client#smb2_message_id' do
-          expect { smb2_client.smb2_ntlmssp_negotiate_packet }.to change(smb2_client, :smb2_message_id).to(2)
+        it 'enables signing' do
+          expect(smb2_client.smb2_ntlmssp_negotiate_packet.security_mode.signing_enabled).to eq 1
         end
       end
 
       describe '#smb2_ntlmssp_negotiate' do
+        before :example do
+          allow(smb2_client).to receive(:smb2_ntlmssp_negotiate_packet).and_return(negotiate_packet)
+          allow(smb2_client).to receive(:send_recv)
+        end
+
         it 'sends the request packet and receives a response' do
-          expect(smb2_client).to receive(:smb2_ntlmssp_negotiate_packet).and_return(negotiate_packet)
-          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
-          expect(dispatcher).to receive(:recv_packet)
+          expect(smb2_client).to receive(:smb2_ntlmssp_negotiate_packet)
+          expect(smb2_client).to receive(:send_recv).with(negotiate_packet)
+          smb2_client.smb2_ntlmssp_negotiate
+        end
+
+        ['0x0202', '0x0210', '0x0300', '0x0302'].each do |dialect|
+          it "does not update the preauth hash with dialect #{dialect}" do
+            smb2_client.dialect = dialect
+            expect(smb2_client).to_not receive(:update_preauth_hash)
+            smb2_client.smb2_ntlmssp_negotiate
+          end
+        end
+
+        it "updates the preauth hash with dialect 0x0311" do
+          smb2_client.dialect = '0x0311'
+          expect(smb2_client).to receive(:update_preauth_hash).with(negotiate_packet)
           smb2_client.smb2_ntlmssp_negotiate
         end
       end
@@ -961,13 +1828,35 @@ RSpec.describe RubySMB::Client do
         it 'sets the session ID on the request packet' do
           expect(smb2_client.smb2_ntlmssp_auth_packet(type3_message, session_id).smb2_header.session_id).to eq session_id
         end
+
+        it 'enables signing' do
+          expect(smb2_client.smb2_ntlmssp_auth_packet(type3_message, session_id).security_mode.signing_enabled).to eq 1
+        end
       end
 
       describe '#smb2_ntlmssp_authenticate' do
+        before :example do
+          allow(smb2_client).to receive(:smb2_ntlmssp_auth_packet).and_return(negotiate_packet)
+          allow(smb2_client).to receive(:send_recv)
+        end
+
         it 'sends the request packet and receives a response' do
-          expect(smb2_client).to receive(:smb2_ntlmssp_auth_packet).and_return(negotiate_packet)
-          expect(dispatcher).to receive(:send_packet).with(negotiate_packet)
-          expect(dispatcher).to receive(:recv_packet)
+          expect(smb2_client).to receive(:smb2_ntlmssp_auth_packet)
+          expect(smb2_client).to receive(:send_recv).with(negotiate_packet)
+          smb2_client.smb2_ntlmssp_authenticate(type3_message, session_id)
+        end
+
+        ['0x0202', '0x0210', '0x0300', '0x0302'].each do |dialect|
+          it "does not update the preauth hash with dialect #{dialect}" do
+            smb2_client.dialect = dialect
+            expect(smb2_client).to_not receive(:update_preauth_hash)
+            smb2_client.smb2_ntlmssp_authenticate(type3_message, session_id)
+          end
+        end
+
+        it "updates the preauth hash with dialect 0x0311" do
+          smb2_client.dialect = '0x0311'
+          expect(smb2_client).to receive(:update_preauth_hash).with(negotiate_packet)
           smb2_client.smb2_ntlmssp_authenticate(type3_message, session_id)
         end
       end
@@ -1103,6 +1992,108 @@ RSpec.describe RubySMB::Client do
         end
       end
     end
+
+    describe '#smb3_sign' do
+      context 'if signing is required and we have a session key' do
+        let(:request) {
+          packet = RubySMB::SMB2::Packet::SessionSetupRequest.new
+          packet.smb2_header.flags.signed = 1
+          packet.smb2_header.signature = "\x00" * 16
+          packet
+        }
+        let(:session_key) { 'Session Key' }
+        before :example do
+          smb3_client.session_key = session_key
+          smb3_client.signing_required = true
+        end
+
+        ['0x0300', '0x0302'].each do |dialect|
+          context "with #{dialect} dialect" do
+            it 'generates the signing key based on the session key and specific strings, and sign the packet with CMAC' do
+              smb3_client.dialect = dialect
+              fake_hash = "\x34\xc0\x40\xfe\x87\xcf\x49\x3d\x37\x87\x52\xd0\xd5\xf5\xfb\x86".b
+              signing_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
+              expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(session_key, "SMB2AESCMAC\x00", "SmbSign\x00").and_call_original
+              expect(OpenSSL::CMAC).to receive(:digest).with('AES', signing_key, request.to_binary_s).and_call_original
+              expect(smb3_client.smb3_sign(request).smb2_header.signature).to eq fake_hash
+            end
+          end
+        end
+
+        context "with 0x0311 dialect" do
+          it 'generates the signing key based on the session key, the preauth integrity hash and specific strings, and sign the packet with CMAC' do
+            smb3_client.dialect = '0x0311'
+            preauth_integrity_hash_value = 'Preauth Integrity Hash'
+            fake_hash = "\x0e\x49\x6f\x8e\x74\x7c\xf2\xa0\x88\x5e\x9d\x54\xff\x0d\x0d\xfa".b
+            smb3_client.preauth_integrity_hash_value = preauth_integrity_hash_value
+            signing_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMBSigningKey\x00", preauth_integrity_hash_value)
+            expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(session_key, "SMBSigningKey\x00", preauth_integrity_hash_value).and_call_original
+            expect(OpenSSL::CMAC).to receive(:digest).with('AES', signing_key, request.to_binary_s).and_call_original
+            expect(smb3_client.smb3_sign(request).smb2_header.signature).to eq fake_hash
+          end
+        end
+
+        context 'with an incompatible dialect' do
+          it 'raises the expected exception' do
+            smb3_client.dialect = '0x0202'
+            expect { smb3_client.smb3_sign(request) }.to raise_error(
+              RubySMB::Error::SigningError,
+              'Dialect is incompatible with SMBv3 signing'
+            )
+          end
+        end
+      end
+
+      context 'if signing is not required but it is a TreeConnectRequest and we have a session key' do
+        let(:request) {
+          packet = RubySMB::SMB2::Packet::TreeConnectRequest.new
+          packet.smb2_header.flags.signed = 1
+          packet.smb2_header.signature = "\x00" * 16
+          packet
+        }
+        let(:session_key) { 'Session Key' }
+        before :example do
+          smb3_client.session_key = session_key
+          smb3_client.signing_required = false
+        end
+
+        ['0x0300', '0x0302'].each do |dialect|
+          context "with #{dialect} dialect" do
+            it 'generates the signing key based on the session key and specific strings, and sign the packet with CMAC' do
+              smb3_client.dialect = dialect
+              fake_hash = "\x34\x9e\x28\xb9\x50\x08\x34\x31\xc0\x83\x9d\xba\x56\xa5\x70\xa4".b
+              signing_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
+              expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(session_key, "SMB2AESCMAC\x00", "SmbSign\x00").and_call_original
+              expect(OpenSSL::CMAC).to receive(:digest).with('AES', signing_key, request.to_binary_s).and_call_original
+              expect(smb3_client.smb3_sign(request).smb2_header.signature).to eq fake_hash
+            end
+          end
+        end
+
+        context "with 0x0311 dialect" do
+          it 'generates the signing key based on the session key, the preauth integrity hash and specific strings, and sign the packet with CMAC' do
+            smb3_client.dialect = '0x0311'
+            preauth_integrity_hash_value = 'Preauth Integrity Hash'
+            fake_hash = "\x83\xd9\x31\x39\x60\x46\xbe\x1e\x29\x34\xc8\xcf\x8c\x8e\xb4\x73".b
+            smb3_client.preauth_integrity_hash_value = preauth_integrity_hash_value
+            signing_key = RubySMB::Crypto::KDF.counter_mode(session_key, "SMBSigningKey\x00", preauth_integrity_hash_value)
+            expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(session_key, "SMBSigningKey\x00", preauth_integrity_hash_value).and_call_original
+            expect(OpenSSL::CMAC).to receive(:digest).with('AES', signing_key, request.to_binary_s).and_call_original
+            expect(smb3_client.smb3_sign(request).smb2_header.signature).to eq fake_hash
+          end
+        end
+
+        context 'with an incompatible dialect' do
+          it 'raises the expected exception' do
+            smb3_client.dialect = '0x0202'
+            expect { smb3_client.smb3_sign(request) }.to raise_error(
+              RubySMB::Error::SigningError,
+              'Dialect is incompatible with SMBv3 signing'
+            )
+          end
+        end
+      end
+    end
   end
 
   context '#increment_smb_message_id' do
@@ -1156,7 +2147,10 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an UnexpectedStatusCode exception if we do not get STATUS_SUCCESS' do
           response.smb_header.nt_status = 0xc0000015
-          expect { smb1_client.smb1_tree_from_response(path, response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
+          expect { smb1_client.smb1_tree_from_response(path, response) }.to raise_error(
+            RubySMB::Error::UnexpectedStatusCode,
+            'The server responded with an unexpected status code: STATUS_NONEXISTENT_SECTOR'
+          )
         end
 
         it 'creates a new Tree from itself, the share path, and the response packet' do
@@ -1177,11 +2171,14 @@ RSpec.describe RubySMB::Client do
       }
 
       describe '#smb2_tree_connect' do
-        it 'builds and sends a TreeconnectRequest for the supplied share' do
+        it 'builds and sends the expected TreeconnectRequest for the supplied share' do
           allow(RubySMB::SMB2::Packet::TreeConnectRequest).to receive(:new).and_return(request)
-          modified_request = request
-          modified_request.encode_path(path)
-          expect(smb2_client).to receive(:send_recv).with(modified_request).and_return(response.to_binary_s)
+          expect(smb2_client).to receive(:send_recv) do |req|
+            expect(req).to eq(request)
+            expect(req.smb2_header.tree_id).to eq(65_535)
+            expect(req.path).to eq(path.encode('UTF-16LE'))
+            response.to_binary_s
+          end
           smb2_client.smb2_tree_connect(path)
         end
 
@@ -1200,11 +2197,20 @@ RSpec.describe RubySMB::Client do
 
         it 'raises an UnexpectedStatusCode exception if we do not get STATUS_SUCCESS' do
           response.smb2_header.nt_status = 0xc0000015
-          expect { smb2_client.smb2_tree_from_response(path, response) }.to raise_error(RubySMB::Error::UnexpectedStatusCode, 'STATUS_NONEXISTENT_SECTOR')
+          expect { smb2_client.smb2_tree_from_response(path, response) }.to raise_error(
+            RubySMB::Error::UnexpectedStatusCode,
+            'The server responded with an unexpected status code: STATUS_NONEXISTENT_SECTOR'
+          )
         end
 
         it 'creates a new Tree from itself, the share path, and the response packet' do
-          expect(RubySMB::SMB2::Tree).to receive(:new).with(client: smb2_client, share: path, response: response)
+          expect(RubySMB::SMB2::Tree).to receive(:new).with(client: smb2_client, share: path, response: response, encrypt: false)
+          smb2_client.smb2_tree_from_response(path, response)
+        end
+
+        it 'creates a new with encryption set if the response requires it' do
+          response.share_flags.encrypt = 1
+          expect(RubySMB::SMB2::Tree).to receive(:new).with(client: smb2_client, share: path, response: response, encrypt: true)
           smb2_client.smb2_tree_from_response(path, response)
         end
       end
@@ -1301,7 +2307,7 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'raise an InvalidPacket exception when the response is not valid' do
-        echo_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+        echo_response.smb_header.command = RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
         allow(smb1_client).to receive(:send_recv).and_return(echo_response.to_binary_s)
         expect { smb1_client.echo }.to raise_error(RubySMB::Error::InvalidPacket)
       end
@@ -1470,6 +2476,199 @@ RSpec.describe RubySMB::Client do
       it 'calls Pipe #enum_registry_values' do
         client.enum_registry_values(host, key)
         expect(named_pipe).to have_received(:enum_registry_values).with(key)
+      end
+    end
+  end
+
+  describe '#update_preauth_hash' do
+    it 'raises an EncryptionError exception if the preauth integrity hash algorithm is not known' do
+      expect { client.update_preauth_hash('Test') }.to raise_error(
+        RubySMB::Error::EncryptionError,
+        'Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil'
+      )
+    end
+
+    it 'computes the hash value' do
+      packet = RubySMB::SMB2::Packet::EchoRequest.new
+      data = 'Previous hash'
+      algo = RubySMB::SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[
+        RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512
+      ]
+      client.preauth_integrity_hash_algorithm = algo
+      client.preauth_integrity_hash_value = data
+      hash = OpenSSL::Digest.digest(algo, data + packet.to_binary_s)
+      client.update_preauth_hash(packet)
+      expect(client.preauth_integrity_hash_value).to eq(hash)
+    end
+  end
+
+  context 'Encryption' do
+    describe '#smb3_encrypt' do
+      let(:transform_packet) { double('TransformHeader packet') }
+      let(:session_key) { "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b }
+      let(:data) { RubySMB::SMB2::Packet::TreeConnectRequest.new.to_binary_s }
+
+      before :example do
+        allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:new).and_return(transform_packet)
+        allow(transform_packet).to receive(:encrypt)
+        client.session_key = session_key
+      end
+
+      it 'does not generate a new client encryption key if it already exists' do
+        client.client_encryption_key = 'key'
+        expect(RubySMB::Crypto::KDF).to_not receive(:counter_mode)
+        expect(client.client_encryption_key).to eq('key')
+        client.smb3_encrypt(data)
+      end
+
+      ['0x0300', '0x0302'].each do |dialect|
+        context "with #{dialect} dialect" do
+          before :example do
+            client.dialect = dialect
+          end
+
+          it 'generates the client encryption key with the expected parameters' do
+            expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
+              session_key,
+              "SMB2AESCCM\x00",
+              "ServerIn \x00"
+            ).and_call_original
+            client.smb3_encrypt(data)
+          end
+        end
+      end
+
+      context 'with 0x0311 dialect' do
+        it 'generates the client encryption key with the expected parameters' do
+          client.preauth_integrity_hash_value = ''
+          client.dialect = '0x0311'
+          expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
+            session_key,
+            "SMBC2SCipherKey\x00",
+            ''
+          ).and_call_original
+          client.smb3_encrypt(data)
+        end
+      end
+
+      it 'raises the expected exception if the dialect is incompatible' do
+        client.dialect = '0x0202'
+        expect { client.smb3_encrypt(data) }.to raise_error(RubySMB::Error::EncryptionError)
+      end
+
+      it 'creates a TransformHeader packet and encrypt the data' do
+        client.dialect = '0x0300'
+        client.encryption_algorithm = 'AES-128-CCM'
+        client.session_id = 123
+        client.smb3_encrypt(data)
+        expect(RubySMB::SMB2::Packet::TransformHeader).to have_received(:new).with(flags: 1, session_id: 123)
+        expect(transform_packet).to have_received(:encrypt).with(data, client.client_encryption_key, algorithm: 'AES-128-CCM')
+      end
+
+      it 'generates the expected client encryption key with 0x0302 dialect' do
+        client.dialect = '0x0302'
+        expected_enc_key =
+          "\xa4\xfa\x23\xc1\xb0\x65\x84\xce\x47\x08\x5b\xe0\x64\x98\xd7\x87".b
+        client.smb3_encrypt(data)
+        expect(client.client_encryption_key).to eq expected_enc_key
+      end
+
+      it 'generates the expected client encryption key with 0x0311 dialect' do
+        client.dialect = '0x0311'
+        client.session_key =
+          "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b
+        client.preauth_integrity_hash_value =
+          "\x57\x77\x7d\x47\xc2\xa9\xc8\x23\x6e\x8a\xfa\x39\xe8\x77\x2f\xb0\xb6"\
+          "\x01\xba\x85\x58\x77\xf5\x01\xa0\xf0\x31\x69\x6a\x64\x49\x1c\x61\xdb"\
+          "\x57\x34\x19\x1b\x80\x33\x9a\xfa\x1d\x6c\x3f\xca\x44\x68\x78\x5b\xb9"\
+          "\xda\x41\xfa\x83\xe5\xa9\x6f\xcf\x44\xbc\xe5\x26\x6e".b
+        expected_enc_key =
+          "\xc7\x4e\xfe\x4d\x15\x48\x5b\x0b\x71\x45\x49\x26\x8a\xd9\x6c\xaa".b
+        client.smb3_encrypt(data)
+        expect(client.client_encryption_key).to eq expected_enc_key
+      end
+    end
+
+    describe '#smb3_decrypt' do
+      let(:transform_packet) { double('TransformHeader packet') }
+      let(:session_key) { "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b }
+
+      before :example do
+        allow(transform_packet).to receive(:decrypt)
+        client.session_key = session_key
+      end
+
+      it 'does not generate a new server encryption key if it already exists' do
+        client.server_encryption_key = 'key'
+        expect(RubySMB::Crypto::KDF).to_not receive(:counter_mode)
+        expect(client.server_encryption_key).to eq('key')
+        client.smb3_decrypt(transform_packet)
+      end
+
+      ['0x0300', '0x0302'].each do |dialect|
+        context "with #{dialect} dialect" do
+          before :example do
+            client.dialect = dialect
+          end
+
+          it 'generates the client encryption key with the expected parameters' do
+            expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
+              session_key,
+              "SMB2AESCCM\x00",
+              "ServerOut\x00"
+            ).and_call_original
+            client.smb3_decrypt(transform_packet)
+          end
+        end
+      end
+
+      context 'with 0x0311 dialect' do
+        it 'generates the client encryption key with the expected parameters' do
+          client.preauth_integrity_hash_value = ''
+          client.dialect = '0x0311'
+          expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
+            session_key,
+            "SMBS2CCipherKey\x00",
+            ''
+          ).and_call_original
+          client.smb3_decrypt(transform_packet)
+        end
+      end
+
+      it 'raises the expected exception if the dialect is incompatible' do
+        client.dialect = '0x0202'
+        expect { client.smb3_decrypt(transform_packet) }.to raise_error(RubySMB::Error::EncryptionError)
+      end
+
+      it 'creates a TransformHeader packet and encrypt the data' do
+        client.dialect = '0x0300'
+        client.encryption_algorithm = 'AES-128-CCM'
+        client.session_id = 123
+        client.smb3_decrypt(transform_packet)
+        expect(transform_packet).to have_received(:decrypt).with(client.server_encryption_key, algorithm: 'AES-128-CCM')
+      end
+
+      it 'generates the expected server encryption key with 0x0302 dialect' do
+        client.dialect = '0x0302'
+        expected_enc_key =
+          "\x65\x21\xd3\x6d\xe9\xe3\x5a\x66\x09\x61\xae\x3e\xc6\x49\x6b\xdf".b
+        client.smb3_decrypt(transform_packet)
+        expect(client.server_encryption_key).to eq expected_enc_key
+      end
+
+      it 'generates the expected server encryption key with 0x0311 dialect' do
+        client.dialect = '0x0311'
+        client.session_key =
+          "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b
+        client.preauth_integrity_hash_value =
+          "\x57\x77\x7d\x47\xc2\xa9\xc8\x23\x6e\x8a\xfa\x39\xe8\x77\x2f\xb0\xb6"\
+          "\x01\xba\x85\x58\x77\xf5\x01\xa0\xf0\x31\x69\x6a\x64\x49\x1c\x61\xdb"\
+          "\x57\x34\x19\x1b\x80\x33\x9a\xfa\x1d\x6c\x3f\xca\x44\x68\x78\x5b\xb9"\
+          "\xda\x41\xfa\x83\xe5\xa9\x6f\xcf\x44\xbc\xe5\x26\x6e".b
+        expected_enc_key =
+          "\x8c\x2c\x31\x15\x66\xba\xa9\xab\xcf\xb2\x47\x8d\x72\xd5\xd7\x4a".b
+        client.smb3_decrypt(transform_packet)
+        expect(client.server_encryption_key).to eq expected_enc_key
       end
     end
   end

@@ -6,7 +6,7 @@ module RubySMB
       endian              :little
       bit32               :protocol,          label: 'Protocol ID Field',      initial_value: RubySMB::SMB2::SMB2_PROTOCOL_ID
       uint16              :structure_size,    label: 'Header Structure Size',  initial_value: 64
-      uint16              :credit_charge,     label: 'Credit Charge',          initial_value: 0
+      uint16              :credit_charge,     label: 'Credit Charge',          initial_value: 1
       nt_status           :nt_status,         label: 'NT Status',              initial_value: 0
       uint16              :command,           label: 'Command'
       uint16              :credits,           label: 'Credit Request/Response'

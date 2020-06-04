@@ -30,6 +30,8 @@ module RubySMB
       require 'ruby_smb/smb2/packet/write_response'
       require 'ruby_smb/smb2/packet/ioctl_request'
       require 'ruby_smb/smb2/packet/ioctl_response'
+      require 'ruby_smb/smb2/packet/transform_header'
+      require 'ruby_smb/smb2/packet/compression_transform_header'
     end
   end
 end

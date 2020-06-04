@@ -17,10 +17,29 @@ module RubySMB
         # internally to be able to retrieve the negotiated dialect later on.
         # This is only valid for SMB1.
         response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
-        parse_negotiate_response(response_packet)
-      rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET
-        error = 'Unable to Negotiate with remote host'
-        error << ', SMB1 may be disabled' if smb1 && !smb2
+        version = parse_negotiate_response(response_packet)
+        case @dialect
+        when '0x0300', '0x0302'
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+        when '0x0311'
+          parse_smb3_encryption_data(request_packet, response_packet)
+        end
+        # If the response contains the SMB2 wildcard revision number dialect;
+        # it indicates that the server implements SMB 2.1 or future dialect
+        # revisions and expects the client to send a subsequent SMB2 Negotiate
+        # request to negotiate the actual SMB 2 Protocol revision to be used.
+        # The wildcard revision number is sent only in response to a
+        # multi-protocol negotiate request with the "SMB 2.???" dialect string.
+        if @dialect == '0x02ff'
+          self.smb2_message_id += 1
+          version = negotiate
+        end
+        version
+      rescue RubySMB::Error::InvalidPacket, Errno::ECONNRESET, RubySMB::Error::CommunicationError => e
+        version = request_packet.packet_smb_version
+        version = 'SMB3' if version == 'SMB2' && !@smb2 && @smb3
+        version = 'SMB2 or SMB3' if version == 'SMB2' && @smb2 && @smb3
+        error = "Unable to negotiate #{version} with the remote host: #{e.message}"
         raise RubySMB::Error::NegotiationFailure, error
       end
 
@@ -32,8 +51,8 @@ module RubySMB
       def negotiate_request
         if smb1
           smb1_negotiate_request
-        elsif smb2
-          smb2_negotiate_request
+        else
+          smb2_3_negotiate_request
         end
       end
 
@@ -50,7 +69,7 @@ module RubySMB
           packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
           response = packet if packet.valid?
         end
-        if smb2 && response.nil?
+        if (smb2 || smb3) && response.nil?
           packet = RubySMB::SMB2::Packet::NegotiateResponse.read raw_data
           response = packet if packet.valid?
         end
@@ -95,26 +114,78 @@ module RubySMB
         when RubySMB::SMB1::Packet::NegotiateResponseExtended
           self.smb1 = true
           self.smb2 = false
+          self.smb3 = false
           self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
           self.dialect = packet.negotiated_dialect.to_s
           # MaxBufferSize is largest message server will receive, measured from start of the SMB header. Subtract 260
           # for protocol overhead. Then this value can be used for max read/write size without having to factor in
           # protocol overhead every time.
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
+          self.negotiated_smb_version = 1
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
-          self.smb2 = true
-          self.signing_required = packet.security_mode.signing_required == 1
+          unless packet.dialect_revision.to_i == 0x02ff
+            self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
+            self.smb3 = packet.dialect_revision.to_i >= 0x0300 && packet.dialect_revision.to_i < 0x0400
+          end
+          self.signing_required = packet.security_mode.signing_required == 1 if self.smb2 || self.smb3
           self.dialect = "0x%04x" % packet.dialect_revision
           self.server_max_read_size = packet.max_read_size
           self.server_max_write_size = packet.max_write_size
           self.server_max_transact_size = packet.max_transact_size
           # This value is used in SMB1 only but calculate a valid value anyway
           self.server_max_buffer_size = [self.server_max_read_size, self.server_max_write_size, self.server_max_transact_size].min
-          'SMB2'
+          self.negotiated_smb_version = self.smb2 ? 2 : 3
+          return "SMB#{self.negotiated_smb_version}"
+        else
+          error = 'Unable to negotiate with remote host'
+          if packet.status_code == WindowsError::NTStatus::STATUS_NOT_SUPPORTED
+            error << ", SMB2" if @smb2
+            error << ", SMB3" if @smb3
+            error << ' not supported'
+          end
+          raise RubySMB::Error::NegotiationFailure, error
         end
+      end
 
+      def parse_smb3_encryption_data(request_packet, response_packet)
+        nc = response_packet.find_negotiate_context(
+          RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+        )
+        @preauth_integrity_hash_algorithm = RubySMB::SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
+        unless @preauth_integrity_hash_algorithm
+          raise RubySMB::Error::EncryptionError.new(
+            'Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response'
+          )
+        end
+        # Set the encryption the client will use, prioritizing AES_128_GCM over AES_128_CCM
+        nc = response_packet.find_negotiate_context(
+          RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+        )
+        @server_encryption_algorithms = nc&.data&.ciphers&.to_ary
+        if @server_encryption_algorithms.nil? || @server_encryption_algorithms.empty?
+          raise RubySMB::Error::EncryptionError.new(
+            'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
+          )
+        end
+        if @server_encryption_algorithms.include?(RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM)
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM]
+        else
+          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@server_encryption_algorithms.first]
+        end
+        unless @encryption_algorithm
+          raise RubySMB::Error::EncryptionError.new(
+            'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
+          )
+        end
+        update_preauth_hash(request_packet)
+        update_preauth_hash(response_packet)
+
+        nc = response_packet.find_negotiate_context(
+          RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+        )
+        @server_compression_algorithms = nc&.data&.compression_algorithms&.to_ary || []
       end
 
       # Create a {RubySMB::SMB1::Packet::NegotiateRequest} packet with the
@@ -131,6 +202,7 @@ module RubySMB
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
         packet.add_dialect(SMB1_DIALECT_SMB2_DEFAULT) if smb2
+        packet.add_dialect(SMB1_DIALECT_SMB2_WILDCARD) if smb2 || smb3
         packet
       end
 
@@ -139,11 +211,60 @@ module RubySMB
       # may want to communicate over SMB1
       #
       # @ return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB2 Negotiate Request packet
-      def smb2_negotiate_request
+      def smb2_3_negotiate_request
         packet = RubySMB::SMB2::Packet::NegotiateRequest.new
         packet.security_mode.signing_enabled = 1
-        packet.add_dialect(SMB2_DIALECT_DEFAULT)
         packet.client_guid = SecureRandom.random_bytes(16)
+        packet.set_dialects(SMB2_DIALECT_DEFAULT.map {|d| d.to_i(16)}) if smb2
+        packet = add_smb3_to_negotiate_request(packet) if smb3
+        packet
+      end
+
+      # This adds SMBv3 specific information: SMBv3 supported dialects,
+      # encryption capability, Negotiate Contexts if the dialect requires them
+      #
+      # @param packet [RubySMB::SMB2::Packet::NegotiateRequest] the NegotiateRequest
+      #   to add SMB3 specific info to
+      # @param dialects [Array<String>] the dialects to negotiate. This must be
+      #   an array of strings. Default is SMB3_DIALECT_DEFAULT
+      # @return [RubySMB::SMB2::Packet::NegotiateRequest] a completed SMB3 Negotiate Request packet
+      # @raise [ArgumentError] if dialects is not an array of strings
+      def add_smb3_to_negotiate_request(packet, dialects = SMB3_DIALECT_DEFAULT)
+        dialects.each do |dialect|
+          raise ArgumentError, 'Must be an array of strings' unless dialect.is_a? String
+          packet.add_dialect(dialect.to_i(16))
+        end
+        packet.capabilities.encryption = 1
+
+        if packet.dialects.include?(0x0311)
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
+          )
+          nc.data.hash_algorithms << RubySMB::SMB2::PreauthIntegrityCapabilities::SHA_512
+          nc.data.salt = SecureRandom.random_bytes(32)
+          packet.add_negotiate_context(nc)
+
+          @preauth_integrity_hash_value = "\x00" * 64
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
+          )
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+          packet.add_negotiate_context(nc)
+
+          nc = RubySMB::SMB2::NegotiateContext.new(
+            context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
+          )
+          # Adding all possible compression algorithm even if we don't support
+          # them yet. This will force the server to disclose the support
+          # algorithms in the repsonse.
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZNT1
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman
+          nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::Pattern_V1
+          packet.add_negotiate_context(nc)
+        end
+
         packet
       end
     end

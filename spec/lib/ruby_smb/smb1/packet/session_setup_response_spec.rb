@@ -11,7 +11,7 @@ RSpec.describe RubySMB::SMB1::Packet::SessionSetupResponse do
     end
 
     it 'should have the command set to SMB_COM_NEGOTIATE' do
-      expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP
+      expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
     end
 
     it 'should have the response flag set' do

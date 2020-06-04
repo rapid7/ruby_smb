@@ -1,6 +1,8 @@
 RSpec.describe RubySMB::SMB2::BitField::ShareFlags do
   subject(:flags) { described_class.new }
 
+  it { is_expected.to respond_to :vdo_caching }
+  it { is_expected.to respond_to :auto_caching }
   it { is_expected.to respond_to :dfs_root }
   it { is_expected.to respond_to :dfs }
   it { is_expected.to respond_to :encrypt }
@@ -11,9 +13,26 @@ RSpec.describe RubySMB::SMB2::BitField::ShareFlags do
   it { is_expected.to respond_to :namespace_caching }
   it { is_expected.to respond_to :shared_delete }
   it { is_expected.to respond_to :restrict_exclusive_opens }
+  it { is_expected.to respond_to :identity_remoting }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  end
+
+  describe '#vdo_caching' do
+    it 'should be a 1-bit field per the SMB spec' do
+      expect(flags.vdo_caching).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :vdo_caching, 'V', 0x00000020
+  end
+
+  describe '#auto_caching' do
+    it 'should be a 1-bit field per the SMB spec' do
+      expect(flags.auto_caching).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :auto_caching, 'V', 0x00000010
   end
 
   describe '#dfs' do
@@ -94,6 +113,14 @@ RSpec.describe RubySMB::SMB2::BitField::ShareFlags do
     end
 
     it_behaves_like 'bit field with one flag set', :encrypt, 'V', 0x00008000
+  end
+
+  describe '#identity_remoting' do
+    it 'should be a 1-bit field per the SMB spec' do
+      expect(flags.identity_remoting).to be_a BinData::Bit1
+    end
+
+    it_behaves_like 'bit field with one flag set', :identity_remoting, 'V', 0x00040000
   end
 
   describe '#set_manual_caching' do
