@@ -22,7 +22,7 @@ dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 # To require encryption on the server, run this in an elevated Powershell:
 # C:\> Set-SmbServerConfiguration -EncryptData $true
 
-# To enable per-share encrytion on the server, run this in an elevated Powershell:
+# To enable per-share encryption on the server, run this in an elevated Powershell:
 # C:\ Set-SmbServerConfiguration -EncryptData $false
 # C:\ Set-SmbShare -Name <share name> -EncryptData 1
 

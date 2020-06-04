@@ -75,7 +75,7 @@ RSpec.describe RubySMB::SMB2::Packet::NegotiateResponse do
       expect(packet.negotiate_context_count).to be_a BinData::Uint16le
     end
 
-    it 'is set to the #negotiate_context_list array sise' do
+    it 'is set to the #negotiate_context_list array size' do
       packet.dialect_revision = 0x0311
       nc = RubySMB::SMB2::NegotiateContext.new(
         context_type: RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
