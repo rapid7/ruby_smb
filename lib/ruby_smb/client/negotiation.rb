@@ -24,6 +24,16 @@ module RubySMB
         when '0x0311'
           parse_smb3_encryption_data(request_packet, response_packet)
         end
+
+        if %w{0x0202 0x0210 0x0300 0x0302 0x0311 0x02ff}.include? @dialect
+          if response_packet.server_start_time != 0
+            @server_start_time = response_packet.server_start_time.to_time
+          end
+          if response_packet.system_time != 0
+            @server_system_time = response_packet.system_time.to_time
+          end
+        end
+
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
         # revisions and expects the client to send a subsequent SMB2 Negotiate
