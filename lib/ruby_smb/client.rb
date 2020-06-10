@@ -233,6 +233,11 @@ module RubySMB
     #     (constants defined in RubySMB::SMB2::CompressionCapabilities)
     attr_accessor :server_compression_algorithms
 
+    # The GUID of the server (SMB 2.x and 3.x).
+    # @!attribute [rw] server_guid
+    #   @return [String]
+    attr_accessor :server_guid
+
     # The server's start time if it is reported as part of the negotiation
     # process (SMB 2.x and 3.x). This value is nil if the server does not report
     # it (reports a value of 0).

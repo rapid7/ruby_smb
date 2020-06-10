@@ -26,6 +26,7 @@ module RubySMB
         end
 
         if response_packet && %w{0x0202 0x0210 0x0300 0x0302 0x0311 0x02ff}.include?(@dialect)
+          @server_guid = response_packet.server_guid
           if response_packet.server_start_time != 0
             @server_start_time = response_packet.server_start_time.to_time
           end
