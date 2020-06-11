@@ -61,13 +61,14 @@ module RubySMB
       #   which are assumed to be the NetBiosSessionService header.
       # @raise [RubySMB::Error::CommunicationError] if the read timeout expires or an error occurs when reading the socket
       def recv_packet(full_response: false)
+        raise RubySMB::Error::CommunicationError, 'Connection has already been closed' if @tcp_socket.closed?
         if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
           raise RubySMB::Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
         end
 
         begin
           nbss_data = @tcp_socket.read(4)
-          raise IOError if nbss_data.nil?
+          raise RubySMB::Error::CommunicationError, 'Socket read returned nil' if nbss_data.nil?
           nbss_header = RubySMB::Nbss::SessionHeader.read(nbss_data)
         rescue IOError
           raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'

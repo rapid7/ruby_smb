@@ -202,6 +202,12 @@ module RubySMB
         # while being guaranteed to work with any modern Windows system. We can get more sophisticated
         # with switching this on and off at a later date if the need arises.
         packet.smb_header.flags2.extended_security = 1
+        # Recent Mac OS X requires the unicode flag to be set on the Negotiate
+        # SMB Header request, even if this packet does not contain string fields
+        # (see Flags2 SMB_FLAGS2_UNICODE definition in "2.2.3.1 The SMB Header"
+        # documentation:
+        # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/69a29f73-de0c-45a6-a1aa-8ceeea42217f
+        packet.smb_header.flags2.unicode = 1
         # There is no real good reason to ever send an SMB1 Negotiate packet
         # to Negotiate strictly SMB2, but the protocol WILL support it
         packet.add_dialect(SMB1_DIALECT_SMB1_DEFAULT) if smb1
