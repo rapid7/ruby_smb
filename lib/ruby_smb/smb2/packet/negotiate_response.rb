@@ -15,7 +15,7 @@ module RubySMB
         uint16              :dialect_revision,          label: 'Dialect Revision'
         uint16              :negotiate_context_count,   label: 'Negotiate Context Count', initial_value: -> { negotiate_context_list.size }, onlyif: -> { has_negotiate_context? }
         uint16              :reserved1,                 label: 'Reserved', initial_value: 0, onlyif: -> { !has_negotiate_context? }
-        string              :server_guid,               label: 'Server GUID',                  length: 16
+        string              :server_guid,               label: 'Server GUID', length: 16
         smb2_capabilities   :capabilities
         uint32              :max_transact_size,         label: 'Max Transaction Size'
         uint32              :max_read_size,             label: 'Max Read Size'
