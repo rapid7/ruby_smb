@@ -25,16 +25,6 @@ module RubySMB
           parse_smb3_encryption_data(request_packet, response_packet)
         end
 
-        if response_packet && %w{0x0202 0x0210 0x0300 0x0302 0x0311 0x02ff}.include?(@dialect)
-          @server_guid = response_packet.server_guid
-          if response_packet.server_start_time != 0
-            @server_start_time = response_packet.server_start_time.to_time
-          end
-          if response_packet.system_time != 0
-            @server_system_time = response_packet.system_time.to_time
-          end
-        end
-
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
         # revisions and expects the client to send a subsequent SMB2 Negotiate
@@ -148,6 +138,9 @@ module RubySMB
           # This value is used in SMB1 only but calculate a valid value anyway
           self.server_max_buffer_size = [self.server_max_read_size, self.server_max_write_size, self.server_max_transact_size].min
           self.negotiated_smb_version = self.smb2 ? 2 : 3
+          self.server_guid = packet.server_guid
+          self.server_start_time = packet.server_start_time.to_time if packet.server_start_time != 0
+          self.server_system_time = packet.system_time.to_time if packet.system_time != 0
           return "SMB#{self.negotiated_smb_version}"
         else
           error = 'Unable to negotiate with remote host'
