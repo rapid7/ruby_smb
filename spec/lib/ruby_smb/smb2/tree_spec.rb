@@ -26,7 +26,7 @@ RSpec.describe RubySMB::SMB2::Tree do
   it { is_expected.to respond_to :permissions }
   it { is_expected.to respond_to :share }
   it { is_expected.to respond_to :id }
-  it { is_expected.to respond_to :encryption_required }
+  it { is_expected.to respond_to :tree_connect_encrypt_data }
 
   it 'inherits the client that spawned it' do
     expect(tree.client).to eq client
@@ -51,7 +51,7 @@ RSpec.describe RubySMB::SMB2::Tree do
 
     it 'calls Client #send_recv with encryption set if required' do
       allow(tree).to receive(:set_header_fields).and_return(disco_req)
-      tree.encryption_required = true
+      tree.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(disco_req, encrypt: true).and_return(disco_resp.to_binary_s)
       tree.disconnect!
     end
@@ -147,7 +147,7 @@ RSpec.describe RubySMB::SMB2::Tree do
 
     it 'calls Client #send_recv with encryption set if required' do
       allow(tree).to receive(:open_directory_packet).and_return(create_req)
-      tree.encryption_required = true
+      tree.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(create_req, encrypt: true).and_return(create_response.to_binary_s)
       tree.open_directory
     end
@@ -229,7 +229,7 @@ RSpec.describe RubySMB::SMB2::Tree do
 
     it 'calls Client #send_recv with encryption set if required' do
       allow(tree).to receive(:set_header_fields).and_return(query_dir_req)
-      tree.encryption_required = true
+      tree.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(query_dir_req, encrypt: true)
       tree.list
     end
@@ -437,7 +437,7 @@ RSpec.describe RubySMB::SMB2::Tree do
     end
 
     it 'calls Client #send_recv with encryption set if required' do
-      tree.encryption_required = true
+      tree.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(create_request, encrypt: true).and_return(create_response.to_binary_s)
       tree.open_file(filename: filename)
     end
@@ -459,7 +459,7 @@ RSpec.describe RubySMB::SMB2::Tree do
         context 'when encryption is required' do
           it 'returns the expected RubySMB::SMB2::File object' do
             file_obj = RubySMB::SMB2::File.new(name: filename, tree: tree, response: create_response, encrypt: true)
-            tree.encryption_required = true
+            tree.tree_connect_encrypt_data = true
             expect(RubySMB::SMB2::File).to receive(:new).with(name: filename, tree: tree, response: create_response, encrypt: true).and_return(file_obj)
             expect(tree.open_file(filename: filename)).to eq(file_obj)
           end

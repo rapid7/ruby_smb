@@ -51,9 +51,9 @@ RSpec.describe RubySMB::Dispatcher::Socket do
     let(:session_header)  { RubySMB::Nbss::SessionHeader.new }
 
     context 'when reading from the socket results in a nil value' do
-      it 'should raise Error::NetBiosSessionService' do
+      it 'should raise Error::CommunicationError' do
         smb_socket.tcp_socket = blank_socket
-        expect { smb_socket.recv_packet }.to raise_error(::RubySMB::Error::NetBiosSessionService)
+        expect { smb_socket.recv_packet }.to raise_error(::RubySMB::Error::CommunicationError)
       end
     end
 
