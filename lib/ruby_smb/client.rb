@@ -216,10 +216,10 @@ module RubySMB
     #   @return [String]
     attr_accessor :server_encryption_key
 
-    # Whether or not encryption is required (SMB 3.x)
-    # @!attribute [rw] encryption_required
+    # Whether or not the whole session needs to be encrypted (SMB 3.x)
+    # @!attribute [rw] session_encrypt_data
     #   @return [Boolean]
-    attr_accessor :encryption_required
+    attr_accessor :session_encrypt_data
 
     # The encryption algorithms supported by the server (SMB 3.x).
     # @!attribute [rw] server_encryption_algorithms
@@ -287,7 +287,7 @@ module RubySMB
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
 
       # SMB 3.x options
-      @encryption_required = always_encrypt
+      @session_encrypt_data = always_encrypt
 
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
@@ -417,6 +417,9 @@ module RubySMB
     # It will also sign the packet if neccessary.
     #
     # @param packet [RubySMB::GenericPacket] the request to be sent
+    # @param encrypt [Boolean] true if encryption has to be enabled for this transaction
+    #   (note that if @session_encrypt_data is set, encryption will be enabled
+    #   regardless of this parameter value)
     # @return [String] the raw response data received
     def send_recv(packet, encrypt: false)
       version = packet.packet_smb_version
@@ -438,7 +441,7 @@ module RubySMB
         packet = packet
       end
 
-      if can_be_encrypted?(packet) && encryption_supported? && (@encryption_required || encrypt)
+      if can_be_encrypted?(packet) && encryption_supported? && (@session_encrypt_data || encrypt)
         send_encrypt(packet)
         raw_response = recv_encrypt
         loop do
@@ -473,18 +476,19 @@ module RubySMB
         smb2_header.flags.async_command == 1
     end
 
-    # Check if the request packet can be encrypted. Per the SMB spec,
+    # Check if the request packet can be encrypted. Per the SMB2 spec,
     # SessionSetupRequest and NegotiateRequest must not be encrypted.
     #
     # @param packet [RubySMB::GenericPacket] the request packet
     # @return [Boolean] true if the packet can be encrypted
     def can_be_encrypted?(packet)
+      return false if packet.packet_smb_version == 'SMB1'
       [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].none? do |klass|
         packet.is_a?(klass)
       end
     end
 
-    # Check if the current dialect support encryption.
+    # Check if the current dialect supports encryption.
     #
     # @return [Boolean] true if encryption is supported
     def encryption_supported?
@@ -505,7 +509,13 @@ module RubySMB
     #
     # @return [String] the raw unencrypted packet
     def recv_encrypt
-      raw_response = dispatcher.recv_packet
+      begin
+        raw_response = dispatcher.recv_packet
+      rescue RubySMB::Error::CommunicationError => e
+        raise RubySMB::Error::EncryptionError, "Communication error with the "\
+          "remote host: #{e.message}. The server supports encryption but was "\
+          "not able to handle the encrypted request."
+      end
       begin
         transform_response = RubySMB::SMB2::Packet::TransformHeader.read(raw_response)
       rescue IOError
