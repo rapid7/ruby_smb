@@ -123,6 +123,15 @@ module RubySMB
         raw_response = @client.send_recv(nt_create_andx_request)
         response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
         unless response.valid?
+          if response.is_a?(RubySMB::SMB1::Packet::EmptyPacket) &&
+               response.smb_header.protocol == RubySMB::SMB1::SMB_PROTOCOL_ID &&
+               response.smb_header.command == response.original_command
+            raise RubySMB::Error::InvalidPacket.new(
+              'The response seems to be an SMB1 NtCreateAndxResponse but an '\
+              'error occurs while parsing it. It is probably missing the '\
+              'required extended information.'
+            )
+          end
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::NtCreateAndxResponse::COMMAND,

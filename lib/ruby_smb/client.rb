@@ -292,7 +292,8 @@ module RubySMB
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
         Net::NTLM::FLAGS[:TARGET_INFO] |
-        negotiate_version_flag
+        negotiate_version_flag ^
+        Net::NTLM::FLAGS[:OEM]
 
       @ntlm_client = Net::NTLM::Client.new(
         @username,
@@ -366,7 +367,8 @@ module RubySMB
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
         Net::NTLM::FLAGS[:TARGET_INFO] |
-        negotiate_version_flag
+        negotiate_version_flag ^
+        Net::NTLM::FLAGS[:OEM]
 
       @ntlm_client = Net::NTLM::Client.new(
           @username,
