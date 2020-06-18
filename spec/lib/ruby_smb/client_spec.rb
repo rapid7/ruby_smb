@@ -125,7 +125,7 @@ RSpec.describe RubySMB::Client do
         expect(opt[:workstation]).to eq(local_workstation)
         expect(opt[:domain]).to eq(domain)
         flags = Net::NTLM::Client::DEFAULT_FLAGS |
-          Net::NTLM::FLAGS[:TARGET_INFO] | 0x02000000
+          Net::NTLM::FLAGS[:TARGET_INFO] | 0x02000000 ^ Net::NTLM::FLAGS[:OEM]
         expect(opt[:flags]).to eq(flags)
       end
 
