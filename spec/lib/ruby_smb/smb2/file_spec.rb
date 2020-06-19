@@ -43,7 +43,7 @@ RSpec.describe RubySMB::SMB2::File do
   it { is_expected.to respond_to :size }
   it { is_expected.to respond_to :size_on_disk }
   it { is_expected.to respond_to :tree }
-  it { is_expected.to respond_to :encryption_required }
+  it { is_expected.to respond_to :tree_connect_encrypt_data }
 
   it 'pulls the attributes from the response packet' do
     expect(file.attributes).to eq create_response.file_attributes
@@ -73,8 +73,8 @@ RSpec.describe RubySMB::SMB2::File do
     expect(file.size_on_disk).to eq create_response.allocation_size
   end
 
-  it 'sets the encryption_required flag to false by default' do
-    expect(file.encryption_required).to be false
+  it 'sets the tree_connect_encrypt_data flag to false by default' do
+    expect(file.tree_connect_encrypt_data).to be false
   end
 
   describe '#set_header_fields' do
@@ -132,7 +132,7 @@ RSpec.describe RubySMB::SMB2::File do
       end
 
       it 'calls Client #send_recv with encryption set if required' do
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).with(small_read, encrypt: true)
         file.read
       end
@@ -177,7 +177,7 @@ RSpec.describe RubySMB::SMB2::File do
       it 'calls Client #send_recv with encryption set if required' do
         read_request = double('Read Request')
         allow(file).to receive(:read_packet).and_return(read_request)
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).twice.with(read_request, encrypt: true)
         file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
       end
@@ -235,7 +235,7 @@ RSpec.describe RubySMB::SMB2::File do
       it 'calls Client #send_recv with encryption set if required' do
         write_request = double('Write Request')
         allow(file).to receive(:write_packet).and_return(write_request)
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).once.with(write_request, encrypt: true).and_return(write_response.to_binary_s)
         file.write(data: 'test')
       end
@@ -250,7 +250,7 @@ RSpec.describe RubySMB::SMB2::File do
       it 'calls Client #send_recv with encryption set if required' do
         write_request = double('Write Request')
         allow(file).to receive(:write_packet).and_return(write_request)
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).twice.with(write_request, encrypt: true).and_return(write_response.to_binary_s)
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
       end
@@ -307,7 +307,7 @@ RSpec.describe RubySMB::SMB2::File do
       it 'calls Client #send_recv with encryption set if required' do
         allow(file).to receive(:delete_packet)
         allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).with(small_delete, encrypt: true)
         file.delete
       end
@@ -349,7 +349,7 @@ RSpec.describe RubySMB::SMB2::File do
 
       it 'calls Client #send_recv with encryption set if required' do
         allow(RubySMB::SMB2::Packet::SetInfoResponse).to receive(:read).and_return(small_response)
-        file.encryption_required = true
+        file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).with(small_rename, encrypt: true)
         file.rename('new_file.txt')
       end
@@ -393,7 +393,7 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'calls Client #send_recv with encryption set if required' do
-      file.encryption_required = true
+      file.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(request, encrypt: true)
       file.close
     end
@@ -465,7 +465,7 @@ RSpec.describe RubySMB::SMB2::File do
     it 'calls Client #send_recv with encryption set if required' do
       request = double('Request')
       allow(file).to receive(:read_packet).and_return(request)
-      file.encryption_required = true
+      file.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(request, encrypt: true)
       file.send_recv_read
     end
@@ -528,7 +528,7 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     it 'calls Client #send_recv with encryption set if required' do
-      file.encryption_required = true
+      file.tree_connect_encrypt_data = true
       expect(client).to receive(:send_recv).with(request, encrypt: true)
       file.send_recv_write
     end

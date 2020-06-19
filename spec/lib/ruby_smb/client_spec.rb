@@ -46,7 +46,7 @@ RSpec.describe RubySMB::Client do
   it { is_expected.to respond_to :encryption_algorithm }
   it { is_expected.to respond_to :client_encryption_key }
   it { is_expected.to respond_to :server_encryption_key }
-  it { is_expected.to respond_to :encryption_required }
+  it { is_expected.to respond_to :session_encrypt_data }
   it { is_expected.to respond_to :server_encryption_algorithms }
   it { is_expected.to respond_to :server_compression_algorithms }
   it { is_expected.to respond_to :negotiated_smb_version }
@@ -106,9 +106,9 @@ RSpec.describe RubySMB::Client do
       expect(client.password).to eq password
     end
 
-    it 'sets the encryption_required attribute' do
+    it 'sets the session_encrypt_data attribute' do
       client =  described_class.new(dispatcher, username: username, password: password, always_encrypt: true)
-      expect(client.encryption_required).to eq true
+      expect(client.session_encrypt_data).to eq true
     end
 
     it 'creates an NTLM client' do
@@ -125,7 +125,7 @@ RSpec.describe RubySMB::Client do
         expect(opt[:workstation]).to eq(local_workstation)
         expect(opt[:domain]).to eq(domain)
         flags = Net::NTLM::Client::DEFAULT_FLAGS |
-          Net::NTLM::FLAGS[:TARGET_INFO] | 0x02000000
+          Net::NTLM::FLAGS[:TARGET_INFO] | 0x02000000 ^ Net::NTLM::FLAGS[:OEM]
         expect(opt[:flags]).to eq(flags)
       end
 
@@ -189,11 +189,6 @@ RSpec.describe RubySMB::Client do
       allow(client).to receive(:is_status_pending?).and_return(false)
       allow(dispatcher).to receive(:send_packet).and_return(nil)
       allow(dispatcher).to receive(:recv_packet).and_return('A')
-    end
-
-    it 'checks the packet version' do
-      expect(smb1_request).to receive(:packet_smb_version).and_call_original
-      client.send_recv(smb1_request)
     end
 
     context 'when signing' do
@@ -322,6 +317,11 @@ RSpec.describe RubySMB::Client do
       expect(client.can_be_encrypted?(packet)).to be true
     end
 
+    it 'returns false if it is an SMB1 packet' do
+      packet = RubySMB::SMB1::Packet::LogoffRequest.new
+      expect(client.can_be_encrypted?(packet)).to be false
+    end
+
     [RubySMB::SMB2::Packet::SessionSetupRequest, RubySMB::SMB2::Packet::NegotiateRequest].each do |klass|
       it "returns false if the packet is a #{klass}" do
         packet = klass.new
@@ -385,6 +385,15 @@ RSpec.describe RubySMB::Client do
       expect(dispatcher).to have_received(:recv_packet)
     end
 
+    it 'raises an EncryptionError exception if an error occurs while receiving the response' do
+      allow(dispatcher).to receive(:recv_packet).and_raise(RubySMB::Error::CommunicationError)
+      expect { client.recv_encrypt }.to raise_error(
+        RubySMB::Error::EncryptionError,
+        'Communication error with the remote host: RubySMB::Error::CommunicationError. '\
+        'The server supports encryption but was not able to handle the encrypted request.'
+      )
+    end
+
     it 'parses the response as a Transform response packet' do
       expect(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).with(packet.to_binary_s)
       client.recv_encrypt
@@ -392,7 +401,7 @@ RSpec.describe RubySMB::Client do
 
     it 'raises an InvalidPacket exception if an error occurs while parsing the response' do
       allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_raise(IOError)
-      expect { client.recv_encrypt}.to raise_error(RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet')
+      expect { client.recv_encrypt }.to raise_error(RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet')
     end
 
     it 'decrypts the Transform response packet' do
@@ -403,10 +412,10 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'raises an EncryptionError exception if an error occurs while decrypting' do
-      allow(client).to receive(:smb3_decrypt).and_raise(RubySMB::Error::RubySMBError )
-      expect { client.recv_encrypt}.to raise_error(
+      allow(client).to receive(:smb3_decrypt).and_raise(RubySMB::Error::RubySMBError)
+      expect { client.recv_encrypt }.to raise_error(
         RubySMB::Error::EncryptionError,
-        "Error while decrypting RubySMB::SMB2::Packet::TransformHeader packet (SMB 0x0300}): RubySMB::Error::RubySMBError"
+        'Error while decrypting RubySMB::SMB2::Packet::TransformHeader packet (SMB 0x0300}): RubySMB::Error::RubySMBError'
       )
     end
   end
@@ -1049,6 +1058,42 @@ RSpec.describe RubySMB::Client do
 
         it 'returns the string \'SMB2\'' do
           expect(client.parse_negotiate_response(smb3_response)).to eq ('SMB3')
+        end
+
+        context 'when the server supports encryption' do
+          before :example do
+            smb3_response.capabilities.encryption = 1
+          end
+
+          it 'keeps session encryption enabled if it was already' do
+            client.session_encrypt_data = true
+            client.parse_negotiate_response(smb3_response)
+            expect(client.session_encrypt_data).to be true
+          end
+
+          it 'keeps session encryption disabled if it was already' do
+            client.session_encrypt_data = false
+            client.parse_negotiate_response(smb3_response)
+            expect(client.session_encrypt_data).to be false
+          end
+        end
+
+        context 'when the server does not support encryption' do
+          before :example do
+            smb3_response.capabilities.encryption = 0
+          end
+
+          it 'disables session encryption if it was already enabled' do
+            client.session_encrypt_data = true
+            client.parse_negotiate_response(smb3_response)
+            expect(client.session_encrypt_data).to be false
+          end
+
+          it 'keeps session encryption disabled if it was already' do
+            client.session_encrypt_data = false
+            client.parse_negotiate_response(smb3_response)
+            expect(client.session_encrypt_data).to be false
+          end
         end
       end
 
@@ -1710,22 +1755,22 @@ RSpec.describe RubySMB::Client do
           smb2_client.smb2_authenticate
         end
 
-        context 'when setting the encryption_required parameter' do
+        context 'when setting the session_encrypt_data parameter' do
           before :example do
             smb2_client.smb3 = true
-            smb2_client.encryption_required = false
+            smb2_client.session_encrypt_data = false
           end
 
-          it 'sets the encryption_required parameter to true if the server requires encryption' do
+          it 'sets the session_encrypt_data parameter to true if the server requires encryption' do
             final_response_packet.session_flags.encrypt_data = 1
             smb2_client.smb2_authenticate
-            expect(smb2_client.encryption_required).to be true
+            expect(smb2_client.session_encrypt_data).to be true
           end
 
-          it 'does not set the encryption_required parameter if the server does not require encryption' do
+          it 'does not set the session_encrypt_data parameter if the server does not require encryption' do
             final_response_packet.session_flags.encrypt_data = 0
             smb2_client.smb2_authenticate
-            expect(smb2_client.encryption_required).to be false
+            expect(smb2_client.session_encrypt_data).to be false
           end
         end
       end
