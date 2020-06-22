@@ -18,15 +18,10 @@ module RubySMB
         # This is only valid for SMB1.
         response_packet.dialects = request_packet.dialects if response_packet.respond_to? :dialects=
         version = parse_negotiate_response(response_packet)
-        case @dialect
-        when '0x0300', '0x0302'
-          if response_packet&.capabilities&.encryption == 1
-            @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
-          end
-        when '0x0311'
-          parse_smb3_capabilities(request_packet, response_packet)
+        if @dialect == '0x0311'
+          update_preauth_hash(request_packet)
+          update_preauth_hash(response_packet)
         end
-        @session_encrypt_data = self.smb3 && @session_encrypt_data && !@encryption_algorithm.nil?
 
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
@@ -144,6 +139,15 @@ module RubySMB
           self.server_guid = packet.server_guid
           self.server_start_time = packet.server_start_time.to_time if packet.server_start_time != 0
           self.server_system_time = packet.system_time.to_time if packet.system_time != 0
+          case self.dialect
+          when '0x0300', '0x0302'
+            if packet&.capabilities&.encryption == 1
+              self.encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+            end
+          when '0x0311'
+            parse_smb3_capabilities(packet)
+          end
+          self.session_encrypt_data = self.smb3 && self.session_encrypt_data && !self.encryption_algorithm.nil?
           return "SMB#{self.negotiated_smb_version}"
         else
           error = 'Unable to negotiate with remote host'
@@ -156,7 +160,7 @@ module RubySMB
         end
       end
 
-      def parse_smb3_capabilities(request_packet, response_packet)
+      def parse_smb3_capabilities(response_packet)
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
         )
@@ -186,8 +190,6 @@ module RubySMB
             'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
           )
         end
-        update_preauth_hash(request_packet)
-        update_preauth_hash(response_packet)
 
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES

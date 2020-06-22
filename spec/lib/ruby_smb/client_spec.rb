@@ -1065,6 +1065,11 @@ RSpec.describe RubySMB::Client do
             smb3_response.capabilities.encryption = 1
           end
 
+          it 'sets the expected encryption algorithm' do
+            client.parse_negotiate_response(smb3_response)
+            expect(client.encryption_algorithm).to eq(RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM])
+          end
+
           it 'keeps session encryption enabled if it was already' do
             client.session_encrypt_data = true
             client.parse_negotiate_response(smb3_response)
@@ -1166,26 +1171,15 @@ RSpec.describe RubySMB::Client do
         end
       end
 
-      ['0x0300', '0x0302'].each do |dialect|
-        context "with #{dialect} dialect" do
-          before :example do
-            client.dialect = dialect
-          end
-
-          it 'sets the expected encryption algorithm' do
-            client.negotiate
-            expect(client.encryption_algorithm).to eq(RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM])
-          end
-        end
-      end
-
       context "with 0x0311 dialect" do
         it 'calls #parse_smb3_encryption_data' do
           client.dialect = '0x0311'
           request_packet = client.smb2_3_negotiate_request
           allow(client).to receive(:negotiate_request).and_return(request_packet)
           allow(client).to receive(:negotiate_response).and_return(smb3_response)
-          expect(client).to receive(:parse_smb3_capabilities).with(request_packet, smb3_response)
+          expect(client).to receive(:parse_negotiate_response).with(smb3_response)
+          expect(client).to receive(:update_preauth_hash).with(request_packet)
+          expect(client).to receive(:update_preauth_hash).with(smb3_response)
           client.negotiate
         end
       end
@@ -1285,7 +1279,7 @@ RSpec.describe RubySMB::Client do
         context 'when selecting the integrity hash algorithm' do
           context 'with one algorithm' do
             it 'selects the expected algorithm' do
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.preauth_integrity_hash_algorithm).to eq('SHA512')
             end
           end
@@ -1296,7 +1290,7 @@ RSpec.describe RubySMB::Client do
                 RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
               )
               nc.data.hash_algorithms << 3
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.preauth_integrity_hash_algorithm).to eq('SHA512')
             end
           end
@@ -1305,7 +1299,7 @@ RSpec.describe RubySMB::Client do
             it 'raises the expected exception' do
               smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
               smb3_response.add_negotiate_context(nc_encryption)
-              expect { smb3_client.parse_smb3_capabilities(request_packet, smb3_response) }.to raise_error(
+              expect { smb3_client.parse_smb3_capabilities(smb3_response) }.to raise_error(
                 RubySMB::Error::EncryptionError,
                 'Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response'
               )
@@ -1321,7 +1315,7 @@ RSpec.describe RubySMB::Client do
               )
               nc.data.hash_algorithms << 5
               smb3_response.add_negotiate_context(nc)
-              expect { smb3_client.parse_smb3_capabilities(request_packet, smb3_response) }.to raise_error(
+              expect { smb3_client.parse_smb3_capabilities(smb3_response) }.to raise_error(
                 RubySMB::Error::EncryptionError,
                 'Unable to retrieve the Preauth Integrity Hash Algorithm from the Negotiate response'
               )
@@ -1332,7 +1326,7 @@ RSpec.describe RubySMB::Client do
         context 'when selecting the encryption algorithm' do
           context 'with one algorithm' do
             it 'selects the expected algorithm' do
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.encryption_algorithm).to eq('AES-128-CCM')
             end
           end
@@ -1343,7 +1337,7 @@ RSpec.describe RubySMB::Client do
                 RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
               )
               nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.encryption_algorithm).to eq('AES-128-GCM')
             end
 
@@ -1352,7 +1346,7 @@ RSpec.describe RubySMB::Client do
                 RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
               )
               nc.data.ciphers << 3
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.encryption_algorithm).to eq('AES-128-CCM')
             end
 
@@ -1361,7 +1355,7 @@ RSpec.describe RubySMB::Client do
                 RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
               )
               nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
-              smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+              smb3_client.parse_smb3_capabilities(smb3_response)
               expect(smb3_client.server_encryption_algorithms).to eq([1, 2])
             end
           end
@@ -1370,7 +1364,7 @@ RSpec.describe RubySMB::Client do
             it 'raises the expected exception' do
               smb3_response = RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311)
               smb3_response.add_negotiate_context(nc_integrity)
-              expect { smb3_client.parse_smb3_capabilities(request_packet, smb3_response) }.to raise_error(
+              expect { smb3_client.parse_smb3_capabilities(smb3_response) }.to raise_error(
                 RubySMB::Error::EncryptionError,
                 'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
               )
@@ -1386,7 +1380,7 @@ RSpec.describe RubySMB::Client do
               )
               nc.data.ciphers << 14
               smb3_response.add_negotiate_context(nc)
-              expect { smb3_client.parse_smb3_capabilities(request_packet, smb3_response) }.to raise_error(
+              expect { smb3_client.parse_smb3_capabilities(smb3_response) }.to raise_error(
                 RubySMB::Error::EncryptionError,
                 'Unable to retrieve the encryption cipher list supported by the server from the Negotiate response'
               )
@@ -1404,15 +1398,9 @@ RSpec.describe RubySMB::Client do
             nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman
             nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::Pattern_V1
             smb3_response.add_negotiate_context(nc)
-            smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
+            smb3_client.parse_smb3_capabilities(smb3_response)
             expect(smb3_client.server_compression_algorithms).to eq([1, 2, 3, 4])
           end
-        end
-
-        it 'updates the preauth hash' do
-          expect(smb3_client).to receive(:update_preauth_hash).with(request_packet)
-          expect(smb3_client).to receive(:update_preauth_hash).with(smb3_response)
-          smb3_client.parse_smb3_capabilities(request_packet, smb3_response)
         end
       end
     end
