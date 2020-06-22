@@ -121,6 +121,7 @@ module RubySMB
           # protocol overhead every time.
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
           self.negotiated_smb_version = 1
+          self.session_encrypt_data = false
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
@@ -140,14 +141,18 @@ module RubySMB
           self.server_start_time = packet.server_start_time.to_time if packet.server_start_time != 0
           self.server_system_time = packet.system_time.to_time if packet.system_time != 0
           case self.dialect
+          when '0x02ff'
           when '0x0300', '0x0302'
             if packet&.capabilities&.encryption == 1
               self.encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
             end
+            self.session_encrypt_data = self.session_encrypt_data && !self.encryption_algorithm.nil?
           when '0x0311'
             parse_smb3_capabilities(packet)
+            self.session_encrypt_data = self.session_encrypt_data && !self.encryption_algorithm.nil?
+          else
+            self.session_encrypt_data = false
           end
-          self.session_encrypt_data = self.smb3 && self.session_encrypt_data && !self.encryption_algorithm.nil?
           return "SMB#{self.negotiated_smb_version}"
         else
           error = 'Unable to negotiate with remote host'
