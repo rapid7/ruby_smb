@@ -20,10 +20,13 @@ module RubySMB
         version = parse_negotiate_response(response_packet)
         case @dialect
         when '0x0300', '0x0302'
-          @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          if response_packet&.capabilities&.encryption == 1
+            @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
+          end
         when '0x0311'
           parse_smb3_capabilities(request_packet, response_packet)
         end
+        @session_encrypt_data = self.smb3 && @session_encrypt_data && !@encryption_algorithm.nil?
 
         # If the response contains the SMB2 wildcard revision number dialect;
         # it indicates that the server implements SMB 2.1 or future dialect
@@ -129,8 +132,6 @@ module RubySMB
           unless packet.dialect_revision.to_i == 0x02ff
             self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
             self.smb3 = packet.dialect_revision.to_i >= 0x0300 && packet.dialect_revision.to_i < 0x0400
-            # Only enable session encryption if the server supports it
-            @session_encrypt_data = self.smb3 && @session_encrypt_data && packet.capabilities.encryption == 1
           end
           self.signing_required = packet.security_mode.signing_required == 1 if self.smb2 || self.smb3
           self.dialect = "0x%04x" % packet.dialect_revision
