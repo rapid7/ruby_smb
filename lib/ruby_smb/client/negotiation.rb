@@ -22,7 +22,7 @@ module RubySMB
         when '0x0300', '0x0302'
           @encryption_algorithm = RubySMB::SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM]
         when '0x0311'
-          parse_smb3_encryption_data(request_packet, response_packet)
+          parse_smb3_capabilities(request_packet, response_packet)
         end
 
         # If the response contains the SMB2 wildcard revision number dialect;
@@ -155,7 +155,7 @@ module RubySMB
         end
       end
 
-      def parse_smb3_encryption_data(request_packet, response_packet)
+      def parse_smb3_capabilities(request_packet, response_packet)
         nc = response_packet.find_negotiate_context(
           RubySMB::SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES
         )
