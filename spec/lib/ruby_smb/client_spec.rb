@@ -1172,7 +1172,7 @@ RSpec.describe RubySMB::Client do
       end
 
       context "with 0x0311 dialect" do
-        it 'calls #parse_smb3_encryption_data' do
+        it 'calls #parse_negotiate_response and updates the preauth hash' do
           client.dialect = '0x0311'
           request_packet = client.smb2_3_negotiate_request
           allow(client).to receive(:negotiate_request).and_return(request_packet)
@@ -1252,7 +1252,7 @@ RSpec.describe RubySMB::Client do
         end
       end
 
-      describe '#parse_smb3_encryption_data' do
+      describe '#parse_smb3_capabilities' do
         let(:request_packet) { client.smb2_3_negotiate_request }
         let(:smb3_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x311) }
         let(:nc_encryption) do
