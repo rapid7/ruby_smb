@@ -27,11 +27,24 @@ module RubySMB
           open_key_request       RubySMB::Dcerpc::Winreg::REG_OPEN_KEY
           query_info_key_request RubySMB::Dcerpc::Winreg::REG_QUERY_INFO_KEY
           query_value_request    RubySMB::Dcerpc::Winreg::REG_QUERY_VALUE
+          create_key_request     RubySMB::Dcerpc::Winreg::REG_CREATE_KEY
+          save_key_request       RubySMB::Dcerpc::Winreg::REG_SAVE_KEY
           string                 :default
         end
         choice 'Srvsvc', selection: -> { opnum } do
           net_share_enum_all RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: -> { host rescue '' }
           string             :default
+        end
+        choice 'Svcctl', selection: -> { opnum } do
+          open_sc_manager_w_request       RubySMB::Dcerpc::Svcctl::OPEN_SC_MANAGER_W
+          open_service_w_request          RubySMB::Dcerpc::Svcctl::OPEN_SERVICE_W
+          query_service_status_request    RubySMB::Dcerpc::Svcctl::QUERY_SERVICE_STATUS
+          query_service_config_w_request  RubySMB::Dcerpc::Svcctl::QUERY_SERVICE_CONFIG_W
+          change_service_config_w_request RubySMB::Dcerpc::Svcctl::CHANGE_SERVICE_CONFIG_W
+          start_service_w_request         RubySMB::Dcerpc::Svcctl::START_SERVICE_W
+          control_service_request         RubySMB::Dcerpc::Svcctl::CONTROL_SERVICE
+          close_service_handle_request    RubySMB::Dcerpc::Svcctl::CLOSE_SERVICE_HANDLE
+          string                          :default
         end
         string :default
       end

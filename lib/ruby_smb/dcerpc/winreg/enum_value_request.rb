@@ -16,7 +16,7 @@ module RubySMB
         rrp_unicode_string :lp_value_name
         string             :pad, length: -> { pad_length }
         ndr_lp_dword       :lp_type
-        ndr_lp_byte        :lp_data
+        ndr_lp_byte_array  :lp_data
         ndr_lp_dword       :lpcb_data
         ndr_lp_dword       :lpcb_len
 

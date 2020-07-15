@@ -13,6 +13,9 @@ module RubySMB
 
       # Raised when an error is returned during a Winreg operation
       class WinregError < DcerpcError; end
+
+      # Raised when an error is returned during a Svcctl operation
+      class SvcctlError < DcerpcError; end
     end
   end
 end

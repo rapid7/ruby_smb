@@ -7,6 +7,80 @@ module RubySMB
       VER_MAJOR = 2
       VER_MINOR = 0
 
+
+      # An NDR Conformant and Varying String representation as defined in
+      # [Transfer Syntax NDR - Conformant and Varying Strings](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
+      # The string elements are Stringz16 (unicode)
+      class NdrString < BinData::Primitive
+        endian :little
+
+        uint32    :max_count
+        uint32    :offset, initial_value: 0
+        uint32    :actual_count
+        stringz16 :str, read_length: -> { actual_count * 2 }, onlyif: -> { actual_count > 0 }
+
+        def get
+          self.actual_count == 0 ? 0 : self.str
+        end
+
+        def set(v)
+          if v.is_a?(Integer) && v == 0
+            self.str.clear
+            self.actual_count = 0
+          else
+            self.str = v.to_s
+            self.max_count = str.to_binary_s.size / 2 if self.max_count == 0
+            self.actual_count = str.to_binary_s.size / 2 unless str.empty?
+          end
+        end
+
+        def clear
+          # Make sure #max_count and #offset are not cleared out
+          self.str.clear
+          self.actual_count.clear
+        end
+
+        def to_s
+          self.str.to_s
+        end
+      end
+
+      # An NDR Uni-dimensional Conformant Array of Bytes representation as defined in
+      # [Transfer Syntax NDR - Uni-dimensional Conformant Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagfcjh_26)
+      class NdrLpByte < BinData::Primitive
+        endian :little
+
+        uint32 :max_count, value: -> { self.elements.size }
+        array  :elements, type: :uint8, read_until: -> { index == self.max_count}, onlyif: -> { self.max_count > 0 }
+
+        def get
+          self.elements
+        end
+
+        def set(v)
+          self.elements = v.to_ary
+        end
+      end
+
+      # An NDR Uni-dimensional Conformant-varying Arrays of bytes representation as defined in:
+      # [Transfer Syntax NDR - NDR Constructed Types](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_04)
+      class NdrByteArray < BinData::Primitive
+        endian :little
+
+        uint32 :max_count, initial_value: -> { actual_count }
+        uint32 :offset, initial_value: 0
+        uint32 :actual_count, initial_value: -> { bytes.size }
+        array  :bytes, :type => :uint8, initial_length: -> { actual_count }
+
+        def get
+          self.bytes
+        end
+
+        def set(v)
+          self.bytes = v.to_ary
+        end
+      end
+
       # An NDR Top-level Full Pointers representation as defined in
       # [Transfer Syntax NDR - Top-level Full Pointers](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_11_01)
       # This class must be inherited and the subclass must have a #referent protperty
@@ -32,40 +106,122 @@ module RubySMB
         end
       end
 
-      # An NDR Conformant and Varying String representation as defined in
-      # [Transfer Syntax NDR - Conformant and Varying Strings](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
-      # The string elements are Stringz16 (unicode)
-      class NdrString < BinData::Primitive
+      # A generic NDR structure
+      class NdrStruct < BinData::Record
+
+        def do_read(io)
+          super(io)
+          each_pair do |_name, field|
+            case field
+            when BinData::Array
+              field.each do |element|
+                next unless element.is_a?(NdrPointer)
+                next if element.referent_id == 0
+                pad = (4 - io.offset % 4) % 4
+                io.seekbytes(pad) if pad > 0
+                element.referent.do_read(io)
+              end
+            when NdrPointer
+              next if field.referent_id == 0
+              pad = (4 - io.offset % 4) % 4
+              io.seekbytes(pad) if pad > 0
+              field.referent.do_read(io)
+            end
+          end
+        end
+
+        def do_write(io)
+          super(io)
+          each_pair do |_name, field|
+            case field
+            when BinData::Array
+              field.each do |element|
+                next unless element.is_a?(NdrPointer)
+                next if element.referent_id == 0
+                pad = (4 - io.offset % 4) % 4
+                io.writebytes("\x00" * pad + element.referent.to_binary_s)
+              end
+            when NdrPointer
+              next if field.referent_id == 0
+              pad = (4 - io.offset % 4) % 4
+              io.writebytes("\x00" * pad + field.referent.to_binary_s)
+            end
+          end
+        end
+      end
+
+      # A generic NDR pointer
+      class NdrPointer < BinData::Primitive
         endian :little
+        uint32 :referent_id, initial_value: 0
 
-        uint32    :max_count
-        uint32    :offset,     initial_value: 0
-        uint32    :actual_count
-        stringz16 :str,        read_length: -> { actual_count }, onlyif: -> { actual_count > 0 }
+        def do_read(io)
+          self.referent_id.do_read(io)
+        end
 
-        def get
-          self.actual_count == 0 ? 0 : self.str
+        def do_write(io)
+          self.referent_id.do_write(io)
         end
 
         def set(v)
-          if v.is_a?(Integer) && v == 0
-            self.actual_count = 0
-          else
-            self.str = v
-            self.max_count = self.actual_count = str.to_binary_s.size / 2
+          if v == :null
+            self.referent_id = 0
+          elsif self.referent_id == 0
+            self.referent_id = rand(0xFFFFFFFF)
+          end
+        end
+
+        def get
+          self.referent_id
+        end
+
+        def process_referent?
+          current_parent = parent
+          loop do
+            return true unless current_parent
+            return false if current_parent.is_a?(NdrStruct)
+            current_parent = current_parent.parent
           end
         end
       end
 
       # A pointer to a NdrString structure
-      class NdrLpStr < NdrTopLevelFullPointer
+      class NdrLpStr < NdrPointer
         endian :little
 
-        ndr_string :referent, onlyif: -> { !is_a_null_pointer? }
+        ndr_string :referent, onlyif: -> { self.referent_id != 0 }
 
-        def to_s
-          is_a_null_pointer? ? "\0" : self.referent
+        def do_read(io)
+          super(io)
+          if process_referent?
+            self.referent.do_read(io) unless self.referent_id == 0
+          end
         end
+
+        def do_write(io)
+          super(io)
+          if process_referent?
+            self.referent.do_write(io) unless self.referent_id == 0
+          end
+        end
+
+        def set(v)
+          if v == :null
+            self.referent.clear
+          else
+            self.referent.set(v)
+          end
+          super(v)
+        end
+
+        def get
+          if self.referent_id == 0
+            :null
+          else
+            self.referent
+          end
+        end
+
       end
 
       # An NDR Context Handle representation as defined in
@@ -81,6 +237,7 @@ module RubySMB
 
         def set(handle)
           if handle.is_a?(Hash)
+            handle = handle
             self.context_handle_attributes = handle[:context_handle_attributes]
             self.context_handle_uuid = handle[:context_handle_uuid]
           elsif handle.is_a?(NdrContextHandle)
@@ -91,23 +248,136 @@ module RubySMB
         end
       end
 
-      # A pointer to a DWORD
-      class NdrLpDword < NdrTopLevelFullPointer
+      class NdrLpDword < NdrPointer
         endian :little
 
-        uint32 :referent, onlyif: -> { !is_a_null_pointer? }
+        uint32 :referent, onlyif: -> { self.referent_id != 0 }
+
+        def do_read(io)
+          super(io)
+          if process_referent?
+            self.referent.do_read(io) unless self.referent_id == 0
+          end
+        end
+
+        def do_write(io)
+          super(io)
+          if process_referent?
+            self.referent.do_write(io) unless self.referent_id == 0
+          end
+        end
+
+        def set(v)
+          if v == :null
+            self.referent.clear
+          else
+            self.referent = v
+          end
+          super(v)
+        end
+
+        def get
+          if self.referent_id == 0
+            :null
+          else
+            self.referent
+          end
+        end
       end
 
-      # An NDR Uni-dimensional Conformant-varying Arrays representation as defined in:
-      # [Transfer Syntax NDR - NDR Constructed Types](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_04)
-      class NdrLpByte < BinData::Record
+      class NdrStringPtrsw < NdrStruct
         endian :little
 
-        uint32 :referent_identifier, initial_value: 0x00020000
-        uint32 :max_count,           initial_value: -> { actual_count }, onlyif: -> { referent_identifier != 0 }
-        uint32 :offset,              initial_value: 0,                   onlyif: -> { referent_identifier != 0 }
-        uint32 :actual_count,        initial_value: -> { bytes.size },   onlyif: -> { referent_identifier != 0 }
-        array  :bytes, :type => :uint8, initial_length: -> { actual_count }, onlyif: -> { referent_identifier != 0 }
+        uint32 :max_count, value: -> { self.elements.size }
+        array  :elements, type: :ndr_lp_str, read_until: -> { index == self.max_count - 1 }, onlyif: -> { self.max_count > 0 }
+
+        def get
+          self.elements
+        end
+
+        def set(v)
+          self.elements = v.to_ary
+        end
+
+        def do_num_bytes
+          to_binary_s.size
+        end
+      end
+
+      class NdrLpStringPtrsw < NdrPointer
+        endian :little
+
+        ndr_string_ptrsw :referent, onlyif: -> { self.referent_id != 0 }
+
+        def do_read(io)
+          super(io)
+          if process_referent?
+            self.referent.do_read(io) unless self.referent_id == 0
+          end
+        end
+
+        def do_write(io)
+          super(io)
+          if process_referent?
+            self.referent.do_write(io) unless self.referent_id == 0
+          end
+        end
+
+        def set(v)
+          if v == :null
+            self.referent.clear
+          else
+            self.referent.elements = v.elements.to_ary
+          end
+          super(v)
+        end
+
+        def get
+          if self.referent_id == 0
+            :null
+          else
+            self.referent
+          end
+        end
+      end
+
+      # A pointer to an NDR Uni-dimensional Conformant-varying Arrays of bytes
+      class NdrLpByteArray < NdrPointer
+        endian :little
+
+        ndr_byte_array :referent, onlyif: -> { self.referent_id != 0 }
+
+        def do_read(io)
+          super(io)
+          if process_referent?
+            self.referent.do_read(io) unless self.referent_id == 0
+          end
+        end
+
+        def do_write(io)
+          super(io)
+          if process_referent?
+            self.referent.do_write(io) unless self.referent_id == 0
+          end
+        end
+
+        def set(v)
+          if v == :null
+            self.referent.clear
+          else
+            self.referent = v.is_a?(NdrLpByteArray) ? v.referent : v
+          end
+          super(v)
+        end
+
+        def get
+          if self.referent_id == 0
+            :null
+          else
+            self.referent
+          end
+        end
+
       end
 
       # A pointer to a Windows FILETIME structure

@@ -8,8 +8,8 @@ module RubySMB
     class RrpUnicodeString < BinData::Primitive
       endian :little
 
-      uint16     :buffer_length,  initial_value: -> { buffer.to_s == "\0" ? 0 : buffer.actual_count * 2 }
-      uint16     :maximum_length, initial_value: -> { buffer.to_s == "\0" ? 0 : buffer.max_count * 2 }
+      uint16     :buffer_length
+      uint16     :maximum_length
       ndr_lp_str :buffer
 
       def get
@@ -18,8 +18,11 @@ module RubySMB
 
       def set(buf)
         self.buffer = buf
-        self.buffer_length = self.buffer.to_s == "\0" ? 0 : self.buffer.actual_count * 2
-        self.maximum_length = self.buffer.to_s == "\0" ? 0 : self.buffer.max_count * 2
+        self.buffer_length = self.buffer == :null ? 0 : self.buffer.referent.actual_count * 2
+        # Don't reset maximum_length if the buffer is NULL to make sure we can
+        # set it independently of the buffer size
+        return if self.maximum_length > 0 && self.buffer == :null
+        self.maximum_length = self.buffer.referent.max_count * 2
       end
     end
 
