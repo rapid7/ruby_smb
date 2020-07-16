@@ -10,25 +10,24 @@
 require 'bundler/setup'
 require 'ruby_smb'
 
-address  = ARGV[0]
-pipename = ARGV[1]
-username = ARGV[2]
-password = ARGV[3]
-smbver   = ARGV[4].to_i
+address      = ARGV[0]
+pipename     = ARGV[1]
+username     = ARGV[2]
+password     = ARGV[3]
+smb_versions = ARGV[4]&.split(',') || ['1','2','3']
 
 sock = TCPSocket.new(address, 445)
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-if smbver == 2
-  client = RubySMB::Client.new(dispatcher, smb1: false, username: username, password: password)
-  client.negotiate
+client = RubySMB::Client.new(dispatcher, smb1: smb_versions.include?('1'), smb2: smb_versions.include?('2'), smb3: smb_versions.include?('3'), username: username, password: password)
+smbver = client.negotiate
+
+if smbver == 'SMB1'
+  puts "ServerMaxBuffer: #{client.server_max_buffer_size}"
+else
   puts "ServerMaxRead:   #{client.server_max_read_size}"
   puts "ServerMaxWrite:  #{client.server_max_write_size}"
   puts "ServerMaxTrans:  #{client.server_max_transact_size}"
-elsif smbver == 1
-  client = RubySMB::Client.new(dispatcher, smb2: false, username: username, password: password)
-  client.negotiate
-  puts "ServerMaxBuffer: #{client.server_max_buffer_size}"
 end
 
 client.authenticate
