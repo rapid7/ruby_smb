@@ -221,7 +221,7 @@ module RubySMB
       def enum_key(handle, index)
         enum_key_request_packet = RubySMB::Dcerpc::Winreg::EnumKeyRequest.new(hkey: handle, dw_index: index)
         enum_key_request_packet.lpft_last_write_time = 0
-        enum_key_request_packet.lp_class.referent.buffer = 0
+        enum_key_request_packet.lp_class = 0
         enum_key_request_packet.lp_name.buffer.referent.max_count = 256
         response = dcerpc_request(enum_key_request_packet)
         begin
@@ -262,11 +262,19 @@ module RubySMB
         enum_value_response.lp_value_name.to_s
       end
 
+      # Creates the specified registry key and returns a handle to the newly created key
+      #
+      # @param handle [Ndr::NdrContextHandle] the handle for the key
+      # @param sub_key [String] the name of the key
+      # @param opts [Hash] options for the CreateKeyRequest
+      # @return [RubySMB::Dcerpc::Winreg::PrpcHkey] the handle to the opened or created key
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a CreateKeyResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def create_key(handle, sub_key, opts = {})
         opts = {
           hkey:                   handle,
           lp_sub_key:             sub_key,
-          lp_class:               opts[:class] || :null,
+          lp_class:               opts[:lp_class] || :null,
           dw_options:             opts[:dw_options] || RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_KEY_TYPE_VOLATILE,
           sam_desired:            opts[:sam_desired] || RubySMB::Dcerpc::Winreg::Regsam.new(maximum: 1),
           lp_security_attributes: opts[:lp_security_attributes] || RubySMB::Dcerpc::RpcSecurityAttributes.new,
@@ -287,6 +295,13 @@ module RubySMB
         create_key_response.hkey
       end
 
+      # Saves the specified key, subkeys, and values to a new file
+      #
+      # @param handle [Ndr::NdrContextHandle] the handle for the key
+      # @param file_name [String] the name of the registry file in which the specified key and subkeys are to be saved
+      # @param opts [Hash] options for the SaveKeyRequest
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a SaveKeyResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def save_key(handle, file_name, opts = {})
         opts = {
           hkey:                   handle,
@@ -298,7 +313,7 @@ module RubySMB
         begin
           save_key_response = RubySMB::Dcerpc::Winreg::SaveKeyResponse.read(response)
         rescue IOError
-          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the CreateKey response"
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the SaveKeyResponse response"
         end
         unless save_key_response.error_status == WindowsError::Win32::ERROR_SUCCESS
           raise RubySMB::Dcerpc::Error::WinregError, "Error returned when saving key to #{file_name}: "\

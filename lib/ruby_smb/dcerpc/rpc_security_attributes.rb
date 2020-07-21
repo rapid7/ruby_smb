@@ -27,37 +27,6 @@ module RubySMB
       endian :little
 
       rpc_security_attributes :referent, onlyif: -> { self.referent_id != 0 }
-
-      def do_read(io)
-        super(io)
-        if process_referent?
-          self.referent.do_read(io) unless self.referent_id == 0
-        end
-      end
-
-      def do_write(io)
-        super(io)
-        if process_referent?
-          self.referent.do_write(io) unless self.referent_id == 0
-        end
-      end
-
-      def set(v)
-        if v == :null
-          self.referent.clear
-        else
-          self.referent = v
-        end
-        super(v)
-      end
-
-      def get
-        if self.referent_id == 0
-          :null
-        else
-          self.referent
-        end
-      end
     end
 
   end

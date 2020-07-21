@@ -18,13 +18,6 @@ module RubySMB
           super
           @opnum = START_SERVICE_W
         end
-
-        def do_write(io)
-          # StratService
-          #require 'pry';binding.pry
-          super(io)
-          #require 'pry';binding.pry
-        end
       end
 
     end

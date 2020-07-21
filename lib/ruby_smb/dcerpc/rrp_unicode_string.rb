@@ -27,10 +27,10 @@ module RubySMB
     end
 
     # A pointer to a RRP_UNICODE_STRING structure
-    class PrrpUnicodeString < Ndr::NdrTopLevelFullPointer
+    class PrrpUnicodeString < Ndr::NdrPointer
       endian :little
 
-      rrp_unicode_string :referent, onlyif: -> { !is_a_null_pointer? }
+      rrp_unicode_string :referent, onlyif: -> { self.referent_id != 0 }
     end
 
   end

@@ -265,13 +265,11 @@ module RubySMB
       require 'ruby_smb/dcerpc/svcctl/close_service_handle_request'
       require 'ruby_smb/dcerpc/svcctl/close_service_handle_response'
 
-      # Open the registry root key and return a handle for it. The key can be
-      # either a long format (e.g. HKEY_LOCAL_MACHINE) or a short format
-      # (e.g. HKLM)
+      # Open the SCM database on the specified server.
       #
-      # @param root_key [String] the root key to open
-      # @return [Ndr::NdrContextHandle] the RPC context handle for the root key
-      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a OpenRootKeyResponse packet
+      # @param rhost [String] the server's machine name
+      # @return [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the newly opened SCM database
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a OpenSCManagerWResponse packet
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def open_sc_manager_w(rhost, access = SERVICE_START | SERVICE_STOP | SERVICE_CHANGE_CONFIG | SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS | SC_MANAGER_ENUMERATE_SERVICE)
         open_sc_manager_w_request = OpenSCManagerWRequest.new(dw_desired_access: access)
@@ -291,6 +289,14 @@ module RubySMB
         open_sc_manager_w_response.lp_sc_handle
       end
 
+      # Creates an RPC context handle to an existing service record.
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the SCM database
+      # @param service_name [Srting] the ServiceName of the service record
+      # @param access [Integer] access right
+      # @return [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the found service record
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a OpenServiceWResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def open_service_w(scm_handle, service_name, access = SERVICE_ALL_ACCESS)
         open_service_w_request = OpenServiceWRequest.new(dw_desired_access: access)
         open_service_w_request.lp_sc_handle = scm_handle
@@ -309,6 +315,12 @@ module RubySMB
         open_sercice_w_response.lp_sc_handle
       end
 
+      # Returns the current status of the specified service
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @return [RubySMB::Dcerpc::Svcctl::ServiceStatus] structure that contains the status information for the service
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a QueryServiceStatusResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_service_status(svc_handle)
         qss_request = QueryServiceStatusRequest.new
         qss_request.h_service = svc_handle
@@ -326,6 +338,12 @@ module RubySMB
         qss_response.lp_service_status
       end
 
+      # Returns the configuration parameters of the specified service
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @return [RubySMB::Dcerpc::Svcctl::QueryServiceConfigW] structure that contains the configuration parameters for the service
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a QueryServiceConfigWResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_service_config(svc_handle)
         qsc_request = QueryServiceConfigWRequest.new
         qsc_request.h_service = svc_handle
@@ -353,6 +371,12 @@ module RubySMB
         qsc_response.lp_service_config
       end
 
+      # Changes a service's configuration parameters in the SCM database
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @param opts [Hash] configuration parameters to change
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a ChangeServiceConfigWResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def change_service_config_w(svc_handle, opts = {})
         opts = {
           h_service:             svc_handle,
@@ -373,7 +397,7 @@ module RubySMB
         begin
           csc_response = ChangeServiceConfigWResponse.read(response)
         rescue IOError
-          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading QueryServiceConfigWResponse'
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading ChangeServiceConfigWResponse'
         end
         unless csc_response.error_status == WindowsError::Win32::ERROR_SUCCESS
           raise RubySMB::Dcerpc::Error::SvcctlError,
@@ -382,6 +406,13 @@ module RubySMB
         end
       end
 
+      # Starts a specified service
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @param argv [Array<String>] arguments to the service (Array of
+      #   strings). The first element in argv must be the name of the service.
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a StartServiceWResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def start_service_w(svc_handle, argv = [])
         ss_request = StartServiceWRequest.new(h_service: svc_handle)
         unless argv.empty?
@@ -403,6 +434,12 @@ module RubySMB
         end
       end
 
+      # Send a control code to a specific service handle
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @param control [Integer] control code
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a ControlServiceResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def control_service(svc_handle, control)
         cs_request = ControlServiceRequest.new(h_service: svc_handle, dw_control: control)
         response = dcerpc_request(cs_request)
@@ -418,6 +455,11 @@ module RubySMB
         end
       end
 
+      # Releases the handle to the specified service or the SCM database.
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record or to the SCM database
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a CloseServiceHandleResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def close_service_handle(svc_handle)
         csh_request = CloseServiceHandleRequest.new(h_sc_object: svc_handle)
         response = dcerpc_request(csh_request)
