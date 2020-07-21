@@ -161,6 +161,13 @@ RSpec.describe RubySMB::SMB2::Pipe do
         expect(pipe.respond_to?(:has_registry_key?)).to be true
       end
     end
+
+    context 'with \'svcctl\' filename' do
+      it 'extends svcctl class' do
+        pipe = described_class.new(tree: tree, response: create_response, name: 'svcctl')
+        expect(pipe.respond_to?(:query_service_config)).to be true
+      end
+    end
   end
 
   describe '#dcerpc_request' do

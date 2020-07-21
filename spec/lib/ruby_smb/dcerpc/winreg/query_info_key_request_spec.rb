@@ -25,10 +25,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryInfoKeyRequest do
     it 'is a RrpUnicodeString structure' do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::RrpUnicodeString
     end
-
-    it 'has an initial value of 0' do
-      expect(packet.lp_class).to eq(0)
-    end
   end
 
   describe '#initialize_instance' do

@@ -13,10 +13,6 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
     it 'should be a 16-bit unsigned integer' do
       expect(packet.buffer_length).to be_a BinData::Uint16le
     end
-
-    it 'is set to 0 when #buffer in empty' do
-      expect(packet.buffer_length).to eq(0)
-    end
   end
 
   describe '#maximum_length' do
@@ -54,23 +50,44 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
       expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
     end
 
-    context 'when the value is 0' do
+    context 'when the value is :null' do
       it 'sets #buffer_length to 0' do
-        packet.set(0)
+        packet.buffer_length = 33
+        packet.set(:null)
         expect(packet.buffer_length).to eq(0)
       end
 
-      it 'sets #maximum_length to 0' do
-        packet.set(0)
-        expect(packet.maximum_length).to eq(0)
+      it 'does not set #maximum_length if it has already been set' do
+        packet.maximum_length = 33
+        packet.set(:null)
+        expect(packet.maximum_length).to eq(33)
+      end
+    end
+  end
+
+  describe '#read' do
+    context 'with a null pointer' do
+      it 'reads its own binary representation' do
+        raw = packet.to_binary_s
+        expect(described_class.read(raw)).to eq(packet)
+        expect(described_class.read(raw).to_binary_s).to eq(raw)
+      end
+    end
+
+    context 'with a normal string' do
+      it 'reads its own binary representation' do
+        packet.assign('my_test')
+        raw = packet.to_binary_s
+        expect(described_class.read(raw)).to eq(packet)
+        expect(described_class.read(raw).to_binary_s).to eq(raw)
       end
     end
   end
 end
 
 RSpec.describe RubySMB::Dcerpc::PrrpUnicodeString do
-  it 'is NdrTopLevelFullPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrTopLevelFullPointer
+  it 'is NdrPointer subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
   end
 
   subject(:packet) { described_class.new }
@@ -87,12 +104,32 @@ RSpec.describe RubySMB::Dcerpc::PrrpUnicodeString do
     end
 
     it 'exists if superclass #referent_identifier is not zero' do
+      packet.referent_id = 0xCCCC
       expect(packet.referent?).to be true
     end
 
     it 'does not exist if superclass #referent_identifier is zero' do
-      packet.referent_identifier = 0
+      packet.referent_id = 0
       expect(packet.referent?).to be false
+    end
+  end
+
+  describe '#read' do
+    context 'with a null pointer' do
+      it 'reads its own binary representation' do
+        raw = packet.to_binary_s
+        expect(described_class.read(raw)).to eq(packet)
+        expect(described_class.read(raw).to_binary_s).to eq(raw)
+      end
+    end
+
+    context 'with a normal string' do
+      it 'reads its own binary representation' do
+        packet.assign('my_test')
+        raw = packet.to_binary_s
+        expect(described_class.read(raw)).to eq(packet)
+        expect(described_class.read(raw).to_binary_s).to eq(raw)
+      end
     end
   end
 end

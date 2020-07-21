@@ -44,5 +44,17 @@ RSpec.describe RubySMB::Field::Stringz16 do
       io = StringIO.new("A\x00B\x00C\x00D\x00")
       expect { stringz16.read(io) }.to raise_error(EOFError)
     end
+
+    it 'trims the string to #max_length and makes sure it ends with a null terminator' do
+      io = StringIO.new("A\x00B\x00C\x00D\x00")
+      str = described_class.new(max_length: 6)
+      expect(str.read(io).to_binary_s).to eq("A\x00B\x00\x00\x00".b)
+    end
+
+    it 'raises an exception when #max_length is not a multiple of two' do
+      io = StringIO.new("A\x00B\x00C\x00D\x00")
+      str = described_class.new(max_length: 5)
+      expect { str.read(io) }.to raise_error(ArgumentError)
+    end
   end
 end

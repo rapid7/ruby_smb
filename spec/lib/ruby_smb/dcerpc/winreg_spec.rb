@@ -132,8 +132,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
   describe '#query_value' do
     let(:handle)                      { double('Handle') }
     let(:value_name)                  { double('Value Name') }
-    let(:query_value_request_packet1) { double('Query Value Request Packet #1') }
-    let(:query_value_request_packet2) { double('Query Value Request Packet #2') }
+    let(:query_value_request_packet) { double('Query Value Request Packet #1') }
     let(:lp_data1)                    { double('LpData #1') }
     let(:lp_data2)                    { double('LpData #2') }
     let(:response1)                   { double('Response #1') }
@@ -142,26 +141,28 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:query_value_response2)       { double('Query Value Response #2') }
     let(:data)                        { double('Data') }
     let(:lpcb_data)                   { double('LpcbData') }
-    let(:lpcb_data_referent)          { double('Lpcb Data Referent') }
+    let(:lpcb_data_referent)          { double('LpcbData Referent') }
+    let(:lp_data2_referent)           { double('LpData Referent') }
     before :example do
+      allow(described_class::QueryValueRequest).to receive(:new).and_return(query_value_request_packet)
+      allow(query_value_request_packet).to receive_messages(
+        :lp_type=   => nil,
+        :lpcb_data= => nil,
+        :lpcb_len=  => nil,
+        :lp_data=   => nil,
+        :lp_data    => lp_data2,
+      )
+      allow(lp_data2).to receive(:referent).and_return(lp_data2_referent)
+      allow(lp_data2_referent).to receive(:max_count=)
       first_request = true
-      allow(described_class::QueryValueRequest).to receive(:new) do
+      allow(winreg).to receive(:dcerpc_request) do |arg|
         if first_request
           first_request = false
-          query_value_request_packet1
+          response1
         else
-          query_value_request_packet2
+          response2
         end
       end
-      allow(query_value_request_packet1).to receive(:lp_data).and_return(lp_data1)
-      allow(query_value_request_packet2).to receive_messages(
-        :lp_data    => lp_data2,
-        :lpcb_data= => nil
-      )
-      allow(lp_data1).to receive(:referent_identifier=)
-      allow(lp_data2).to receive(:max_count=)
-      allow(winreg).to receive(:dcerpc_request).with(query_value_request_packet1).and_return(response1)
-      allow(winreg).to receive(:dcerpc_request).with(query_value_request_packet2).and_return(response2)
       allow(described_class::QueryValueResponse).to receive(:read).with(response1).and_return(query_value_response1)
       allow(described_class::QueryValueResponse).to receive(:read).with(response2).and_return(query_value_response2)
       allow(query_value_response1).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -175,24 +176,22 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'create the expected QueryValueRequest packets' do
       winreg.query_value(handle, value_name)
-      expect(described_class::QueryValueRequest).to have_received(:new).with(hkey: handle, lp_value_name: value_name).twice
+      expect(described_class::QueryValueRequest).to have_received(:new).with(hkey: handle, lp_value_name: value_name)
     end
 
-    it 'sets the expected user rights on the first request packet' do
+    it 'sets the expected fields on the request packet' do
       winreg.query_value(handle, value_name)
-      expect(lp_data1).to have_received(:referent_identifier=).with(0)
-    end
-
-    it 'sets the expected user rights on the second request packet' do
-      winreg.query_value(handle, value_name)
-      expect(lp_data2).to have_received(:max_count=).with(lpcb_data_referent)
-      expect(query_value_request_packet2).to have_received(:lpcb_data=).with(lpcb_data)
+      expect(query_value_request_packet).to have_received(:lp_type=).with(0)
+      expect(query_value_request_packet).to have_received(:lpcb_data=).with(0)
+      expect(query_value_request_packet).to have_received(:lpcb_len=).with(0)
+      expect(query_value_request_packet).to have_received(:lpcb_data=).with(lpcb_data)
+      expect(query_value_request_packet).to have_received(:lp_data=).with([])
+      expect(lp_data2_referent).to have_received(:max_count=).with(lpcb_data_referent)
     end
 
     it 'sends the expected dcerpc requests' do
       winreg.query_value(handle, value_name)
-      expect(winreg).to have_received(:dcerpc_request).with(query_value_request_packet1).once.ordered
-      expect(winreg).to have_received(:dcerpc_request).with(query_value_request_packet2).once.ordered
+      expect(winreg).to have_received(:dcerpc_request).with(query_value_request_packet).twice
     end
 
     context 'when receiving the first response' do
@@ -293,8 +292,20 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:query_info_key_request_packet) { double('CloseKey Request Packet') }
     let(:response)                      { double('Response') }
     let(:query_info_key_response)       { double('CloseKey Response') }
+    let(:lp_class)                      { double('LpClass') }
+    let(:lp_class_referent)             { double('LpClass referent') }
+    let(:lp_class_buf_ref)              { double('LpClass buffer referent') }
     before :example do
       allow(described_class::QueryInfoKeyRequest).to receive(:new).and_return(query_info_key_request_packet)
+      allow(query_info_key_request_packet).to receive_messages(
+        :lp_class= => nil,
+        :lp_class  => lp_class,
+      )
+      allow(lp_class).to receive(:referent).and_return(lp_class_referent)
+      allow(lp_class_referent).to receive(:actual_count=)
+      allow(lp_class).to receive(:maximum_length=)
+      allow(lp_class).to receive_message_chain(:buffer, :referent => lp_class_buf_ref)
+      allow(lp_class_buf_ref).to receive(:max_count=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::QueryInfoKeyResponse).to receive(:read).and_return(query_info_key_response)
       allow(query_info_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -308,6 +319,14 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'sends the expected dcerpc request' do
       winreg.query_info_key(handle)
       expect(winreg).to have_received(:dcerpc_request).with(query_info_key_request_packet)
+    end
+
+    it 'sets the expected fields on the request packet' do
+      winreg.query_info_key(handle)
+      expect(query_info_key_request_packet).to have_received(:lp_class=).with('')
+      expect(lp_class_referent).to have_received(:actual_count=).with(0)
+      expect(lp_class).to have_received(:maximum_length=).with(1024)
+      expect(lp_class_buf_ref).to have_received(:max_count=).with(1024 / 2)
     end
 
     it 'creates a QueryInfoKeyResponse structure from the expected dcerpc response' do
@@ -338,10 +357,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:handle)                   { double('Handle') }
     let(:index)                    { double('Index') }
     let(:enum_key_request_packet)  { double('enum_key Request Packet') }
-    let(:lp_class)                 { double('Lp Class') }
     let(:lp_name)                  { double('Lp Name') }
     let(:buffer)                   { double('Buffer') }
-    let(:lp_class_buffer_referent) { double('Lp Class buffer referent') }
     let(:lp_name_buffer_referent)  { double('Lp Name buffer referent') }
     let(:response)                 { double('Response') }
     let(:enum_key_response)        { double('enum_key Response') }
@@ -350,13 +367,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       allow(described_class::EnumKeyRequest).to receive(:new).and_return(enum_key_request_packet)
       allow(enum_key_request_packet).to receive_messages(
         :lpft_last_write_time= => nil,
-        :lp_class              => lp_class,
+        :lp_class=             => nil,
         :lp_name               => lp_name
       )
-      allow(lp_class).to receive(:referent).and_return(lp_class_buffer_referent)
       allow(lp_name).to receive(:buffer).and_return(buffer)
       allow(buffer).to receive(:referent).and_return(lp_name_buffer_referent)
-      allow(lp_class_buffer_referent).to receive(:buffer=)
       allow(lp_name_buffer_referent).to receive(:max_count=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumKeyResponse).to receive(:read).and_return(enum_key_response)
@@ -372,7 +387,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'sets the expected user rights on the request packet' do
       winreg.enum_key(handle, index)
       expect(enum_key_request_packet).to have_received(:lpft_last_write_time=).with(0)
-      expect(lp_class_buffer_referent).to have_received(:buffer=).with(0)
+      expect(enum_key_request_packet).to have_received(:lp_class=).with(0)
       expect(lp_name_buffer_referent).to have_received(:max_count=).with(256)
     end
 
@@ -492,6 +507,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
     end
 
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.has_registry_key?(key, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
     it 'opens the expected root key' do
       winreg.has_registry_key?(key)
       expect(winreg).to have_received(:open_root_key).with(root_key)
@@ -519,6 +539,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'closes the key' do
       winreg.has_registry_key?(key)
       expect(winreg).to have_received(:close_key).with(subkey_handle)
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 
     it 'returns true when no error occurs' do
@@ -549,6 +570,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
     end
 
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.read_registry_key_value(key, value_name, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
     it 'opens the expected root key' do
       winreg.read_registry_key_value(key, value_name)
       expect(winreg).to have_received(:open_root_key).with(root_key)
@@ -567,6 +593,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'closes the key' do
       winreg.read_registry_key_value(key, value_name)
       expect(winreg).to have_received(:close_key).with(subkey_handle)
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 
     it 'returns expect registry key value' do
@@ -600,6 +627,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
     end
 
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.enum_registry_key(key, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
     it 'opens the expected root key' do
       winreg.enum_registry_key(key)
       expect(winreg).to have_received(:open_root_key).with(root_key)
@@ -630,6 +662,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'closes the key' do
       winreg.enum_registry_key(key)
       expect(winreg).to have_received(:close_key).with(subkey_handle)
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 
     it 'returns the expected array of enumerated keys' do
@@ -667,6 +700,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
     end
 
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.enum_registry_values(key, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
     it 'opens the expected root key' do
       winreg.enum_registry_values(key)
       expect(winreg).to have_received(:open_root_key).with(root_key)
@@ -697,6 +735,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'closes the key' do
       winreg.enum_registry_values(key)
       expect(winreg).to have_received(:close_key).with(subkey_handle)
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 
     it 'returns the expected array of enumerated keys' do
@@ -705,6 +744,137 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       allow(winreg).to receive(:enum_value).with(subkey_handle, 0).and_return(value1)
       allow(winreg).to receive(:enum_value).with(subkey_handle, 1).and_return(value2)
       expect(winreg.enum_registry_values(key)).to eq([value1, value2])
+    end
+  end
+
+  describe '#create_key' do
+    let(:handle)              { double('Handle') }
+    let(:sub_key)             { double('Sub key') }
+    let(:create_key_request)  { double('CreateKey Request') }
+    let(:response)            { double('Response') }
+    let(:create_key_response) { double('CreateKey Response') }
+    let(:hkey)                { double('hkey') }
+    before :example do
+      allow(described_class::CreateKeyRequest).to receive(:new).and_return(create_key_request)
+      allow(winreg).to receive(:dcerpc_request).and_return(response)
+      allow(described_class::CreateKeyResponse).to receive(:read).and_return(create_key_response)
+      allow(create_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
+      allow(create_key_response).to receive(:hkey).and_return(hkey)
+    end
+
+    it 'create the expected CreateKeyRequest packet with the default options' do
+      opts = {
+        hkey:                   handle,
+        lp_sub_key:             sub_key,
+        lp_class:               :null,
+        dw_options:             RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_KEY_TYPE_VOLATILE,
+        sam_desired:            RubySMB::Dcerpc::Winreg::Regsam.new(maximum: 1),
+        lp_security_attributes: RubySMB::Dcerpc::RpcSecurityAttributes.new,
+        lpdw_disposition:       RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_CREATED_NEW_KEY
+      }
+      winreg.create_key(handle, sub_key)
+      expect(described_class::CreateKeyRequest).to have_received(:new).with(opts)
+    end
+
+    it 'create the expected CreateKeyRequest packet with custom options' do
+      opts = {
+        hkey:                  handle,
+        lp_sub_key:            sub_key,
+        lp_class:              'MyClass',
+        dw_options:             RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_KEY_TYPE_SYMLINK,
+        sam_desired:            RubySMB::Dcerpc::Winreg::Regsam.new(key_set_value: 1),
+        lp_security_attributes: RubySMB::Dcerpc::RpcSecurityAttributes.new(n_length: 3),
+        lpdw_disposition:       RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_OPENED_EXISTING_KEY
+      }
+      winreg.create_key(handle, sub_key, opts)
+      expect(described_class::CreateKeyRequest).to have_received(:new).with(opts)
+    end
+
+    it 'sends the expected dcerpc request' do
+      winreg.create_key(handle, sub_key)
+      expect(winreg).to have_received(:dcerpc_request).with(create_key_request)
+    end
+
+    it 'creates a CreateKeyResponse structure from the expected dcerpc response' do
+      winreg.create_key(handle, sub_key)
+      expect(described_class::CreateKeyResponse).to have_received(:read).with(response)
+    end
+
+    context 'when an IOError occurs while parsing the response' do
+      it 'raises a RubySMB::Dcerpc::Error::InvalidPacket' do
+        allow(described_class::CreateKeyResponse).to receive(:read).and_raise(IOError)
+        expect { winreg.create_key(handle, sub_key) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+      it 'raises a RubySMB::Dcerpc::Error::WinregError' do
+        allow(create_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_INVALID_DATA)
+        expect { winreg.create_key(handle, sub_key) }.to raise_error(RubySMB::Dcerpc::Error::WinregError)
+      end
+    end
+
+    it 'returns the expected key name' do
+      expect(winreg.create_key(handle, sub_key)).to eq(hkey)
+    end
+  end
+
+  describe '#save_key' do
+    let(:handle)              { double('Handle') }
+    let(:filename)            { double('Filename') }
+    let(:save_key_request)    { double('CreateKey Request') }
+    let(:response)            { double('Response') }
+    let(:save_key_response)   { double('CreateKey Response') }
+    let(:hkey)                { double('hkey') }
+    before :example do
+      allow(described_class::SaveKeyRequest).to receive(:new).and_return(save_key_request)
+      allow(winreg).to receive(:dcerpc_request).and_return(response)
+      allow(described_class::SaveKeyResponse).to receive(:read).and_return(save_key_response)
+      allow(save_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
+    end
+
+    it 'create the expected SaveKeyRequest packet with the default options' do
+      opts = {
+        hkey:                   handle,
+        lp_file:                filename,
+        lp_security_attributes: :null,
+      }
+      winreg.save_key(handle, filename)
+      expect(described_class::SaveKeyRequest).to have_received(:new).with(opts)
+    end
+
+    it 'create the expected SaveKeyRequest packet with custom options' do
+      opts = {
+        hkey:                   handle,
+        lp_file:                filename,
+        lp_security_attributes: RubySMB::Dcerpc::RpcSecurityAttributes.new,
+      }
+      winreg.save_key(handle, filename, opts)
+      expect(described_class::SaveKeyRequest).to have_received(:new).with(opts)
+    end
+
+    it 'sends the expected dcerpc request' do
+      winreg.save_key(handle, filename)
+      expect(winreg).to have_received(:dcerpc_request).with(save_key_request)
+    end
+
+    it 'creates a SaveKeyResponse structure from the expected dcerpc response' do
+      winreg.save_key(handle, filename)
+      expect(described_class::SaveKeyResponse).to have_received(:read).with(response)
+    end
+
+    context 'when an IOError occurs while parsing the response' do
+      it 'raises a RubySMB::Dcerpc::Error::InvalidPacket' do
+        allow(described_class::SaveKeyResponse).to receive(:read).and_raise(IOError)
+        expect { winreg.save_key(handle, filename) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+      it 'raises a RubySMB::Dcerpc::Error::WinregError' do
+        allow(save_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_INVALID_DATA)
+        expect { winreg.save_key(handle, filename) }.to raise_error(RubySMB::Dcerpc::Error::WinregError)
+      end
     end
   end
 end

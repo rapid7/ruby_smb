@@ -20,8 +20,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
   end
 
   describe '#lp_data' do
-    it 'is a NdrLpByte structure' do
-      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByte
+    it 'is a NdrLpByteArray structure' do
+      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByteArray
     end
   end
 
@@ -31,7 +31,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
     end
 
     it 'should keep #lpcb_data 4-byte aligned' do
-      packet.lp_data.bytes = 'spec_test'.bytes
+      packet.lp_data = 'spec_test'.bytes
       expect(packet.lpcb_data.abs_offset % 4).to eq 0
     end
   end
@@ -60,24 +60,12 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
     end
   end
 
-  describe '#pad_length' do
-    it 'returns 0 when #lpcb_data is already 4-byte aligned' do
-      packet.lp_data.bytes = 'aligned.'.bytes
-      expect(packet.pad_length).to eq 0
-    end
-
-    it 'returns 2 when #lpcb_data is only 2-byte aligned' do
-      packet.lp_data.bytes = 'not aligned'.bytes
-      expect(packet.pad_length).to eq 1
-    end
-  end
-
   describe '#data' do
     context 'when #lp_type is 1 (unicode null-terminated string)' do
       it 'returns the expected value' do
         str = 'spec test string'.encode('utf-16le')
         packet.lp_type = 1
-        packet.lp_data.bytes = str.bytes
+        packet.lp_data = str.bytes
         expect(packet.data).to eq(str)
       end
     end
@@ -86,7 +74,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns the expected value' do
         str = '/%PATH%/foo'.encode('utf-16le')
         packet.lp_type = 2
-        packet.lp_data.bytes = str.bytes
+        packet.lp_data = str.bytes
         expect(packet.data).to eq(str)
       end
     end
@@ -95,7 +83,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns the expected value' do
         bytes = [0xFF, 0xEE, 0xDD, 0xCC].pack('C*')
         packet.lp_type = 3
-        packet.lp_data.bytes = bytes.bytes
+        packet.lp_data = bytes.bytes
         expect(packet.data).to eq(bytes)
       end
     end
@@ -104,7 +92,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns the expected value' do
         number = 12345
         packet.lp_type = 4
-        packet.lp_data.bytes = [number].pack('V').bytes
+        packet.lp_data = [number].pack('V').bytes
         expect(packet.data).to eq(number)
       end
     end
@@ -113,7 +101,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns the expected value' do
         number = 12345
         packet.lp_type = 5
-        packet.lp_data.bytes = [number].pack('N').bytes
+        packet.lp_data = [number].pack('N').bytes
         expect(packet.data).to eq(number)
       end
     end
@@ -124,7 +112,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
         null_byte = "\0".encode('utf-16le')
         str = (str_array + [null_byte]).join(null_byte)
         packet.lp_type = 7
-        packet.lp_data.bytes = str.bytes
+        packet.lp_data = str.bytes
         expect(packet.data).to eq(str_array)
       end
     end
@@ -133,7 +121,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns the expected value' do
         number = 0x1234567812345678
         packet.lp_type = 11
-        packet.lp_data.bytes = [number].pack('Q<').bytes
+        packet.lp_data = [number].pack('Q<').bytes
         expect(packet.data).to eq(number)
       end
     end
@@ -142,7 +130,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
       it 'returns an empty string' do
         str = 'test'
         packet.lp_type = 6
-        packet.lp_data.bytes = str.bytes
+        packet.lp_data = str.bytes
         expect(packet.data).to eq('')
       end
     end

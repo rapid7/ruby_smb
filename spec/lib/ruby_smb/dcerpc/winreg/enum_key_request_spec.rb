@@ -53,10 +53,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyRequest do
     it 'is a PrrpUnicodeString structure' do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::PrrpUnicodeString
     end
-
-    it 'has a initial value of 0' do
-      expect(packet.lp_class).to eq(0)
-    end
   end
 
   describe '#pad2' do
