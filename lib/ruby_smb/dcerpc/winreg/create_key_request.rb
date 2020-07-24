@@ -15,7 +15,7 @@ module RubySMB
         # persisted to the backing store and is preserved when the registry
         # server loses context due to a computer restart, reboot, or shut down
         # process.
-        REG_KEY_TYPE_NOT_VOLATILE  = 0x00000000
+        REG_KEY_TYPE_NON_VOLATILE  = 0x00000000
         # This key is volatile. The key with all its subkeys and values MUST
         # NOT be preserved when the registry server loses context due to a
         # computer restart, reboot, or shut down process.
@@ -70,6 +70,4 @@ module RubySMB
     end
   end
 end
-
-
 

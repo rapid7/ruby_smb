@@ -106,7 +106,6 @@ module RubySMB
 
         def set(handle)
           if handle.is_a?(Hash)
-            handle = handle
             self.context_handle_attributes = handle[:context_handle_attributes]
             self.context_handle_uuid = handle[:context_handle_uuid]
           elsif handle.is_a?(NdrContextHandle)
@@ -119,7 +118,7 @@ module RubySMB
 
       # An NDR Top-level Full Pointers representation as defined in
       # [Transfer Syntax NDR - Top-level Full Pointers](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_11_01)
-      # This class must be inherited and the subclass must have a #referent protperty
+      # This class must be inherited and the subclass must have a #referent property
       class NdrPointer < BinData::Primitive
         endian :little
 

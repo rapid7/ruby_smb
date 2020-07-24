@@ -21,6 +21,3 @@ module RubySMB
   end
 end
 
-
-
-
