@@ -115,13 +115,21 @@ module RubySMB
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a ReadResponse packet
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def read(bytes: size, offset: 0)
-        atomic_read_size = if bytes > tree.client.server_max_read_size
-                             tree.client.server_max_read_size
+        max_read = tree.client.server_max_read_size
+        if tree.client.dialect == '0x0202' || !tree.client.server_supports_multi_credit
+          max_read = 65536
+        end
+        atomic_read_size = if bytes > max_read
+                             max_read
                            else
                              bytes
                            end
+        credit_charge = 0
+        if tree.client.dialect != '0x0202' && tree.client.server_supports_multi_credit
+          credit_charge = (atomic_read_size - 1) / 65536 + 1
+        end
 
-        read_request = read_packet(read_length: atomic_read_size, offset: offset)
+        read_request = read_packet(read_length: atomic_read_size, offset: offset, credit_charge: credit_charge)
         raw_response = tree.client.send_recv(read_request, encrypt: @tree_connect_encrypt_data)
         response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
         unless response.valid?
@@ -142,9 +150,9 @@ module RubySMB
 
         while remaining_bytes > 0
           offset += atomic_read_size
-          atomic_read_size = remaining_bytes if remaining_bytes < tree.client.server_max_read_size
+          atomic_read_size = remaining_bytes if remaining_bytes < max_read
 
-          read_request = read_packet(read_length: atomic_read_size, offset: offset)
+          read_request = read_packet(read_length: atomic_read_size, offset: offset, credit_charge: credit_charge)
           raw_response = tree.client.send_recv(read_request, encrypt: @tree_connect_encrypt_data)
           response     = RubySMB::SMB2::Packet::ReadResponse.read(raw_response)
           unless response.valid?
@@ -169,11 +177,13 @@ module RubySMB
       #
       # @param bytes [Integer] the number of bytes to read
       # @param offset [Integer] the byte offset in the file to start reading from
+      # @param credit_charge [Integer] the number of credits that this request consumes
       # @return [RubySMB::SMB2::Packet::ReadRequest] the data read from the file
-      def read_packet(read_length: 0, offset: 0)
+      def read_packet(read_length: 0, offset: 0, credit_charge: 1)
         read_request = set_header_fields(RubySMB::SMB2::Packet::ReadRequest.new)
         read_request.read_length  = read_length
         read_request.offset       = offset
+        read_request.smb2_header.credit_charge = credit_charge
         read_request
       end
 
@@ -240,16 +250,24 @@ module RubySMB
       # @return [WindowsError::ErrorCode] the NTStatus code returned from the operation
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a WriteResponse packet
       def write(data:'', offset: 0)
+        max_write = tree.client.server_max_write_size
+        if tree.client.dialect == '0x0202' || !tree.client.server_supports_multi_credit
+          max_write = 65536
+        end
         buffer            = data.dup
         bytes             = data.length
-        atomic_write_size = if bytes > tree.client.server_max_write_size
-                              tree.client.server_max_write_size
+        atomic_write_size = if bytes > max_write
+                              max_write
                             else
                              bytes
                             end
+        credit_charge = 0
+        if tree.client.dialect != '0x0202' && tree.client.server_supports_multi_credit
+          credit_charge = (atomic_write_size - 1) / 65536 + 1
+        end
 
         while buffer.length > 0 do
-          write_request = write_packet(data: buffer.slice!(0,atomic_write_size), offset: offset)
+          write_request = write_packet(data: buffer.slice!(0, atomic_write_size), offset: offset, credit_charge: credit_charge)
           raw_response  = tree.client.send_recv(write_request, encrypt: @tree_connect_encrypt_data)
           response      = RubySMB::SMB2::Packet::WriteResponse.read(raw_response)
           unless response.valid?
@@ -262,7 +280,7 @@ module RubySMB
           end
           status        = response.smb2_header.nt_status.to_nt_status
 
-          offset+= atomic_write_size
+          offset += atomic_write_size
           return status unless status == WindowsError::NTStatus::STATUS_SUCCESS
         end
 
@@ -273,11 +291,13 @@ module RubySMB
       #
       # @param data [String] the data to write to the file
       # @param offset [Integer] the offset in the file to start writing from
+      # @param credit_charge [Integer] the number of credits that this request consumes
       # @return []RubySMB::SMB2::Packet::WriteRequest] the request packet
-      def write_packet(data:'', offset: 0)
+      def write_packet(data:'', offset: 0, credit_charge: 1)
         write_request               = set_header_fields(RubySMB::SMB2::Packet::WriteRequest.new)
         write_request.write_offset  = offset
         write_request.buffer        = data
+        write_request.smb2_header.credit_charge = credit_charge
         write_request
       end
 

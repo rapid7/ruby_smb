@@ -74,7 +74,7 @@ module RubySMB
           raise ::RubySMB::Error::NetBiosSessionService, 'NBSS Header is missing'
         end
 
-        length = nbss_header.packet_length
+        length = nbss_header.stream_protocol_length
         data = full_response ? nbss_header.to_binary_s : ''
         if length > 0
           if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
