@@ -363,14 +363,20 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:response)                 { double('Response') }
     let(:enum_key_response)        { double('enum_key Response') }
     let(:result_str)               { double('Result String') }
+    let(:lp_class)                 { double('Lp Class') }
+    let(:lp_class_buffer_referent) { double('Lp Class buffer referent') }
     before :example do
       allow(described_class::EnumKeyRequest).to receive(:new).and_return(enum_key_request_packet)
       allow(enum_key_request_packet).to receive_messages(
         :lpft_last_write_time= => nil,
         :lp_class=             => nil,
-        :lp_name               => lp_name
+        :lp_name               => lp_name,
+        :lp_class              => lp_class
       )
+      allow(lp_class).to receive(:referent).and_return(lp_class_buffer_referent)
+      allow(lp_class_buffer_referent).to receive(:buffer=)
       allow(lp_name).to receive(:buffer).and_return(buffer)
+      allow(lp_name).to receive(:buffer=)
       allow(buffer).to receive(:referent).and_return(lp_name_buffer_referent)
       allow(lp_name_buffer_referent).to receive(:max_count=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
@@ -384,10 +390,12 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(described_class::EnumKeyRequest).to have_received(:new).with(hkey: handle, dw_index: index)
     end
 
-    it 'sets the expected user rights on the request packet' do
+    it 'sets the expected parameters on the request packet' do
       winreg.enum_key(handle, index)
       expect(enum_key_request_packet).to have_received(:lpft_last_write_time=).with(0)
-      expect(enum_key_request_packet).to have_received(:lp_class=).with(0)
+      expect(enum_key_request_packet).to have_received(:lp_class=).with('')
+      expect(lp_class_buffer_referent).to have_received(:buffer=).with(:null)
+      expect(lp_name).to have_received(:buffer=).with('')
       expect(lp_name_buffer_referent).to have_received(:max_count=).with(256)
     end
 
@@ -425,7 +433,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:index)                     { double('Index') }
     let(:enum_value_request_packet) { double('EnumValue Request Packet') }
     let(:lp_value_name)             { double('Lp Value Name') }
-    let(:lp_data)                   { double('Lp Data') }
     let(:buffer)                    { double('Buffer') }
     let(:referent)                  { double('Referent') }
     let(:response)                  { double('Response') }
@@ -433,14 +440,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:result_str)                { double('Result String') }
     before :example do
       allow(described_class::EnumValueRequest).to receive(:new).and_return(enum_value_request_packet)
-      allow(enum_value_request_packet).to receive_messages(
-        :lp_value_name => lp_value_name,
-        :lp_data       => lp_data
-      )
+      allow(enum_value_request_packet).to receive(:lp_value_name).and_return(lp_value_name)
       allow(lp_value_name).to receive(:buffer).and_return(buffer)
+      allow(lp_value_name).to receive(:buffer=)
       allow(buffer).to receive(:referent).and_return(referent)
       allow(referent).to receive(:max_count=)
-      allow(lp_data).to receive(:referent_identifier=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumValueResponse).to receive(:read).and_return(enum_value_response)
       allow(enum_value_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -452,10 +456,10 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(described_class::EnumValueRequest).to have_received(:new).with(hkey: handle, dw_index: index)
     end
 
-    it 'sets the expected user rights on the request packet' do
+    it 'sets the expected buffer on the request packet' do
       winreg.enum_value(handle, index)
       expect(referent).to have_received(:max_count=).with(256)
-      expect(lp_data).to have_received(:referent_identifier=).with(0)
+      expect(lp_value_name).to have_received(:buffer=).with('')
     end
 
     it 'sends the expected dcerpc request' do
