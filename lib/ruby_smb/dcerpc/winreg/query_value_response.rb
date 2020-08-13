@@ -9,22 +9,22 @@ module RubySMB
 
         endian :little
 
-        ndr_lp_dword :lp_type
-        ndr_lp_byte  :lp_data
-        string       :pad, length: -> { pad_length }
-        ndr_lp_dword :lpcb_data
-        ndr_lp_dword :lpcb_len
-        uint32       :error_status
+        ndr_lp_dword      :lp_type
+        ndr_lp_byte_array :lp_data
+        string            :pad, length: -> { pad_length(self.lp_data) }
+        ndr_lp_dword      :lpcb_data
+        ndr_lp_dword      :lpcb_len
+        uint32            :error_status
 
         def initialize_instance
           super
           @opnum = REG_QUERY_VALUE
         end
 
-        # Determines the correct length for the padding in front of
-        # #lpcb_data. It should always force a 4-byte alignment.
-        def pad_length
-          offset = (lp_data.abs_offset + lp_data.to_binary_s.length) % 4
+        # Determines the correct length for the padding, so that the next
+        # field is 4-byte aligned.
+        def pad_length(prev_element)
+          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
           (4 - offset) % 4
         end
 

@@ -9,9 +9,10 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueRequest do
 
   it { is_expected.to respond_to :hkey }
   it { is_expected.to respond_to :lp_value_name }
-  it { is_expected.to respond_to :pad }
+  it { is_expected.to respond_to :pad1 }
   it { is_expected.to respond_to :lp_type }
   it { is_expected.to respond_to :lp_data }
+  it { is_expected.to respond_to :pad2 }
   it { is_expected.to respond_to :lpcb_data }
   it { is_expected.to respond_to :lpcb_len }
   it { is_expected.to respond_to :opnum }
@@ -32,9 +33,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueRequest do
     end
   end
 
-  describe '#pad' do
+  describe '#pad1' do
     it 'is a string' do
-      expect(packet.pad).to be_a BinData::String
+      expect(packet.pad1).to be_a BinData::String
     end
 
     it 'should keep #lp_type 4-byte aligned' do
@@ -50,14 +51,25 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueRequest do
   end
 
   describe '#lp_data' do
-    it 'is a NdrLpByte structure' do
-      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByte
+    it 'is a NdrLpByteArray structure' do
+      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByteArray
     end
   end
 
   describe '#lpcb_data' do
     it 'is a NdrLpDword structure' do
       expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    end
+  end
+
+  describe '#pad2' do
+    it 'is a string' do
+      expect(packet.pad2).to be_a BinData::String
+    end
+
+    it 'should keep #lpcb_data 4-byte aligned' do
+      packet.lp_data = [1, 2]
+      expect(packet.lpcb_data.abs_offset % 4).to eq 0
     end
   end
 
@@ -70,18 +82,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueRequest do
   describe '#initialize_instance' do
     it 'sets #opnum to REG_QUERY_VALUE constant' do
       expect(packet.opnum).to eq(RubySMB::Dcerpc::Winreg::REG_QUERY_VALUE)
-    end
-  end
-
-  describe '#pad_length' do
-    it 'returns 0 when #lp_type is already 4-byte aligned' do
-      packet.lp_value_name = 'align'
-      expect(packet.pad_length).to eq 0
-    end
-
-    it 'returns 2 when #lp_type is only 2-byte aligned' do
-      packet.lp_value_name = 'align' + 'A'
-      expect(packet.pad_length).to eq 2
     end
   end
 end

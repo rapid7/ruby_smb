@@ -13,11 +13,13 @@ module RubySMB
       OPEN_HKPD             = 0x03
       OPEN_HKU              = 0x04
       REG_CLOSE_KEY         = 0x05
+      REG_CREATE_KEY        = 0x06
       REG_ENUM_KEY          = 0x09
       REG_ENUM_VALUE        = 0x0a
       REG_OPEN_KEY          = 0x0f
       REG_QUERY_INFO_KEY    = 0x10
       REG_QUERY_VALUE       = 0x11
+      REG_SAVE_KEY          = 0x14
       OPEN_HKCC             = 0x1b
       OPEN_HKPT             = 0x20
       OPEN_HKPN             = 0x21
@@ -37,6 +39,10 @@ module RubySMB
       require 'ruby_smb/dcerpc/winreg/query_info_key_response'
       require 'ruby_smb/dcerpc/winreg/query_value_request'
       require 'ruby_smb/dcerpc/winreg/query_value_response'
+      require 'ruby_smb/dcerpc/winreg/create_key_request'
+      require 'ruby_smb/dcerpc/winreg/create_key_response'
+      require 'ruby_smb/dcerpc/winreg/save_key_request'
+      require 'ruby_smb/dcerpc/winreg/save_key_response'
 
       ROOT_KEY_MAP = {
         "HKEY_CLASSES_ROOT"         => OPEN_HKCR,
@@ -125,7 +131,9 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_value(handle, value_name)
         query_value_request_packet = RubySMB::Dcerpc::Winreg::QueryValueRequest.new(hkey: handle, lp_value_name: value_name)
-        query_value_request_packet.lp_data.referent_identifier = 0
+        query_value_request_packet.lp_type = 0
+        query_value_request_packet.lpcb_data = 0
+        query_value_request_packet.lpcb_len = 0
         response = dcerpc_request(query_value_request_packet)
         begin
           query_value_response = RubySMB::Dcerpc::Winreg::QueryValueResponse.read(response)
@@ -137,9 +145,9 @@ module RubySMB
             "#{WindowsError::Win32.find_by_retval(query_value_response.error_status.value).join(',')}"
         end
 
-        query_value_request_packet = RubySMB::Dcerpc::Winreg::QueryValueRequest.new(hkey: handle, lp_value_name: value_name)
         query_value_request_packet.lpcb_data = query_value_response.lpcb_data
-        query_value_request_packet.lp_data.max_count = query_value_response.lpcb_data.referent
+        query_value_request_packet.lp_data = []
+        query_value_request_packet.lp_data.referent.max_count = query_value_response.lpcb_data.referent
         response = dcerpc_request(query_value_request_packet)
         begin
           query_value_response = RubySMB::Dcerpc::Winreg::QueryValueResponse.read(response)
@@ -185,6 +193,10 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_info_key(handle)
         query_info_key_request_packet = RubySMB::Dcerpc::Winreg::QueryInfoKeyRequest.new(hkey: handle)
+        query_info_key_request_packet.lp_class = ''
+        query_info_key_request_packet.lp_class.referent.actual_count = 0
+        query_info_key_request_packet.lp_class.maximum_length = 1024
+        query_info_key_request_packet.lp_class.buffer.referent.max_count = 1024 / 2
         response = dcerpc_request(query_info_key_request_packet)
         begin
           query_info_key_response = RubySMB::Dcerpc::Winreg::QueryInfoKeyResponse.read(response)
@@ -209,7 +221,9 @@ module RubySMB
       def enum_key(handle, index)
         enum_key_request_packet = RubySMB::Dcerpc::Winreg::EnumKeyRequest.new(hkey: handle, dw_index: index)
         enum_key_request_packet.lpft_last_write_time = 0
-        enum_key_request_packet.lp_class.referent.buffer = 0
+        enum_key_request_packet.lp_class = ''
+        enum_key_request_packet.lp_class.referent.buffer = :null
+        enum_key_request_packet.lp_name.buffer = ''
         enum_key_request_packet.lp_name.buffer.referent.max_count = 256
         response = dcerpc_request(enum_key_request_packet)
         begin
@@ -234,7 +248,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_value(handle, index)
         enum_value_request_packet = RubySMB::Dcerpc::Winreg::EnumValueRequest.new(hkey: handle, dw_index: index)
-        enum_value_request_packet.lp_data.referent_identifier = 0
+        enum_value_request_packet.lp_value_name.buffer = ''
         enum_value_request_packet.lp_value_name.buffer.referent.max_count = 256
         response = dcerpc_request(enum_value_request_packet)
         begin
@@ -250,13 +264,72 @@ module RubySMB
         enum_value_response.lp_value_name.to_s
       end
 
+      # Creates the specified registry key and returns a handle to the newly created key
+      #
+      # @param handle [Ndr::NdrContextHandle] the handle for the key
+      # @param sub_key [String] the name of the key
+      # @param opts [Hash] options for the CreateKeyRequest
+      # @return [RubySMB::Dcerpc::Winreg::PrpcHkey] the handle to the opened or created key
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a CreateKeyResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def create_key(handle, sub_key, opts = {})
+        opts = {
+          hkey:                   handle,
+          lp_sub_key:             sub_key,
+          lp_class:               opts[:lp_class] || :null,
+          dw_options:             opts[:dw_options] || RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_KEY_TYPE_VOLATILE,
+          sam_desired:            opts[:sam_desired] || RubySMB::Dcerpc::Winreg::Regsam.new(maximum: 1),
+          lp_security_attributes: opts[:lp_security_attributes] || RubySMB::Dcerpc::RpcSecurityAttributes.new,
+          lpdw_disposition:       opts[:lpdw_disposition] || RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_CREATED_NEW_KEY,
+        }
+        create_key_request_packet = RubySMB::Dcerpc::Winreg::CreateKeyRequest.new(opts)
+        response = dcerpc_request(create_key_request_packet)
+        begin
+          create_key_response = RubySMB::Dcerpc::Winreg::CreateKeyResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the CreateKey response"
+        end
+        unless create_key_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          raise RubySMB::Dcerpc::Error::WinregError, "Error returned when creating key #{sub_key}: "\
+            "#{WindowsError::Win32.find_by_retval(create_key_response.error_status.value).join(',')}"
+        end
+
+        create_key_response.hkey
+      end
+
+      # Saves the specified key, subkeys, and values to a new file
+      #
+      # @param handle [Ndr::NdrContextHandle] the handle for the key
+      # @param file_name [String] the name of the registry file in which the specified key and subkeys are to be saved
+      # @param opts [Hash] options for the SaveKeyRequest
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a SaveKeyResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def save_key(handle, file_name, opts = {})
+        opts = {
+          hkey:                   handle,
+          lp_file:                file_name,
+          lp_security_attributes: opts[:lp_security_attributes] || :null,
+        }
+        save_key_request_packet = RubySMB::Dcerpc::Winreg::SaveKeyRequest.new(opts)
+        response = dcerpc_request(save_key_request_packet)
+        begin
+          save_key_response = RubySMB::Dcerpc::Winreg::SaveKeyResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the SaveKeyResponse response"
+        end
+        unless save_key_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          raise RubySMB::Dcerpc::Error::WinregError, "Error returned when saving key to #{file_name}: "\
+            "#{WindowsError::Win32.find_by_retval(save_key_response.error_status.value).join(',')}"
+        end
+      end
+
       # Checks if the specified registry key exists. It returns true if it
       # exists, false otherwise.
       #
       # @param key [String] the registry key to check
       # @return [Boolean]
-      def has_registry_key?(key)
-        bind(endpoint: RubySMB::Dcerpc::Winreg)
+      def has_registry_key?(key, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
 
         root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
         begin
@@ -265,8 +338,10 @@ module RubySMB
         rescue RubySMB::Dcerpc::Error::WinregError
           return false
         end
-        close_key(subkey_handle)
         return true
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
       end
 
       # Retrieve the data associated with the named value of a specified
@@ -275,15 +350,17 @@ module RubySMB
       # @param key [String] the registry key
       # @param value_name [String] the name of the value to read
       # @return [String] the data of the value entry
-      def read_registry_key_value(key, value_name)
-        bind(endpoint: RubySMB::Dcerpc::Winreg)
+      def read_registry_key_value(key, value_name, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
 
         root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
         root_key_handle = open_root_key(root_key)
         subkey_handle = open_key(root_key_handle, sub_key)
         value = query_value(subkey_handle, value_name)
-        close_key(subkey_handle)
         value
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
       end
 
       # Enumerate the subkeys of a specified registry key. If only a root key
@@ -291,8 +368,8 @@ module RubySMB
       #
       # @param key [String] the registry key
       # @return [Array<String>] the subkeys
-      def enum_registry_key(key)
-        bind(endpoint: RubySMB::Dcerpc::Winreg)
+      def enum_registry_key(key, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
 
         root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
         root_key_handle = open_root_key(root_key)
@@ -307,16 +384,18 @@ module RubySMB
         key_count.times do |i|
           enum_result << enum_key(subkey_handle, i)
         end
-        close_key(subkey_handle)
         enum_result
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
       end
 
       # Enumerate the values for the specified registry key.
       #
       # @param key [String] the registry key
       # @return [Array<String>] the values
-      def enum_registry_values(key)
-        bind(endpoint: RubySMB::Dcerpc::Winreg)
+      def enum_registry_values(key, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
 
         root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
         root_key_handle = open_root_key(root_key)
@@ -331,8 +410,10 @@ module RubySMB
         value_count.times do |i|
           enum_result << enum_value(subkey_handle, i)
         end
-        close_key(subkey_handle)
         enum_result
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
       end
 
     end

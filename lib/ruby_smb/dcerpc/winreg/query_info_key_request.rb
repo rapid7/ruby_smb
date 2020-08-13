@@ -12,7 +12,7 @@ module RubySMB
         endian :little
 
         rpc_hkey           :hkey
-        rrp_unicode_string :lp_class, initial_value: 0
+        rrp_unicode_string :lp_class
 
         def initialize_instance
           super

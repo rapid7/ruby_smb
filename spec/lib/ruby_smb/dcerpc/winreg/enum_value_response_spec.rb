@@ -38,8 +38,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumValueResponse do
   end
 
   describe '#lp_data' do
-    it 'is a NdrLpByte structure' do
-      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByte
+    it 'is a NdrLpByteArray structure' do
+      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByteArray
     end
   end
 

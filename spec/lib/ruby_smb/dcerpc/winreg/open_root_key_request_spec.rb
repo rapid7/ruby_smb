@@ -1,6 +1,6 @@
 RSpec.describe RubySMB::Dcerpc::Winreg::PRegistryServerName do
-  it 'is NdrTopLevelFullPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrTopLevelFullPointer
+  it 'is NdrPointer subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
   end
 
   subject(:packet) { described_class.new }
@@ -14,6 +14,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg::PRegistryServerName do
   describe '#referent' do
     it 'is a string in UTF-16LE' do
       expect(packet.referent).to be_a RubySMB::Field::String16
+    end
+
+    it 'only exists if #referent_id is not 0' do
+      packet.referent_id = 0
+      expect(packet.referent?).to be false
     end
 
     it 'reads 4-bytes' do
@@ -55,8 +60,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do
       end
     end
 
-    it 'sets #p_registry_server_name.referent to NULL unicode value' do
-      expect(packet.p_registry_server_name.referent).to eq("\0\0".encode('utf-16le'))
+    it 'sets #p_registry_server_name.referent to :null' do
+      expect(packet.p_registry_server_name).to eq(:null)
     end
 
     context 'when #opnum is not OPEN_HKPD, OPEN_HKPT or OPEN_HKPN' do

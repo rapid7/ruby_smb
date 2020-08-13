@@ -4,10 +4,10 @@ module RubySMB
 
       # This class represents a PREGISTRY_SERVER_NAME structure as defined in
       # [2.2.2 PREGISTRY_SERVER_NAME](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rrp/8bcd15fd-1aa5-44e2-8662-112ec3e9817b)
-      class PRegistryServerName < Ndr::NdrTopLevelFullPointer
+      class PRegistryServerName < Ndr::NdrPointer
         endian :little
 
-        string16 :referent, read_length: -> { 4 }
+        string16 :referent, onlyif: -> { self.referent_id != 0 }, read_length: -> { 4 }
       end
 
       # This class is a generic class that represents OpenXXX Request packet,
@@ -33,8 +33,8 @@ module RubySMB
         def initialize_instance
           super
           @opnum = get_parameter(:opnum) if has_parameter?(:opnum)
-          p_registry_server_name.referent = "\0\0"
-          sam_desired.maximum = 1 unless [OPEN_HKPD, OPEN_HKPT, OPEN_HKPN].include?(@opnum)
+          self.p_registry_server_name = :null
+          self.sam_desired.maximum = 1 unless [OPEN_HKPD, OPEN_HKPT, OPEN_HKPN].include?(@opnum)
         end
       end
 

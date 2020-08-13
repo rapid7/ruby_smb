@@ -25,12 +25,17 @@ module RubySMB
       # @see BinData::Stringz
       def read_and_return_value(io)
         max_length = eval_parameter(:max_length)
+        if max_length && max_length % 2 != 0
+          raise ArgumentError, "[Stringz16] #max_length should be a multiple of "\
+            "two, since it is Unicode (got #{max_length})"
+        end
         str = ''
         i = 0
         ch = nil
 
         # read until double NULL-byte or we have read in the max number of bytes
-        while (ch != "\0\0") && (i != max_length)
+        loop do
+          break if ch == "\0\0" || (max_length && i == max_length)
           ch = io.readbytes(2)
           str << ch
           i += 2
@@ -46,6 +51,17 @@ module RubySMB
       def truncate_after_first_zero_byte!(str)
         str.sub!(/([^\0]*\0\0\0).*/, '\1')
       end
+
+      def trim_to!(str, max_length = nil)
+        if max_length
+          max_length = 2 if max_length < 2
+          str.slice!(max_length..-1)
+          if str.length == max_length && str[-2, 2] != "\0\0"
+            str[-2, 2] = "\0\0"
+          end
+        end
+      end
+
     end
   end
 end
