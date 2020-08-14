@@ -102,26 +102,26 @@ RSpec.describe RubySMB::Dispatcher::Socket do
       end
 
       it 'reads the number of bytes specified in the nbss header' do
-        packet_length = 10
-        session_header.packet_length = packet_length
+        stream_protocol_length = 10
+        session_header.stream_protocol_length = stream_protocol_length
         allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
         expect(response_socket).to receive(:read).with(4).and_return(session_header)
-        expect(response_socket).to receive(:read).with(packet_length).and_return('A' * packet_length)
+        expect(response_socket).to receive(:read).with(stream_protocol_length).and_return('A' * stream_protocol_length)
         smb_socket.recv_packet
       end
 
       context 'when the socket does not return everything the first time' do
         it 'calls #read several times until everything is returned' do
-          packet_length = 67
+          stream_protocol_length = 67
           returned_length = 10
-          session_header.packet_length = packet_length
+          session_header.stream_protocol_length = stream_protocol_length
           allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
 
           expect(response_socket).to receive(:read).with(4).and_return(session_header)
           loop do
-            expect(response_socket).to receive(:read).with(packet_length).and_return('A' * returned_length).once
-            packet_length -= returned_length
-            break if packet_length <= 0
+            expect(response_socket).to receive(:read).with(stream_protocol_length).and_return('A' * returned_length).once
+            stream_protocol_length -= returned_length
+            break if stream_protocol_length <= 0
           end
           smb_socket.recv_packet
         end
@@ -134,7 +134,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
 
         context 'when the SMB packet is empty' do
           it 'returns the nbss header only' do
-            session_header.packet_length = 0
+            session_header.stream_protocol_length = 0
             allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
             expect(smb_socket.recv_packet(full_response: true)).to eq(session_header.to_binary_s)
           end
@@ -148,7 +148,7 @@ RSpec.describe RubySMB::Dispatcher::Socket do
 
         context 'when the SMB packet is empty' do
           it 'returns an empty string' do
-            session_header.packet_length = 0
+            session_header.stream_protocol_length = 0
             allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_return(session_header)
             expect(smb_socket.recv_packet(full_response: false)).to eq('')
           end

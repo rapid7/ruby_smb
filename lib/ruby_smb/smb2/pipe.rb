@@ -91,6 +91,7 @@ module RubySMB
         request = set_header_fields(RubySMB::SMB2::Packet::IoctlRequest.new(options))
         request.ctl_code = 0x0011C017
         request.flags.is_fsctl = 0x00000001
+        # TODO: handle fragmentation when the request size > MAX_XMIT_FRAG
         request.buffer = action.to_binary_s
 
         ioctl_raw_response = @tree.client.send_recv(request)

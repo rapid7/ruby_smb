@@ -2,8 +2,7 @@ RSpec.describe RubySMB::Nbss::SessionHeader do
   subject(:session_header) { described_class.new }
 
   it { is_expected.to respond_to :session_packet_type }
-  it { is_expected.to respond_to :flags }
-  it { is_expected.to respond_to :packet_length }
+  it { is_expected.to respond_to :stream_protocol_length }
 
   it 'is big endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :big
@@ -15,15 +14,9 @@ RSpec.describe RubySMB::Nbss::SessionHeader do
     end
   end
 
-  describe '#flags' do
-    it 'is a 7-bit Unsigned Integer' do
-      expect(session_header.flags).to be_a BinData::Bit7
-    end
-  end
-
-  describe '#packet_length' do
-    it 'is a 17-bit Unsigned Integer' do
-      expect(session_header.packet_length).to be_a BinData::Bit17
+  describe '#stream_protocol_length' do
+    it 'is a 24-bit Unsigned Integer' do
+      expect(session_header.stream_protocol_length).to be_a BinData::Uint24be
     end
   end
 end

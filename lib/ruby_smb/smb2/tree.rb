@@ -147,12 +147,19 @@ module RubySMB
         directory_request.file_information_class  = type::CLASS_LEVEL
         directory_request.file_id                 = file_id
         directory_request.name                    = pattern
-        directory_request.output_length           = 65_535
+
+        max_read = client.server_max_read_size
+        max_read = 65536 unless client.server_supports_multi_credit
+        credit_charge = 0
+        if client.server_supports_multi_credit
+          credit_charge = (max_read - 1) / 65536 + 1
+        end
+        directory_request.output_length = max_read
+        directory_request.smb2_header.credit_charge = credit_charge
 
         directory_request = set_header_fields(directory_request)
 
         files = []
-
         loop do
           response            = client.send_recv(directory_request, encrypt: @tree_connect_encrypt_data)
           directory_response  = RubySMB::SMB2::Packet::QueryDirectoryResponse.read(response)
@@ -256,7 +263,6 @@ module RubySMB
       # @return [RubySMB::SMB2::Packet] the modified packet.
       def set_header_fields(request)
         request.smb2_header.tree_id = id
-        request.smb2_header.credit_charge = 1
         request.smb2_header.credits = 256
         request
       end

@@ -107,6 +107,10 @@ RSpec.describe RubySMB::SMB2::File do
     it 'sets the offset of the packet' do
       expect(file.read_packet(offset: 55).offset).to eq 55
     end
+
+    it 'sets the credit_charge of the packet' do
+      expect(file.read_packet(credit_charge: 3).smb2_header.credit_charge).to eq 3
+    end
   end
 
   describe '#read' do
@@ -125,7 +129,7 @@ RSpec.describe RubySMB::SMB2::File do
       end
 
       it 'uses a single packet to read the entire file' do
-        expect(file).to receive(:read_packet).with(read_length: 108, offset: 0).and_return(small_read)
+        expect(file).to receive(:read_packet).with(read_length: 108, offset: 0, credit_charge: 0).and_return(small_read)
         expect(client).to receive(:send_recv).with(small_read, encrypt: false).and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).with('fake data').and_return(small_response)
         expect(file.read).to eq 'fake data'
@@ -161,14 +165,15 @@ RSpec.describe RubySMB::SMB2::File do
       }
 
       before :example do
+        client.server_supports_multi_credit = 1
         allow(file).to receive(:read_packet)
         allow(client).to receive(:send_recv)
         allow(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).and_return(big_response)
       end
 
-      it 'uses a multiple packet to read the file in chunks' do
-        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: 0).and_return(big_read)
-        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE).and_return(big_read)
+      it 'uses multiple packets to read the file in chunks' do
+        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: 0, credit_charge: 1).and_return(big_read)
+        expect(file).to receive(:read_packet).once.with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE, credit_charge: 1).and_return(big_read)
         expect(client).to receive(:send_recv).twice.and_return 'fake data'
         expect(RubySMB::SMB2::Packet::ReadResponse).to receive(:read).twice.with('fake data').and_return(big_response)
         file.read(bytes: (described_class::MAX_PACKET_SIZE * 2))
@@ -184,7 +189,7 @@ RSpec.describe RubySMB::SMB2::File do
 
       context 'when the second response is not valid' do
         it 'raise an InvalidPacket exception' do
-          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE) do
+          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE, credit_charge: 1) do
             big_response.smb2_header.command = RubySMB::SMB2::Commands::LOGOFF
           end
           expect { file.read(bytes: (described_class::MAX_PACKET_SIZE * 2)) }.to raise_error(RubySMB::Error::InvalidPacket)
@@ -193,10 +198,29 @@ RSpec.describe RubySMB::SMB2::File do
 
       context 'when the second response status code is not STATUS_SUCCESS' do
         it 'raise an UnexpectedStatusCode exception' do
-          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE) do
+          allow(file).to receive(:read_packet).with(read_length: described_class::MAX_PACKET_SIZE, offset: described_class::MAX_PACKET_SIZE, credit_charge: 1) do
             big_response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE.value
           end
           expect { file.read(bytes: (described_class::MAX_PACKET_SIZE * 2)) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+        end
+      end
+
+      context 'when the server does not support multi credits' do
+        it 'reads 65536 bytes at a time with no credit charge' do
+          client.server_supports_multi_credit = false
+          expect(file).to receive(:read_packet).once.with(read_length: 65536, offset: 0, credit_charge: 0).and_return(big_read)
+          expect(file).to receive(:read_packet).once.with(read_length: 65536, offset: 65536, credit_charge: 0).and_return(big_read)
+          file.read(bytes: (described_class::MAX_PACKET_SIZE * 4))
+        end
+      end
+
+      context 'when the server supports multi credits' do
+        it 'reads a number of bytes equal to #server_max_read_size, with the expected credit charge' do
+          credit_charge = (90000 - 1) / 65536 + 1
+          client.server_max_read_size = 90000
+          expect(file).to receive(:read_packet).once.with(read_length: 90000, offset: 0, credit_charge: credit_charge).and_return(big_read)
+          expect(file).to receive(:read_packet).once.with(read_length: (described_class::MAX_PACKET_SIZE * 4 - 90000), offset: 90000, credit_charge: credit_charge).and_return(big_read)
+          file.read(bytes: (described_class::MAX_PACKET_SIZE * 4))
         end
       end
     end
@@ -222,6 +246,10 @@ RSpec.describe RubySMB::SMB2::File do
     it 'sets the buffer on the packet' do
       expect(file.write_packet(data:'hello').buffer).to eq 'hello'
     end
+
+    it 'sets the credit_charge on the packet header' do
+      expect(file.write_packet(credit_charge: 5).smb2_header.credit_charge).to eq 5
+    end
   end
 
   describe '#write' do
@@ -242,6 +270,11 @@ RSpec.describe RubySMB::SMB2::File do
     end
 
     context 'for a large write' do
+      before :example do
+        allow(client).to receive(:send_recv).and_return(write_response.to_binary_s)
+        client.server_supports_multi_credit = 1
+      end
+
       it 'sends multiple packets' do
         expect(client).to receive(:send_recv).twice.and_return(write_response.to_binary_s)
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
@@ -253,6 +286,27 @@ RSpec.describe RubySMB::SMB2::File do
         file.tree_connect_encrypt_data = true
         expect(client).to receive(:send_recv).twice.with(write_request, encrypt: true).and_return(write_response.to_binary_s)
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
+      end
+
+      context 'when the server does not support multi credits' do
+        it 'writes 65536 bytes at a time with no credit charge' do
+          client.server_supports_multi_credit = false
+          data = SecureRandom.random_bytes(65536 * 2)
+          expect(file).to receive(:write_packet).once.with(data: data[0, 65536], offset: 0, credit_charge: 0)
+          expect(file).to receive(:write_packet).once.with(data: data[65536, (data.size - 65536)], offset: 65536, credit_charge: 0)
+          file.write(data: data)
+        end
+      end
+
+      context 'when the server supports multi credits' do
+        it 'reads a number of bytes equal to #server_max_write_size, with the expected credit charge' do
+          data = SecureRandom.random_bytes(90000 * 2)
+          credit_charge = (90000 - 1) / 65536 + 1
+          client.server_max_write_size = 90000
+          expect(file).to receive(:write_packet).once.with(data: data[0, 90000], offset: 0, credit_charge: credit_charge)
+          expect(file).to receive(:write_packet).once.with(data: data[90000, (data.size - 90000)], offset: 90000, credit_charge: credit_charge)
+          file.write(data: data)
+        end
       end
     end
 

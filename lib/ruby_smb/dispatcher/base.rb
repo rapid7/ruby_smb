@@ -9,7 +9,7 @@ module RubySMB
       def nbss(packet)
         nbss = RubySMB::Nbss::SessionHeader.new
         nbss.session_packet_type = RubySMB::Nbss::SESSION_MESSAGE
-        nbss.packet_length       = packet.do_num_bytes
+        nbss.stream_protocol_length = packet.do_num_bytes
         nbss.to_binary_s
       end
 

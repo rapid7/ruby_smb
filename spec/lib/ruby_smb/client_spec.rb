@@ -65,6 +65,8 @@ RSpec.describe RubySMB::Client do
   it { is_expected.to respond_to :verify_signature }
   it { is_expected.to respond_to :auth_user }
   it { is_expected.to respond_to :last_file_id }
+  it { is_expected.to respond_to :pid }
+  it { is_expected.to respond_to :server_supports_multi_credit }
 
   describe '#initialize' do
     it 'should raise an ArgumentError without a valid dispatcher' do
@@ -141,6 +143,18 @@ RSpec.describe RubySMB::Client do
     it 'sets the max_buffer_size to MAX_BUFFER_SIZE' do
       expect(client.max_buffer_size).to eq RubySMB::Client::MAX_BUFFER_SIZE
     end
+
+    it 'sets the server_supports_multi_credit to false' do
+      expect(client.server_supports_multi_credit).to be false
+    end
+
+    it 'sets the pid to a random value' do
+      100.times do
+        previous_pid = client.pid
+        client = described_class.new(dispatcher, username: username, password: password)
+        expect(client.pid).to_not eq(previous_pid)
+      end
+    end
   end
 
   describe '#echo' do
@@ -184,11 +198,13 @@ RSpec.describe RubySMB::Client do
   describe '#send_recv' do
     let(:smb1_request) { RubySMB::SMB1::Packet::TreeConnectRequest.new }
     let(:smb2_request) { RubySMB::SMB2::Packet::TreeConnectRequest.new }
+    let(:smb2_header)  { RubySMB::SMB2::SMB2Header.new }
 
     before(:each) do
       allow(client).to receive(:is_status_pending?).and_return(false)
       allow(dispatcher).to receive(:send_packet).and_return(nil)
       allow(dispatcher).to receive(:recv_packet).and_return('A')
+      allow(RubySMB::SMB2::SMB2Header).to receive(:read).and_return(smb2_header)
     end
 
     context 'when signing' do
@@ -199,9 +215,10 @@ RSpec.describe RubySMB::Client do
 
       context 'with an SMB2 packet' do
         it 'does not sign a SessionSetupRequest packet' do
+          allow(smb2_client).to receive(:is_status_pending?).and_return(false)
           expect(smb2_client).to_not receive(:smb2_sign)
           expect(smb2_client).to_not receive(:smb3_sign)
-          client.send_recv(RubySMB::SMB2::Packet::SessionSetupRequest.new)
+          smb2_client.send_recv(RubySMB::SMB2::Packet::SessionSetupRequest.new)
         end
 
         it 'calls #smb2_sign if it is an SMB2 client' do
@@ -229,6 +246,29 @@ RSpec.describe RubySMB::Client do
         expect(smb1_client).to_not receive(:is_status_pending?)
         smb1_client.send_recv(smb1_request)
       end
+
+      it 'set the #uid SMB header when #user_id is defined' do
+        smb1_client.user_id = 333
+        smb1_client.send_recv(smb1_request)
+        expect(smb1_request.smb_header.uid).to eq(333)
+      end
+
+      it 'does not set the #uid SMB header when #user_id is not defined' do
+        smb1_client.send_recv(smb1_request)
+        expect(smb1_request.smb_header.uid).to eq(0)
+      end
+
+      it 'set the #pid SMB header when #pid is defined' do
+        smb1_client.pid = 333
+        smb1_client.send_recv(smb1_request)
+        expect(smb1_request.smb_header.pid_low).to eq(333)
+      end
+
+      it 'does not set the #pid SMB header when #pid is not defined' do
+        smb1_client.pid = nil
+        smb1_client.send_recv(smb1_request)
+        expect(smb1_request.smb_header.pid_low).to eq(0)
+      end
     end
 
     context 'with SMB2' do
@@ -251,10 +291,8 @@ RSpec.describe RubySMB::Client do
       context 'with a SessionSetupRequest' do
         it 'does not encrypt/decrypt' do
           request = RubySMB::SMB2::Packet::SessionSetupRequest.new
-          expect(smb3_client).to_not receive(:send_encrypt).with(request)
-          expect(smb3_client).to_not receive(:recv_encrypt)
-          expect(dispatcher).to receive(:send_packet).with(request)
-          expect(dispatcher).to receive(:recv_packet)
+          expect(smb3_client).to receive(:send_packet).with(request, encrypt: false)
+          expect(smb3_client).to receive(:recv_packet).with(encrypt: false)
           smb3_client.send_recv(request)
         end
       end
@@ -262,17 +300,15 @@ RSpec.describe RubySMB::Client do
       context 'with a NegotiateRequest' do
         it 'does not encrypt/decrypt' do
           request = RubySMB::SMB2::Packet::NegotiateRequest.new
-          expect(smb3_client).to_not receive(:send_encrypt).with(request)
-          expect(smb3_client).to_not receive(:recv_encrypt)
-          expect(dispatcher).to receive(:send_packet).with(request)
-          expect(dispatcher).to receive(:recv_packet)
+          expect(smb3_client).to receive(:send_packet).with(request, encrypt: false)
+          expect(smb3_client).to receive(:recv_packet).with(encrypt: false)
           smb3_client.send_recv(request)
         end
       end
 
       it 'encrypts and decrypts' do
-        expect(smb3_client).to receive(:send_encrypt).with(smb2_request)
-        expect(smb3_client).to receive(:recv_encrypt)
+        expect(smb3_client).to receive(:send_packet).with(smb2_request, encrypt: true)
+        expect(smb3_client).to receive(:recv_packet).with(encrypt: true)
         smb3_client.send_recv(smb2_request)
       end
 
@@ -280,11 +316,38 @@ RSpec.describe RubySMB::Client do
         it 'waits 1 second and reads/decrypts again' do
           allow(smb3_client).to receive(:is_status_pending?).and_return(true, false)
           expect(smb3_client).to receive(:sleep).with(1)
-          expect(smb3_client).to receive(:send_encrypt).with(smb2_request)
-          expect(smb3_client).to receive(:recv_encrypt).twice
+          expect(smb3_client).to receive(:send_packet).with(smb2_request, encrypt: true)
+          expect(smb3_client).to receive(:recv_packet).with(encrypt: true).twice
           smb3_client.send_recv(smb2_request)
         end
       end
+    end
+
+    it 'increments the sequence counter if signing is required and the session key exist' do
+      allow(smb2_client).to receive(:is_status_pending?).and_return(false)
+      smb2_client.signing_required = true
+      smb2_client.session_key = 'key'
+      smb2_client.sequence_counter = 0
+      smb2_client.send_recv(smb2_request)
+      expect(smb2_client.sequence_counter).to eq(1)
+    end
+
+    it 'updates #msb2_message_id with SMB2 header #credit_charge if the dialect is not 0x0202' do
+      allow(smb2_client).to receive(:is_status_pending?).and_return(false)
+      smb2_client.smb2_message_id = 0
+      smb2_client.dialect = '0x0210'
+      smb2_header.credit_charge = 5
+      smb2_client.send_recv(smb2_request)
+      expect(smb2_client.smb2_message_id).to eq(5)
+    end
+
+    it 'does not update #msb2_message_id with SMB2 header #credit_charge if the dialect is 0x0202' do
+      allow(smb2_client).to receive(:is_status_pending?).and_return(false)
+      smb2_client.smb2_message_id = 0
+      smb2_client.dialect = '0x0202'
+      smb2_header.credit_charge = 5
+      smb2_client.send_recv(smb2_request)
+      expect(smb2_client.smb2_message_id).to eq(1)
     end
   end
 
@@ -297,17 +360,17 @@ RSpec.describe RubySMB::Client do
     }
 
     it 'returns true when the response has a STATUS_PENDING status code and the async_command flag set' do
-      expect(client.is_status_pending?(response.to_binary_s)).to be true
+      expect(client.is_status_pending?(response.smb2_header)).to be true
     end
 
     it 'returns false when the response has a STATUS_PENDING status code and the async_command flag not set' do
       response.smb2_header.flags.async_command = 0
-      expect(client.is_status_pending?(response.to_binary_s)).to be false
+      expect(client.is_status_pending?(response.smb2_header)).to be false
     end
 
     it 'returns false when the response has no STATUS_PENDING status code but the async_command flag set' do
       response.smb2_header.nt_status= WindowsError::NTStatus::STATUS_SUCCESS.value
-      expect(client.is_status_pending?(response.to_binary_s)).to be false
+      expect(client.is_status_pending?(response.smb2_header)).to be false
     end
   end
 
@@ -344,35 +407,47 @@ RSpec.describe RubySMB::Client do
     end
   end
 
-  describe '#send_encrypt' do
+  describe '#send_packet' do
     let(:packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
     before :example do
       allow(dispatcher).to receive(:send_packet)
       client.dialect = '0x0300'
     end
 
-    it 'creates a Transform request' do
-      expect(client).to receive(:smb3_encrypt).with(packet.to_binary_s)
-      client.send_encrypt(packet)
+    it 'does not encrypt the packet' do
+      expect(client).to_not receive(:smb3_encrypt)
+      client.send_packet(packet)
     end
 
-    it 'raises an EncryptionError exception if an error occurs while encrypting' do
-      allow(client).to receive(:smb3_encrypt).and_raise(RubySMB::Error::RubySMBError.new('Error'))
-      expect { client.send_encrypt(packet) }.to raise_error(
-        RubySMB::Error::EncryptionError,
-        "Error while encrypting #{packet.class.name} packet (SMB 0x0300): Error"
-      )
+    it 'sends the packet through the dispatcher' do
+      client.send_packet(packet)
+      expect(dispatcher).to have_received(:send_packet).with(packet)
     end
 
-    it 'sends the encrypted packet' do
-      encrypted_packet = double('Encrypted packet')
-      allow(client).to receive(:smb3_encrypt).and_return(encrypted_packet)
-      client.send_encrypt(packet)
-      expect(dispatcher).to have_received(:send_packet).with(encrypted_packet)
+    context 'with encryption' do
+      it 'creates a Transform request' do
+        expect(client).to receive(:smb3_encrypt).with(packet.to_binary_s)
+        client.send_packet(packet, encrypt: true)
+      end
+
+      it 'raises an EncryptionError exception if an error occurs while encrypting' do
+        allow(client).to receive(:smb3_encrypt).and_raise(RubySMB::Error::RubySMBError.new('Error'))
+        expect { client.send_packet(packet, encrypt: true) }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          "Error while encrypting #{packet.class.name} packet (SMB 0x0300): Error"
+        )
+      end
+
+      it 'sends the encrypted packet' do
+        encrypted_packet = double('Encrypted packet')
+        allow(client).to receive(:smb3_encrypt).and_return(encrypted_packet)
+        client.send_packet(packet, encrypt: true)
+        expect(dispatcher).to have_received(:send_packet).with(encrypted_packet)
+      end
     end
   end
 
-  describe '#recv_encrypt' do
+  describe '#recv_packet' do
     let(:packet) { RubySMB::SMB2::Packet::SessionSetupRequest.new }
     before :example do
       allow(dispatcher).to receive(:recv_packet).and_return(packet.to_binary_s)
@@ -381,42 +456,49 @@ RSpec.describe RubySMB::Client do
     end
 
     it 'reads the response packet' do
-      client.recv_encrypt
+      client.recv_packet
       expect(dispatcher).to have_received(:recv_packet)
     end
 
-    it 'raises an EncryptionError exception if an error occurs while receiving the response' do
+    it 'raises an CommunicationError exception if an error occurs while receiving the response' do
       allow(dispatcher).to receive(:recv_packet).and_raise(RubySMB::Error::CommunicationError)
-      expect { client.recv_encrypt }.to raise_error(
-        RubySMB::Error::EncryptionError,
-        'Communication error with the remote host: RubySMB::Error::CommunicationError. '\
-        'The server supports encryption but was not able to handle the encrypted request.'
-      )
+      expect { client.recv_packet }.to raise_error(RubySMB::Error::CommunicationError)
     end
 
-    it 'parses the response as a Transform response packet' do
-      expect(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).with(packet.to_binary_s)
-      client.recv_encrypt
-    end
+    context 'with encryption' do
+      it 'raises an EncryptionError exception if an error occurs while receiving the response' do
+        allow(dispatcher).to receive(:recv_packet).and_raise(RubySMB::Error::CommunicationError)
+        expect { client.recv_packet(encrypt: true) }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Communication error with the remote host: RubySMB::Error::CommunicationError. '\
+          'The server supports encryption but was not able to handle the encrypted request.'
+        )
+      end
 
-    it 'raises an InvalidPacket exception if an error occurs while parsing the response' do
-      allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_raise(IOError)
-      expect { client.recv_encrypt }.to raise_error(RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet')
-    end
+      it 'parses the response as a Transform response packet' do
+        expect(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).with(packet.to_binary_s)
+        client.recv_packet(encrypt: true)
+      end
 
-    it 'decrypts the Transform response packet' do
-      transform = double('Transform header packet')
-      allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_return(transform)
-      client.recv_encrypt
-      expect(client).to have_received(:smb3_decrypt).with(transform)
-    end
+      it 'raises an InvalidPacket exception if an error occurs while parsing the response' do
+        allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_raise(IOError)
+        expect { client.recv_packet(encrypt: true) }.to raise_error(RubySMB::Error::InvalidPacket, 'Not a SMB2 TransformHeader packet')
+      end
 
-    it 'raises an EncryptionError exception if an error occurs while decrypting' do
-      allow(client).to receive(:smb3_decrypt).and_raise(RubySMB::Error::RubySMBError)
-      expect { client.recv_encrypt }.to raise_error(
-        RubySMB::Error::EncryptionError,
-        'Error while decrypting RubySMB::SMB2::Packet::TransformHeader packet (SMB 0x0300}): RubySMB::Error::RubySMBError'
-      )
+      it 'decrypts the Transform response packet' do
+        transform = double('Transform header packet')
+        allow(RubySMB::SMB2::Packet::TransformHeader).to receive(:read).and_return(transform)
+        client.recv_packet(encrypt: true)
+        expect(client).to have_received(:smb3_decrypt).with(transform)
+      end
+
+      it 'raises an EncryptionError exception if an error occurs while decrypting' do
+        allow(client).to receive(:smb3_decrypt).and_raise(RubySMB::Error::RubySMBError)
+        expect { client.recv_packet(encrypt: true) }.to raise_error(
+          RubySMB::Error::EncryptionError,
+          'Error while decrypting RubySMB::SMB2::Packet::TransformHeader packet (SMB 0x0300}): RubySMB::Error::RubySMBError'
+        )
+      end
     end
   end
 
@@ -667,7 +749,7 @@ RSpec.describe RubySMB::Client do
         expect(session_packet.session_header.session_packet_type).to eq RubySMB::Nbss::SESSION_REQUEST
         expect(session_packet.called_name).to eq called_name
         expect(session_packet.calling_name).to eq calling_name
-        expect(session_packet.session_header.packet_length).to eq(
+        expect(session_packet.session_header.stream_protocol_length).to eq(
           session_packet.called_name.to_binary_s.size + session_packet.calling_name.to_binary_s.size
         )
       end
@@ -1036,6 +1118,19 @@ RSpec.describe RubySMB::Client do
         it 'returns the string \'SMB2\'' do
           expect(client.parse_negotiate_response(smb2_response)).to eq ('SMB2')
         end
+
+        it 'sets #server_supports_multi_credit to true when the response has #large_mtu capability set' do
+          smb2_response.capabilities.large_mtu = 1
+          client.parse_negotiate_response(smb2_response)
+          expect(client.server_supports_multi_credit).to be true
+        end
+
+        it 'sets #server_supports_multi_credit to false when the dialect is 0x0202' do
+          smb2_response.dialect_revision = 0x0202
+          smb2_response.capabilities.large_mtu = 1 # just to make sure it won't affect the result
+          client.parse_negotiate_response(smb2_response)
+          expect(client.server_supports_multi_credit).to be false
+        end
       end
 
       context 'when SMB3 was negotiated' do
@@ -1058,6 +1153,12 @@ RSpec.describe RubySMB::Client do
 
         it 'returns the string \'SMB2\'' do
           expect(client.parse_negotiate_response(smb3_response)).to eq ('SMB3')
+        end
+
+        it 'sets #server_supports_multi_credit to true when the response has #large_mtu capability set' do
+          smb3_response.capabilities.large_mtu = 1
+          client.parse_negotiate_response(smb3_response)
+          expect(client.server_supports_multi_credit).to be true
         end
 
         context 'when the server supports encryption' do

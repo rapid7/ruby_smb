@@ -195,7 +195,7 @@ RSpec.describe RubySMB::SMB2::Tree do
       allow(client).to receive(:send_recv) do |packet|
         expect(packet.file_information_class).to eq RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation::CLASS_LEVEL
         expect(packet.name).to eq '*'.encode('UTF-16LE')
-        expect(packet.output_length).to eq 65_535
+        expect(packet.output_length).to eq 65_536
       end
       tree.list
     end
@@ -288,6 +288,40 @@ RSpec.describe RubySMB::SMB2::Tree do
       end
     end
 
+    context 'when the dialect is 0x0202' do
+      it 'sets the packet output_length to 65536 and credit_charge header to 0' do
+        client.dialect = '0x0202'
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.output_length).to eq(65536)
+          expect(packet.smb2_header.credit_charge).to eq(0)
+        end
+        tree.list
+      end
+    end
+
+    context 'when the server does not support multi credits' do
+      it 'sets the packet output_length to 65536 and credit_charge header to 0' do
+        client.server_supports_multi_credit = false
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.output_length).to eq(65536)
+          expect(packet.smb2_header.credit_charge).to eq(0)
+        end
+        tree.list
+      end
+    end
+
+    context 'when the dialect is not 0x0202 and the server supports multi credits' do
+      it 'sets the packet output_length to server_max_read_size and credit_charge header to the expected value' do
+        client.server_supports_multi_credit = true
+        credit_charge = (90000 - 1) / 65536 + 1
+        client.server_max_read_size = 90000
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.output_length).to eq(90000)
+          expect(packet.smb2_header.credit_charge).to eq(credit_charge)
+        end
+        tree.list
+      end
+    end
   end
 
   describe '#open_file' do
