@@ -1124,6 +1124,13 @@ RSpec.describe RubySMB::Client do
           client.parse_negotiate_response(smb2_response)
           expect(client.server_supports_multi_credit).to be true
         end
+
+        it 'sets #server_supports_multi_credit to false when the dialect is 0x0202' do
+          smb2_response.dialect_revision = 0x0202
+          smb2_response.capabilities.large_mtu = 1 # just to make sure it won't affect the result
+          client.parse_negotiate_response(smb2_response)
+          expect(client.server_supports_multi_credit).to be false
+        end
       end
 
       context 'when SMB3 was negotiated' do

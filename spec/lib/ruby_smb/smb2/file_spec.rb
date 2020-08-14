@@ -205,15 +205,6 @@ RSpec.describe RubySMB::SMB2::File do
         end
       end
 
-      context 'when the dialect is 0x0202' do
-        it 'reads 65536 bytes at a time with no credit charge' do
-          client.dialect = '0x0202'
-          expect(file).to receive(:read_packet).once.with(read_length: 65536, offset: 0, credit_charge: 0).and_return(big_read)
-          expect(file).to receive(:read_packet).once.with(read_length: 65536, offset: 65536, credit_charge: 0).and_return(big_read)
-          file.read(bytes: (described_class::MAX_PACKET_SIZE * 4))
-        end
-      end
-
       context 'when the server does not support multi credits' do
         it 'reads 65536 bytes at a time with no credit charge' do
           client.server_supports_multi_credit = false
@@ -223,7 +214,7 @@ RSpec.describe RubySMB::SMB2::File do
         end
       end
 
-      context 'when the dialect is not 0x0202 and the server supports multi credits' do
+      context 'when the server supports multi credits' do
         it 'reads a number of bytes equal to #server_max_read_size, with the expected credit charge' do
           credit_charge = (90000 - 1) / 65536 + 1
           client.server_max_read_size = 90000
@@ -297,16 +288,6 @@ RSpec.describe RubySMB::SMB2::File do
         file.write(data: SecureRandom.random_bytes(described_class::MAX_PACKET_SIZE + 1))
       end
 
-      context 'when the dialect is 0x0202' do
-        it 'writes 65536 bytes at a time with no credit charge' do
-          client.dialect = '0x0202'
-          data = SecureRandom.random_bytes(65536 * 2)
-          expect(file).to receive(:write_packet).once.with(data: data[0, 65536], offset: 0, credit_charge: 0)
-          expect(file).to receive(:write_packet).once.with(data: data[65536, (data.size - 65536)], offset: 65536, credit_charge: 0)
-          file.write(data: data)
-        end
-      end
-
       context 'when the server does not support multi credits' do
         it 'writes 65536 bytes at a time with no credit charge' do
           client.server_supports_multi_credit = false
@@ -317,7 +298,7 @@ RSpec.describe RubySMB::SMB2::File do
         end
       end
 
-      context 'when the dialect is not 0x0202 and the server supports multi credits' do
+      context 'when the server supports multi credits' do
         it 'reads a number of bytes equal to #server_max_write_size, with the expected credit charge' do
           data = SecureRandom.random_bytes(90000 * 2)
           credit_charge = (90000 - 1) / 65536 + 1
