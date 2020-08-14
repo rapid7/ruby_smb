@@ -116,16 +116,10 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def read(bytes: size, offset: 0)
         max_read = tree.client.server_max_read_size
-        if tree.client.dialect == '0x0202' || !tree.client.server_supports_multi_credit
-          max_read = 65536
-        end
-        atomic_read_size = if bytes > max_read
-                             max_read
-                           else
-                             bytes
-                           end
+        max_read = 65536 unless tree.client.server_supports_multi_credit
+        atomic_read_size = [bytes, max_read].min
         credit_charge = 0
-        if tree.client.dialect != '0x0202' && tree.client.server_supports_multi_credit
+        if tree.client.server_supports_multi_credit
           credit_charge = (atomic_read_size - 1) / 65536 + 1
         end
 
@@ -251,18 +245,12 @@ module RubySMB
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a WriteResponse packet
       def write(data:'', offset: 0)
         max_write = tree.client.server_max_write_size
-        if tree.client.dialect == '0x0202' || !tree.client.server_supports_multi_credit
-          max_write = 65536
-        end
+        max_write = 65536 unless tree.client.server_supports_multi_credit
         buffer            = data.dup
         bytes             = data.length
-        atomic_write_size = if bytes > max_write
-                              max_write
-                            else
-                             bytes
-                            end
+        atomic_write_size = [bytes, max_write].min
         credit_charge = 0
-        if tree.client.dialect != '0x0202' && tree.client.server_supports_multi_credit
+        if tree.client.server_supports_multi_credit
           credit_charge = (atomic_write_size - 1) / 65536 + 1
         end
 

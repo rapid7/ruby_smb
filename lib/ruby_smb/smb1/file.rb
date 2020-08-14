@@ -106,11 +106,7 @@ module RubySMB
       # @raise [RubySMB::Error::InvalidPacket] if the response packet is not valid
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def read(bytes: @size, offset: 0)
-        atomic_read_size = if bytes > @tree.client.max_buffer_size
-                             @tree.client.max_buffer_size
-                           else
-                             bytes
-                           end
+        atomic_read_size = [bytes, @tree.client.max_buffer_size].min
         remaining_bytes = bytes
         data = ''
 
@@ -227,11 +223,7 @@ module RubySMB
         total_bytes_written = 0
 
         loop do
-          atomic_write_size = if bytes > @tree.client.max_buffer_size
-                               @tree.client.max_buffer_size
-                              else
-                                bytes
-                              end
+          atomic_write_size = [bytes, @tree.client.max_buffer_size].min
           write_request = write_packet(data: buffer.slice!(0, atomic_write_size), offset: offset)
           raw_response = @tree.client.send_recv(write_request)
           response = RubySMB::SMB1::Packet::WriteAndxResponse.read(raw_response)

@@ -149,11 +149,9 @@ module RubySMB
         directory_request.name                    = pattern
 
         max_read = client.server_max_read_size
-        if client.dialect == '0x0202' || !client.server_supports_multi_credit
-          max_read = 65536
-        end
+        max_read = 65536 unless client.server_supports_multi_credit
         credit_charge = 0
-        if client.dialect != '0x0202' && client.server_supports_multi_credit
+        if client.server_supports_multi_credit
           credit_charge = (max_read - 1) / 65536 + 1
         end
         directory_request.output_length = max_read

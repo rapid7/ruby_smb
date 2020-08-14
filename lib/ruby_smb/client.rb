@@ -514,7 +514,8 @@ module RubySMB
 
     # Encrypt (if required) and send a packet.
     #
-    # @param encrypt [Boolean] true if the packet is encrypted, false otherwise
+    # @param encrypt [Boolean] true if the packet should be encrypted, false
+    #   otherwise
     def send_packet(packet, encrypt: false)
       if encrypt
         begin

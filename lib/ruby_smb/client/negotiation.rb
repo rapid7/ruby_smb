@@ -140,7 +140,7 @@ module RubySMB
           self.server_guid = packet.server_guid
           self.server_start_time = packet.server_start_time.to_time if packet.server_start_time != 0
           self.server_system_time = packet.system_time.to_time if packet.system_time != 0
-          self.server_supports_multi_credit = packet&.capabilities&.large_mtu == 1
+          self.server_supports_multi_credit = self.dialect != '0x0202' && packet&.capabilities&.large_mtu == 1
           case self.dialect
           when '0x02ff'
           when '0x0300', '0x0302'
