@@ -387,7 +387,7 @@ module RubySMB
         enum_result
       ensure
         close_key(subkey_handle) if subkey_handle
-        close_key(root_key_handle) if root_key_handle
+        close_key(root_key_handle) if root_key_handle && root_key_handle != subkey_handle
       end
 
       # Enumerate the values for the specified registry key.
@@ -413,7 +413,7 @@ module RubySMB
         enum_result
       ensure
         close_key(subkey_handle) if subkey_handle
-        close_key(root_key_handle) if root_key_handle
+        close_key(root_key_handle) if root_key_handle && root_key_handle != subkey_handle
       end
 
     end
