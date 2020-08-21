@@ -35,7 +35,7 @@ module RubySMB
             "got #{received_proto} protocol "\
             "with command=#{received_cmd}"\
             "#{(" (" + args[:received_custom] + ")") if args[:received_custom]}"\
-            " , Status: #{args[:packet].status_code}"
+            "#{(", Status: #{@status_code}") if @status_code}"
           )
         else
           raise ArgumentError, "InvalidPacket expects a String or a Hash, got a #{args.class}"

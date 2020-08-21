@@ -56,6 +56,9 @@ module RubySMB
       end
 
       def open_pipe(opts)
+        # Make sure we don't modify the caller's hash options
+        opts = opts.dup
+        opts[:filename] = opts[:filename].dup
         opts[:filename].prepend('\\') if opts[:filename][0] != '\\'
         open_file(opts)
       end
