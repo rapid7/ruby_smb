@@ -49,7 +49,17 @@ module RubySMB
           when /SMB1/
             packet = RubySMB::SMB1::Packet::EmptyPacket.read(val)
           when /SMB2/
-            packet = RubySMB::SMB2::Packet::ErrorPacket.read(val)
+            begin
+              packet = RubySMB::SMB2::Packet::ErrorPacket.read(val)
+            rescue RubySMB::Error::InvalidPacket
+              # Handle the case where an SMB2 error packet is expected, but the
+              # server sent an SMB1 empty packet instead. This behavior has been
+              # observed with older versions of Samba when something goes wrong
+              # on the server side. We just want to give it a chance and try to
+              # parse it as an SMB1 empty packet to keep information and avoid
+              # failing as much as possible.
+              packet = RubySMB::SMB1::Packet::EmptyPacket.read(val)
+            end
           else
             raise RubySMB::Error::InvalidPacket, 'Not a valid SMB packet'
         end
