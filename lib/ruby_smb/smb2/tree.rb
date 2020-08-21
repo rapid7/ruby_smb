@@ -50,8 +50,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::TreeDisconnectResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
         response.status_code
@@ -113,8 +112,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::CreateResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -172,8 +170,7 @@ module RubySMB
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
               expected_cmd:   RubySMB::SMB2::Packet::QueryDirectoryResponse::COMMAND,
-              received_proto: directory_response.smb2_header.protocol,
-              received_cmd:   directory_response.smb2_header.command
+              packet:         directory_response
             )
           end
 
@@ -217,8 +214,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::CreateResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS

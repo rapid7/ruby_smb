@@ -83,16 +83,14 @@ module RubySMB
               expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
               expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
               expected_custom: "extended_security=1",
-              received_proto:  packet.smb_header.protocol,
-              received_cmd:    packet.smb_header.command,
+              packet:          packet,
               received_custom: "extended_security=#{extended_security}"
             )
           elsif packet.packet_smb_version == 'SMB2'
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto:  RubySMB::SMB2::SMB2_PROTOCOL_ID,
               expected_cmd:    RubySMB::SMB2::Packet::NegotiateResponse::COMMAND,
-              received_proto:  packet.smb2_header.protocol,
-              received_cmd:    packet.smb2_header.command
+              packet:          packet
             )
           else
             raise RubySMB::Error::InvalidPacket, 'Unknown SMB protocol version'

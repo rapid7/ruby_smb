@@ -43,8 +43,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::Trans::PeekNmpipeRequest::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
 
@@ -102,8 +101,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::Trans::TransactNmpipeResponse::COMMAND,
-            received_proto: trans_nmpipe_response.smb_header.protocol,
-            received_cmd:   trans_nmpipe_response.smb_header.command
+            packet:         trans_nmpipe_response
           )
         end
         unless [WindowsError::NTStatus::STATUS_SUCCESS,

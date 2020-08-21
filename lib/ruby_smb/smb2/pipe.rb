@@ -42,8 +42,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::IoctlResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
 
@@ -100,8 +99,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::IoctlRequest::COMMAND,
-            received_proto: ioctl_response.smb2_header.protocol,
-            received_cmd:   ioctl_response.smb2_header.command
+            packet:         ioctl_response
           )
         end
         unless [WindowsError::NTStatus::STATUS_SUCCESS,

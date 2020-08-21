@@ -60,8 +60,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::SessionSetupLegacyResponse::COMMAND,
-            received_proto: packet.smb_header.protocol,
-            received_cmd:   packet.smb_header.command
+            packet:         packet
           )
         end
         packet
@@ -154,8 +153,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::SessionSetupResponse::COMMAND,
-            received_proto: packet.smb_header.protocol,
-            received_cmd:   packet.smb_header.command
+            packet:         packet
           )
         end
         packet
@@ -168,8 +166,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::SessionSetupResponse::COMMAND,
-            received_proto: packet.smb_header.protocol,
-            received_cmd:   packet.smb_header.command
+            packet:         packet
           )
         end
 
@@ -236,8 +233,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::SessionSetupResponse::COMMAND,
-            received_proto: packet.smb2_header.protocol,
-            received_cmd:   packet.smb2_header.command
+            packet:         packet
           )
         end
 
@@ -251,8 +247,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::SessionSetupResponse::COMMAND,
-            received_proto: packet.smb2_header.protocol,
-            received_cmd:   packet.smb2_header.command
+            packet:         packet
           )
         end
 
