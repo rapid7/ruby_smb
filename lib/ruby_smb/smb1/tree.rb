@@ -56,6 +56,11 @@ module RubySMB
         response.status_code
       end
 
+      def open_pipe(opts)
+        opts[:filename].prepend('\\') if opts[:filename][0] != '\\'
+        open_file(opts)
+      end
+
       # Open a file on the remote share.
       #
       # @example

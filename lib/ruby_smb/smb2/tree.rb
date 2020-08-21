@@ -57,6 +57,11 @@ module RubySMB
         response.status_code
       end
 
+      def open_pipe(opts)
+        opts[:filename] = opts[:filename][1..-1] if opts[:filename][0] == '\\'
+        open_file(opts)
+      end
+
       def open_file(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                     impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
 

@@ -6,7 +6,7 @@ module RubySMB
         share = "\\\\#{host}\\IPC$"
         tree = @tree_connects.find {|tree| tree.share == share}
         tree = tree_connect(share) unless tree
-        named_pipe = tree.open_file(filename: "winreg", write: true, read: true)
+        named_pipe = tree.open_pipe(filename: "winreg", write: true, read: true)
         if block_given?
           res = yield named_pipe
           named_pipe.close

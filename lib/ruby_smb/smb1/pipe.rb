@@ -16,11 +16,11 @@ module RubySMB
       def initialize(tree:, response:, name:)
         raise ArgumentError, 'No Name Provided' if name.nil?
         case name
-        when 'srvsvc'
+        when 'srvsvc', '\\srvsvc'
           extend RubySMB::Dcerpc::Srvsvc
-        when 'winreg'
+        when 'winreg', '\\winreg'
           extend RubySMB::Dcerpc::Winreg
-        when 'svcctl'
+        when 'svcctl', '\\svcctl'
           extend RubySMB::Dcerpc::Svcctl
         end
         super(tree: tree, response: response, name: name)

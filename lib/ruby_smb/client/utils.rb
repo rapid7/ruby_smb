@@ -24,19 +24,23 @@ module RubySMB
         last_tree.id
       end
 
-      def open(path, disposition=RubySMB::Dispositions::FILE_OPEN, write: false, read: true)
-         file = last_tree.open_file(filename: path.sub(/^\\/, ''), write: write, read: read, disposition: disposition)
-         @last_file_id = if file.respond_to?(:guid)
-           file.guid.to_binary_s
-         elsif file.respond_to?(:fid)
-           file.fid.to_binary_s
-         end
-         @open_files[@last_file_id] = file
-         @last_file_id
+      def open(path, disposition=RubySMB::Dispositions::FILE_OPEN, write: false, read: true, pipe: false)
+        if pipe
+         file = last_tree.open_pipe(filename: path, write: write, read: read, disposition: disposition)
+        else
+         file = last_tree.open_file(filename: path, write: write, read: read, disposition: disposition)
+        end
+        @last_file_id = if file.respond_to?(:guid)
+          file.guid.to_binary_s
+        elsif file.respond_to?(:fid)
+          file.fid.to_binary_s
+        end
+        @open_files[@last_file_id] = file
+        @last_file_id
       end
 
       def create_pipe(path, disposition=RubySMB::Dispositions::FILE_OPEN_IF)
-        open(path.gsub(/\\/, ''), disposition, write: true, read: true)
+        open(path, disposition, write: true, read: true, pipe: true)
       end
 
       #Writes data to an open file handle

@@ -585,7 +585,7 @@ module RubySMB
     # @param [String] host
     def net_share_enum_all(host)
       tree = tree_connect("\\\\#{host}\\IPC$")
-      named_pipe = tree.open_file(filename: "srvsvc", write: true, read: true)
+      named_pipe = tree.open_pipe(filename: "srvsvc", write: true, read: true)
       named_pipe.net_share_enum_all(host)
     end
 
