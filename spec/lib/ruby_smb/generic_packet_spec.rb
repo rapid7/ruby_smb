@@ -88,6 +88,13 @@ RSpec.describe RubySMB::GenericPacket do
         packet = RubySMB::SMB2::Packet::NegotiateResponse.read(smb2_error_packet.to_binary_s)
         expect(packet.original_command).to eq RubySMB::SMB2::Packet::NegotiateResponse::COMMAND
       end
+
+      context 'when the server returns an SMB1 error packet' do
+        let(:smb1_error_packet) { RubySMB::SMB1::Packet::EmptyPacket.new }
+        it 'returns the empty packet instead of the asked for class' do
+          expect(RubySMB::SMB2::Packet::NegotiateResponse.read(smb1_error_packet.to_binary_s)).to be_a RubySMB::SMB1::Packet::EmptyPacket
+        end
+      end
     end
   end
 

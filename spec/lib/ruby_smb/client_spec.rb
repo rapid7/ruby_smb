@@ -332,22 +332,27 @@ RSpec.describe RubySMB::Client do
       expect(smb2_client.sequence_counter).to eq(1)
     end
 
-    it 'updates #msb2_message_id with SMB2 header #credit_charge if the dialect is not 0x0202' do
+    it 'updates #smb2_message_id with SMB2 header #credit_charge if the server supports multi credits' do
       allow(smb2_client).to receive(:is_status_pending?).and_return(false)
       smb2_client.smb2_message_id = 0
-      smb2_client.dialect = '0x0210'
+      smb2_client.server_supports_multi_credit = true
       smb2_header.credit_charge = 5
       smb2_client.send_recv(smb2_request)
       expect(smb2_client.smb2_message_id).to eq(5)
     end
 
-    it 'does not update #msb2_message_id with SMB2 header #credit_charge if the dialect is 0x0202' do
+    it 'does not update #msb2_message_id with SMB2 header #credit_charge if the server does not support multi credits' do
       allow(smb2_client).to receive(:is_status_pending?).and_return(false)
       smb2_client.smb2_message_id = 0
-      smb2_client.dialect = '0x0202'
+      smb2_client.server_supports_multi_credit = false
       smb2_header.credit_charge = 5
       smb2_client.send_recv(smb2_request)
       expect(smb2_client.smb2_message_id).to eq(1)
+    end
+
+    it 'ignores errors thrown when parsing the SMB2 header' do
+      allow(RubySMB::SMB2::SMB2Header).to receive(:read).and_raise(IOError)
+      expect { smb2_client.send_recv(smb2_request) }.to_not raise_error
     end
   end
 
@@ -2354,7 +2359,7 @@ RSpec.describe RubySMB::Client do
         let(:named_pipe){ double("Named Pipe") }
 
         before :example do
-          allow(tree).to receive(:open_file).and_return(named_pipe)
+          allow(tree).to receive(:open_pipe).and_return(named_pipe)
           allow(named_pipe).to receive(:net_share_enum_all)
         end
 
@@ -2369,8 +2374,8 @@ RSpec.describe RubySMB::Client do
             smb1_client.net_share_enum_all(sock.peeraddr)
           end
 
-          it 'it calls the Tree #open_file method to open "srvsvc" named pipe' do
-            expect(tree).to receive(:open_file).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
+          it 'it calls the Tree #open_pipe method to open "srvsvc" named pipe' do
+            expect(tree).to receive(:open_pipe).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
             smb1_client.net_share_enum_all(sock.peeraddr)
           end
 
@@ -2392,8 +2397,8 @@ RSpec.describe RubySMB::Client do
             smb2_client.net_share_enum_all(sock.peeraddr)
           end
 
-          it 'it calls the Tree #open_file method to open "srvsvc" named pipe' do
-            expect(tree).to receive(:open_file).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
+          it 'it calls the Tree #open_pipe method to open "srvsvc" named pipe' do
+            expect(tree).to receive(:open_pipe).with(filename: "srvsvc", write: true, read: true).and_return(named_pipe)
             smb2_client.net_share_enum_all(sock.peeraddr)
           end
 
@@ -2474,7 +2479,7 @@ RSpec.describe RubySMB::Client do
       before :example do
         allow(ipc_tree).to receive_messages(
           :share     => share,
-          :open_file => named_pipe
+          :open_pipe => named_pipe
         )
         allow(client).to receive(:tree_connect).and_return(ipc_tree)
       end
@@ -2496,9 +2501,9 @@ RSpec.describe RubySMB::Client do
         expect(client).to have_received(:tree_connect).with(share)
       end
 
-      it 'open \'winreg\' file on the IPC$ Tree' do
+      it 'open \'winreg\' pipe on the IPC$ Tree' do
         client.connect_to_winreg(host)
-        expect(ipc_tree).to have_received(:open_file).with(filename: "winreg", write: true, read: true)
+        expect(ipc_tree).to have_received(:open_pipe).with(filename: "winreg", write: true, read: true)
       end
 
       it 'returns the expected opened named pipe' do

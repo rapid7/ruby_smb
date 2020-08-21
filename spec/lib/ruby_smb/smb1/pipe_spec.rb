@@ -80,9 +80,7 @@ RSpec.describe RubySMB::SMB1::Pipe do
 
     it 'raises an InvalidPacket exception if the response is not valid' do
       allow(response).to receive(:valid?).and_return(false)
-      smb_header = double('SMB Header')
-      allow(response).to receive(:smb_header).and_return(smb_header)
-      allow(smb_header).to receive_messages(:protocol => nil, :command => nil)
+      allow(response).to receive(:packet_smb_version)
       expect { pipe.peek }.to raise_error(RubySMB::Error::InvalidPacket)
     end
 
@@ -149,6 +147,13 @@ RSpec.describe RubySMB::SMB1::Pipe do
       end
     end
 
+    context 'with \'\\srvsvc\' filename' do
+      it 'extends Srvsvc class' do
+        pipe = described_class.new(tree: tree, response: nt_create_andx_response, name: '\\srvsvc')
+        expect(pipe.respond_to?(:net_share_enum_all)).to be true
+      end
+    end
+
     context 'with \'winreg\' filename' do
       it 'extends Winreg class' do
         pipe = described_class.new(tree: tree, response: nt_create_andx_response, name: 'winreg')
@@ -156,9 +161,23 @@ RSpec.describe RubySMB::SMB1::Pipe do
       end
     end
 
+    context 'with \'\\winreg\' filename' do
+      it 'extends Winreg class' do
+        pipe = described_class.new(tree: tree, response: nt_create_andx_response, name: '\\winreg')
+        expect(pipe.respond_to?(:has_registry_key?)).to be true
+      end
+    end
+
     context 'with \'svcctl\' filename' do
       it 'extends svcctl class' do
         pipe = described_class.new(tree: tree, response: nt_create_andx_response, name: 'svcctl')
+        expect(pipe.respond_to?(:query_service_config)).to be true
+      end
+    end
+
+    context 'with \'\\svcctl\' filename' do
+      it 'extends svcctl class' do
+        pipe = described_class.new(tree: tree, response: nt_create_andx_response, name: '\\svcctl')
         expect(pipe.respond_to?(:query_service_config)).to be true
       end
     end
@@ -245,8 +264,7 @@ RSpec.describe RubySMB::SMB1::Pipe do
 
     context 'when the response is not a Trans packet' do
       it 'raises an InvalidPacket exception' do
-        allow(trans_nmpipe_response).to receive_message_chain(:smb_header, :protocol)
-        allow(trans_nmpipe_response).to receive_message_chain(:smb_header, :command)
+        allow(trans_nmpipe_response).to receive(:packet_smb_version)
         allow(trans_nmpipe_response).to receive(:valid?).and_return(false)
         expect { pipe.dcerpc_request(stub_packet, options) }.to raise_error(RubySMB::Error::InvalidPacket)
       end
