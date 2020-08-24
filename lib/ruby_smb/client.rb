@@ -411,8 +411,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::LogoffResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
       else
@@ -423,8 +422,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::LogoffResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
       end
@@ -473,11 +471,17 @@ module RubySMB
         break unless is_status_pending?(smb2_header)
         sleep 1
         raw_response = recv_packet(encrypt: encrypt_data)
+      rescue IOError
+        # We're expecting an SMB2 packet, but the server sent an SMB1 packet
+        # instead. This behavior has been observed with older versions of Samba
+        # when something goes wrong on the server side. So, we just ignore it
+        # and expect the caller to handle this wrong response packet.
+        break
       end unless version == 'SMB1'
 
       self.sequence_counter += 1 if signing_required && !session_key.empty?
       # update the SMB2 message ID according to the received Credit Charged
-      self.smb2_message_id += smb2_header.credit_charge - 1 if smb2_header && self.dialect != '0x0202'
+      self.smb2_message_id += smb2_header.credit_charge - 1 if smb2_header && self.server_supports_multi_credit
       raw_response
     end
 
@@ -579,7 +583,7 @@ module RubySMB
     # @param [String] host
     def net_share_enum_all(host)
       tree = tree_connect("\\\\#{host}\\IPC$")
-      named_pipe = tree.open_file(filename: "srvsvc", write: true, read: true)
+      named_pipe = tree.open_pipe(filename: "srvsvc", write: true, read: true)
       named_pipe.net_share_enum_all(host)
     end
 

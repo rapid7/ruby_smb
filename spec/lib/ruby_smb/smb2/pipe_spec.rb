@@ -86,9 +86,7 @@ RSpec.describe RubySMB::SMB2::Pipe do
 
     it 'raises an InvalidPacket exception if the response is not valid' do
       allow(response).to receive(:valid?).and_return(false)
-      smb2_header = double('SMB2 Header')
-      allow(response).to receive(:smb2_header).and_return(smb2_header)
-      allow(smb2_header).to receive_messages(:protocol => nil, :command => nil)
+      allow(response).to receive(:packet_smb_version)
       expect { pipe.peek }.to raise_error(RubySMB::Error::InvalidPacket)
     end
 
@@ -261,8 +259,7 @@ RSpec.describe RubySMB::SMB2::Pipe do
 
     context 'when the response is not an IoctlResponse packet' do
       it 'raises an InvalidPacket exception' do
-        allow(ioctl_response).to receive_message_chain(:smb2_header, :protocol)
-        allow(ioctl_response).to receive_message_chain(:smb2_header, :command)
+        allow(ioctl_response).to receive(:packet_smb_version)
         allow(ioctl_response).to receive(:valid?).and_return(false)
         expect { pipe.ioctl_send_recv(dcerpc_request, options) }.to raise_error(RubySMB::Error::InvalidPacket)
       end

@@ -21,8 +21,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::EchoResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         response
@@ -40,8 +39,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB2::Packet::EchoResponse::COMMAND,
-            received_proto: response.smb2_header.protocol,
-            received_cmd:   response.smb2_header.command
+            packet:         response
           )
         end
         response

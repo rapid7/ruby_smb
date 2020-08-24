@@ -9,16 +9,45 @@ RSpec.describe RubySMB::Error::InvalidPacket do
   end
 
   context 'with a Hash' do
-    it 'outputs the expected error message' do
-      ex = described_class.new(
+    let(:ex) do
+      described_class.new(
         expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
         expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
         expected_custom: "extended_security=1",
-        received_proto:  RubySMB::SMB2::SMB2_PROTOCOL_ID,
-        received_cmd:    RubySMB::SMB2::Packet::NegotiateResponse::COMMAND,
+        packet:          packet,
         received_custom: "extended_security=0"
       )
-      expect(ex.to_s).to eq('Expecting SMB1 protocol with command=114 (extended_security=1), got SMB2 protocol with command=0 (extended_security=0)')
+    end
+
+    context 'with an SMB2 packet' do
+      let(:packet) { RubySMB::SMB2::Packet::NegotiateResponse.new }
+
+      it 'outputs the expected error message' do
+        expect(ex.to_s).to eq('Expecting SMB1 protocol with command=114 (extended_security=1), got SMB2 protocol with command=0 (extended_security=0), Status: (0x00000000) STATUS_SUCCESS: The operation completed successfully.')
+      end
+    end
+
+    context 'with an SMB1 packet' do
+      let(:packet) { RubySMB::SMB1::Packet::ReadAndxRequest.new }
+
+      it 'outputs the expected error message' do
+        expect(ex.to_s).to eq('Expecting SMB1 protocol with command=114 (extended_security=1), got SMB1 protocol with command=46 (extended_security=0), Status: (0x00000000) STATUS_SUCCESS: The operation completed successfully.')
+      end
+    end
+
+    context 'without packet' do
+      let(:ex) do
+        described_class.new(
+          expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
+          expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
+          expected_custom: "extended_security=1",
+          received_custom: "extended_security=0"
+        )
+      end
+
+      it 'outputs the expected error message' do
+        expect(ex.to_s).to eq('Expecting SMB1 protocol with command=114 (extended_security=1), got ??? protocol with command=??? (extended_security=0)')
+      end
     end
   end
 

@@ -669,6 +669,12 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 
+    it 'only closes the key once when there is no subkey' do
+      winreg.enum_registry_key(root_key)
+      expect(winreg).to have_received(:close_key).once
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
+    end
+
     it 'returns the expected array of enumerated keys' do
       key1 = 'key1'
       key2 = 'key2'
@@ -739,6 +745,12 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     it 'closes the key' do
       winreg.enum_registry_values(key)
       expect(winreg).to have_received(:close_key).with(subkey_handle)
+      expect(winreg).to have_received(:close_key).with(root_key_handle)
+    end
+
+    it 'only closes the key once when there is no subkey' do
+      winreg.enum_registry_values(root_key)
+      expect(winreg).to have_received(:close_key).once
       expect(winreg).to have_received(:close_key).with(root_key_handle)
     end
 

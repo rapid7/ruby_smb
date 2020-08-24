@@ -86,8 +86,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::CloseResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -118,8 +117,7 @@ module RubySMB
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
               expected_cmd:   RubySMB::SMB1::Packet::ReadAndxResponse::COMMAND,
-              received_proto: response.smb_header.protocol,
-              received_cmd:   response.smb_header.command
+              packet:         response
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -167,8 +165,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::ReadAndxResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -189,8 +186,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         response.status_code
@@ -231,8 +227,7 @@ module RubySMB
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
               expected_cmd:   RubySMB::SMB1::Packet::WriteAndxResponse::COMMAND,
-              received_proto: response.smb_header.protocol,
-              received_cmd:   response.smb_header.command
+              packet:         response
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -271,8 +266,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::WriteAndxResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         response.parameter_block.count_low
@@ -290,8 +284,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         response.status_code

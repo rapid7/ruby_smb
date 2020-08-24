@@ -49,11 +49,18 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::TreeDisconnectResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         response.status_code
+      end
+
+      def open_pipe(opts)
+        # Make sure we don't modify the caller's hash options
+        opts = opts.dup
+        opts[:filename] = opts[:filename].dup
+        opts[:filename].prepend('\\') unless opts[:filename].start_with?('\\')
+        open_file(opts)
       end
 
       # Open a file on the remote share.
@@ -135,15 +142,14 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::NtCreateAndxResponse::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
-        case response.parameter_block.resource_type 
+        case response.parameter_block.resource_type
         when RubySMB::SMB1::ResourceType::BYTE_MODE_PIPE, RubySMB::SMB1::ResourceType::MESSAGE_MODE_PIPE
           RubySMB::SMB1::Pipe.new(name: filename, tree: self, response: response)
         when RubySMB::SMB1::ResourceType::DISK
@@ -195,8 +201,7 @@ module RubySMB
           raise RubySMB::Error::InvalidPacket.new(
             expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
             expected_cmd:   RubySMB::SMB1::Packet::Trans2::FindFirst2Response::COMMAND,
-            received_proto: response.smb_header.protocol,
-            received_cmd:   response.smb_header.command
+            packet:         response
           )
         end
         unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
@@ -230,8 +235,7 @@ module RubySMB
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
               expected_cmd:   RubySMB::SMB1::Packet::Trans2::FindNext2Response::COMMAND,
-              received_proto: response.smb_header.protocol,
-              received_cmd:   response.smb_header.command
+              packet:         response
             )
           end
           unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
