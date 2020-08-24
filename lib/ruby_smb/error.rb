@@ -23,7 +23,7 @@ module RubySMB
         elsif args.is_a? String
           super(args)
         elsif args.is_a? Hash
-          expected_proto = args[:expected_proto] ? translate_protocol(args[:expected_proto]) : "???"
+          expected_proto = args[:expected_proto] ? translate_protocol(args[:expected_proto]) : '???'
           expected_cmd = args[:expected_cmd] || '???'
           received_proto = args[:packet]&.packet_smb_version || '???'
           received_cmd = get_cmd(args[:packet]) || '???'

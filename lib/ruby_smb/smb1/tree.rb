@@ -59,7 +59,7 @@ module RubySMB
         # Make sure we don't modify the caller's hash options
         opts = opts.dup
         opts[:filename] = opts[:filename].dup
-        opts[:filename].prepend('\\') if opts[:filename][0] != '\\'
+        opts[:filename].prepend('\\') unless opts[:filename].start_with?('\\')
         open_file(opts)
       end
 

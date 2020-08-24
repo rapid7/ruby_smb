@@ -31,8 +31,10 @@ module RubySMB
          file = last_tree.open_file(filename: path, write: write, read: read, disposition: disposition)
         end
         @last_file_id = if file.respond_to?(:guid)
+          # SMB2 uses guid
           file.guid.to_binary_s
         elsif file.respond_to?(:fid)
+          # SMB1 uses fid
           file.fid.to_binary_s
         end
         @open_files[@last_file_id] = file
