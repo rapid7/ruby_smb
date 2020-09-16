@@ -7,6 +7,9 @@ module RubySMB
       VER_MAJOR = 2
       VER_MINOR = 0
 
+      # An NDR Enum type as defined in
+      # [Transfer Syntax NDR - Enumerated Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05_01)
+      class NdrEnum < BinData::Int16le; end
 
       # An NDR Conformant and Varying String representation as defined in
       # [Transfer Syntax NDR - Conformant and Varying Strings](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)

@@ -19,6 +19,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/bind_ack'
+    require 'ruby_smb/dcerpc/netlogon'
 
 
     # Bind to the remote server interface endpoint.
