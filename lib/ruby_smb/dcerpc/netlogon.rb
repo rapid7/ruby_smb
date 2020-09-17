@@ -30,6 +30,20 @@ module RubySMB
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_request'
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_response'
 
+      # Calculate the netlogon session key from the provided share secret and
+      # challenges. The share secret is an NTLM hash.
+      #
+      # @param shared_secret [String] the share secret between the client and the server
+      # @param client_challenge [String] the client challenge portion of the negotiation
+      # @param server_challenge [String] the server challenge portion of the negotiation
+      # @return [String] the session key for encryption
+      def self.calculate_session_key(shared_secret, client_challenge, server_challenge)
+        hmac = OpenSSL::HMAC.new(shared_secret, OpenSSL::Digest::SHA256.new)
+        hmac << client_challenge
+        hmac << server_challenge
+        hmac.digest.first(16)
+      end
+
     end
   end
 end
