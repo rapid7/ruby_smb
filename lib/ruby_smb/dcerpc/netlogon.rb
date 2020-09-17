@@ -2,7 +2,7 @@ module RubySMB
   module Dcerpc
     module Netlogon
 
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/592edbc8-f6f1-40c0-9ab3-fe6725ac6d7e
+      # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/592edbc8-f6f1-40c0-9ab3-fe6725ac6d7e
       UUID = '12345678-1234-abcd-ef00-01234567cffb'
       VER_MAJOR = 1
       VER_MINOR = 0
@@ -30,8 +30,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_request'
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_response'
 
-      # Calculate the netlogon session key from the provided share secret and
-      # challenges. The share secret is an NTLM hash.
+      # Calculate the netlogon session key from the provided shared secret and
+      # challenges. The shared secret is an NTLM hash.
       #
       # @param shared_secret [String] the share secret between the client and the server
       # @param client_challenge [String] the client challenge portion of the negotiation
