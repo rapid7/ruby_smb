@@ -12,8 +12,11 @@ module RubySMB
       NETR_SERVER_AUTHENTICATE3 = 26
       NETR_SERVER_PASSWORD_SET2 = 30
 
+      # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/3b224201-b531-43e2-8c79-b61f6dea8640
+      class LogonSrvHandle < Ndr::NdrLpStr; end
+
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/d55e2632-7163-4f6c-b662-4b870e8cc1cd
-      class NetlogonCredential < BinData::String
+      class NetlogonCredential < Ndr::NdrFixedByteArray
         default_parameters length: 8
       end
 
@@ -23,6 +26,27 @@ module RubySMB
 
         netlogon_credential :credential
         uint32              :timestamp
+      end
+
+      # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/4d1235e3-2c96-4e9f-a147-3cb338a0d09f
+      class NetlogonSecureChannelType < Ndr::NdrEnum
+        # enum example from dmendel/bindata#38 https://github.com/dmendel/bindata/issues/38#issuecomment-46397163
+        ALL = {
+          0 => :NullSecureChannel,
+          1 => :MsvApSecureChannel,
+          2 => :WorkstationSecureChannel,
+          3 => :TrustedDnsDomainSecureChannel,
+          4 => :TrustedDomainSecureChannel,
+          5 => :UasServerSecureChannel,
+          6 => :ServerSecureChannel,
+          7 => :CdcServerSecureChannel
+        }
+        ALL.each_pair { |val,sym| const_set(sym.to_s.gsub(/([a-z])([A-Z])/, '\1_\2').upcase, val) }
+        default_parameter assert: -> { ALL.keys.include? value }
+
+        def as_enum
+          ALL[value]
+        end
       end
 
       require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_request'
@@ -38,6 +62,9 @@ module RubySMB
       # @param server_challenge [String] the server challenge portion of the negotiation
       # @return [String] the session key for encryption
       def self.calculate_session_key(shared_secret, client_challenge, server_challenge)
+        client_challenge = client_challenge.to_binary_s if client_challenge.is_a? NetlogonCredential
+        server_challenge = server_challenge.to_binary_s if server_challenge.is_a? NetlogonCredential
+
         hmac = OpenSSL::HMAC.new(shared_secret, OpenSSL::Digest::SHA256.new)
         hmac << client_challenge
         hmac << server_challenge

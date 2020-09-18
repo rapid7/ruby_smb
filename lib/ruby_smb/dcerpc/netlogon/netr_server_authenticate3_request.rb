@@ -10,12 +10,12 @@ module RubySMB
 
         endian :little
 
-        ndr_lp_str          :primary_name
-        ndr_string          :account_name
-        ndr_enum            :secure_channel_type
-        ndr_string          :computer_name
-        netlogon_credential :client_credential
-        uint32              :flags
+        logon_srv_handle             :primary_name
+        ndr_string                   :account_name
+        netlogon_secure_channel_type :secure_channel_type
+        ndr_string                   :computer_name
+        netlogon_credential          :client_credential
+        uint32                       :flags
 
         def initialize_instance
           super

@@ -11,7 +11,7 @@ module RubySMB
         endian :little
 
         netlogon_credential :server_challenge
-        uint32              :status
+        uint32              :error_status
 
         def initialize_instance
           super

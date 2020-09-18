@@ -13,7 +13,7 @@ module RubySMB
         netlogon_credential :server_credential
         uint32              :negotiate_flags
         uint32              :account_rid
-        uint32              :status
+        uint32              :error_status
 
         def initialize_instance
           super
