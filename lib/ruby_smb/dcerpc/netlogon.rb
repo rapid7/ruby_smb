@@ -58,10 +58,12 @@ module RubySMB
         end
       end
 
-      require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_request'
-      require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_response'
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_request'
       require 'ruby_smb/dcerpc/netlogon/netr_server_authenticate3_response'
+      require 'ruby_smb/dcerpc/netlogon/netr_server_password_set2_request'
+      require 'ruby_smb/dcerpc/netlogon/netr_server_password_set2_response'
+      require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_request'
+      require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_response'
 
       # Calculate the netlogon session key from the provided shared secret and
       # challenges. The shared secret is an NTLM hash.
@@ -80,6 +82,20 @@ module RubySMB
         hmac.digest.first(16)
       end
 
+      # Encrypt the input data using the specified session key. This is used for
+      # certain Netlogon service operations including the authentication
+      # process. Per the specification, this uses AES-128-CFB8 with an all zero
+      # initialization vector.
+      #
+      # @param session_key [String] the session key to use for encryption (must be 16 bytes long)
+      # @param input_data [String] the data to encrypt
+      # @return [String] the encrypted data
+      def self.encrypt_credential(session_key, input_data)
+        cipher = OpenSSL::Cipher.new('AES-128-CFB8').encrypt
+        cipher.iv = "\x00" * 16
+        cipher.key = session_key
+        cipher.update(input_data) + cipher.final
+      end
     end
   end
 end

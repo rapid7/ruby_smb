@@ -33,6 +33,7 @@ module RubySMB
         end
         choice 'Netlogon', selection: -> { opnum } do
           netr_server_authenticate3_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_AUTHENTICATE3
+          netr_server_password_set2_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_PASSWORD_SET2
           netr_server_req_challenge_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_REQ_CHALLENGE
           string                            :default
         end
