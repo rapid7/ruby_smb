@@ -13,13 +13,14 @@ module RubySMB
     require 'ruby_smb/dcerpc/rpc_security_attributes'
     require 'ruby_smb/dcerpc/pdu_header'
     require 'ruby_smb/dcerpc/srvsvc'
-    require 'ruby_smb/dcerpc/winreg'
     require 'ruby_smb/dcerpc/svcctl'
+    require 'ruby_smb/dcerpc/winreg'
+    require 'ruby_smb/dcerpc/netlogon'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/bind_ack'
-    require 'ruby_smb/dcerpc/netlogon'
+
 
 
     # Bind to the remote server interface endpoint.

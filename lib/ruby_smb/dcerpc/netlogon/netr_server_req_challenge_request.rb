@@ -10,7 +10,7 @@ module RubySMB
 
         endian :little
 
-        logon_srv_handle    :primary_name
+        logonsrv_handle     :primary_name
         ndr_string          :computer_name
         netlogon_credential :client_challenge
 

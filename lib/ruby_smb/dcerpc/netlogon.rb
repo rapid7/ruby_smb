@@ -13,7 +13,7 @@ module RubySMB
       NETR_SERVER_PASSWORD_SET2 = 30
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/3b224201-b531-43e2-8c79-b61f6dea8640
-      class LogonSrvHandle < Ndr::NdrLpStr; end
+      class LogonsrvHandle < Ndr::NdrLpStr; end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/d55e2632-7163-4f6c-b662-4b870e8cc1cd
       class NetlogonCredential < Ndr::NdrFixedByteArray
@@ -46,6 +46,15 @@ module RubySMB
 
         def as_enum
           ALL[value]
+        end
+
+        def assign(val)
+          if val.is_a? Symbol
+            val = ALL.key(val)
+            raise ArgumentError, 'invalid value name' if val.nil?
+          end
+
+          super
         end
       end
 
