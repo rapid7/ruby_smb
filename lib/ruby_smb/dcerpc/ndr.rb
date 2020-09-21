@@ -98,9 +98,16 @@ module RubySMB
       # An NDR Uni-dimensional Fixed Array of bytes representation as defined in:
       # [Transfer Syntax NDR - NDR Constructed Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
       class NdrFixedByteArray < BinData::BasePrimitive
-        optional_parameters :length, :pad_byte, :pad_front
+        optional_parameters :read_length, :length, :pad_byte, :pad_front
         default_parameters pad_byte: 0
         mutually_exclusive_parameters :length, :value
+
+        def initialize_shared_instance
+          if (has_parameter?(:value) || has_parameter?(:asserted_value)) && !has_parameter?(:read_length)
+            extend WarnNoReadLengthPlugin
+          end
+          super
+        end
 
         def assign(val)
           super(fixed_byte_array(val))
@@ -141,7 +148,7 @@ module RubySMB
         end
 
         def read_and_return_value(io)
-          len = eval_parameter(:length) || 0
+          len = eval_parameter(:read_length) || eval_parameter(:length) || 0
           io.readbytes(len)
         end
 
@@ -170,6 +177,14 @@ module RubySMB
             raise ArgumentError, ':pad_byte must be within the range of 0 - 255' unless ((byte >= 0) && (byte <= 255))
 
             byte
+          end
+        end
+
+        # Warns when reading if :value && no :read_length
+        module WarnNoReadLengthPlugin
+          def read_and_return_value(io)
+            warn "#{debug_name} does not have a :read_length parameter - returning empty array"
+            ""
           end
         end
       end
