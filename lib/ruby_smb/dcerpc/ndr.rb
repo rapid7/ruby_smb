@@ -7,6 +7,9 @@ module RubySMB
       VER_MAJOR = 2
       VER_MINOR = 0
 
+      # An NDR Enum type as defined in
+      # [Transfer Syntax NDR - Enumerated Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05_01)
+      class NdrEnum < BinData::Int16le; end
 
       # An NDR Conformant and Varying String representation as defined in
       # [Transfer Syntax NDR - Conformant and Varying Strings](http://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
@@ -89,6 +92,100 @@ module RubySMB
           v = v.bytes if v.is_a?(self.class)
           self.bytes = v.to_ary
           self.max_count = self.bytes.size unless self.bytes.equal?(v)
+        end
+      end
+
+      # An NDR Uni-dimensional Fixed Array of bytes representation as defined in:
+      # [Transfer Syntax NDR - NDR Constructed Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
+      class NdrFixedByteArray < BinData::BasePrimitive
+        optional_parameters :read_length, :length, :pad_byte, :pad_front
+        default_parameters pad_byte: 0
+        mutually_exclusive_parameters :length, :value
+
+        def initialize_shared_instance
+          if (has_parameter?(:value) || has_parameter?(:asserted_value)) && !has_parameter?(:read_length)
+            extend WarnNoReadLengthPlugin
+          end
+          super
+        end
+
+        def assign(val)
+          super(fixed_byte_array(val))
+        end
+
+        def snapshot
+          clamp_to_length(super)
+        end
+
+        class << self
+          def arg_processor
+            NdrFixedByteArrayArgProcessor.new
+          end
+        end
+
+        private
+
+        def clamp_to_length(val)
+          val = fixed_byte_array(val)
+          len = eval_parameter(:length) || val.length
+          if val.length > len
+            val = val.first(len)
+          elsif val.length < len
+            pad = eval_parameter(:pad_byte)
+            if get_parameter(:pad_front)
+              val = val.insert(0, *Array.new(len - val.length, pad))
+            else
+              val = val.fill(pad, val.length...len)
+            end
+          end
+
+          val
+        end
+
+        def fixed_byte_array(val)
+          val = val.bytes if val.is_a? String
+          val.to_ary
+        end
+
+        def read_and_return_value(io)
+          len = eval_parameter(:read_length) || eval_parameter(:length) || 0
+          io.readbytes(len)
+        end
+
+        def sensible_default
+          [ ]
+        end
+
+        def value_to_binary_string(val)
+          clamp_to_length(val).pack('C*')
+        end
+
+        class NdrFixedByteArrayArgProcessor < BinData::BaseArgProcessor
+          def sanitize_parameters!(obj_class, obj_params)
+            obj_params.must_be_integer(:length, :pad_byte)
+            obj_params.sanitize(:pad_byte) { |byte| sanitized_pad_byte(byte) }
+          end
+
+          private
+
+          def sanitized_pad_byte(byte)
+            if byte.is_a?(String)
+              raise ArgumentError, ':pad_byte must not contain more than 1 byte' if byte.bytesize > 1
+
+              byte = byte.ord
+            end
+            raise ArgumentError, ':pad_byte must be within the range of 0 - 255' unless ((byte >= 0) && (byte <= 255))
+
+            byte
+          end
+        end
+
+        # Warns when reading if :value && no :read_length
+        module WarnNoReadLengthPlugin
+          def read_and_return_value(io)
+            warn "#{debug_name} does not have a :read_length parameter - returning empty array"
+            ""
+          end
         end
       end
 

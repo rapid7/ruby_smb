@@ -31,6 +31,12 @@ module RubySMB
           save_key_request       RubySMB::Dcerpc::Winreg::REG_SAVE_KEY
           string                 :default
         end
+        choice 'Netlogon', selection: -> { opnum } do
+          netr_server_authenticate3_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_AUTHENTICATE3
+          netr_server_password_set2_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_PASSWORD_SET2
+          netr_server_req_challenge_request RubySMB::Dcerpc::Netlogon::NETR_SERVER_REQ_CHALLENGE
+          string                            :default
+        end
         choice 'Srvsvc', selection: -> { opnum } do
           net_share_enum_all RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: -> { host rescue '' }
           string             :default
