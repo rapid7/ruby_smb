@@ -44,8 +44,7 @@ module RubySMB
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
             string             :pad1,               length: -> { pad1_length }
             trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-            string             :pad2,               length: -> { pad2_length }
-            string             :trans2_data,        label: 'Trans2 Data', length: 0
+            # trans2_data: No data is sent by this message.
           end
 
           smb_header        :smb_header
