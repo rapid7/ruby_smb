@@ -473,7 +473,7 @@ RSpec.describe RubySMB::SMB1::File do
     end
 
     it 'sets the File Information #rename_pending field of the packet' do
-      expect(file.rename_packet(filename).data_block.trans2_data.info_level_struct.file_name).to eq filename.encode('utf-16le').force_encoding('ASCII-8BIT')
+      expect(file.rename_packet(filename).data_block.trans2_data.info_level_struct.file_name).to eq filename
     end
 
     it 'sets the Trans2 ParameterBlock fields' do
