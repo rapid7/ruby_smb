@@ -301,7 +301,7 @@ module RubySMB
         passthrough_info_level = RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION +
           RubySMB::Fscc::FileInformation::SMB_INFO_PASSTHROUGH
         rename_request.data_block.trans2_parameters.information_level = passthrough_info_level
-        rename_request.data_block.trans2_data.info_level_struct.file_name = new_file_name.encode('utf-16le')
+        rename_request.data_block.trans2_data.info_level_struct.file_name = new_file_name
         set_trans2_params(rename_request)
       end
 
