@@ -32,7 +32,6 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
   describe '#data_block' do
     subject(:data_block) { packet.data_block }
 
-    it { is_expected.to respond_to :name }
     it { is_expected.to respond_to :trans2_parameters }
     it { is_expected.to respond_to :trans2_data }
 

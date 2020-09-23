@@ -35,14 +35,9 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Open2Response do
     end
 
     it { is_expected.to respond_to :trans2_parameters }
-    it { is_expected.to respond_to :trans2_data }
 
     it 'should keep #trans2_parameters 4-byte aligned' do
       expect(data_block.trans2_parameters.abs_offset % 4).to eq 0
-    end
-
-    it 'should keep #trans2_data 4-byte aligned' do
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
     end
 
     describe '#trans2_parameters' do
