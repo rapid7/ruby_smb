@@ -11,6 +11,7 @@ module RubySMB
         endian :little
 
         logonsrv_handle     :primary_name
+        string              :pad1, length: -> { pad_length(self.primary_name) }
         ndr_string          :computer_name
         netlogon_credential :client_challenge
 
@@ -19,6 +20,12 @@ module RubySMB
           @opnum = NETR_SERVER_REQ_CHALLENGE
         end
 
+        # Determines the correct length for the padding, so that the next
+        # field is 4-byte aligned.
+        def pad_length(prev_element)
+          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
+          (4 - offset) % 4
+        end
       end
     end
   end
