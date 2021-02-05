@@ -7,7 +7,7 @@ end
 require 'coveralls'
 require 'ruby_smb'
 
-if ENV['TRAVIS'] == 'true'
+if ENV['CI'] == 'true'
   # don't generate local report as it is inaccessible on travis-ci, which is
   # why coveralls is being used.
   SimpleCov.formatter = Coveralls::SimpleCov::Formatter
