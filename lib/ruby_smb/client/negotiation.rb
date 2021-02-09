@@ -57,7 +57,6 @@ module RubySMB
 
       # Takes the raw response data from the server and tries
       # parse it into a valid Response packet object.
-      # This method currently assumes that all SMB1 will use Extended Security.
       #
       # @param raw_data [String] the raw binary response from the server
       # @return [RubySMB::SMB1::Packet::NegotiateResponseExtended] when the response is an SMB1 Extended Security Negotiate Response Packet
@@ -65,7 +64,12 @@ module RubySMB
       def negotiate_response(raw_data)
         response = nil
         if smb1
-          packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
+          packet = RubySMB::SMB1::Packet::NegotiateResponse.read raw_data
+
+          if packet.smb_header.flags2.extended_security == 1
+            packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
+          end
+
           response = packet if packet.valid?
         end
         if (smb2 || smb3) && response.nil?

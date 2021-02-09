@@ -277,7 +277,8 @@ module RubySMB
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     # @param smb3 [Boolean] whether or not to enable SMB3 support
-    def initialize(dispatcher, smb1: true, smb2: true, smb3: true, username:, password:, domain: '.', local_workstation: 'WORKSTATION', always_encrypt: true)
+    def initialize(dispatcher, smb1: true, smb2: true, smb3: true, username:, password:, domain: '.',
+                   local_workstation: 'WORKSTATION', always_encrypt: true, ntlm_flags: default_flags)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -306,18 +307,12 @@ module RubySMB
       # SMB 3.x options
       @session_encrypt_data = always_encrypt
 
-      negotiate_version_flag = 0x02000000
-      flags = Net::NTLM::Client::DEFAULT_FLAGS |
-        Net::NTLM::FLAGS[:TARGET_INFO] |
-        negotiate_version_flag ^
-        Net::NTLM::FLAGS[:OEM]
-
       @ntlm_client = Net::NTLM::Client.new(
         @username,
         @password,
         workstation: @local_workstation,
         domain: @domain,
-        flags: flags
+        ntlm_flags: ntlm_flags
       )
 
       @tree_connects = []
@@ -368,31 +363,28 @@ module RubySMB
 
     # Performs protocol negotiation and session setup. It defaults to using
     # the credentials supplied during initialization, but can take a new set of credentials if needed.
-    def login(username: self.username, password: self.password, domain: self.domain, local_workstation: self.local_workstation)
+    def login(username: self.username, password: self.password,
+              domain: self.domain, local_workstation: self.local_workstation,
+              ntlm_flags: default_flags)
       negotiate
-      session_setup(username, password, domain, true,
-                    local_workstation: local_workstation)
+      session_setup(username, password, domain,
+                    local_workstation: local_workstation,
+                    ntlm_flags: ntlm_flags)
     end
 
     def session_setup(user, pass, domain, do_recv=true,
-                      local_workstation: self.local_workstation)
+                      local_workstation: self.local_workstation, ntlm_flags: default_flags)
       @domain            = domain
       @local_workstation = local_workstation
       @password          = pass.encode('utf-8') || ''.encode('utf-8')
       @username          = user.encode('utf-8') || ''.encode('utf-8')
-
-      negotiate_version_flag = 0x02000000
-      flags = Net::NTLM::Client::DEFAULT_FLAGS |
-        Net::NTLM::FLAGS[:TARGET_INFO] |
-        negotiate_version_flag ^
-        Net::NTLM::FLAGS[:OEM]
 
       @ntlm_client = Net::NTLM::Client.new(
           @username,
           @password,
           workstation: @local_workstation,
           domain: @domain,
-          flags: flags
+          ntlm_flags: ntlm_flags
       )
 
       authenticate
@@ -653,6 +645,18 @@ module RubySMB
         @preauth_integrity_hash_algorithm,
         @preauth_integrity_hash_value + data.to_binary_s
       )
+    end
+
+    private
+
+    def default_flags
+      negotiate_version_flag = 0x02000000
+      flags = Net::NTLM::Client::DEFAULT_FLAGS |
+        Net::NTLM::FLAGS[:TARGET_INFO] |
+        negotiate_version_flag ^
+        Net::NTLM::FLAGS[:OEM]
+
+      flags
     end
   end
 end
