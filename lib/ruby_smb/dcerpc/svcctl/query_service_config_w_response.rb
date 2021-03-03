@@ -10,15 +10,15 @@ module RubySMB
       class QueryServiceConfigW < RubySMB::Dcerpc::Ndr::NdrStruct
         endian :little
 
-        uint32     :dw_service_type
-        uint32     :dw_start_type
-        uint32     :dw_error_control
-        ndr_lp_str :lp_binary_path_name
-        ndr_lp_str :lp_load_order_group
-        uint32     :dw_tag_id
-        ndr_lp_str :lp_dependencies
-        ndr_lp_str :lp_service_start_name
-        ndr_lp_str :lp_display_name
+        uint32          :dw_service_type
+        uint32          :dw_start_type
+        uint32          :dw_error_control
+        wide_string_ptr :lp_binary_path_name
+        wide_string_ptr :lp_load_order_group
+        uint32          :dw_tag_id
+        wide_string_ptr :lp_dependencies
+        wide_string_ptr :lp_service_start_name
+        wide_string_ptr :lp_display_name
 
       end
 

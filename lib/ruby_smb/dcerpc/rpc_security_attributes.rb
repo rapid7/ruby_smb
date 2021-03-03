@@ -6,9 +6,9 @@ module RubySMB
     class RpcSecurityDescriptor < BinData::Record
       endian :little
 
-      ndr_lp_byte_array :lp_security_descriptor
-      uint32            :cb_in_security_descriptor
-      uint32            :cb_out_security_descriptor
+      byte_array_ptr :lp_security_descriptor
+      uint32         :cb_in_security_descriptor
+      uint32         :cb_out_security_descriptor
     end
 
     # This class represents a RPC_SECURITY_ATTRIBUTES structure as defined in
@@ -23,10 +23,12 @@ module RubySMB
 
     # This class represents a pointer to a RPC_SECURITY_ATTRIBUTES structure as defined in
     # [2.2.7 RPC_SECURITY_ATTRIBUTES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rrp/bc37b8cf-8c94-4804-ad53-0aaf5eaf0ecb)
-    class PrpcSecurityAttributes < Ndr::NdrPointer
-      endian :little
-
-      rpc_security_attributes :referent, onlyif: -> { self.referent_id != 0 }
+    class PrpcSecurityAttributes < RpcSecurityAttributes
+      extend Ndr::PointerClassPlugin
+      def initialize_shared_instance
+        super
+        extend Ndr::PointerPlugin
+      end
     end
 
   end

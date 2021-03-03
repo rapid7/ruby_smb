@@ -417,9 +417,10 @@ module RubySMB
         ss_request = StartServiceWRequest.new(h_service: svc_handle)
         unless argv.empty?
           ss_request.argc = argv.size
-          ndr_string_ptrsw = RubySMB::Dcerpc::Ndr::NdrStringPtrsw.new
-          ndr_string_ptrsw.elements = argv
-          ss_request.argv = ndr_string_ptrsw
+          #ndr_string_ptrsw = RubySMB::Dcerpc::Ndr::NdrStringPtrsw.new
+          #ndr_string_ptrsw.elements = argv
+          #ss_request.argv = ndr_string_ptrsw
+          ss_request.argv = argv
         end
         response = dcerpc_request(ss_request)
         begin

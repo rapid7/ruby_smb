@@ -10,24 +10,24 @@ module RubySMB
 
         endian :little
 
-        sc_rpc_handle :h_service
-        uint32        :dw_service_type
-        uint32        :dw_start_type
-        uint32        :dw_error_control
-        ndr_lp_str    :lp_binary_path_name
-        string        :pad1, length: -> { pad_length(self.lp_binary_path_name) }
-        ndr_lp_str    :lp_load_order_group
-        string        :pad2, length: -> { pad_length(self.lp_load_order_group) }
-        ndr_lp_dword  :dw_tag_id
-        ndr_lp_byte   :lp_dependencies
-        string        :pad3, length: -> { pad_length(self.lp_dependencies) }
-        uint32        :dw_depend_size, value: -> { self.lp_dependencies.max_count }
-        ndr_lp_str    :lp_service_start_name
-        string        :pad4, length: -> { pad_length(self.lp_service_start_name) }
-        ndr_lp_byte   :lp_password
-        string        :pad5, length: -> { pad_length(self.lp_password) }
-        uint32        :dw_pw_size, value: -> { self.lp_password.max_count }
-        ndr_lp_str    :lp_display_name
+        sc_rpc_handle           :h_service
+        uint32                  :dw_service_type
+        uint32                  :dw_start_type
+        uint32                  :dw_error_control
+        wide_string_ptr         :lp_binary_path_name
+        string                  :pad1, length: -> { pad_length(self.lp_binary_path_name) }
+        wide_string_ptr         :lp_load_order_group
+        string                  :pad2, length: -> { pad_length(self.lp_load_order_group) }
+        uint32_ptr              :dw_tag_id
+        conf_array              :lp_dependencies, type: :uint8
+        string                  :pad3, length: -> { pad_length(self.lp_dependencies) }
+        uint32                  :dw_depend_size, value: -> { self.lp_dependencies.size }
+        wide_string_ptr         :lp_service_start_name
+        string                  :pad4, length: -> { pad_length(self.lp_service_start_name) }
+        conf_array              :lp_password, type: :uint8
+        string                  :pad5, length: -> { pad_length(self.lp_password) }
+        uint32                  :dw_pw_size, value: -> { self.lp_password.size }
+        wide_string_ptr         :lp_display_name
 
         def initialize_instance
           super

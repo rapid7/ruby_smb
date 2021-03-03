@@ -67,8 +67,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyRequest do
   end
 
   describe '#lpft_last_write_time' do
-    it 'is a NdrLpFileTime structure' do
-      expect(packet.lpft_last_write_time).to be_a RubySMB::Dcerpc::Ndr::NdrLpFileTime
+    it 'is a FileTimePtr structure' do
+      expect(packet.lpft_last_write_time).to be_a RubySMB::Dcerpc::Ndr::FileTimePtr
     end
   end
 

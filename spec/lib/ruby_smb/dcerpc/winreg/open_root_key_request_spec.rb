@@ -1,32 +1,30 @@
 RSpec.describe RubySMB::Dcerpc::Winreg::PRegistryServerName do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+  it 'is Ndr::FixArray subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::FixArray
   end
 
   subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :referent }
+  it { is_expected.to respond_to :ref_id }
 
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  it 'is an array of UTF-16LE strings' do
+    expect(packet[0]).to be_a RubySMB::Field::String16
   end
 
-  describe '#referent' do
-    it 'is a string in UTF-16LE' do
-      expect(packet.referent).to be_a RubySMB::Field::String16
-    end
-
-    it 'only exists if #referent_id is not 0' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-
-    it 'reads 4-bytes' do
-      str = 'spec_test'.encode('utf-16le')
-      packet.referent.read(str)
-      expect(packet.referent.to_binary_s.bytes).to eq(str.bytes[0,4])
-    end
+  it 'is :null if #ref_id is 0' do
+    packet.ref_id = 0
+    expect(packet).to eq(:null)
   end
+
+  it 'is always 2 wide-characters long' do
+    expect(packet.size).to eq(2)
+  end
+
+  #it 'reads 4-bytes' do
+  #  str = 'spec_test'.encode('utf-16le')
+  #  packet.referent.read(str)
+  #  expect(packet.referent.to_binary_s.bytes).to eq(str.bytes[0,4])
+  #end
 end
 
 RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do

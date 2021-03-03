@@ -52,7 +52,7 @@ module RubySMB
         regsam                   :sam_desired
         prpc_security_attributes :lp_security_attributes
         string                   :pad3, length: -> { pad_length(self.lp_security_attributes) }
-        ndr_lp_dword             :lpdw_disposition
+        uint32_ptr               :lpdw_disposition
 
         def initialize_instance
           super

@@ -96,8 +96,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::CreateKeyRequest do
   end
 
   describe '#lpdw_disposition' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a Uint32Ptr structure' do
+      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
     end
   end
 

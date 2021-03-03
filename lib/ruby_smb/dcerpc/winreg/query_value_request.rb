@@ -14,11 +14,11 @@ module RubySMB
         rpc_hkey           :hkey
         rrp_unicode_string :lp_value_name
         string             :pad1, length: -> { pad_length(self.lp_value_name) }
-        ndr_lp_dword       :lp_type
-        ndr_lp_byte_array  :lp_data
+        uint32_ptr         :lp_type
+        byte_array_ptr     :lp_data
         string             :pad2, length: -> { pad_length(self.lp_data) }
-        ndr_lp_dword       :lpcb_data
-        ndr_lp_dword       :lpcb_len
+        uint32_ptr         :lpcb_data
+        uint32_ptr         :lpcb_len
 
         def initialize_instance
           super

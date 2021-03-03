@@ -14,14 +14,14 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
   end
 
   describe '#lp_type' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lp_type).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a Ndr::Uint32Ptr structure' do
+      expect(packet.lp_type).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
     end
   end
 
   describe '#lp_data' do
-    it 'is a NdrLpByteArray structure' do
-      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpByteArray
+    it 'is a NdrByteArrayPtr structure' do
+      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::ByteArrayPtr
     end
   end
 
@@ -37,14 +37,14 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
   end
 
   describe '#lpcb_data' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a Ndr::Uint32Ptr structure' do
+      expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
     end
   end
 
   describe '#lpcb_len' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lpcb_len).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a Ndr::Uint32Ptr structure' do
+      expect(packet.lpcb_len).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
     end
   end
 
