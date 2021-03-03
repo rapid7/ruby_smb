@@ -17,7 +17,7 @@ module RubySMB
         string              :pad1,     length: -> { pad_length1 }
         prrp_unicode_string :lp_class
         string              :pad2,     length: -> { pad_length2 }
-        ndr_lp_file_time    :lpft_last_write_time
+        file_time_ptr       :lpft_last_write_time
 
         def initialize_instance
           super

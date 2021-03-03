@@ -24,6 +24,8 @@ module RubySMB
           extend RubySMB::Dcerpc::Svcctl
         when 'winreg', '\\winreg'
           extend RubySMB::Dcerpc::Winreg
+        when 'samr', '\\samr'
+          extend RubySMB::Dcerpc::Samr
         end
         super(tree: tree, response: response, name: name)
       end

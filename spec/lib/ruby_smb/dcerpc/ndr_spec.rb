@@ -1,1729 +1,1065 @@
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrPointer do
-  subject(:packet) do
-    Class.new(described_class) do
-      endian :little
-      string :referent
-    end.new
+require 'ruby_smb/dcerpc/ndr'
+
+RSpec.describe RubySMB::Dcerpc::Ndr::Boolean do
+  it 'is a BinData::Uint32le class' do
+    expect(described_class).to be < BinData::Uint32le
   end
 
-  it { is_expected.to respond_to :referent_id }
+  subject(:boolean) { described_class.new }
 
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent_id' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.referent_id).to be_a BinData::Uint32le
+  context 'with #new' do
+    it 'is false its default value' do
+      expect(boolean.new).to eq(false)
     end
-
-    it 'has an initial value of 0' do
-      expect(packet.referent_id).to eq(0)
+    it 'sets true to true' do
+      expect(boolean.new(true)).to eq(true)
     end
-  end
-
-  describe '#get' do
-    it 'returns :null when #referent_id is 0' do
-      packet.referent_id = 0
-      expect(packet.get).to eq(:null)
+    it 'sets false to false' do
+      expect(boolean.new(false)).to eq(false)
     end
-
-    it 'returns #referent when #referent_id is not 0' do
-      packet.set('spec_test')
-      expect(packet.get).to eq(packet.referent)
+    it 'sets 1 to true' do
+      expect(boolean.new(1)).to eq(true)
+    end
+    it 'sets 0 to false' do
+      expect(boolean.new(0)).to eq(false)
+    end
+    it 'sets any integer > 0 to true' do
+      expect(boolean.new(rand(1..1000))).to eq(true)
+    end
+    it 'raises an ArgumentError error when passing a String' do
+      expect { boolean.new("false") }.to raise_error(ArgumentError)
     end
   end
 
-  describe '#set' do
-    context 'when the value is :null' do
-      it 'clears #referent' do
-        expect(packet.referent).to receive(:clear)
-        packet.set(:null)
-      end
-
-      it 'sets #referent_id to 0' do
-        packet.set(:null)
-        expect(packet.referent_id).to eq(0)
-      end
+  context 'with #assign' do
+    it 'sets true to true' do
+      boolean.assign(true)
+      expect(boolean).to eq(true)
     end
-
-    context 'when the value is a string' do
-      let(:str) { 'spec_test' }
-
-      it 'sets #referent to the value' do
-        packet.set(str)
-        expect(packet.referent).to eq(str)
-      end
-
-      it 'calls #set when #referent support it' do
-        module TestSet; def set(v); end; end
-        packet.referent.extend(TestSet)
-        expect(packet.referent).to receive(:set).with(str)
-        packet.set(str)
-      end
-
-      it 'assigns directly to #referent when it does not support #set' do
-        expect(packet).to receive(:referent=).with(str)
-        packet.set(str)
-      end
-
-      it 'sets #referent_id to a random value' do
-        rnd = double('Random Value')
-        allow(packet).to receive(:rand).and_return(rnd)
-        expect(packet).to receive(:referent_id=).with(rnd)
-        packet.set(str)
-      end
-
-      it 'does not change #referent_id if it is already set' do
-        packet.referent_id = 0xCCCCCC
-        packet.set(str)
-        expect(packet.referent_id).to eq(0xCCCCCC)
-      end
+    it 'sets false to false' do
+      boolean.assign(false)
+      expect(boolean).to eq(false)
+    end
+    it 'sets 1 to true' do
+      boolean.assign(1)
+      expect(boolean).to eq(true)
+    end
+    it 'sets 0 to false' do
+      boolean.assign(0)
+      expect(boolean).to eq(false)
+    end
+    it 'sets any integer > 0 to true' do
+      boolean.assign(rand(1..100))
+      expect(boolean).to eq(true)
+    end
+    it 'raises an ArgumentError error when passing a String' do
+      expect { boolean.assign("false") }.to raise_error(ArgumentError)
     end
   end
 
-  describe '#do_read' do
-    let(:io) { StringIO.new }
+  context 'when reading data' do
+    it 'sets false with an uint32 zero value' do
+      boolean.read("\x00\x00\x00\x00")
+      expect(boolean).to eq(false)
+    end
+    it 'sets true with an uint32 1 value' do
+      boolean.read("\x01\x00\x00\x00")
+      expect(boolean).to eq(true)
+    end
+    it 'sets true with any uint32 value > 0' do
+      boolean.read([rand(1..1000)].pack('L'))
+      expect(boolean).to eq(true)
+    end
+    it 'reads itself' do
+      expect(boolean.read(described_class.new(true).to_binary_s)).to eq(true)
+    end
+  end
 
-    it 'asks referent_id to read the io stream' do
-      expect(packet.referent_id).to receive(:do_read).with(io)
-      packet.do_read(io)
+  context 'with #to_binary_s' do
+    it 'returns the expected true binary representation' do
+      boolean.assign(true)
+      expect(boolean.to_binary_s).to eq("\x01\x00\x00\x00")
+    end
+    it 'returns the expected false binary representation' do
+      boolean.assign(false)
+      expect(boolean.to_binary_s).to eq("\x00\x00\x00\x00")
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::Char do
+  it 'is a BinData::String class' do
+    expect(described_class).to be < BinData::String
+  end
+
+  subject(:char) { described_class.new }
+
+  context 'with #new' do
+    it 'is "\x00" its default value' do
+      expect(char.new).to eq("\x00")
+    end
+    it 'sets a character' do
+      expect(char.new('A')).to eq('A')
+    end
+    it 'sets the first character when passing a String' do
+      expect(char.new('ABC')).to eq('A')
+    end
+    it 'does not set a value when passing anything else than a string' do
+      char.new(['ABC'])
+      expect(char).to eq("\x00")
+      char.new(67)
+      expect(char).to eq("\x00")
+    end
+  end
+
+  context 'with #assign' do
+    it 'sets a character' do
+      char.assign('A')
+      expect(char).to eq('A')
+    end
+    it 'sets the first character when passing a String' do
+      char.assign('ABC')
+      expect(char).to eq('A')
+    end
+    it 'converts the argument to string and keeps the first character' do
+      char.assign(['ABC'])
+      expect(char).to eq('[')
+      char.assign(67)
+      expect(char).to eq('6')
+    end
+  end
+
+  context 'when reading data' do
+    it 'sets a character' do
+      char.read("\x41")
+      expect(char).to eq('A')
+    end
+    it 'reads itself' do
+      expect(char.read(described_class.new('A').to_binary_s)).to eq('A')
+    end
+  end
+
+  context 'with #to_binary_s' do
+    it 'returns the expected character binary representation' do
+      char.assign('A')
+      expect(char.to_binary_s).to eq("\x41")
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::WideChar do
+  it 'is a BinData::String class' do
+    expect(described_class).to be < RubySMB::Field::String16
+  end
+
+  subject(:char) { described_class.new }
+
+  context 'with #new' do
+    it 'is "\x00" its default value' do
+      expect(char.new).to eq("\x00".encode('utf-16le'))
+    end
+    it 'sets a character' do
+      expect(char.new('A')).to eq('A'.encode('utf-16le'))
+    end
+    it 'sets the first character when passing a String' do
+      expect(char.new('ABC')).to eq('A'.encode('utf-16le'))
+    end
+    it 'does not set a value when passing anything else than a string' do
+      char.new(['ABC'])
+      expect(char).to eq("\x00".encode('utf-16le'))
+      char.new(67)
+      expect(char).to eq("\x00".encode('utf-16le'))
+    end
+  end
+
+  context 'with #assign' do
+    it 'sets a character' do
+      char.assign('A')
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'sets the first character when passing a String' do
+      char.assign('ABC')
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'converts the argument to string and keeps the first character' do
+      char.assign(['ABC'])
+      expect(char).to eq('['.encode('utf-16le'))
+      char.assign(67)
+      expect(char).to eq('6'.encode('utf-16le'))
+    end
+  end
+
+  context 'when reading data' do
+    it 'sets a character' do
+      char.read("\x41\x00")
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'reads itself' do
+      expect(char.read(described_class.new('A').to_binary_s)).to eq('A'.encode('utf-16le'))
+    end
+  end
+
+  context 'with #to_binary_s' do
+    it 'returns the expected character binary representation' do
+      char.assign('A')
+      expect(char.to_binary_s).to eq("\x41\x00")
+    end
+  end
+end
+
+#####################################
+#       NDR Constructed Types       #
+#####################################
+
+
+#
+# Arrays
+#
+
+RSpec.shared_examples "a BinData::Array" do
+  it 'is a BinData::Array class' do
+    expect(described_class).to be < BinData::Array
+  end
+  it 'is an empty array by default' do
+    expect(subject).to eq([])
+  end
+
+  context 'with elements' do
+    before :example do
+      subject << 5
+      subject << 7
+    end
+    it 'contains the expected element types' do
+      expect(subject.all? {|e| e.is_a?(BinData::Uint16le)}).to be true
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(2)
     end
 
-    context 'when it can process #referent' do
+    context 'when setting a value at index greater than the current number of elements' do
       before :example do
-        allow(packet).to receive(:process_referent?).and_return(true)
-        allow(packet.referent_id).to receive(:do_read)
+        subject[4] = 14
       end
-
-      it 'asks referent to read the io stream if referent_id is not 0' do
-        packet.referent_id = 0xCCCC
-        expect(packet.referent).to receive(:do_read).with(io)
-        packet.do_read(io)
+      it 'adds elements until it reaches the new index' do
+        expect(subject.size).to eq(5)
       end
-
-      it 'does not ask referent to read the io stream if referent_id is 0' do
-        packet.referent_id = 0
-        expect(packet.referent).to_not receive(:do_read).with(io)
-        packet.do_read(io)
+      it 'sets the new elements to the element type default value' do
+        expect(subject[0]).to eq(5)
+        expect(subject[1]).to eq(7)
+        expect(subject[2]).to eq(0)
+        expect(subject[3]).to eq(0)
+        expect(subject[4]).to eq(14)
       end
     end
-  end
 
-  describe '#do_write' do
-    let(:io) { StringIO.new }
-
-    it 'asks referent_id to write the io stream' do
-      expect(packet.referent_id).to receive(:do_write).with(io)
-      packet.do_write(io)
-    end
-
-    context 'when it can process #referent' do
+    context 'when reading a value at index greater than the current number of elements' do
+      let(:new_element) {BinData::Uint16le.new(1)}
       before :example do
-        allow(packet).to receive(:process_referent?).and_return(true)
-        allow(packet.referent_id).to receive(:do_write)
+        new_element.assign(subject[4])
       end
-
-      it 'asks referent to write the io stream if referent_id is not 0' do
-        packet.referent_id = 0xCCCC
-        expect(packet.referent).to receive(:do_write).with(io)
-        packet.do_write(io)
+      it 'adds elements until it reaches the new index' do
+        expect(subject.size).to eq(5)
       end
-
-      it 'does not ask referent to write the io stream if referent_id is 0' do
-        packet.referent_id = 0
-        expect(packet.referent).to_not receive(:do_write).with(io)
-        packet.do_write(io)
+      it 'adds elements a default element' do
+        expect(new_element).to eq(0)
       end
-    end
-  end
-
-  describe '#process_referent?' do
-    let(:ndr_struct) { RubySMB::Dcerpc::Ndr::NdrStruct.new }
-    it 'returns false if the parent is a NdrStruct' do
-      obj = described_class.new(nil, {}, ndr_struct)
-      expect(obj.process_referent?).to be false
-    end
-
-    it 'returns false if one of the parents is a NdrStruct' do
-      obj1 = described_class.new(nil, {}, ndr_struct)
-      obj2 = described_class.new(nil, {}, obj1)
-      obj3 = described_class.new(nil, {}, obj2)
-      obj4 = described_class.new(nil, {}, obj3)
-      obj5 = described_class.new(nil, {}, obj4)
-      expect(obj5.process_referent?).to be false
-    end
-
-    it 'returns true if none of the parents is a NdrStruct' do
-      obj1 = described_class.new
-      obj2 = described_class.new(nil, {}, obj1)
-      obj3 = described_class.new(nil, {}, obj2)
-      obj4 = described_class.new(nil, {}, obj3)
-      obj5 = described_class.new(nil, {}, obj4)
-      expect(obj5.process_referent?).to be true
-    end
-  end
-
-  describe '#read' do
-    let(:struct) do
-      Class.new(described_class) do
-        attr_accessor :str_length
-        endian :little
-        string :referent, read_length: -> { self.str_length }
+      it 'sets the new elements to the element type default value' do
+        expect(subject[0]).to eq(5)
+        expect(subject[1]).to eq(7)
+        expect(subject[2]).to eq(0)
+        expect(subject[3]).to eq(0)
+        expect(subject[4]).to eq(new_element)
       end
     end
 
-    context 'with a null string' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(struct.read(raw)).to eq(packet)
-        expect(struct.read(raw).to_binary_s).to eq(raw)
+    context 'when assigning another array' do
+      let(:new_array) { [1,2,3] }
+      before :example do
+        subject.assign(new_array)
       end
-    end
-
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        struct_obj = struct.new
-        struct_obj.str_length = 'testing'.size
-        expect(struct_obj.read(raw)).to eq(packet)
-        expect(struct_obj.read(raw).to_binary_s).to eq(raw)
+      it 'has the same size than the other array' do
+        expect(subject.size).to eq(new_array.size)
+      end
+      it 'replaces all the elements' do
+        new_array.each_with_index do |e, i|
+          expect(subject[i]).to eq(e)
+        end
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrString do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :offset }
-  it { is_expected.to respond_to :actual_count }
-  it { is_expected.to respond_to :str }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
+RSpec.shared_examples "a NDR Array" do |counter|
+  counter.each do |name, position|
+    it "has #{name} set to 0 (uint32) by default" do
+      expect(subject.to_binary_s[position*4, 4]).to eq("\x00\x00\x00\x00")
     end
   end
-
-  describe '#offset' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.offset).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial valu of 0' do
-      expect(packet.offset).to eq(0)
-    end
+  it 'reads itself' do
+    subject << 5
+    subject << 7
+    subject << 45
+    expect(subject.read(subject.to_binary_s)).to eq([5, 7, 45])
   end
 
-  describe '#actual_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.actual_count).to be_a BinData::Uint32le
+  context 'with elements' do
+    before :example do
+      subject << 5
+      subject << 7
     end
-  end
+    counter.each do |name, position|
+      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
 
-  describe '#str' do
-    it 'is a RubySMB::Field::Stringz16' do
-      expect(packet.str).to be_a RubySMB::Field::Stringz16
-    end
-
-    it 'exists if #actual_count is greater than 0' do
-      packet.actual_count = 4
-      expect(packet.str?).to be true
-    end
-
-    it 'does not exist if #actual_count is 0' do
-      expect(packet.str?).to be false
-    end
-  end
-
-  describe '#get' do
-    it 'returns 0 when #actual_count is 0' do
-      expect(packet.get).to eq(0)
-    end
-
-    it 'returns #str when #actual_count is greater than 0' do
-      str = 'spec_test'
-      strz16 = RubySMB::Field::Stringz16.new(str)
-      packet.set(str)
-      expect(packet.get).to eq(strz16)
-    end
-  end
-
-  describe '#set' do
-    context 'when the value is 0' do
-      it 'sets #actual_count to 0' do
-        packet.set(0)
-        expect(packet.actual_count).to eq(0)
+      it "sets #{name} to a little endian uint32 value representing the number of elements" do
+        expect(counter_value).to eq(subject.size)
+      end
+      it "updates #{name} when adding one element" do
+        subject << 10
+        expect(counter_value).to eq(subject.size)
       end
 
-      it 'clears #str' do
-        expect(packet.str).to receive(:clear)
-        packet.set(0)
+      context 'when setting a value at index greater than the current number of elements' do
+        it "sets #{name} to the new number of elements" do
+          subject[4] = 14
+          expect(counter_value).to eq(5)
+        end
       end
 
-      it 'keeps #actual_count set to 0 when called from #to_binary_s' do
-        packet.set(0)
-        packet.to_binary_s
-        expect(packet.actual_count).to eq(0)
+      context 'when reading a value at index greater than the current number of elements' do
+        it "sets #{name} to the new number of elements" do
+          new_element = BinData::Uint16le.new(1)
+          new_element.assign(subject[4])
+          expect(counter_value).to eq(5)
+        end
       end
 
-      it 'keeps #actual_count set to 0 when called from #do_num_bytes' do
-        packet.set(0)
-        packet.to_binary_s
-        packet.do_num_bytes
-        expect(packet.actual_count).to eq(0)
+      context 'when assigning another array' do
+        it "sets #{name} to the new number of elements" do
+          new_array = [1,2,3]
+          subject.assign(new_array)
+          expect(counter_value).to eq(3)
+        end
       end
     end
 
-    context 'when the value is a string' do
-      let(:str) { 'spec_test' }
-
-      it 'sets #str to the value' do
-        packet.set(str)
-        strz16 = RubySMB::Field::Stringz16.new(str)
-        expect(packet.str).to eq(strz16)
+    context 'when reading a binary stream' do
+      before :example do
+        subject.read(binary_stream)
       end
-
-      it 'sets #max_count and #actual_count to the expected value' do
-        packet.set(str)
-        expect(packet.max_count).to eq(str.length + 1)
-        expect(packet.actual_count).to eq(str.length + 1)
+      it 'has the expected size' do
+        expect(subject.size).to eq(values.size)
       end
-
-      it 'sets #actual_count to 0 when the value is an empty string' do
-        packet.actual_count = 10
-        packet.set('')
-        expect(packet.actual_count).to eq(0)
+      it 'sets the new element values' do
+        values.each_with_index do |value, i|
+          expect(subject[i]).to eq(value)
+        end
       end
-
-      it 'keeps custom #max_count and #offset values when called from #to_binary_s' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.offset = 10
-        packet.to_binary_s
-        expect(packet.max_count).to eq(3)
-        expect(packet.offset).to eq(10)
+      it 'has the same binary representation than the original binary stream' do
+        expect(subject.to_binary_s).to eq(binary_stream)
       end
-
-      it 'keeps custom #max_count value when called from #do_num_bytes' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.offset = 10
-        packet.do_num_bytes
-        expect(packet.max_count).to eq(3)
-        expect(packet.offset).to eq(10)
-      end
-
-      it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.set(str * 2)
-        expect(packet.max_count).to eq(str.size * 2 + 1)
-      end
-    end
-  end
-
-  describe '#clear' do
-    it 'clears #str' do
-      expect(packet.str).to receive(:clear)
-      packet.clear
-    end
-
-    it 'clears #actual_count' do
-      expect(packet.actual_count).to receive(:clear)
-      packet.clear
-    end
-
-    it 'does to clear out #max_count and #offset' do
-      expect(packet.max_count).to_not receive(:clear)
-      expect(packet.offset).to_not receive(:clear)
-      packet.clear
-    end
-  end
-
-  describe '#to_s' do
-    it 'calls str#to_s' do
-      expect(packet.str).to receive(:to_s)
-      packet.to_s
-    end
-
-    it 'outputs the expected string with the correct encoding' do
-      str = 'testing'
-      packet.assign(str)
-      expect(packet.to_s.encoding).to eq(Encoding::UTF_16LE)
-      expect(packet.to_s).to eq(str.encode(Encoding::UTF_16LE))
-    end
-  end
-
-  describe '#read' do
-    context 'with a null string' do
-      it 'reads its own binary representation' do
-        packet.set(0)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with different #offset and #max_count values' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        packet.max_count = 256
-        packet.offset = 40
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with #actual_count less than elements size' do
-      it 'reads its own binary representation reduced to #actual_count elements' do
-        str = '12345'
-        packet.set(str)
-        packet.actual_count = 4
-        max_count = packet.max_count.to_i
-        raw = packet.to_binary_s
-        packet2 = described_class.read(raw)
-        expect(packet2.max_count).to eq(max_count)
-        expect(packet2.offset).to eq(0)
-        expect(packet2.actual_count).to eq(4)
-        expect(packet2.str).to eq(str[0,3].encode(Encoding::UTF_16LE))
-        expect(packet2.to_binary_s).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x001\x002\x003\x00\x00\x00".b)
+      counter.each do |name, position|
+        let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+        it "sets #{name} to the new number of elements" do
+          expect(counter_value).to eq(values.size)
+        end
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpStr do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+RSpec.describe RubySMB::Dcerpc::Ndr::FixArray do
+  it 'is a BinData::Array class' do
+    expect(described_class).to be < BinData::Array
+  end
+  it 'is an empty array by default' do
+    expect(described_class.new(type: :uint16le)).to eq([])
   end
 
-  subject(:packet) { described_class.new }
+  subject { described_class.new(type: :uint16le, initial_length: 4) }
 
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  it 'is an array of initial_length default elements by default' do
+    expect(subject).to eq([0, 0, 0, 0])
   end
 
-  describe '#referent' do
-    it 'is a NdrString' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrString
+  context 'with elements' do
+    before :example do
+      subject.assign([1, 2, 3, 4])
+    end
+    it 'contains the expected element types' do
+      expect(subject.all? {|e| e.is_a?(BinData::Uint16le)}).to be true
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(4)
     end
 
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
+    context 'when setting a value to an element array' do
+      context 'in the array bounds' do
+        it 'does not raise error and sets the new value' do
+          expect { subject[3] = 14 }.to_not raise_error
+          expect(subject[3]).to eq(14)
+        end
+      end
+      context 'outside of the array bounds' do
+        it 'raises an error' do
+          expect { subject[4] = 14 }.to raise_error(ArgumentError)
+        end
+      end
     end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
+    context 'when reading the value of an element array' do
+      context 'in the array bounds' do
+        it 'does not raise error and returns the value' do
+          expect { subject[3] }.to_not raise_error
+          expect(subject[3]).to eq(4)
+        end
+      end
+      context 'outside of the array bounds' do
+        it 'raises an error' do
+          expect { subject[4] }.to raise_error(ArgumentError)
+        end
+      end
     end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    context 'when assigning another array' do
+      context 'with the same number of elements' do
+        it 'does not raise error and returns the value' do
+          expect { subject.assign([5, 6, 7, 8]) }.to_not raise_error
+          expect(subject).to eq([5, 6, 7, 8])
+        end
+      end
+      context 'with more elements' do
+        it 'raises an error' do
+          expect { subject.assign([5, 6, 7, 8, 9]) }.to raise_error(ArgumentError)
+        end
+      end
+      context 'with less elements' do
+        it 'raises an error' do
+          expect { subject.assign([5, 6, 7]) }.to raise_error(ArgumentError)
+        end
+      end
+    end
+    context 'when pushing a new element' do
+      it 'raises an error' do
+        expect { subject << 88 }.to raise_error(ArgumentError)
+      end
+    end
+    context 'when unshifting a new element' do
+      it 'raises an error' do
+        expect { subject.unshift(88) }.to raise_error(ArgumentError)
+      end
+    end
+    context 'when concatenating another array' do
+      it 'raises an error' do
+        expect { subject.concat([3,4]) }.to raise_error(ArgumentError)
       end
     end
 
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::ConfArray do
+  subject { described_class.new(type: :uint16le) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'max_count' => 0 } do
+    let(:binary_stream) {
+      "\x03\x00\x00\x00"\
+      "\x09\x00"\
+      "\x03\x00"\
+      "\x06\x00".b
+    }
+    let(:values) { [9, 3, 6] }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::VarArray do
+  subject { described_class.new(type: :uint16le) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'actual_count' => 1 } do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x03\x00"\
+      "\x01\x00"\
+      "\x07\x00"\
+      "\x02\x00".b
+    }
+    let(:values) { [3, 1, 7, 2] }
+  end
+  it 'has offset always set to 0' do
+    expect(subject.to_binary_s[0,4]).to eq("\x00\x00\x00\x00")
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarArray do
+  subject { described_class.new(type: :uint16le) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'max_count' => 0, 'actual_count' => 2 } do
+    let(:binary_stream) {
+      "\x04\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x02\x00"\
+      "\x09\x00"\
+      "\x08\x00"\
+      "\x05\x00".b
+    }
+    let(:values) { [2, 9, 8, 5] }
+  end
+  it 'has offset always set to 0' do
+    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
+    subject.assign([1,2])
+    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
+  end
+end
+
+
+#
+# Strings
+#
+
+RSpec.shared_examples "a NDR String" do |counter, first_char_offset, char_size|
+  it 'is an empty string by default' do
+    expect(subject).to eq('')
+  end
+  it 'has a binary representation of one NULL string terminator by default' do
+    expect(subject.to_binary_s[first_char_offset..-1]).to eq("\x00" * char_size)
+  end
+  counter.each do |name, position|
+    #it "has #{name} set to #{char_size} (uint32) by default (NULL terminator)" do
+      #expect(subject.to_binary_s[position*4, 4]).to eq([char_size].pack('L'))
+    it "has #{name} set to 1 (uint32) by default (NULL terminator)" do
+      expect(subject.send(name)).to eq(1)
+    end
+    it "has #{name} binary representation set to 1 (uint32) by default (NULL terminator)" do
+      expect(subject.to_binary_s[position*4, 4]).to eq([1].pack('L'))
+    end
+  end
+  it 'reads itself' do
+    subject.assign(str)
+    expect(subject.read(subject.to_binary_s)).to eq(str)
+  end
+
+  context 'with a string' do
+    before :example do
+      subject.assign(str)
+    end
+    counter.each do |name, position|
+      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+
+      it "sets #{name} to the string size in characters (including the string terminator)" do
+        expect(subject.send(name)).to eq(str.size + 1)
+      end
+      it "sets #{name} to a little endian uint32 value representing the string size in characters (including the string terminator)" do
+        #expect(counter_value).to eq(str.force_encoding('ASCII').size + char_size)
+        expect(counter_value).to eq(str.size + 1)
+      end
+
+      context 'when assigning another string' do
+        let(:new_str) { 'New String!' }
+        before :example do
+          subject.assign(new_str)
+        end
+        it "sets #{name} to the new number of elements" do
+          expect(subject.send(name)).to eq(new_str.size + 1)
+        end
+        it "sets #{name} binary representation to the new number of elements" do
+          #expect(counter_value).to eq((new_str.size + 1) * char_size)
+          expect(counter_value).to eq(new_str.size + 1)
+        end
+      end
+    end
+
+    context 'when reading a binary stream' do
+      before :example do
+        subject.read(binary_stream)
+      end
+      it 'has the expected size' do
+        expect(subject.size).to eq(value.size)
+      end
+      it 'sets the new element values' do
+        expect(subject.to_s).to eq(value)
+      end
+      it 'has the same binary representation than the original binary stream' do
+        expect(subject.to_binary_s).to eq(binary_stream)
+      end
+      counter.each do |name, position|
+        let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+        it "sets #{name} to the new number of elements (including the string terminator)" do
+          #expect(counter_value).to eq(value.force_encoding('ASCII').size + char_size)
+          expect(counter_value).to eq(value.size + 1)
+        end
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrContextHandle do
-  let(:uuid) { 'c3bce70d-5155-472b-9f2f-b824e5fc9b60' }
-  let(:attr) { 123 }
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :context_handle_attributes }
-  it { is_expected.to respond_to :context_handle_uuid }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+RSpec.shared_examples "a String" do |counter, first_char_offset|
+  it 'is a BinData::Stringz class' do
+    expect(described_class).to be < BinData::Stringz
   end
-
-  describe '#context_handle_attributes' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.context_handle_attributes).to be_a BinData::Uint32le
-    end
+  it_behaves_like 'a NDR String', counter, first_char_offset, 1 do
+    let(:str) { 'Testing String' }
   end
-
-  describe '#context_handle_uuid' do
-    it 'is a UUID' do
-      expect(packet.context_handle_uuid).to be_a RubySMB::Dcerpc::Uuid
-    end
+end
+RSpec.shared_examples "a Wide String" do |counter, first_char_offset|
+  it 'is a RubySMB::Field::Stringz16 class' do
+    expect(described_class).to be < RubySMB::Field::Stringz16
   end
-
-  describe '#get' do
-    it 'returns the expeted hash' do
-      packet.context_handle_attributes = attr
-      packet.context_handle_uuid = uuid
-      expect(packet.get).to eq({context_handle_attributes: attr, context_handle_uuid: uuid})
-    end
+  it_behaves_like 'a NDR String', counter, first_char_offset, 2 do
+    let(:str) { 'Testing String'.encode('utf-16le') }
   end
-
-  describe '#set' do
-    let(:handle) { {context_handle_attributes: attr, context_handle_uuid: uuid} }
-
-    context 'when the value is a hash' do
-      it 'sets #context_handle_attributes and #context_handle_uuid to the expected values' do
-        packet.set(handle)
-        expect(packet.context_handle_attributes).to eq(attr)
-        expect(packet.context_handle_uuid).to eq(uuid)
+end
+RSpec.shared_examples "a conformant string" do
+  describe '#assign' do
+    context 'with a string' do
+      it 'sets #max_count to the string length (including the NULL terminator)' do
+        str = 'Testing!!!'
+        subject.assign(str)
+        expect(subject.max_count).to eq(str.length + 1)
       end
     end
-
-    context 'when the value is a NdrContextHandle'do
-      it 'reads the value binary representaion ' do
-        ndr_context_handle = described_class.new(handle)
-        allow(ndr_context_handle).to receive(:to_binary_s).and_call_original
-        packet.set(ndr_context_handle)
-        expect(ndr_context_handle).to have_received(:to_binary_s)
-        expect(packet.get).to eq(ndr_context_handle)
+    context 'with a varying string' do
+      it 'sets #max_count to the string length (including the NULL terminator)' do
+        str = RubySMB::Dcerpc::Ndr::VarString.new('Testing!!!')
+        subject.assign(str)
+        expect(subject.max_count).to eq(str.length + 1)
       end
     end
-
-    context 'when the value is a binary string'do
-      it 'reads the value' do
-        ndr_context_handle = described_class.new(handle)
-        packet.set(ndr_context_handle.to_binary_s)
-        expect(packet.get).to eq(ndr_context_handle)
-      end
-    end
-  end
-
-  describe '#read' do
-    context 'with a hash' do
-      it 'reads its own binary representation' do
-        packet.set({context_handle_attributes: attr, context_handle_uuid: uuid})
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a NdrContextHandle' do
-      it 'reads its own binary representation' do
-        nch = described_class.new
-        nch.set({context_handle_attributes: attr, context_handle_uuid: uuid})
-        packet.set(nch)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a binary string' do
-      it 'reads its own binary representation' do
-        packet.set("{\x00\x00\x00\r\xE7\xBC\xC3UQ+G\x9F/\xB8$\xE5\xFC\x9B`".b)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    context 'with a conformant varying string' do
+      it 'sets #max_count to the string length (including the NULL terminator)' do
+        str = described_class.new('Testing!!!')
+        str.max_count = 30
+        subject.assign(str)
+        expect(subject.max_count).to eq(str.max_count)
       end
     end
   end
 end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpDword do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.referent).to be_a BinData::Uint32le
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal integer' do
-      it 'reads its own binary representation' do
-        packet.set(123)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
+RSpec.shared_examples "a varying string" do |offset|
+  it 'has offset always set to 0' do
+    expect(subject.to_binary_s[offset,4]).to eq("\x00\x00\x00\x00".b)
+    subject.assign('Test')
+    expect(subject.to_binary_s[offset,4]).to eq("\x00\x00\x00\x00".b)
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpByteArray do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+RSpec.describe RubySMB::Dcerpc::Ndr::VarString do
+  subject { described_class.new }
+  it_behaves_like 'a String', { :actual_count => 1 }, 8 do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x42\x43\x44\x00".b
+    }
+    let(:value) { 'ABCD' }
   end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a NdrByteArray structure' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrByteArray
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#set' do
-    it 'accepts a NdrLpByteArray structure' do
-      struct = described_class.new([1, 2, 3])
-      packet.set(struct)
-      expect(packet).to eq(struct)
-    end
-
-    it 'accepts a NdrLpByteArray null pointer' do
-      struct = described_class.new
-      packet.set(struct)
-      expect(packet).to eq(:null)
-    end
-
-    it 'accepts a BinData::Array' do
-      struct = BinData::Array.new([1, 2, 3], type: :uint8)
-      packet.set(struct)
-      expect(packet).to eq(struct)
-    end
-
-    it 'accepts an Array' do
-      struct = Array.new([1, 2, 3])
-      packet.set(struct)
-      expect(packet).to eq(struct)
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal array of bytes' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
+  it_behaves_like "a varying string", 0
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpByte do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :elements }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+RSpec.describe RubySMB::Dcerpc::Ndr::VarWideString do
+  subject { described_class.new }
+  it_behaves_like 'a Wide String', { :actual_count => 1 }, 8 do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
   end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #elements size' do
-      packet.elements = [1, 2, 3]
-      expect(packet.max_count).to eq(3)
-    end
-  end
-
-  describe '#elements' do
-    it 'is a Bindata::Array' do
-      expect(packet.elements).to be_a BinData::Array
-    end
-
-    it 'is 8-bit unsigned integer elements' do
-      expect(packet.elements[0]).to be_a BinData::Uint8
-    end
-
-    it 'exists if #max_count is greater than 0' do
-      packet.max_count = 2
-      expect(packet.elements?).to be true
-    end
-
-    it 'does not exist if #max_count is 0' do
-      packet.max_count = 0
-      expect(packet.elements?).to be false
-    end
-
-    it 'reads at most #max_counts elements' do
-      bin = "ABCDEFG".b
-      packet.max_count = 3
-      packet.elements.read(bin)
-      expect(packet.elements).to eq(bin.bytes[0,3])
-    end
-  end
-
-  describe '#get' do
-    it 'returns the elements' do
-      packet.elements = [1, 2, 3]
-      expect(packet.get).to eq([1, 2, 3])
-    end
-  end
-
-  describe '#set' do
-    it 'sets #elements as expected' do
-      packet.set([1, 2, 3])
-      expect(packet.elements).to eq([1, 2, 3])
-    end
-
-    it 'sets #max_count to the number of elements set' do
-      packet.set([1, 2, 3])
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new([1, 2, 3], type: :uint8)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq([1, 2, 3])
-    end
-
-    it 'keeps custom #max_count value when called from #to_binary_s' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'keeps custom #max_count value when called from #do_num_bytes' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.set([1, 2, 3, 4, 5])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with #max_count less than elements size' do
-      it 'reads its own binary representation reduced to #max_count elements' do
-        packet.set([1, 2, 3, 4, 5])
-        packet.max_count = 3
-        raw = packet.to_binary_s
-        packet2 = described_class.new([1, 2, 3])
-        raw2 = packet2.to_binary_s
-        expect(described_class.read(raw)).to eq(packet2)
-        expect(described_class.read(raw).to_binary_s).to eq(raw2)
-      end
-    end
-  end
+  it_behaves_like "a varying string", 0
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrByteArray do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :offset }
-  it { is_expected.to respond_to :actual_count }
-  it { is_expected.to respond_to :bytes }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarString do
+  subject { described_class.new }
+  it_behaves_like 'a String', { :max_count => 0, :actual_count => 2 }, 12 do
+    let(:binary_stream) {
+      "\x05\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x42\x43\x44\x00".b
+    }
+    let(:value) { 'ABCD' }
   end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #actual_count' do
-      packet.actual_count = 345
-      expect(packet.max_count).to eq(345)
-    end
-  end
-
-  describe '#offset' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.offset).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value of 0' do
-      expect(packet.offset).to eq(0)
-    end
-  end
-
-  describe '#actual_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.actual_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #bytes size' do
-      packet.bytes << 2 << 3 << 4 << 5
-      expect(packet.actual_count).to eq(4)
-    end
-  end
-
-  describe '#bytes' do
-    it 'is a Bindata::Array' do
-      expect(packet.bytes).to be_a BinData::Array
-    end
-
-    it 'has an initial length equal to #actual_count' do
-      packet.actual_count = 3
-      expect(packet.bytes.size).to eq(3)
-    end
-
-    it 'is 8-bit unsigned integer elements' do
-      expect(packet.bytes[0]).to be_a BinData::Uint8
-    end
-  end
-
-  describe '#get' do
-    it 'returns bytes' do
-      packet.bytes = [1, 2, 3]
-      expect(packet.get).to eq([1, 2, 3])
-    end
-  end
-
-  describe '#set' do
-    it 'sets #bytes as expected' do
-      packet.set([1, 2, 3])
-      expect(packet.bytes).to eq([1, 2, 3])
-    end
-
-    it 'sets #actual_count and #max_count to the number of bytes set' do
-      packet.set([1, 2, 3])
-      expect(packet.max_count).to eq(3)
-      expect(packet.actual_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new([1, 2, 3], type: :uint8)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.bytes).to eq([1, 2, 3])
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #to_binary_s' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.offset = 40
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-      expect(packet.offset).to eq(40)
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #do_num_bytes' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.offset = 40
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-      expect(packet.offset).to eq(40)
-    end
-
-    it 'sets #max_count to the number of bytes set after setting custom #max_count value' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.set([1, 2, 3, 4, 5])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with #max_count less than elements size' do
-      it 'reads its own binary representation reduced to #max_count elements' do
-        packet.set([1, 2, 3, 4, 5])
-        packet.actual_count = 3
-        max_count = packet.max_count.to_i
-        raw = packet.to_binary_s
-        packet2 = described_class.read(raw)
-        expect(packet2.max_count).to eq(max_count)
-        expect(packet2.offset).to eq(0)
-        expect(packet2.actual_count).to eq(3)
-        expect(packet2.bytes).to eq([1, 2, 3])
-        expect(packet2.to_binary_s).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x01\x02\x03".b)
-      end
-    end
-  end
+  it_behaves_like 'a varying string', 4
+  it_behaves_like 'a conformant string'
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpFileTime do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarWideString do
+  subject { described_class.new }
+  it_behaves_like 'a Wide String', { :max_count => 0, :actual_count => 2 }, 12 do
+    let(:binary_stream) {
+      "\x05\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
   end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a FileTime' do
-      expect(packet.referent).to be_a RubySMB::Field::FileTime
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal FileTime' do
-      it 'reads its own binary representation' do
-        time = RubySMB::Field::FileTime.new(Time.now)
-        packet.set(time)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
+  it_behaves_like 'a varying string', 4
+  it_behaves_like 'a conformant string'
 end
+
+
+#
+# Structures
+#
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
-  describe '#do_read' do
-    let(:io) { BinData::IO::Read.new(bin_str) }
-    context 'with a structure containg an array of pointers to integer' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_dword, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
+
+  describe 'Struct.method_missing' do
+    let(:super_result) { double('Super method_missing result') }
+    let(:super_result_array) { [super_result] }
+    before :example do
+      allow(BinData::Record).to receive(:method_missing).and_return(super_result_array)
+      allow(described_class).to receive(:validate_conformant_array)
+    end
+    it 'calls the superclass method_missing and returns the result' do
+      expect(described_class.method_missing(1, 2)).to eq(super_result_array)
+    end
+    it 'performs conformant array validation if the field is an array of BinData::SanitizedField' do
+      allow(super_result).to receive(:is_a?).with(BinData::SanitizedField).and_return(true)
+      described_class.method_missing(1, 2)
+      expect(described_class).to have_received(:validate_conformant_array).with(super_result_array)
+    end
+    it 'does not perform conformant array validation if the field is not an array of BinData::SanitizedField' do
+      allow(super_result).to receive(:is_a?).with(BinData::SanitizedField).and_return(false)
+      described_class.method_missing(1, 2)
+      expect(described_class).to_not have_received(:validate_conformant_array).with(super_result_array)
+    end
+  end
+
+  describe 'Struct.validate_conformant_array' do
+    context 'with a conformant array' do
+      it 'does not raise error if the array is the last member' do
+        expect {
+          Class.new(described_class) do
+            endian :little
+            uint32     :a
+            conf_array :b, type: :uint16le
+          end
+        }.to_not raise_error
+      end
+      it 'raises error if the array is not the last member' do
+        expect {
+          Class.new(described_class) do
+            endian :little
+            conf_array :b, type: :uint16le
+            uint32     :a
+          end
+        }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with a conformant varying array' do
+      it 'does not raise error if the array is the last member' do
+        expect {
+          Class.new(described_class) do
+            endian :little
+            uint32         :a
+            conf_var_array :b, type: :uint16le
+          end
+        }.to_not raise_error
+      end
+      it 'raises error if the array is not the last member' do
+        expect {
+          Class.new(described_class) do
+            endian :little
+            conf_var_array :b, type: :uint16le
+            uint32         :a
+          end
+        }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with an embedded structure containing a conformant array' do
+      after :example do
+        BinData::RegisteredClasses.unregister('test_struct')
       end
 
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x01\x00\x00\x00" + # b[0]
-          "\x02\x00\x00\x00" + # b[1]
-          "\x03\x00\x00\x00"  # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([1, 2, 3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(3)
-          expect(struct.c).to eq(55)
+      context 'when the embedded structure is the last member' do
+        it 'does not raise error' do
+          expect {
+            struct_with_array = Class.new(described_class) do
+              endian :little
+              uint32         :a
+              conf_var_array :b, type: :uint16le
+            end
+            BinData::RegisteredClasses.register('test_struct', struct_with_array)
+            Class.new(described_class) do
+              endian :little
+              uint32      :a
+              test_struct :b
+            end
+          }.to_not raise_error
         end
       end
 
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "\x00\x00\x00\x00" + # b[1] referent_id (null)
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x01\x00\x00\x00" + # b[0]
-          "\x03\x00\x00\x00"  # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([1, :null, 3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(1)
-          expect(struct.b[1].referent_id).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(3)
-          expect(struct.c).to eq(55)
+      context 'when the embedded structure is not the last member' do
+        it 'raises error' do
+          expect {
+            struct_with_array = Class.new(described_class) do
+              endian :little
+              uint32         :a
+              conf_var_array :b, type: :uint16le
+            end
+            BinData::RegisteredClasses.register('test_struct', struct_with_array)
+            Class.new(described_class) do
+              endian :little
+              test_struct :b
+              uint32      :a
+            end
+          }.to raise_error(ArgumentError)
         end
       end
     end
 
-    context 'with a structure containg an array of pointers to strings' do
-      subject(:struct) do
+    it 'is a BinData::Record class' do
+      expect(described_class).to be < BinData::Record
+    end
+
+    context 'with only primitives' do
+      let(:struct) do
         Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_str, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # b[1]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, str2, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(str2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
+          endian  :little
+          uint8   :a
+          uint16  :b
+          uint32  :c
+          Char    :d
+          Boolean :e
         end
       end
 
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "\x00\x00\x00\x00" + # b[1] referent_id (null)
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, :null, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
-        end
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: 0, d: "\x00", e: false)
       end
-
-      context 'with null strings' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + # b[1] null string
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, 0, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
-        end
+      it 'reads itself' do
+        values = {a: 44, b: 444, c: 4444, d: "T", e: true}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
       end
-
-      context 'with padding' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00" + # b[0]
-          "\x00\x00" + # pad
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # b[1]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
+      context 'with values' do
+        subject do
+          struct.new(a: 1, b: 2, c: 3, d: "A", e: true)
         end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, str2, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(str2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 1, b: 2, c: 3, d: "A", e: true)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x01"\
+            "\x02\x00"\
+            "\x03\x00\x00\x00"\
+            "\x41"\
+            "\x01\x00\x00\x00"
+          )
         end
       end
     end
 
-    context 'with a structure containg an pointers to strings' do
-      subject(:struct) do
+    context 'with fixed arrays' do
+      let(:struct) do
         Class.new(described_class) do
-          endian :little
+          endian  :little
+          uint32    :a
+          fix_array :b, type: :uint32le, initial_length: 3
+          uint32    :c
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: [0, 0, 0], c: 0)
+      end
+      it 'reads itself' do
+        values = {a: 44, b: [1,2,3], c: 4444}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x05\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with varying arrays' do
+      let(:struct) do
+        Class.new(described_class) do
+          endian  :little
+          uint32    :a
+          var_array :b, type: :uint32le
+          uint32    :c
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: [], c: 0)
+      end
+      it 'reads itself' do
+        values = {a: 44, b: [1,2,3], c: 4444}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x05\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with conformant arrays' do
+      let(:struct) do
+        Class.new(described_class) do
+          endian  :little
           uint32     :a
-          ndr_lp_str :b
-          ndr_lp_str :c
-          ndr_lp_str :d
-          uint32     :e
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(str2)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(str2)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+          uint32     :b
+          conf_array :c, type: :uint32le
         end
       end
 
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "\x00\x00\x00\x00" + # c referent_id (null)
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(:null)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(0)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
-        end
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: [])
       end
-
-      context 'with null strings' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + # c null string
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(0)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(0)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
-        end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: [1,2,3]}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
       end
-
-      context 'with padding' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00" + # b
-          "\x00\x00" + # pad
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: 5, c: [1,2,3])
         end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(str2)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(str2)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"
+          )
         end
       end
     end
-  end
 
-  describe '#do_write' do
-    let(:raw_io) { BinData::IO.create_string_io }
-    let(:io) { BinData::IO::Write.new(raw_io) }
-    context 'with a structure containg an array of pointers to integer' do
-      subject(:struct) do
+    context 'with a conformant varying array' do
+      let(:struct) do
         Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_dword, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: [1, 2, 3], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(4)).to eq("\x01\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(4)).to eq("\x02\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+          endian  :little
+          uint32         :a
+          uint32         :b
+          conf_var_array :c, type: :uint32le
         end
       end
 
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: [1, :null, 3], c: 55)
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: [])
+      end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: [1,2,3]}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: 5, c: [1,2,3])
         end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # b[1] referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(4)).to eq("\x01\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"
+          )
         end
       end
     end
 
-    context 'with a structure containg an array of pointers to strings' do
-      subject(:struct) do
+    context 'with an embedded structure containing a conformant arrays' do
+      after :example do
+        BinData::RegisteredClasses.unregister('test_struct')
+      end
+
+      let(:struct) do
+        struct_with_array = Class.new(described_class) do
+          endian :little
+          uint32         :a
+          conf_var_array :b, type: :uint32le
+        end
+        BinData::RegisteredClasses.register('test_struct', struct_with_array)
         Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_str, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 'test2', 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+          endian  :little
+          uint32      :a
+          uint32      :b
+          test_struct :c
         end
       end
 
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', :null, 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # b[1] referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
-        end
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: []})
       end
-
-      context 'with null strings' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 0, 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(12)).to eq("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".b) # b[1] null string
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
-        end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3, 4]}}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
       end
-
-      context 'with padding' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 'test', 'test3'], c: 55)
+      context 'with values' do
+        subject do
+          struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
         end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(22)).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(2)).to eq("\x00\x00".b) # pad
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x06\x00\x00\x00"\
+            "\x07\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"
+          )
         end
       end
     end
 
-    context 'with a structure containg pointers to strings' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32     :a
-          ndr_lp_str :b
-          ndr_lp_str :c
-          ndr_lp_str :d
-          uint32     :e
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 'test2', d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: :null, d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # c referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with null strings' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 0, d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(12)).to eq("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with padding' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 'test', d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(22)).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00".b) # c
-          expect(raw_io.read(2)).to eq("\x00\x00".b) # pad
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-    end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrStringPtrsw do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :elements }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #elements size' do
-      packet.elements = ['A', 'B', 'C']
-      expect(packet.max_count).to eq(3)
-    end
-  end
-
-  describe '#elements' do
-    it 'is a Bindata::Array' do
-      expect(packet.elements).to be_a BinData::Array
-    end
-
-    it 'is an array of NdrLpStr' do
-      expect(packet.elements[0]).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
-    end
-
-    it 'exists if #max_count is greater than 0' do
-      packet.max_count = 2
-      expect(packet.elements?).to be true
-    end
-
-    it 'does not exist if #max_count is 0' do
-      packet.max_count = 0
-      expect(packet.elements?).to be false
-    end
-  end
-
-  describe '#get' do
-    it 'returns elements' do
-      packet.elements = ['1', '2', '3']
-      expect(packet.get).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-  end
-
-  describe '#set' do
-    it 'sets #elements as expected' do
-      packet.set(['1', '2', '3'])
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-
-    it 'sets #max_count to the number of elements set' do
-      packet.set(['1', '2', '3'])
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new(['1','2', '3'], type: :ndr_lp_str)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-
-    it 'keeps custom #max_count value when called from #to_binary_s' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #do_num_bytes' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.set(['1', '2', '3', '4', '5'])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set(['1', '2', '3'])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpStringPtrsw do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a NdrStringPtrsw structure' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrStringPtrsw
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#set' do
-    it 'calls #to_ary before setting the elements, if supported' do
-      ary = BinData::Array.new(['1', '2', '3'], type: :ndr_lp_str)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal NdrStringPtrsw structure' do
-      it 'reads its own binary representation' do
-        packet.set(['1', '2', '3'])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
-end

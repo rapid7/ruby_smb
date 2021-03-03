@@ -36,8 +36,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyResponse do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::PrrpUnicodeString
     end
 
-    it 'has a initial value of 0' do
-      expect(packet.lp_class).to eq(0)
+    it 'has a initial value of :null' do
+      expect(packet.lp_class).to eq(:null)
     end
   end
 
@@ -53,8 +53,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyResponse do
   end
 
   describe '#lpft_last_write_time' do
-    it 'is a NdrLpFileTime structure' do
-      expect(packet.lpft_last_write_time).to be_a RubySMB::Dcerpc::Ndr::NdrLpFileTime
+    it 'is a FileTimePtr structure' do
+      expect(packet.lpft_last_write_time).to be_a RubySMB::Dcerpc::Ndr::FileTimePtr
     end
   end
 

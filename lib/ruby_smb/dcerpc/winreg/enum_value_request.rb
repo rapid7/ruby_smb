@@ -15,10 +15,10 @@ module RubySMB
         uint32             :dw_index
         rrp_unicode_string :lp_value_name
         string             :pad, length: -> { pad_length }
-        ndr_lp_dword       :lp_type
-        ndr_lp_byte_array  :lp_data
-        ndr_lp_dword       :lpcb_data
-        ndr_lp_dword       :lpcb_len
+        uint32_ptr         :lp_type
+        byte_array_ptr     :lp_data
+        uint32_ptr         :lpcb_data
+        uint32_ptr         :lpcb_len
 
         def initialize_instance
           super

@@ -18,8 +18,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenServiceWRequest do
   end
 
   describe '#lp_service_name' do
-    it 'is a NdrString structure' do
-      expect(packet.lp_service_name).to be_a RubySMB::Dcerpc::Ndr::NdrString
+    it 'is a ConfVarWideString structure' do
+      expect(packet.lp_service_name).to be_a RubySMB::Dcerpc::Ndr::ConfVarWideString
     end
   end
 

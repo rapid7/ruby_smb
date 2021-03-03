@@ -390,10 +390,9 @@ RSpec.describe RubySMB::Dcerpc::Svcctl do
 
     it 'sets the provided Service start arguments' do
       argv = ['my', 'arguments', 'to', 'test']
-      ndr_string_ptrsw = RubySMB::Dcerpc::Ndr::NdrStringPtrsw.new(elements: argv)
       svcctl.start_service_w(svc_handle, argv)
       expect(start_service_w_request).to have_received(:argc=).with(argv.size)
-      expect(start_service_w_request).to have_received(:argv=).with(ndr_string_ptrsw)
+      expect(start_service_w_request).to have_received(:argv=).with(argv)
     end
 
     it 'sends the expected dcerpc request' do

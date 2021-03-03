@@ -13,11 +13,16 @@ module RubySMB
       NETR_SERVER_PASSWORD_SET2 = 30
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/3b224201-b531-43e2-8c79-b61f6dea8640
-      class LogonsrvHandle < Ndr::NdrLpStr; end
+      class LogonsrvHandle < Ndr::WideStringPtr; end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/d55e2632-7163-4f6c-b662-4b870e8cc1cd
-      class NetlogonCredential < Ndr::NdrFixedByteArray
-        default_parameters length: 8
+      class NetlogonCredential < Ndr::FixArray
+        default_parameters type: :char, initial_length: 8
+
+        def assign(val)
+          val = val.bytes if val.is_a?(String)
+          super(val)
+        end
       end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/76c93227-942a-4687-ab9d-9d972ffabdab

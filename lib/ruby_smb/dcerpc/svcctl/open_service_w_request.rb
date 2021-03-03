@@ -8,10 +8,10 @@ module RubySMB
 
         endian :little
 
-        sc_rpc_handle :lp_sc_handle
-        ndr_string    :lp_service_name
-        string        :pad, length: -> { pad_length(self.lp_service_name) }
-        uint32        :dw_desired_access
+        sc_rpc_handle           :lp_sc_handle
+        conf_var_wide_string    :lp_service_name
+        string                  :pad, length: -> { pad_length(self.lp_service_name) }
+        uint32                  :dw_desired_access
 
         def initialize_instance
           super

@@ -12,10 +12,10 @@ module RubySMB
 
         logonsrv_handle              :primary_name
         string                       :pad1, length: -> { pad_length(self.primary_name) }
-        ndr_string                   :account_name
+        conf_var_wide_string         :account_name
         netlogon_secure_channel_type :secure_channel_type
         string                       :pad2, length: -> { pad_length(self.secure_channel_type) }
-        ndr_string                   :computer_name
+        conf_var_wide_string         :computer_name
         netlogon_credential          :client_credential
         string                       :pad3, length: -> { pad_length(self.client_credential) }
         uint32                       :flags

@@ -10,10 +10,10 @@ module RubySMB
 
         endian :little
 
-        logonsrv_handle     :primary_name
-        string              :pad1, length: -> { pad_length(self.primary_name) }
-        ndr_string          :computer_name
-        netlogon_credential :client_challenge
+        logonsrv_handle      :primary_name
+        string               :pad1, length: -> { pad_length(self.primary_name) }
+        conf_var_wide_string :computer_name
+        netlogon_credential  :client_challenge
 
         def initialize_instance
           super
