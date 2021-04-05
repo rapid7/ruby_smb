@@ -296,7 +296,7 @@ module RubySMB
       @smb3              = smb3
       @username          = username.encode('utf-8') || ''.encode('utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
-      # These sizes will be modifed during negotiation
+      # These sizes will be modified during negotiation
       @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
       @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
@@ -431,7 +431,7 @@ module RubySMB
     end
 
     # Sends a packet and receives the raw response through the Dispatcher.
-    # It will also sign the packet if neccessary.
+    # It will also sign the packet if necessary.
     #
     # @param packet [RubySMB::GenericPacket] the request to be sent
     # @param encrypt [Boolean] true if encryption has to be enabled for this transaction

@@ -55,7 +55,7 @@ module RubySMB
 
       # Read a packet off the wire and parse it into a string
       #
-      # @param full_response [Boolean] whether to include the NetBios Session Service header in the repsonse
+      # @param full_response [Boolean] whether to include the NetBios Session Service header in the response
       # @return [String] the raw response (including the NetBios Session Service header if full_response is true)
       # @raise [RubySMB::Error::NetBiosSessionService] if there's an error reading the first 4 bytes,
       #   which are assumed to be the NetBiosSessionService header.

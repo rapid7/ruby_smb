@@ -11,6 +11,7 @@ module RubySMB
         uint16           :compression_algorithm,            label: 'Compression Algorithm'
         uint16           :flags,                            label: 'Flags'
         uint32           :offset,                           label: 'Offset / Length'
+        array            :compressed_data,                  label: 'Compressed Data', type: :uint8, read_until: :eof
       end
 
       # An SMB2 SMB2_COMPRESSION_TRANSFORM_HEADER_PAYLOAD Packet as defined in
