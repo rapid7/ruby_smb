@@ -8,10 +8,10 @@ module RubySMB
           compressed = compress_chunk(chunk)
           # chunk is compressed
           if compressed.length < chunk.length
-            out << [ 0xb000 | (compressed.length - 1) ].pack('v')
+            out << [0xb000 | (compressed.length - 1)].pack('v')
             out << compressed
           else
-            out << [ 0x3000 | (chunk.length - 1) ].pack('v')
+            out << [0x3000 | (chunk.length - 1)].pack('v')
             out << chunk
           end
           buf = buf[chunk_size..-1]
@@ -72,16 +72,16 @@ module RubySMB
       def self.decompress(buf, length_check: true)
         out = ''
         until buf.empty?
-          header = buf[0..2].unpack('v').first
+          header = buf[0..2].unpack1('v')
           length = (header & 0xfff) + 1
           raise EncodingError, 'invalid chunk length' if length_check && length > (buf.length - 2)
 
           chunk = buf[2...length + 2]
-          if header & 0x8000 == 0
-            out << chunk
-          else
-            out << decompress_chunk(chunk)
-          end
+          out << if header & 0x8000 == 0
+                   chunk
+                 else
+                   decompress_chunk(chunk)
+                 end
           buf = buf[length + 2..-1]
         end
 
@@ -91,14 +91,14 @@ module RubySMB
       def self.decompress_chunk(chunk)
         out = ''
         until chunk.empty?
-          flags = chunk[0].unpack('C').first
+          flags = chunk[0].unpack1('C')
           chunk = chunk[1..-1]
           8.times do |i|
             if (flags >> i & 1) == 0
               out << chunk[0]
               chunk = chunk[1..-1]
             else
-              flag = chunk[0..2].unpack('v').first
+              flag = chunk[0..2].unpack1('v')
               pos = out.length - 1
               l_mask = 0xfff
               o_shift = 12
