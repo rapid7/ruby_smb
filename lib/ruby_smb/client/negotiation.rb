@@ -275,8 +275,8 @@ module RubySMB
             context_type: RubySMB::SMB2::NegotiateContext::SMB2_COMPRESSION_CAPABILITIES
           )
           # Adding all possible compression algorithm even if we don't support
-          # them yet. This will force the server to disclose the support
-          # algorithms in the repsonse.
+          # them yet. This will force the server to disclose the supported
+          # algorithms in the response.
           nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZNT1
           nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77
           nc.data.compression_algorithms << RubySMB::SMB2::CompressionCapabilities::LZ77_Huffman

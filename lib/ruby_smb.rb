@@ -8,8 +8,8 @@ require 'windows_error'
 require 'windows_error/nt_status'
 # A packet parsing and manipulation library for the SMB1 and SMB2 protocols
 #
-# [[MS-SMB] Server Mesage Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
-# [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
+# [[MS-SMB] Server Message Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
+# [[MS-SMB2] Server Message Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
   require 'ruby_smb/error'
   require 'ruby_smb/dispositions'
@@ -26,4 +26,5 @@ module RubySMB
   require 'ruby_smb/smb1'
   require 'ruby_smb/client'
   require 'ruby_smb/crypto'
+  require 'ruby_smb/compression'
 end

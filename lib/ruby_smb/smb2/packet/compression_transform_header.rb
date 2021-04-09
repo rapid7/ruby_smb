@@ -3,6 +3,9 @@ module RubySMB
     module Packet
       # An SMB2 COMPRESSION_TRANSFORM_HEADER Packet as defined in
       # [2.2.42 SMB2 COMPRESSION_TRANSFORM_HEADER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/1d435f21-9a21-4f4c-828e-624a176cf2a0)
+      # NOTE: On 2021-04-06 the official documentation split the definition of COMPRESSION_TRANSFORM_HEADER into the following two variants:
+      #   * SMB2_COMPRESSION_TRANSFORM_HEADER_CHAINED
+      #   * SMB2_COMPRESSION_TRANSFORM_HEADER_UNCHAINED
       class CompressionTransformHeader < BinData::Record
         endian :little
 
@@ -11,6 +14,7 @@ module RubySMB
         uint16           :compression_algorithm,            label: 'Compression Algorithm'
         uint16           :flags,                            label: 'Flags'
         uint32           :offset,                           label: 'Offset / Length'
+        array            :compressed_data,                  label: 'Compressed Data', type: :uint8, read_until: :eof
       end
 
       # An SMB2 SMB2_COMPRESSION_TRANSFORM_HEADER_PAYLOAD Packet as defined in
