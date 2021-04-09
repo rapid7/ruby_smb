@@ -72,7 +72,7 @@ module RubySMB
       def self.decompress(buf, length_check: true)
         out = ''
         until buf.empty?
-          header = buf[0..2].unpack1('v')
+          header = buf.unpack1('v')
           length = (header & 0xfff) + 1
           raise EncodingError, 'invalid chunk length' if length_check && length > (buf.length - 2)
 
@@ -98,7 +98,7 @@ module RubySMB
               out << chunk[0]
               chunk = chunk[1..-1]
             else
-              flag = chunk[0..2].unpack1('v')
+              flag = chunk.unpack1('v')
               pos = out.length - 1
               l_mask = 0xfff
               o_shift = 12
@@ -119,9 +119,8 @@ module RubySMB
                 out << out[-offset..-offset + length - 1]
               end
               chunk = chunk[2..-1]
-
-              break if chunk.empty?
             end
+            break if chunk.empty?
           end
         end
 
