@@ -78,11 +78,13 @@ module RubySMB
         end
         if response.nil?
           if packet.packet_smb_version == 'SMB1'
-            extended_security = if packet.parameter_block['capabilities'] && packet.parameter_block['capabilities']['extended_security']
-              packet.parameter_block['capabilities']['extended_security']
+            
+            if packet.parameter_block['capabilities'] && packet.parameter_block['capabilities']['extended_security']
+              extended_security = packet.parameter_block['capabilities']['extended_security']
             else
-              0
+              extended_security = 0
             end
+
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
               expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
