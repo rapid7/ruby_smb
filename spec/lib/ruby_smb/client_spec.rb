@@ -1015,12 +1015,6 @@ RSpec.describe RubySMB::Client do
           bogus_response.smb_header.command = 0xff
           expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
-
-        it 'considers the response invalid if Extended Security is not enabled' do
-          bogus_response = smb1_extended_response
-          bogus_response.parameter_block.capabilities.extended_security = 0
-          expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
-        end
       end
 
       context 'with only SMB2' do

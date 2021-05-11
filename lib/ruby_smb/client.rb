@@ -312,7 +312,7 @@ module RubySMB
         @password,
         workstation: @local_workstation,
         domain: @domain,
-        ntlm_flags: ntlm_flags
+        flags: ntlm_flags
       )
 
       @tree_connects = []
@@ -384,7 +384,7 @@ module RubySMB
           @password,
           workstation: @local_workstation,
           domain: @domain,
-          ntlm_flags: ntlm_flags
+          flags: ntlm_flags
       )
 
       authenticate

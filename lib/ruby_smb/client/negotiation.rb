@@ -64,10 +64,10 @@ module RubySMB
       def negotiate_response(raw_data)
         response = nil
         if smb1
-          packet = RubySMB::SMB1::Packet::NegotiateResponse.read raw_data
+          packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
 
-          if packet.smb_header.flags2.extended_security == 1
-            packet = RubySMB::SMB1::Packet::NegotiateResponseExtended.read raw_data
+          unless packet.valid?
+            packet = RubySMB::SMB1::Packet::NegotiateResponse.read raw_data
           end
 
           response = packet if packet.valid?
@@ -78,10 +78,10 @@ module RubySMB
         end
         if response.nil?
           if packet.packet_smb_version == 'SMB1'
-            extended_security = if packet.is_a? RubySMB::SMB1::Packet::NegotiateResponseExtended
-              packet.parameter_block.capabilities.extended_security
+            extended_security = if packet.parameter_block['capabilities'] && packet.parameter_block['capabilities']['extended_security']
+              packet.parameter_block['capabilities']['extended_security']
             else
-              "n/a"
+              0
             end
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
