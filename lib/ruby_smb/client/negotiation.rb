@@ -60,6 +60,7 @@ module RubySMB
       #
       # @param raw_data [String] the raw binary response from the server
       # @return [RubySMB::SMB1::Packet::NegotiateResponseExtended] when the response is an SMB1 Extended Security Negotiate Response Packet
+      # @return [RubySMB::SMB1::Packet::NegotiateResponse] when the response is an SMB1 Negotiate Response Packet
       # @return [RubySMB::SMB2::Packet::NegotiateResponse] when the response is an SMB2 Negotiate Response Packet
       def negotiate_response(raw_data)
         response = nil
@@ -78,19 +79,10 @@ module RubySMB
         end
         if response.nil?
           if packet.packet_smb_version == 'SMB1'
-            
-            if packet.parameter_block['capabilities'] && packet.parameter_block['capabilities']['extended_security']
-              extended_security = packet.parameter_block['capabilities']['extended_security']
-            else
-              extended_security = 0
-            end
-
             raise RubySMB::Error::InvalidPacket.new(
               expected_proto:  RubySMB::SMB1::SMB_PROTOCOL_ID,
-              expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponseExtended::COMMAND,
-              expected_custom: "extended_security=1",
-              packet:          packet,
-              received_custom: "extended_security=#{extended_security}"
+              expected_cmd:    RubySMB::SMB1::Packet::NegotiateResponse::COMMAND,
+              packet:          packet
             )
           elsif packet.packet_smb_version == 'SMB2'
             raise RubySMB::Error::InvalidPacket.new(
