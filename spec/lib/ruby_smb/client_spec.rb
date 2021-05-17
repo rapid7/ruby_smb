@@ -809,6 +809,18 @@ RSpec.describe RubySMB::Client do
       smb1_extended_response.to_binary_s
     }
 
+    let(:smb1_response) {
+      packet = RubySMB::SMB1::Packet::NegotiateResponse.new
+      smb1_capabilities_dup = smb1_capabilities.dup
+      smb1_capabilities_dup[:extended_security] = 0
+
+      packet.parameter_block.capabilities = smb1_capabilities_dup
+      packet
+    }
+    let(:smb1_response_raw) {
+      smb1_response.to_binary_s
+    }
+
     let(:smb2_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x200) }
     let(:smb3_response) { RubySMB::SMB2::Packet::NegotiateResponse.new(dialect_revision: 0x300) }
 
@@ -997,8 +1009,12 @@ RSpec.describe RubySMB::Client do
 
     describe '#negotiate_response' do
       context 'with only SMB1' do
-        it 'returns a properly formed packet' do
+        it 'returns a properly formed NegotiateResponseExtended packet if extended_security is set as 1' do
           expect(smb1_client.negotiate_response(smb1_extended_response_raw)).to eq smb1_extended_response
+        end
+
+        it 'returns a properly formed NegotiateResponse packet if extended_security is set as 0' do
+          expect(smb1_client.negotiate_response(smb1_response_raw)).to eq smb1_response
         end
 
         it 'raises an exception if the response is not a SMB packet' do
@@ -1013,12 +1029,6 @@ RSpec.describe RubySMB::Client do
         it 'considers the response invalid if it is not an actual Negotiate Response' do
           bogus_response = smb1_extended_response
           bogus_response.smb_header.command = 0xff
-          expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
-        end
-
-        it 'considers the response invalid if Extended Security is not enabled' do
-          bogus_response = smb1_extended_response
-          bogus_response.parameter_block.capabilities.extended_security = 0
           expect { smb1_client.negotiate_response(bogus_response.to_binary_s) }.to raise_error(RubySMB::Error::InvalidPacket)
         end
       end
