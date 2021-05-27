@@ -501,16 +501,16 @@ RSpec.describe RubySMB::SMB1::Tree do
     it 'calls #open_file with the provided options' do
       opts[:filename] ='\\test'
       expect(tree).to receive(:open_file).with(opts)
-      tree.open_pipe(opts)
+      tree.open_pipe(**opts)
     end
 
     it 'prepends the filename with \\ if needed' do
-      expect(tree).to receive(:open_file).with( { filename: '\\test', write: true } )
-      tree.open_pipe(opts)
+      expect(tree).to receive(:open_file).with(filename: '\\test', write: true)
+      tree.open_pipe(**opts)
     end
 
     it 'does not modify the original option hash' do
-      tree.open_pipe(opts)
+      tree.open_pipe(**opts)
       expect(opts).to eq( { filename: 'test', write: true } )
     end
   end
