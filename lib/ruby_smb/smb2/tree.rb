@@ -61,7 +61,7 @@ module RubySMB
         opts = opts.dup
         opts[:filename] = opts[:filename].dup
         opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with? '\\'
-        open_file(opts)
+        open_file(**opts)
       end
 
       def open_file(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
