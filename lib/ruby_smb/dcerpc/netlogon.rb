@@ -16,13 +16,8 @@ module RubySMB
       class LogonsrvHandle < Ndr::WideStringPtr; end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/d55e2632-7163-4f6c-b662-4b870e8cc1cd
-      class NetlogonCredential < Ndr::FixArray
-        default_parameters type: :char, initial_length: 8
-
-        def assign(val)
-          val = val.bytes if val.is_a?(String)
-          super(val)
-        end
+      class NetlogonCredential < Ndr::FixedByteArray
+        default_parameters initial_length: 8
       end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/76c93227-942a-4687-ab9d-9d972ffabdab

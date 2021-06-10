@@ -238,11 +238,21 @@ module RubySMB::Dcerpc::Ndr
 
   # [Uni-dimensional Fixed Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
   class FixArray < BinData::Array
-    default_parameters initial_length: 0
+    default_parameters(initial_length: 0)
     def initialize_shared_instance
       super
       extend FixPlugin
       extend ArrayPlugin
+    end
+  end
+
+  # Specific implementation for fixed array of bytes, which can be set from an array of unit8 or a string
+  class FixedByteArray < FixArray
+    default_parameters(type: :uint8)
+
+    def assign(val)
+      val = val.bytes if val.is_a?(String)
+      super(val.to_ary)
     end
   end
 
