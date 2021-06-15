@@ -55,39 +55,10 @@ module RubySMB::Dcerpc::Ndr
   class WideChar < RubySMB::Field::String16
     default_parameter length: 2
   end
-  #class Char < BinData::Uint8
-  #  def assign(val)
-  #    super(char_to_int(val))
-  #  end
-
-  #  def snapshot
-  #    return _value.chr
-  #  end
-
-
-  #  private
-
-  #  def value_to_binary_string(val)
-  #    super(char_to_int(val))
-  #  end
-
-  #  def char_to_int(val)
-  #    case(val)
-  #    when String
-  #      return val[0].ord
-  #    when Integer
-  #      return val
-  #    else
-  #      raise ArgumentError.new(
-  #        "Type mismatch (#{val.class}). Expecting Character or Integer"
-  #      )
-  #    end
-  #  end
-  #end
 
   # An NDR Enum type as defined in
   # [Transfer Syntax NDR - Enumerated Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05_01)
-  class NdrEnum < BinData::Int16le; end
+  class Enum < BinData::Int16le; end
 
 
 
@@ -298,11 +269,11 @@ module RubySMB::Dcerpc::Ndr
   # Strings
   #
 
-  #TODO: review this!!
   module ConfStringPlugin
     attr_accessor :max_count
+
     def initialize_instance
-      @max_count = 1 # NULL terminator
+      @max_count = is_a?(BinData::Stringz) ? 1 : 0
       super
     end
 
@@ -320,7 +291,8 @@ module RubySMB::Dcerpc::Ndr
       if val.is_a?(ConfStringPlugin)
         @max_count = val.max_count
       else
-        @max_count = val.to_s.length + 1
+        @max_count = val.to_s.length
+        @max_count += 1 if is_a?(BinData::Stringz)
       end
       super
     end
@@ -331,13 +303,11 @@ module RubySMB::Dcerpc::Ndr
   end
 
   module VarStringPlugin
-    def initialize_instance
-      @actual_count = 1 # NULL terminator
-      super
-    end
+    attr_accessor :actual_count
 
-    def actual_count
-      @actual_count
+    def initialize_instance
+      @actual_count = is_a?(BinData::Stringz) ? 1 : 0
+      super
     end
 
     def do_write(io)
@@ -348,13 +318,15 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_read(io)
+      # offset value is not used
       io.seekbytes(4)
       @actual_count = io.readbytes(4).unpack('L').first
       super
     end
 
     def assign(val)
-      @actual_count = val.to_s.length + 1
+      @actual_count = val.to_s.length
+      @actual_count += 1 if is_a?(BinData::Stringz)
       super
     end
 
@@ -364,7 +336,15 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_01)
-  class VarString < BinData::Stringz
+  class VarString < BinData::String
+    default_parameters(:length => lambda { @obj.actual_count })
+    def initialize_shared_instance
+      super
+      extend VarStringPlugin
+    end
+  end
+
+  class VarStringz < BinData::Stringz
     default_parameters(:max_length => lambda { @obj.actual_count })
     def initialize_shared_instance
       super
@@ -372,7 +352,15 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class VarWideString < RubySMB::Field::Stringz16
+  class VarWideString < RubySMB::Field::String16
+    default_parameters(:length => lambda { @obj.actual_count * 2 })
+    def initialize_shared_instance
+      super
+      extend VarStringPlugin
+    end
+  end
+
+  class VarWideStringz < RubySMB::Field::Stringz16
     default_parameters(:max_length => lambda { @obj.actual_count * 2 })
     def initialize_shared_instance
       super
@@ -381,7 +369,20 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Conformant and Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
-  class ConfVarString < BinData::Stringz
+  class ConfVarString < BinData::String
+    default_parameters(:length => lambda { @obj.actual_count })
+    def initialize_shared_instance
+      super
+      extend VarStringPlugin
+      extend ConfStringPlugin
+    end
+
+    def is_null_terminated?
+      self.value[-1] == "\x00"
+    end
+  end
+
+  class ConfVarStringz < BinData::Stringz
     default_parameters(:max_length => lambda { @obj.actual_count })
     def initialize_shared_instance
       super
@@ -389,7 +390,21 @@ module RubySMB::Dcerpc::Ndr
       extend ConfStringPlugin
     end
   end
-  class ConfVarWideString < RubySMB::Field::Stringz16
+
+  class ConfVarWideString < RubySMB::Field::String16
+    default_parameters(:length => lambda { @obj.actual_count * 2 })
+    def initialize_shared_instance
+      super
+      extend VarStringPlugin
+      extend ConfStringPlugin
+    end
+
+    def is_null_terminated?
+      self.value[-1] == "\x00".encode('utf-16le')
+    end
+  end
+
+  class ConfVarWideStringz < RubySMB::Field::Stringz16
     default_parameters(:max_length => lambda { @obj.actual_count * 2 })
     def initialize_shared_instance
       super
@@ -485,19 +500,21 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def update_ref_ids(obj, pos = 0)
+      return pos unless obj
+
       case obj
-      when BinData::Record
+      when BinData::Record, BinData::Struct
         obj.each_pair do |_name, field|
           pos = update_ref_ids(field, pos)
         end
       when PointerPlugin
         if obj.is_alias?
-          ref = obj.get_alias_referent
-          raise ArgumentError, "Referent of alias pointer does not exist: #{ref}" if self[ref].nil?
-          if self[ref].class != obj.class
-            raise ArgumentError, "Pointer points to a different referent type: #{self[ref].class} (set to #{obj.class})"
+          ref_field = obj.fetch_alias_referent
+          raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
+          if ref_field.class != obj.class
+            raise ArgumentError, "Pointer points to a different referent type: #{ref_field.class} (set to #{obj.class})"
           end
-          obj.ref_id = self[ref].ref_id
+          obj.ref_id = ref_field.ref_id
         else
           unless obj.ref_id == 0
             obj.ref_id = RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + (pos * 4)
@@ -516,17 +533,19 @@ module RubySMB::Dcerpc::Ndr
 
   module PointerClassPlugin; end
 
+  # The initial reference ID starts at 0x00020000, which is what Windows appears to do.
   INITIAL_REF_ID = 0x00020000
 
   module PointerPlugin
     attr_accessor :ref_id
-    def ref_id=(v)
-      @ref_id = v
-    end
 
     def initialize_instance
       extend_top_level_class unless parent.nil?
       @ref_id = 0 if @ref_id.nil?
+      # TODO: validate ref_to parameter, if any:
+      #  - should point to an existing pointer in the main structure
+      #  - cannot be positioned before the pointer it is refering to
+      #  - should be the same type than the referent pointer
       super
     end
 
@@ -545,7 +564,7 @@ module RubySMB::Dcerpc::Ndr
 
     def snapshot
       if is_alias?
-        parent[get_alias_referent]
+        fetch_alias_referent
       elsif @ref_id == 0
         :null
       else
@@ -567,7 +586,8 @@ module RubySMB::Dcerpc::Ndr
       if val == :null
         @ref_id = 0
       elsif is_alias?
-        parent[get_alias_referent].assign(val)
+        ref_field = fetch_alias_referent
+        ref_field.assign(val) if ref_field
       else
         @ref_id = INITIAL_REF_ID if @ref_id == 0
         super
@@ -578,8 +598,29 @@ module RubySMB::Dcerpc::Ndr
       has_parameter?(:ref_to)
     end
 
-    def get_alias_referent
-      get_parameter(:ref_to)
+    def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil, index: 1)
+    #def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil)
+      puts "#{'#' * index} name:#{name}, class:#{current.class}"
+      if current.get_parameter(:ref_to) == ref
+        raise "Pointer alias refering to #{ref} cannot be found. This referent should appears before the alias in the stream"
+      end
+      return current if name == ref
+      res = nil
+      case current
+      when ArrayPlugin
+        current.each do |element|
+          res = fetch_alias_referent(current: element, ref: ref, name: name, index: index + 1)
+          #res = fetch_alias_referent(current: element, ref: ref, name: name)
+          break if res
+        end
+      when BinData::Record, BinData::Struct
+        current.each_pair do |name, field|
+          res = fetch_alias_referent(current: field, ref: ref, name: name, index: index + 1)
+          #res = fetch_alias_referent(current: field, ref: ref, name: name)
+          break if res
+        end
+      end
+      return res
     end
 
     def do_num_bytes
@@ -588,49 +629,32 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  # TODO: define these classes programmatically
-  class Uint8Ptr < BinData::Uint8
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
+  # Pointers to BinData Integer class definitions
+  [:Uint8, :Uint16le, :Uint24le, :Uint32le, :Uint56le, :Uint64le, :Uint128le].each do |klass|
+  #[:Uint8, :Uint16le, :Uint24le, :Uint56le, :Uint64le, :Uint128le].each do |klass|
+    new_klass_name = "#{klass.to_s.chomp('le')}Ptr"
+    unless self.const_defined?(new_klass_name)
+      new_klass = Class.new(BinData.const_get(klass)) do
+        extend PointerClassPlugin
+        def initialize_shared_instance
+          super
+          extend PointerPlugin
+        end
+      end
+      self.const_set(new_klass_name, new_klass)
+      BinData::RegisteredClasses.register(new_klass_name, new_klass)
     end
   end
-  class Uint16Ptr < BinData::Uint16le
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
-  end
-  class Uint24Ptr < BinData::Uint24le
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
-  end
-  class Uint32Ptr < BinData::Uint32le
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
-  end
-  class Uint56Ptr < BinData::Uint56le
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
-  end
-  class Uint64Ptr < BinData::Uint64le
-    extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
-  end
+
+  #class Uint32Ptr < BinData::Uint32le
+  #  extend PointerClassPlugin
+  #  def initialize_shared_instance
+  #    super
+  #    extend PointerPlugin
+  #  end
+  #end
+
+  # Pointers to other classes
   class CharPtr < Char
     extend PointerClassPlugin
     def initialize_shared_instance
@@ -638,6 +662,7 @@ module RubySMB::Dcerpc::Ndr
       extend PointerPlugin
     end
   end
+
   class BooleanPtr < Boolean
     extend PointerClassPlugin
     def initialize_shared_instance
@@ -654,7 +679,23 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
+  class StringzPtr < ConfVarStringz
+    extend PointerClassPlugin
+    def initialize_shared_instance
+      super
+      extend PointerPlugin
+    end
+  end
+
   class WideStringPtr < ConfVarWideString
+    extend PointerClassPlugin
+    def initialize_shared_instance
+      super
+      extend PointerPlugin
+    end
+  end
+
+  class WideStringzPtr < ConfVarWideStringz
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -678,9 +719,6 @@ module RubySMB::Dcerpc::Ndr
       extend PointerPlugin
     end
   end
-
-
-
 
 
   # An NDR Context Handle representation as defined in
