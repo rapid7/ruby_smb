@@ -1,6 +1,3 @@
-# TODO: Add automatic padding (https://github.com/dmendel/bindata/wiki/Records#aligned-fields)
-# TODO: Make offset editable for conformant structures (array and string)
-
 module RubySMB::Dcerpc::Ndr
 
   # NDR Syntax
@@ -15,7 +12,7 @@ module RubySMB::Dcerpc::Ndr
   # Signed and unsigned integers use BinData primitives directly
 
   # [Booleans](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_03)
-  class Boolean < BinData::Uint32le
+  class NdrBoolean < BinData::Uint32le
     default_parameters byte_align: 4
 
     def assign(val)
@@ -52,16 +49,16 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Characters](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_04)
-  class Char < BinData::String
+  class NdrChar < BinData::String
     default_parameter(length: 1, byte_align: 1)
   end
-  class WideChar < RubySMB::Field::String16
+  class NdrWideChar < RubySMB::Field::String16
     default_parameter(length: 2, byte_align: 2)
   end
 
   # An NDR Enum type as defined in
   # [Transfer Syntax NDR - Enumerated Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05_01)
-  class Enum < BinData::Int16le
+  class NdrEnum < BinData::Int16le
     default_parameters byte_align: 2
   end
 
@@ -164,7 +161,7 @@ module RubySMB::Dcerpc::Ndr
     def insert(index, *objs)
       fixed_size = get_parameter(:initial_length)
       if (length + objs.size) != fixed_size
-        raise ArgumentError, "Can't add new elements to a FixArray (set to #{fixed_size} elements)"
+        raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
       else
         super
       end
@@ -172,7 +169,7 @@ module RubySMB::Dcerpc::Ndr
 
     def append_new_element
       fixed_size = get_parameter(:initial_length)
-      raise ArgumentError, "Can't add new elements to a FixArray (set to #{fixed_size} elements)"
+      raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
     end
   end
 
@@ -258,7 +255,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Uni-dimensional Fixed Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
-  class FixArray < BinData::Array
+  class NdrFixArray < BinData::Array
     mandatory_parameters :initial_length
     arg_processor :ndr_array
 
@@ -270,7 +267,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # Specific implementation for fixed array of bytes, which can be set from an array of unit8 or a string
-  class FixedByteArray < FixArray
+  class NdrFixedByteArray < NdrFixArray
     default_parameters(type: :ndr_uint8, byte_align: 1)
 
     def assign(val)
@@ -280,7 +277,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Uni-dimensional Conformant Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_02)
-  class ConfArray < BinData::Array
+  class NdrConfArray < BinData::Array
     default_parameters(
       :read_until => lambda { index == (@obj.max_count_from_read - 1) },
       :byte_align => 4
@@ -297,7 +294,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Uni-dimensional Varying Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_03)
-  class VarArray < BinData::Array
+  class NdrVarArray < BinData::Array
     default_parameters(
       :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
       :byte_align => 4
@@ -311,7 +308,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
   # Uni-dimensional Conformant-varying Arrays
-  class ConfVarArray < BinData::Array
+  class NdrConfVarArray < BinData::Array
     default_parameters(
       :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
       :byte_align => 4
@@ -403,7 +400,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_01)
-  class VarString < BinData::String
+  class NdrVarString < BinData::String
     default_parameters(
       :length => lambda { @obj.actual_count },
       byte_align: 4
@@ -414,7 +411,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class VarStringz < BinData::Stringz
+  class NdrVarStringz < BinData::Stringz
     default_parameters(
       :max_length => lambda { @obj.actual_count },
       byte_align: 4
@@ -425,7 +422,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class VarWideString < RubySMB::Field::String16
+  class NdrVarWideString < RubySMB::Field::String16
     default_parameters(
       :length => lambda { @obj.actual_count * 2 },
       byte_align: 4
@@ -436,7 +433,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class VarWideStringz < RubySMB::Field::Stringz16
+  class NdrVarWideStringz < RubySMB::Field::Stringz16
     default_parameters(
       :max_length => lambda { @obj.actual_count * 2 },
       byte_align: 4
@@ -448,7 +445,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Conformant and Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
-  class ConfVarString < BinData::String
+  class NdrConfVarString < BinData::String
     default_parameters(
       :length => lambda { @obj.actual_count },
       byte_align: 4
@@ -464,7 +461,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class ConfVarStringz < BinData::Stringz
+  class NdrConfVarStringz < BinData::Stringz
     default_parameters(
       :max_length => lambda { @obj.actual_count },
       byte_align: 4
@@ -476,7 +473,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class ConfVarWideString < RubySMB::Field::String16
+  class NdrConfVarWideString < RubySMB::Field::String16
     default_parameters(
       :length => lambda { @obj.actual_count * 2 },
       byte_align: 4
@@ -492,7 +489,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class ConfVarWideStringz < RubySMB::Field::Stringz16
+  class NdrConfVarWideStringz < RubySMB::Field::Stringz16
     default_parameters(
       :max_length => lambda { @obj.actual_count * 2 },
       :byte_align => 4
@@ -821,7 +818,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # Pointers to other classes
-  class CharPtr < Char
+  class NdrCharPtr < NdrChar
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -831,7 +828,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class BooleanPtr < Boolean
+  class NdrBooleanPtr < NdrBoolean
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -841,7 +838,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class StringPtr < ConfVarString
+  class NdrStringPtr < NdrConfVarString
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -851,7 +848,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class StringzPtr < ConfVarStringz
+  class NdrStringzPtr < NdrConfVarStringz
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -861,7 +858,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class WideStringPtr < ConfVarWideString
+  class NdrWideStringPtr < NdrConfVarWideString
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -871,7 +868,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class WideStringzPtr < ConfVarWideStringz
+  class NdrWideStringzPtr < NdrConfVarWideStringz
     default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -881,7 +878,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class ByteArrayPtr < ConfVarArray
+  class NdrByteArrayPtr < NdrConfVarArray
     default_parameters(type: :ndr_uint8, :byte_align => 4)
     arg_processor :ndr_pointer
     extend PointerClassPlugin
@@ -891,7 +888,7 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class FileTimePtr < RubySMB::Field::FileTime
+  class NdrFileTimePtr < RubySMB::Field::FileTime
     default_parameters byte_align: 4, referent_byte_align: 8
     arg_processor :ndr_pointer
     extend PointerClassPlugin

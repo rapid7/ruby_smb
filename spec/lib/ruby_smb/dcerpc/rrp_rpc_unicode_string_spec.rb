@@ -22,22 +22,22 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
   end
 
   describe '#buffer' do
-    it 'should be a WideStringPtr' do
-      expect(packet.buffer).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'should be a NdrWideStringzPtr' do
+      expect(packet.buffer).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringzPtr
     end
   end
 
   describe '#get' do
     it 'returns #buffer' do
       packet.buffer = 'spec_test'
-      expect(packet.get).to eq(RubySMB::Dcerpc::Ndr::WideStringPtr.new('spec_test'))
+      expect(packet.get).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
     end
   end
 
   describe '#set' do
     it 'sets #buffer to the expected value' do
       packet.set('spec_test')
-      expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::WideStringPtr.new('spec_test'))
+      expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
     end
 
     it 'sets #buffer_length to the expected value' do

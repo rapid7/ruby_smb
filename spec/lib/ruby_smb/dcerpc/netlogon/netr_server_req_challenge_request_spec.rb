@@ -16,8 +16,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerReqChallengeRequest do
   end
 
   describe '#computer_name' do
-    it 'is a ConfVarWideString structure' do
-      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::ConfVarWideString
+    it 'is a NdrConfVarWideStringz structure' do
+      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
     end
   end
 

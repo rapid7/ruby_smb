@@ -42,14 +42,14 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigW do
   end
 
   describe '#lp_binary_path_name' do
-    it 'is a WideStringPtr structure' do
-      expect(packet.lp_binary_path_name).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_binary_path_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_load_order_group' do
-    it 'is a WideStringPtr structure' do
-      expect(packet.lp_load_order_group).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_load_order_group).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
@@ -60,20 +60,20 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigW do
   end
 
   describe '#lp_dependencies' do
-    it 'is a WideStringPtr structure' do
-      expect(packet.lp_dependencies).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_dependencies).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_service_start_name' do
-    it 'is a WideStringPtr structure' do
-      expect(packet.lp_service_start_name).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_service_start_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_display_name' do
-    it 'is a WideStringPtr structure' do
-      expect(packet.lp_display_name).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_display_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 

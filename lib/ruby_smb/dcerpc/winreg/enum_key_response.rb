@@ -13,7 +13,7 @@ module RubySMB
         string              :pad1,     length: -> { pad_length1 }
         prrp_unicode_string :lp_class, initial_value: 0
         string              :pad2,     length: -> { pad_length2 }
-        file_time_ptr       :lpft_last_write_time
+        ndr_file_time_ptr   :lpft_last_write_time
         uint32              :error_status
 
         def initialize_instance

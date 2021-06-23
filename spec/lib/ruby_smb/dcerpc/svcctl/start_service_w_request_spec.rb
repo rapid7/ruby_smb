@@ -22,9 +22,9 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::StartServiceWRequest do
   end
 
   describe '#argv' do
-    it 'is a Ndr::ConfArray of Ndr::WideStringPtr elements' do
-      expect(packet.argv).to be_a RubySMB::Dcerpc::Ndr::ConfArray
-      expect(packet.argv[0]).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a Ndr::NdrConfArray of Ndr::NdrWideStringPtr elements' do
+      expect(packet.argv).to be_a RubySMB::Dcerpc::Ndr::NdrConfArray
+      expect(packet.argv[0]).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 

@@ -10,8 +10,8 @@ module RubySMB
 
       #  string16 :referent, onlyif: -> { self.referent_id != 0 }, read_length: -> { 4 }
       #end
-      class PRegistryServerName < Ndr::FixArray
-        default_parameter type: :wide_char, initial_length: 2
+      class PRegistryServerName < Ndr::NdrFixArray
+        default_parameter type: :ndr_wide_char, initial_length: 2, byte_align: 2
         extend Ndr::PointerClassPlugin
         def initialize_shared_instance
           super

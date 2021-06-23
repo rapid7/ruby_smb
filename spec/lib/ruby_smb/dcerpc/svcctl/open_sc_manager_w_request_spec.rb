@@ -1,8 +1,8 @@
 RSpec.describe RubySMB::Dcerpc::Svcctl::SvcctlHandleW do
   subject(:packet) { described_class.new }
 
-  it 'is Ndr::WideStringPtr subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::WideStringPtr
+  it 'is Ndr::NdrWideStringPtr subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrWideStringPtr
   end
 end
 
@@ -37,8 +37,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenSCManagerWRequest do
   end
 
   describe '#lp_database_name' do
-    it 'is a Ndr::WideStringPtr structure' do
-      expect(packet.lp_database_name).to be_a RubySMB::Dcerpc::Ndr::WideStringPtr
+    it 'is a Ndr::NdrWideStringPtr structure' do
+      expect(packet.lp_database_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 

@@ -13,11 +13,11 @@ module RubySMB
 
         rpc_hkey            :hkey
         uint32              :dw_index
-        rrp_unicode_string :lp_name
+        rrp_unicode_string  :lp_name
         string              :pad1,     length: -> { pad_length1 }
         prrp_unicode_string :lp_class
         string              :pad2,     length: -> { pad_length2 }
-        file_time_ptr       :lpft_last_write_time
+        ndr_file_time_ptr   :lpft_last_write_time
 
         def initialize_instance
           super

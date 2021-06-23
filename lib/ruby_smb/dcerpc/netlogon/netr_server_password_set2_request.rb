@@ -12,13 +12,13 @@ module RubySMB
 
         logonsrv_handle              :primary_name
         string                       :pad1, length: -> { pad_length(self.primary_name) }
-        conf_var_wide_string         :account_name
+        ndr_conf_var_wide_stringz    :account_name
         netlogon_secure_channel_type :secure_channel_type
         string                       :pad2, length: -> { pad_length(self.secure_channel_type) }
-        conf_var_wide_string         :computer_name
+        ndr_conf_var_wide_stringz    :computer_name
         string                       :pad3, length: -> { pad_length(self.computer_name) }
         netlogon_authenticator       :authenticator
-        fixed_byte_array            :clear_new_password, initial_length: 516 # this is an encrypted NL_TRUST_PASSWORD
+        ndr_fixed_byte_array         :clear_new_password, initial_length: 516 # this is an encrypted NL_TRUST_PASSWORD
 
         def initialize_instance
           super
