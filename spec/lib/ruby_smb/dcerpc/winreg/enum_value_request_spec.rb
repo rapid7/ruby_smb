@@ -51,26 +51,26 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumValueRequest do
   end
 
   describe '#lp_type' do
-    it 'is a Uint32Ptr structure' do
-      expect(packet.lp_type).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.lp_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 
   describe '#lp_data' do
-    it 'is a ByteArrayPtr structure' do
-      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::ByteArrayPtr
+    it 'is a NdrByteArrayPtr structure' do
+      expect(packet.lp_data).to be_a RubySMB::Dcerpc::Ndr::NdrByteArrayPtr
     end
   end
 
   describe '#lpcb_data' do
-    it 'is a Uint32Ptr structure' do
-      expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 
   describe '#lpcb_len' do
-    it 'is a Uint32Ptr structure' do
-      expect(packet.lpcb_len).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.lpcb_len).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 

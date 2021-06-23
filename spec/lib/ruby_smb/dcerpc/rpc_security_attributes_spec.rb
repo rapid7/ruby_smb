@@ -10,8 +10,8 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
   end
 
   describe '#lp_security_descriptor' do
-    it 'should be a ByteArrayPtr structure' do
-      expect(packet.lp_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::ByteArrayPtr
+    it 'should be a NdrByteArrayPtr structure' do
+      expect(packet.lp_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrByteArrayPtr
     end
   end
 
@@ -38,7 +38,7 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
 
     context 'with a normal RpcSecurityAttributes structure' do
       it 'reads its own binary representation' do
-        packet.lp_security_descriptor = RubySMB::Dcerpc::Ndr::ByteArrayPtr.new([1, 2, 3])
+        packet.lp_security_descriptor = RubySMB::Dcerpc::Ndr::NdrByteArrayPtr.new([1, 2, 3])
         packet.cb_in_security_descriptor = 90
         packet.cb_out_security_descriptor = 33
         raw = packet.to_binary_s

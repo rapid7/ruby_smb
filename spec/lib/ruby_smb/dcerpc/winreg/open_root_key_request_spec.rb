@@ -1,6 +1,6 @@
 RSpec.describe RubySMB::Dcerpc::Winreg::PRegistryServerName do
-  it 'is Ndr::FixArray subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::FixArray
+  it 'is Ndr::NdrFixArray subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrFixArray
   end
 
   subject(:packet) { described_class.new }

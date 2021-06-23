@@ -10,9 +10,9 @@ module RubySMB
 
         endian :little
 
-        sc_rpc_handle :h_service
-        uint32        :argc
-        conf_array    :argv, type: :wide_string_ptr
+        sc_rpc_handle  :h_service
+        uint32         :argc
+        ndr_conf_array :argv, type: :ndr_wide_string_ptr
 
         def initialize_instance
           super

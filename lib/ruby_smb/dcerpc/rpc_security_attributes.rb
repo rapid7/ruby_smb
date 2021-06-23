@@ -6,9 +6,9 @@ module RubySMB
     class RpcSecurityDescriptor < BinData::Record
       endian :little
 
-      byte_array_ptr :lp_security_descriptor
-      uint32         :cb_in_security_descriptor
-      uint32         :cb_out_security_descriptor
+      ndr_byte_array_ptr :lp_security_descriptor
+      uint32             :cb_in_security_descriptor
+      uint32             :cb_out_security_descriptor
     end
 
     # This class represents a RPC_SECURITY_ATTRIBUTES structure as defined in
@@ -18,7 +18,7 @@ module RubySMB
 
       uint32                  :n_length
       rpc_security_descriptor :rpc_security_descriptor
-      uint8                   :b_inheritHandle
+      ndr_uint8               :b_inheritHandle
     end
 
     # This class represents a pointer to a RPC_SECURITY_ATTRIBUTES structure as defined in

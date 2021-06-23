@@ -9,8 +9,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWResponse do
   end
 
   describe '#dw_tag_id' do
-    it 'is a Uint32Ptr structure' do
-      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::Uint32Ptr
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 

@@ -1,6 +1,6 @@
 require 'ruby_smb/dcerpc/ndr'
 
-RSpec.describe RubySMB::Dcerpc::Ndr::Boolean do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrBoolean do
   it 'is a BinData::Uint32le class' do
     expect(described_class).to be < BinData::Uint32le
   end
@@ -90,7 +90,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::Boolean do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::Char do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrChar do
   it 'is a BinData::String class' do
     expect(described_class).to be < BinData::String
   end
@@ -153,7 +153,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::Char do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::WideChar do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrWideChar do
   it 'is a RubySMB::Field::String16 class' do
     expect(described_class).to be < RubySMB::Field::String16
   end
@@ -216,7 +216,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::WideChar do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::Enum do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrEnum do
   it 'is a BinData::Int16le class' do
     expect(described_class).to be < BinData::Int16le
   end
@@ -447,7 +447,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::FixArray do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixArray do
   it 'is a BinData::Array class' do
     expect(described_class).to be < BinData::Array
   end
@@ -586,9 +586,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::FixArray do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::FixedByteArray do
-  it 'is a RubySMB::Dcerpc::Ndr::FixArray class' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::FixArray
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixedByteArray do
+  it 'is a RubySMB::Dcerpc::Ndr::NdrFixArray class' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrFixArray
   end
   it 'has :byte_align parameter set to the expected value' do
     expect(described_class.default_parameters[:byte_align]).to eq(1)
@@ -619,7 +619,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::FixedByteArray do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfArray do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfArray do
   subject { described_class.new(type: :ndr_uint16) }
   it_behaves_like 'a BinData::Array'
   it_behaves_like 'a NDR Array', { 'max_count' => 0 } do
@@ -633,7 +633,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::ConfArray do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::VarArray do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarArray do
   subject { described_class.new(type: :ndr_uint16) }
   it_behaves_like 'a BinData::Array'
   it_behaves_like 'a NDR Array', { 'actual_count' => 1 } do
@@ -652,7 +652,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::VarArray do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarArray do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
   subject { described_class.new(type: :ndr_uint16) }
   it_behaves_like 'a BinData::Array'
   it_behaves_like 'a NDR Array', { 'max_count' => 0, 'actual_count' => 2 } do
@@ -763,7 +763,7 @@ RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
 
     context 'with a varying string' do
       it "sets #max_count to the string length#{' (including the NULL terminator)' if null_terminated}" do
-        str = RubySMB::Dcerpc::Ndr::VarString.new(value)
+        str = RubySMB::Dcerpc::Ndr::NdrVarString.new(value)
         subject.assign(str)
         expect(subject.max_count).to eq(value.length + minimum_size)
       end
@@ -771,7 +771,7 @@ RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
 
     context 'with a conformant varying string' do
       it 'sets #max_count to the conformant varying string #max_count value' do
-        str = RubySMB::Dcerpc::Ndr::ConfVarString.new(value)
+        str = RubySMB::Dcerpc::Ndr::NdrConfVarString.new(value)
         str.max_count = 30
         subject.assign(str)
         expect(subject.max_count).to eq(30)
@@ -832,7 +832,7 @@ RSpec.shared_examples "a Varying String" do |offset: 0, null_terminated:|
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::VarString do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarString do
   subject { described_class.new }
   it 'is a BinData::String class' do
     expect(described_class).to be < BinData::String
@@ -848,7 +848,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::VarString do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::VarStringz do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
   subject { described_class.new }
   it 'is a BinData::Stringz class' do
     expect(described_class).to be < BinData::Stringz
@@ -864,7 +864,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::VarStringz do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::VarWideString do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
   subject { described_class.new }
   it 'is a RubySMB::Field::String16 class' do
     expect(described_class).to be < RubySMB::Field::String16
@@ -879,7 +879,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::VarWideString do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::VarWideStringz do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
   subject { described_class.new }
   it 'is a RubySMB::Field::Stringz16 class' do
     expect(described_class).to be < RubySMB::Field::Stringz16
@@ -894,7 +894,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::VarWideStringz do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarString do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
   subject { described_class.new }
   it 'is a BinData::String class' do
     expect(described_class).to be < BinData::String
@@ -911,7 +911,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarString do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarStringz do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
   subject { described_class.new }
   it 'is a BinData::Stringz class' do
     expect(described_class).to be < BinData::Stringz
@@ -928,7 +928,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarStringz do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarWideString do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
   subject { described_class.new }
   it 'is a RubySMB::Field::String16 class' do
     expect(described_class).to be < RubySMB::Field::String16
@@ -944,7 +944,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarWideString do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::ConfVarWideStringz do
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
   subject { described_class.new }
   it 'is a RubySMB::Field::Stringz16 class' do
     expect(described_class).to be < RubySMB::Field::Stringz16
@@ -1022,8 +1022,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
             default_parameters byte_align: 4
             endian :little
 
-            ndr_uint32 :a
-            conf_array :b, type: :ndr_uint16
+            ndr_uint32     :a
+            ndr_conf_array :b, type: :ndr_uint16
           end
         }.to_not raise_error
       end
@@ -1033,8 +1033,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
             default_parameters byte_align: 4
             endian :little
 
-            conf_array :b, type: :ndr_uint16
-            ndr_uint32 :a
+            ndr_conf_array :b, type: :ndr_uint16
+            ndr_uint32     :a
           end
         }.to raise_error(ArgumentError)
       end
@@ -1047,8 +1047,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
             default_parameters byte_align: 4
             endian :little
 
-            ndr_uint32     :a
-            conf_var_array :b, type: :ndr_uint16
+            ndr_uint32         :a
+            ndr_conf_var_array :b, type: :ndr_uint16
           end
         }.to_not raise_error
       end
@@ -1058,8 +1058,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
             default_parameters byte_align: 4
             endian :little
 
-            conf_var_array :b, type: :ndr_uint16
-            ndr_uint32     :a
+            ndr_conf_var_array :b, type: :ndr_uint16
+            ndr_uint32         :a
           end
         }.to raise_error(ArgumentError)
       end
@@ -1077,8 +1077,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
               default_parameters byte_align: 4
               endian :little
 
-              ndr_uint32     :a
-              conf_var_array :b, type: :ndr_uint16
+              ndr_uint32         :a
+              ndr_conf_var_array :b, type: :ndr_uint16
             end
             BinData::RegisteredClasses.register('test_struct', struct_with_array)
             Class.new(described_class) do
@@ -1099,8 +1099,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
               default_parameters byte_align: 4
               endian :little
 
-              ndr_uint32     :a
-              conf_var_array :b, type: :ndr_uint16
+              ndr_uint32         :a
+              ndr_conf_var_array :b, type: :ndr_uint16
             end
             BinData::RegisteredClasses.register('test_struct', struct_with_array)
             Class.new(described_class) do
@@ -1128,8 +1128,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           ndr_uint8   :a
           ndr_uint16  :b
           ndr_uint32  :c
-          char        :d
-          boolean     :e
+          ndr_char    :d
+          ndr_boolean :e
         end
       end
 
@@ -1168,9 +1168,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           default_parameters byte_align: 4
           endian  :little
 
-          ndr_uint32  :a
-          fix_array   :b, type: :ndr_uint32, initial_length: 3, byte_align: 4
-          ndr_uint32  :c
+          ndr_uint32    :a
+          ndr_fix_array :b, type: :ndr_uint32, initial_length: 3, byte_align: 4
+          ndr_uint32    :c
         end
       end
 
@@ -1207,9 +1207,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           default_parameters byte_align: 4
           endian  :little
 
-          ndr_uint32 :a
-          var_array  :b, type: :ndr_uint32
-          ndr_uint32 :c
+          ndr_uint32    :a
+          ndr_var_array :b, type: :ndr_uint32
+          ndr_uint32    :c
         end
       end
 
@@ -1248,9 +1248,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           default_parameters byte_align: 4
           endian  :little
 
-          ndr_uint32 :a
-          ndr_uint32 :b
-          conf_array :c, type: :ndr_uint32
+          ndr_uint32     :a
+          ndr_uint32     :b
+          ndr_conf_array :c, type: :ndr_uint32
         end
       end
 
@@ -1288,9 +1288,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           default_parameters byte_align: 4
           endian  :little
 
-          ndr_uint32     :a
-          ndr_uint32     :b
-          conf_var_array :c, type: :ndr_uint32
+          ndr_uint32         :a
+          ndr_uint32         :b
+          ndr_conf_var_array :c, type: :ndr_uint32
         end
       end
 
@@ -1334,8 +1334,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           default_parameters byte_align: 4
           endian :little
 
-          ndr_uint32     :a
-          conf_var_array :b, type: :ndr_uint32
+          ndr_uint32         :a
+          ndr_conf_var_array :b, type: :ndr_uint32
         end
         BinData::RegisteredClasses.register('test_struct', struct_with_array)
         Class.new(described_class) do
@@ -1392,14 +1392,38 @@ end
   NdrUint16Ptr: { parent_class: :NdrUint16, data: 3, binary: [3].pack('S'), size: 2 },
   NdrUint32Ptr: { parent_class: :NdrUint32, data: 5, binary: [5].pack('L'), size: 4 },
   NdrUint64Ptr: { parent_class: :NdrUint64, data: 7, binary: [7].pack('Q'), size: 8 },
-  CharPtr: { parent_class: :Char, data: 'C', binary: 'C', size: 1 },
-  BooleanPtr: { parent_class: :Boolean, data: true, binary: [1].pack('L'), size: 4 },
-  StringPtr: { parent_class: :ConfVarString, data: 'Test1', binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1", size: 4 },
-  StringzPtr: { parent_class: :ConfVarStringz, data: 'Test2', binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00", size: 4 },
-  WideStringPtr: { parent_class: :ConfVarWideString, data: 'Test3'.encode('utf-16le'), binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}", size: 4 },
-  WideStringzPtr: { parent_class: :ConfVarWideStringz, data: 'Test4'.encode('utf-16le'), binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00", size: 4 },
-  ByteArrayPtr: { parent_class: :ConfVarArray, data: [1,2,3,4], binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04", size: 4 },
-  FileTimePtr: { parent_class: RubySMB::Field::FileTime, data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 8 }
+  NdrCharPtr: { parent_class: :NdrChar, data: 'C', binary: 'C', size: 1 },
+  NdrBooleanPtr: { parent_class: :NdrBoolean, data: true, binary: [1].pack('L'), size: 4 },
+  NdrStringPtr: {
+    parent_class: :NdrConfVarString,
+    data: 'Test1',
+    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1", size: 4
+  },
+  NdrStringzPtr: {
+    parent_class: :NdrConfVarStringz,
+    data: 'Test2',
+    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00", size: 4
+  },
+  NdrWideStringPtr: {
+    parent_class: :NdrConfVarWideString,
+    data: 'Test3'.encode('utf-16le'),
+    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}", size: 4
+  },
+  NdrWideStringzPtr: {
+    parent_class: :NdrConfVarWideStringz,
+    data: 'Test4'.encode('utf-16le'),
+    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00", size: 4
+  },
+  NdrByteArrayPtr: {
+    parent_class: :NdrConfVarArray,
+    data: [1,2,3,4],
+    binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04", size: 4
+  },
+  NdrFileTimePtr: {
+    parent_class: RubySMB::Field::FileTime,
+    data: 132682503830000000,
+    binary: [132682503830000000].pack('Q'), size: 8
+  }
 }.each do |ndr_class, info|
   RSpec.describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
     subject { described_class.new }
@@ -1496,7 +1520,7 @@ end
         let(:embedding_struct) do
           subject.assign(info[:data])
           subject2 = described_class.new(info[:data].dup)
-          RubySMB::Dcerpc::Ndr::ConfArray.new([subject, subject2], type: described_class)
+          RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, subject2], type: described_class)
         end
         before :example do
           allow(subject).to receive(:parent_constructed_type).and_return(embedding_struct)
@@ -1555,7 +1579,7 @@ end
         let(:test_struct) { described_class.new(info[:data].dup) }
         let(:embedding_struct) do
           subject.assign(info[:data])
-          RubySMB::Dcerpc::Ndr::ConfArray.new([subject, test_struct], type: described_class)
+          RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, test_struct], type: described_class)
         end
         let(:binary_str) do
           ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
@@ -1629,7 +1653,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       endian :little
 
       uint32         :b
-      char_ptr       :ptr2
+      ndr_char_ptr   :ptr2
       ndr_uint32_ptr :ptr3
     end
   end
@@ -1637,9 +1661,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
     Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
       default_parameters byte_align: 4
 
-      endian          :little
-      ndr_uint32      :rand1
-      conf_var_string :rand2
+      endian              :little
+      ndr_uint32          :rand1
+      ndr_conf_var_string :rand2
     end
   end
 
@@ -1654,7 +1678,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
         endian          :little
 
         ndr_uint32      :a
-        char_ptr        :ptr1
+        ndr_char_ptr    :ptr1
         struct_with_ptr :d
         ndr_uint32_ptr  :ptr4
       end
@@ -1696,8 +1720,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       Class.new(BinData::Record) do
         endian          :little
         uint32          :a, byte_align: 4
-        char_ptr        :ptr1
-        conf_array      :array1, type: :random_struct
+        ndr_char_ptr    :ptr1
+        ndr_conf_array  :array1, type: :random_struct
         struct_with_ptr :d
         ndr_uint32_ptr  :ptr4, ref_to: :ptr3
       end
@@ -1757,11 +1781,11 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
 
   context 'with a NDR array and an alias pointer positioned after the referent pointer' do
     let(:array_struct) do
-      Class.new(RubySMB::Dcerpc::Ndr::ConfArray) do
+      Class.new(RubySMB::Dcerpc::Ndr::NdrConfArray) do
         endian          :little
         uint32          :a
-        char_ptr        :ptr1
-        conf_array      :array1, type: :random_struct
+        ndr_char_ptr    :ptr1
+        ndr_conf_array  :array1, type: :random_struct
         # :ptr3 is part of :d structure, which appears after :ptr4
         ndr_uint32_ptr  :ptr4, ref_to: :ptr3
         struct_with_ptr :d
@@ -1916,7 +1940,7 @@ RSpec.describe 'Alignment' do
       struct_class.send(described_class.bindata_name.to_sym, :aligned_field, params)
     end
 
-    describe RubySMB::Dcerpc::Ndr::Boolean do
+    describe RubySMB::Dcerpc::Ndr::NdrBoolean do
       it_behaves_like(
         'an aligned structure',
         field_value: true,
@@ -1924,7 +1948,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::WideChar do
+    describe RubySMB::Dcerpc::Ndr::NdrWideChar do
       it_behaves_like(
         'an aligned structure',
         align: 2,
@@ -1933,7 +1957,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::Enum do
+    describe RubySMB::Dcerpc::Ndr::NdrEnum do
       it_behaves_like(
         'an aligned structure',
         align: 2,
@@ -1942,7 +1966,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::FixArray do
+    describe RubySMB::Dcerpc::Ndr::NdrFixArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -1964,7 +1988,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfArray do
+    describe RubySMB::Dcerpc::Ndr::NdrConfArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -1985,7 +2009,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarArray do
+    describe RubySMB::Dcerpc::Ndr::NdrVarArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2006,7 +2030,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarArray do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2027,7 +2051,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarString do
+    describe RubySMB::Dcerpc::Ndr::NdrVarString do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1",
@@ -2035,7 +2059,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1",
@@ -2043,7 +2067,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarWideString do
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1".encode('utf-16le'),
@@ -2051,7 +2075,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarWideStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1".encode('utf-16le'),
@@ -2059,7 +2083,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarString do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1",
@@ -2067,7 +2091,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1",
@@ -2075,7 +2099,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarWideString do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1".encode('utf-16le'),
@@ -2083,7 +2107,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarWideStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: "Test1".encode('utf-16le'),
@@ -2096,14 +2120,14 @@ RSpec.describe 'Alignment' do
       NdrUint16Ptr: { data: 3, binary: [3].pack('S') },
       NdrUint32Ptr: { data: 5, binary: [5].pack('L') },
       NdrUint64Ptr: { data: 7, binary: [7].pack('Q') },
-      CharPtr: { data: 'C', binary: 'C' },
-      BooleanPtr: { data: true, binary: [1].pack('L')},
-      StringPtr: { data: 'Test1', binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1" },
-      StringzPtr: { data: 'Test2', binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00" },
-      WideStringPtr: { data: 'Test3'.encode('utf-16le'), binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}" },
-      WideStringzPtr: { data: 'Test4'.encode('utf-16le'), binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00" },
-      ByteArrayPtr: { data: [1,2,3,4], binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04" },
-      FileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q') }
+      NdrCharPtr: { data: 'C', binary: 'C' },
+      NdrBooleanPtr: { data: true, binary: [1].pack('L')},
+      NdrStringPtr: { data: 'Test1', binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1" },
+      NdrStringzPtr: { data: 'Test2', binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00" },
+      NdrWideStringPtr: { data: 'Test3'.encode('utf-16le'), binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}" },
+      NdrWideStringzPtr: { data: 'Test4'.encode('utf-16le'), binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00" },
+      NdrByteArrayPtr: { data: [1,2,3,4], binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04" },
+      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q') }
     }.each do |ndr_class, info|
       describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
         it_behaves_like(
@@ -2153,10 +2177,10 @@ RSpec.describe 'Alignment' do
   context 'in a conformant array' do
     let(:params) { {} }
     before :example do
-      struct_class.send(:conf_array, :aligned_field, { :type => [ described_class, params ] } )
+      struct_class.send(:ndr_conf_array, :aligned_field, { :type => [ described_class, params ] } )
     end
 
-    describe RubySMB::Dcerpc::Ndr::Boolean do
+    describe RubySMB::Dcerpc::Ndr::NdrBoolean do
       it_behaves_like(
         'an aligned structure',
         field_value: [true, false, true],
@@ -2164,7 +2188,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::WideChar do
+    describe RubySMB::Dcerpc::Ndr::NdrWideChar do
       it_behaves_like(
         'an aligned structure',
         field_value: 'ABC'.encode('utf-16le').chars,
@@ -2172,7 +2196,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::Enum do
+    describe RubySMB::Dcerpc::Ndr::NdrEnum do
       it_behaves_like(
         'an aligned structure',
         field_value: [1, 2, 3],
@@ -2180,7 +2204,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::FixArray do
+    describe RubySMB::Dcerpc::Ndr::NdrFixArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2201,7 +2225,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfArray do
+    describe RubySMB::Dcerpc::Ndr::NdrConfArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2222,7 +2246,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarArray do
+    describe RubySMB::Dcerpc::Ndr::NdrVarArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2243,7 +2267,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarArray do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
       context 'with an array of NdrUint32' do
         it_behaves_like(
           'an aligned structure',
@@ -2264,7 +2288,7 @@ RSpec.describe 'Alignment' do
       end
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarString do
+    describe RubySMB::Dcerpc::Ndr::NdrVarString do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1", "Test2" ],
@@ -2272,7 +2296,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1", "Test2" ],
@@ -2280,7 +2304,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarWideString do
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
@@ -2288,7 +2312,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::VarWideStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
@@ -2296,7 +2320,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarString do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1", "Test2" ],
@@ -2304,7 +2328,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1", "Test2" ],
@@ -2312,7 +2336,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarWideString do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
@@ -2320,7 +2344,7 @@ RSpec.describe 'Alignment' do
       )
     end
 
-    describe RubySMB::Dcerpc::Ndr::ConfVarWideStringz do
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
       it_behaves_like(
         'an aligned structure',
         field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
@@ -2333,34 +2357,34 @@ RSpec.describe 'Alignment' do
       NdrUint16Ptr: { data: 3, binary: [3].pack('S'), size: 2 },
       NdrUint32Ptr: { data: 5, binary: [5].pack('L'), size: 4 },
       NdrUint64Ptr: { data: 7, binary: [7].pack('Q'), size: 8 },
-      CharPtr: { data: 'C', binary: 'C', size: 1 },
-      BooleanPtr: { data: true, binary: [1].pack('L'), size: 4 },
-      StringPtr: {
+      NdrCharPtr: { data: 'C', binary: 'C', size: 1 },
+      NdrBooleanPtr: { data: true, binary: [1].pack('L'), size: 4 },
+      NdrStringPtr: {
         data: 'Test1',
         binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1",
         size: 4
       },
-      StringzPtr: {
+      NdrStringzPtr: {
         data: 'Test2',
         binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00",
         size: 4
       },
-      WideStringPtr: {
+      NdrWideStringPtr: {
         data: 'Test3'.encode('utf-16le'),
         binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').b}",
         size: 4
       },
-      WideStringzPtr: {
+      NdrWideStringzPtr: {
         data: 'Test4'.encode('utf-16le'),
         binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').b}\x00\x00",
         size: 4
       },
-      ByteArrayPtr: {
+      NdrByteArrayPtr: {
         data: [1,2,3,4],
         binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04",
         size: 4
       },
-      FileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 8 }
+      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 8 }
     }.each do |ndr_class, info|
       describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
         ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')

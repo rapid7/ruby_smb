@@ -1,34 +1,3 @@
-RSpec.describe RubySMB::Dcerpc::Netlogon::NlTrustPassword do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :buffer }
-  it { is_expected.to respond_to :passwd_length }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#buffer' do
-    it 'is a FixArray structure' do
-      expect(packet.buffer).to be_a RubySMB::Dcerpc::Ndr::FixArray
-    end
-
-    it 'is an array of wide chars' do
-      expect(packet.buffer[0].class).to eq(RubySMB::Dcerpc::Ndr::WideChar)
-    end
-
-    it 'has a length of 256 elements' do
-      expect(packet.buffer.length).to eq(256)
-    end
-  end
-
-  describe '#passwd_length' do
-    it 'is an Uint32le' do
-      expect(packet.passwd_length).to be_a BinData::Uint32le
-    end
-  end
-end
-
 RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerPasswordSet2Request do
   subject(:packet) { described_class.new }
 
@@ -50,8 +19,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerPasswordSet2Request do
   end
 
   describe '#account_name' do
-    it 'is a ConfVarWideString structure' do
-      expect(packet.account_name).to be_a RubySMB::Dcerpc::Ndr::ConfVarWideString
+    it 'is a NdrConfVarWideStringz structure' do
+      expect(packet.account_name).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
     end
   end
 
@@ -62,8 +31,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerPasswordSet2Request do
   end
 
   describe '#computer_name' do
-    it 'is a ConfVarWideString structure' do
-      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::ConfVarWideString
+    it 'is a NdrConfVarWideStringz structure' do
+      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
     end
   end
 
@@ -74,8 +43,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerPasswordSet2Request do
   end
 
   describe '#clear_new_password' do
-    it 'is a NlTrustPassword structure' do
-      expect(packet.clear_new_password).to be_a RubySMB::Dcerpc::Netlogon::NlTrustPassword
+    it 'is a NdrFixedByteArray structure' do
+      expect(packet.clear_new_password).to be_a RubySMB::Dcerpc::Ndr::NdrFixedByteArray
     end
   end
 
@@ -92,7 +61,7 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerPasswordSet2Request do
       secure_channel_type: 0,
       computer_name: 'computer_name',
       authenticator: RubySMB::Dcerpc::Netlogon::NetlogonAuthenticator.new,
-      clear_new_password: {buffer: ["\x00"] * 256, passwd_length: 0}
+      clear_new_password: "\x00" * 516
     )
     binary = packet.to_binary_s
     expect(described_class.read(binary)).to eq(packet)

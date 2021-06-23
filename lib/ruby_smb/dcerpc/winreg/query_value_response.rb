@@ -9,12 +9,12 @@ module RubySMB
 
         endian :little
 
-        uint32_ptr        :lp_type
-        byte_array_ptr    :lp_data
-        string            :pad, length: -> { pad_length(self.lp_data) }
-        uint32_ptr        :lpcb_data
-        uint32_ptr        :lpcb_len
-        uint32            :error_status
+        ndr_uint32_ptr     :lp_type
+        ndr_byte_array_ptr :lp_data
+        string             :pad, length: -> { pad_length(self.lp_data) }
+        ndr_uint32_ptr     :lpcb_data
+        ndr_uint32_ptr     :lpcb_len
+        uint32             :error_status
 
         def initialize_instance
           super

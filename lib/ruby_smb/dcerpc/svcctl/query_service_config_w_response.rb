@@ -8,17 +8,18 @@ module RubySMB
 
       # [2.2.15 QUERY_SERVICE_CONFIGW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-scmr/97200665-5631-42ea-9917-6f9b41f02391)
       class QueryServiceConfigW < RubySMB::Dcerpc::Ndr::NdrStruct
+        default_parameters byte_align: 4
         endian :little
 
-        uint32          :dw_service_type
-        uint32          :dw_start_type
-        uint32          :dw_error_control
-        wide_string_ptr :lp_binary_path_name
-        wide_string_ptr :lp_load_order_group
-        uint32          :dw_tag_id
-        wide_string_ptr :lp_dependencies
-        wide_string_ptr :lp_service_start_name
-        wide_string_ptr :lp_display_name
+        ndr_uint32          :dw_service_type
+        ndr_uint32          :dw_start_type
+        ndr_uint32          :dw_error_control
+        ndr_wide_string_ptr :lp_binary_path_name
+        ndr_wide_string_ptr :lp_load_order_group
+        ndr_uint32          :dw_tag_id
+        ndr_wide_string_ptr :lp_dependencies
+        ndr_wide_string_ptr :lp_service_start_name
+        ndr_wide_string_ptr :lp_display_name
 
       end
 
