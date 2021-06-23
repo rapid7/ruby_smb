@@ -16,6 +16,8 @@ module RubySMB::Dcerpc::Ndr
 
   # [Booleans](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_03)
   class Boolean < BinData::Uint32le
+    default_parameters byte_align: 4
+
     def assign(val)
       super(value_to_int(val))
     end
@@ -32,6 +34,7 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def value_to_int(val)
+      val = val.snapshot if val.respond_to?(:snapshot)
       case(val)
       when FalseClass
         return 0
@@ -50,16 +53,34 @@ module RubySMB::Dcerpc::Ndr
 
   # [Characters](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_04)
   class Char < BinData::String
-    default_parameter length: 1
+    default_parameter(length: 1, byte_align: 1)
   end
   class WideChar < RubySMB::Field::String16
-    default_parameter length: 2
+    default_parameter(length: 2, byte_align: 2)
   end
 
   # An NDR Enum type as defined in
   # [Transfer Syntax NDR - Enumerated Types](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05_01)
-  class Enum < BinData::Int16le; end
+  class Enum < BinData::Int16le
+    default_parameters byte_align: 2
+  end
 
+  # [Integers](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05)
+  # This will define the four size Integers accepted by the NDR protocol:
+  # - NdrUint8
+  # - NdrUint16
+  # - NdrUint32
+  # - NdrUint64
+  {Uint8: 1, Uint16le: 2, Uint32le: 4, Uint64le: 8}.each do |klass, nb_bytes|
+    new_klass_name = "Ndr#{klass.to_s.chomp('le')}"
+    unless self.const_defined?(new_klass_name)
+      new_klass = Class.new(BinData.const_get(klass)) do
+        default_parameters byte_align: nb_bytes
+      end
+      self.const_set(new_klass_name, new_klass)
+      BinData::RegisteredClasses.register(new_klass_name, new_klass)
+    end
+  end
 
 
 
@@ -67,63 +88,79 @@ module RubySMB::Dcerpc::Ndr
   #       NDR Constructed Types       #
   #####################################
 
+  module ConstructedTypePlugin
+    def set_top_level
+      @deferred_ptrs = []
+    end
+    def unset_top_level
+      @deferred_ptrs = nil
+    end
+    def is_top_level?
+      !@deferred_ptrs.nil?
+    end
+    def defer_ptr(ref)
+      @deferred_ptrs << ref
+    end
+    def deferred_ptrs
+      @deferred_ptrs
+    end
+    def clear_deferred_ptrs
+      @deferred_ptrs.clear
+    end
+  end
 
   #
   # Arrays
   #
   module ArrayPlugin
+    include ConstructedTypePlugin
+
+    def initialize_instance
+      set_top_level unless is_top_level?
+      super
+    end
+
     def do_write(io)
-      if is_array_of_pointers
-        super(io, in_array_ptr: true)
+      super
+      if is_top_level? && !deferred_ptrs.empty?
         write_ptr(io)
-      else
-        super
       end
     end
 
     def write_ptr(io)
-      each { |ptr| io.writebytes([ptr.ref_id].pack('L')) }
-      each { |ptr| ptr.do_write(io, in_array_ptr: true) }
+      deferred_ptrs.each do |ptr_ref|
+        ptr_ref.do_write(io, is_deferred: true)
+      end
+      clear_deferred_ptrs
     end
 
     def do_read(io)
-      if is_array_of_pointers
-        super(io, in_array_ptr: true)
+      super
+      if is_top_level? && !deferred_ptrs.empty?
         read_ptr(io)
-      else
-        super
       end
     end
 
     def read_ptr(io)
-      loop do
-        element = append_new_element
-        element.ref_id = io.readbytes(4).unpack('L').first
-        break if eval_parameter(:read_until, { index: self.length - 1 })
+      deferred_ptrs.each do |ptr_ref|
+        ptr_ref.do_read(io, is_deferred: true)
       end
-      each { |ptr| ptr.do_read(io, in_array_ptr: true) }
+      clear_deferred_ptrs
     end
 
-    def is_array_of_pointers
-      obj_class = @element_prototype.instance_variable_get(:@obj_class)
-      obj_class.is_a?(PointerClassPlugin)
+    def is_array_of_pointers(obj)
+      return true if obj.class.is_a?(PointerClassPlugin)
+      if obj.is_a?(NdrStruct)
+        obj.each_pair do |name, field|
+          return true if is_array_of_pointers(field)
+        end
+      end
+      return is_array_of_pointers(elements.first)
+      return false
     end
   end
 
   module FixPlugin
-    def do_write(io, in_array_ptr: false)
-      super(io) unless in_array_ptr
-    end
-
-    def do_read(io, in_array_ptr: false)
-      super(io) unless in_array_ptr
-    end
-
-    def read_ptr(io)
-      each { |ptr| ptr.ref_id = io.readbytes(4).unpack('L').first }
-      each { |ptr| ptr.do_read(io, in_array_ptr: true) }
-    end
-
     def insert(index, *objs)
       fixed_size = get_parameter(:initial_length)
       if (length + objs.size) != fixed_size
@@ -149,31 +186,19 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
-    def do_write(io, in_array_ptr: false)
-      # Write max_count only if it has not been done already (e.g. structure containing arrays)
-      #if io.offset == 0
+    def do_write(io)
       unless parent.is_a?(NdrStruct)
         max_count = [length].pack('L')
         io.writebytes(max_count)
       end
-      if in_array_ptr
-        super(io, in_array_ptr: true) if is_a?(VarPlugin)
-      else
-        super(io)
-      end
+      super(io)
     end
 
-    def do_read(io, in_array_ptr: false)
-      # Read max_count only if it has not been done already (e.g. structure containing arrays)
-      #if io.offset == 0
+    def do_read(io)
       unless parent.is_a?(NdrStruct)
         @max_count_from_read = io.readbytes(4).unpack('L').first
       end
-      if in_array_ptr
-        super(io, in_array_ptr: true) if is_a?(VarPlugin)
-      else
-        super(io)
-      end
+      super(io)
     end
 
     def do_num_bytes
@@ -189,17 +214,17 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
-    def do_write(io, in_array_ptr: false)
+    def do_write(io)
       offset = 0
       io.writebytes([offset].pack('L'))
       io.writebytes([length].pack('L')) # actual_count
-      super(io) unless in_array_ptr
+      super(io)
     end
 
-    def do_read(io, in_array_ptr: false)
+    def do_read(io)
       io.seekbytes(4)
       @actual_count_from_read = io.readbytes(4).unpack('L').first
-      super(io) unless in_array_ptr
+      super(io)
     end
 
     def do_num_bytes
@@ -207,9 +232,36 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
+  class ::BinData::NdrArrayArgProcessor < BinData::ArrayArgProcessor
+    def sanitize_parameters!(obj_class, params)
+      res = super
+
+      type_class = params[:type]
+      # Let's BinData::Array sanitization routine deal with "no type provided"
+      return res unless type_class
+
+      type_class, type_params  = params[:type] if type_class.is_a?(Array)
+      subject = BinData::RegisteredClasses.lookup(type_class) if type_class.is_a?(Symbol)
+      byte_align = type_class.has_parameter?(:byte_align)
+      byte_align = type_params.key?(:byte_align) unless byte_align || type_params.nil?
+
+      unless byte_align
+        raise ArgumentError.new(
+          "NDR Arrays must only include elements with the `:byte_align` "\
+          "parameter set. This makes sure the whole structure is correctly "\
+          "aligned. Use a predefined NDR element instead, or provide the "\
+          "`:byte_align` parameter in `:type` (Faulty element type: #{params[:type]})"
+        )
+      end
+      res
+    end
+  end
+
   # [Uni-dimensional Fixed Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
   class FixArray < BinData::Array
-    default_parameters(initial_length: 0)
+    mandatory_parameters :initial_length
+    arg_processor :ndr_array
+
     def initialize_shared_instance
       super
       extend FixPlugin
@@ -219,7 +271,7 @@ module RubySMB::Dcerpc::Ndr
 
   # Specific implementation for fixed array of bytes, which can be set from an array of unit8 or a string
   class FixedByteArray < FixArray
-    default_parameters(type: :uint8)
+    default_parameters(type: :ndr_uint8, byte_align: 1)
 
     def assign(val)
       val = val.bytes if val.is_a?(String)
@@ -229,7 +281,12 @@ module RubySMB::Dcerpc::Ndr
 
   # [Uni-dimensional Conformant Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_02)
   class ConfArray < BinData::Array
-    default_parameters(:read_until => lambda { index == (@obj.max_count_from_read - 1) })
+    default_parameters(
+      :read_until => lambda { index == (@obj.max_count_from_read - 1) },
+      :byte_align => 4
+    )
+    arg_processor :ndr_array
+
     extend ConfClassPlugin
 
     def initialize_shared_instance
@@ -241,7 +298,12 @@ module RubySMB::Dcerpc::Ndr
 
   # [Uni-dimensional Varying Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_03)
   class VarArray < BinData::Array
-    default_parameters(:read_until => lambda { index == (@obj.actual_count_from_read - 1) })
+    default_parameters(
+      :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
+      :byte_align => 4
+    )
+    arg_processor :ndr_array
+
     def initialize_shared_instance
       super
       extend VarPlugin
@@ -250,7 +312,12 @@ module RubySMB::Dcerpc::Ndr
   end
   # Uni-dimensional Conformant-varying Arrays
   class ConfVarArray < BinData::Array
-    default_parameters(:read_until => lambda { index == (@obj.actual_count_from_read - 1) })
+    default_parameters(
+      :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
+      :byte_align => 4
+    )
+    arg_processor :ndr_array
+
     extend ConfClassPlugin
 
     def initialize_shared_instance
@@ -337,7 +404,10 @@ module RubySMB::Dcerpc::Ndr
 
   # [Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_01)
   class VarString < BinData::String
-    default_parameters(:length => lambda { @obj.actual_count })
+    default_parameters(
+      :length => lambda { @obj.actual_count },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -345,7 +415,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class VarStringz < BinData::Stringz
-    default_parameters(:max_length => lambda { @obj.actual_count })
+    default_parameters(
+      :max_length => lambda { @obj.actual_count },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -353,7 +426,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class VarWideString < RubySMB::Field::String16
-    default_parameters(:length => lambda { @obj.actual_count * 2 })
+    default_parameters(
+      :length => lambda { @obj.actual_count * 2 },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -361,7 +437,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class VarWideStringz < RubySMB::Field::Stringz16
-    default_parameters(:max_length => lambda { @obj.actual_count * 2 })
+    default_parameters(
+      :max_length => lambda { @obj.actual_count * 2 },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -370,7 +449,10 @@ module RubySMB::Dcerpc::Ndr
 
   # [Conformant and Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
   class ConfVarString < BinData::String
-    default_parameters(:length => lambda { @obj.actual_count })
+    default_parameters(
+      :length => lambda { @obj.actual_count },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -383,7 +465,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class ConfVarStringz < BinData::Stringz
-    default_parameters(:max_length => lambda { @obj.actual_count })
+    default_parameters(
+      :max_length => lambda { @obj.actual_count },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -392,7 +477,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class ConfVarWideString < RubySMB::Field::String16
-    default_parameters(:length => lambda { @obj.actual_count * 2 })
+    default_parameters(
+      :length => lambda { @obj.actual_count * 2 },
+      byte_align: 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -405,7 +493,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class ConfVarWideStringz < RubySMB::Field::Stringz16
-    default_parameters(:max_length => lambda { @obj.actual_count * 2 })
+    default_parameters(
+      :max_length => lambda { @obj.actual_count * 2 },
+      :byte_align => 4
+    )
     def initialize_shared_instance
       super
       extend VarStringPlugin
@@ -426,20 +517,28 @@ module RubySMB::Dcerpc::Ndr
     #   --> if the structure contains a structure with an array, it has to be the last member too
     # 2. if ok, max_count is moved to the beginning
     def do_write(io)
-      #if io.offset == 0 && self.class.has_conformant_array
+      if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
+        io.writebytes("\x00" * bytes_to_align(self, io.offset))
+      end
+
       if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
         max_count = get_max_count
         io.writebytes([max_count].pack('L'))
       end
+
       super
     end
 
     def do_read(io)
-      #if io.offset == 0 && self.class.has_conformant_array
+      if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
+        io.seekbytes(bytes_to_align(self, io.offset))
+      end
+
       if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
         obj = self[field_names.last]
         set_max_count(io.readbytes(4).unpack('L').first)
       end
+
       super
     end
 
@@ -462,12 +561,24 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class NdrStruct < BinData::Record
+    # Caller must specify #byte_align according to the type of the largest element in the structure.
+    # See https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_02
+    #
+    # "The alignment of a structure in the octet stream is the largest of the
+    # alignments of the fields it contains. These fields may also be
+    # constructed types. The same alignment rules apply recursively to nested
+    # constructed types."
+    mandatory_parameters(:byte_align)
+
     class << self; attr_reader :has_conformant_array end
 
     def self.validate_conformant_array(field)
-      raise ArgumentError.new(
-        "Invalid structure #{self}: Conformant array or embedded structure with Conformant array must be the last member of the structure"
-      ) if @has_conformant_array
+      if @has_conformant_array
+        raise ArgumentError.new(
+          "Invalid structure #{self}: Conformant array or embedded structure "\
+          "with Conformant array must be the last member of the structure"
+        )
+      end
       obj_class = field.last.prototype.instance_variable_get(:@obj_class)
       @has_conformant_array = true if obj_class.is_a?(ConfClassPlugin)
       @has_conformant_array = true if obj_class < NdrStruct && obj_class.has_conformant_array
@@ -476,6 +587,15 @@ module RubySMB::Dcerpc::Ndr
     def self.method_missing(symbol, *args, &block)
       field = super
       if field.is_a?(::Array) && field.last.is_a?(BinData::SanitizedField)
+        unless field.last.has_parameter?(:byte_align)
+          raise ArgumentError.new(
+            "NDR Structures must only include elements with the `:byte_align` "\
+            "parameter set. This makes sure the whole structure is correctly "\
+            "aligned. Use a predefined NDR element instead, or provide the "\
+            "`:byte_align` parameter when defining the structure "\
+            "(Faulty element: #{field.last.name})"
+          )
+        end
         validate_conformant_array(field)
       end
       field
@@ -493,6 +613,7 @@ module RubySMB::Dcerpc::Ndr
   #
   # [Pointers](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_10)
   #
+
   module TopLevelPlugin
     def do_write(io)
       update_ref_ids(self)
@@ -572,13 +693,43 @@ module RubySMB::Dcerpc::Ndr
       end
     end
 
-    def do_write(io, in_array_ptr: false)
-      io.writebytes([@ref_id].pack('L')) unless in_array_ptr
+    def referent_bytes_align(offset)
+      align = self.class.superclass.default_parameters[:byte_align]
+      align = eval_parameter(:referent_byte_align) unless align
+      (align - (offset % align)) % align
+    end
+
+    def do_write(io, is_deferred: false)
+      if is_deferred
+        io.writebytes("\x00" * referent_bytes_align(io.offset))
+      else
+        io.writebytes([@ref_id].pack('L'))
+        parent_obj = parent_constructed_type
+        if parent_obj
+          parent_obj.defer_ptr(self)
+          return
+        end
+      end
       super(io) unless @ref_id == 0 || is_alias?
     end
 
-    def do_read(io, in_array_ptr: false)
-      @ref_id = io.readbytes(4).unpack('L').first unless in_array_ptr
+    def parent_constructed_type(obj = self.parent)
+      return obj if obj.is_a?(ConstructedTypePlugin)
+      return nil if obj.nil?
+      return parent_constructed_type(obj.parent)
+    end
+
+    def do_read(io, is_deferred: false)
+      if is_deferred
+        io.readbytes(referent_bytes_align(io.offset))
+      else
+        @ref_id = io.readbytes(4).unpack('L').first
+        parent_obj = parent_constructed_type
+        if parent_obj
+          parent_obj.defer_ptr(self)
+          return
+        end
+      end
       super(io) unless @ref_id == 0 || is_alias?
     end
 
@@ -598,9 +749,7 @@ module RubySMB::Dcerpc::Ndr
       has_parameter?(:ref_to)
     end
 
-    def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil, index: 1)
-    #def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil)
-      puts "#{'#' * index} name:#{name}, class:#{current.class}"
+    def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil)
       if current.get_parameter(:ref_to) == ref
         raise "Pointer alias refering to #{ref} cannot be found. This referent should appears before the alias in the stream"
       end
@@ -609,14 +758,12 @@ module RubySMB::Dcerpc::Ndr
       case current
       when ArrayPlugin
         current.each do |element|
-          res = fetch_alias_referent(current: element, ref: ref, name: name, index: index + 1)
-          #res = fetch_alias_referent(current: element, ref: ref, name: name)
+          res = fetch_alias_referent(current: element, ref: ref, name: name)
           break if res
         end
       when BinData::Record, BinData::Struct
         current.each_pair do |name, field|
-          res = fetch_alias_referent(current: field, ref: ref, name: name, index: index + 1)
-          #res = fetch_alias_referent(current: field, ref: ref, name: name)
+          res = fetch_alias_referent(current: field, ref: ref, name: name)
           break if res
         end
       end
@@ -629,12 +776,39 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  # Pointers to BinData Integer class definitions
-  [:Uint8, :Uint16le, :Uint24le, :Uint32le, :Uint56le, :Uint64le, :Uint128le].each do |klass|
-  #[:Uint8, :Uint16le, :Uint24le, :Uint56le, :Uint64le, :Uint128le].each do |klass|
-    new_klass_name = "#{klass.to_s.chomp('le')}Ptr"
+  class ::BinData::NdrPointerArgProcessor < BinData::BaseArgProcessor
+    def sanitize_parameters!(obj_class, params)
+      res = nil
+      if obj_class.superclass.respond_to?(:arg_processor)
+        res = obj_class.superclass.arg_processor.sanitize_parameters!(obj_class.superclass, params)
+      end
+
+      byte_align = false
+      if obj_class.superclass.respond_to?(:default_parameters)
+        return res if obj_class.superclass.default_parameters[:byte_align]
+      end
+      return res if params[:referent_byte_align]
+
+      raise ArgumentError.new(
+        "NDR Pointers referent must have `:byte_align` parameter set. This "\
+        "makes sure the whole structure is correctly aligned. Use a predefined "\
+        "NDR element instead, or provide the `:referent_byte_align` parameter "\
+        "when defining the structure (Faulty pointer class: #{obj_class})"
+      )
+    end
+  end
+
+  # Pointers to NDR integers. This defined four pointers:
+  # - NdrUint8Ptr
+  # - NdrUint16Ptr
+  # - NdrUint32Ptr
+  # - NdrUint64Ptr
+  {NdrUint8: 1, NdrUint16: 2, NdrUint32: 4, NdrUint64: 8}.each do |klass, align|
+    new_klass_name = "#{klass.to_s}Ptr"
     unless self.const_defined?(new_klass_name)
-      new_klass = Class.new(BinData.const_get(klass)) do
+      new_klass = Class.new(RubySMB::Dcerpc::Ndr.const_get(klass)) do
+        default_parameters byte_align: 4
+        arg_processor :ndr_pointer
         extend PointerClassPlugin
         def initialize_shared_instance
           super
@@ -646,16 +820,10 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  #class Uint32Ptr < BinData::Uint32le
-  #  extend PointerClassPlugin
-  #  def initialize_shared_instance
-  #    super
-  #    extend PointerPlugin
-  #  end
-  #end
-
   # Pointers to other classes
   class CharPtr < Char
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -664,6 +832,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class BooleanPtr < Boolean
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -672,6 +842,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class StringPtr < ConfVarString
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -680,6 +852,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class StringzPtr < ConfVarStringz
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -688,6 +862,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class WideStringPtr < ConfVarWideString
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -696,6 +872,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class WideStringzPtr < ConfVarWideStringz
+    default_parameters byte_align: 4
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -704,7 +882,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class ByteArrayPtr < ConfVarArray
-    default_parameter type: :uint8
+    default_parameters(type: :ndr_uint8, :byte_align => 4)
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -713,6 +892,8 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class FileTimePtr < RubySMB::Field::FileTime
+    default_parameters byte_align: 4, referent_byte_align: 8
+    arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
       super
@@ -724,6 +905,7 @@ module RubySMB::Dcerpc::Ndr
   # An NDR Context Handle representation as defined in
   # [IDL Data Type Declarations - Basic Type Declarations](http://pubs.opengroup.org/onlinepubs/9629399/apdxn.htm#tagcjh_34_01)
   class NdrContextHandle < BinData::Primitive
+    default_parameters byte_align: 4
     endian :little
 
     uint32 :context_handle_attributes
