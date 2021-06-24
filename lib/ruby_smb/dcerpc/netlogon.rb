@@ -25,7 +25,7 @@ module RubySMB
         endian :little
 
         netlogon_credential :credential
-        uint32              :timestamp
+        ndr_uint32          :timestamp
       end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/4d1235e3-2c96-4e9f-a147-3cb338a0d09f
