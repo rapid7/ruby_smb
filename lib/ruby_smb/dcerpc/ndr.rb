@@ -145,15 +145,20 @@ module RubySMB::Dcerpc::Ndr
       clear_deferred_ptrs
     end
 
-    def is_array_of_pointers(obj)
-      return true if obj.class.is_a?(PointerClassPlugin)
-      if obj.is_a?(NdrStruct)
-        obj.each_pair do |name, field|
-          return true if is_array_of_pointers(field)
+    def sum_num_bytes_below_index(index)
+      (0...index).inject(0) do |sum, i|
+        nbytes = 0
+        if elements[i].has_parameter?(:byte_align) && elements[i].respond_to?(:bytes_to_align)
+          nbytes = elements[i].bytes_to_align(elements[i], sum.ceil)
+        end
+        nbytes += elements[i].do_num_bytes
+
+        if nbytes.is_a?(Integer)
+          sum.ceil + nbytes
+        else
+          sum + nbytes
         end
       end
-      return is_array_of_pointers(elements.first)
-      return false
     end
   end
 
@@ -184,7 +189,7 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_write(io)
-      unless parent.is_a?(NdrStruct)
+      unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
         max_count = [length].pack('L')
         io.writebytes(max_count)
       end
@@ -192,7 +197,7 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_read(io)
-      unless parent.is_a?(NdrStruct)
+      unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
         @max_count_from_read = io.readbytes(4).unpack('L').first
       end
       super(io)
@@ -338,6 +343,9 @@ module RubySMB::Dcerpc::Ndr
 
     def initialize_instance
       @max_count = is_a?(BinData::Stringz) ? 1 : 0
+      if has_parameter?(:initial_value)
+        @max_count += eval_parameter(:initial_value).size
+      end
       super
     end
 
@@ -371,6 +379,9 @@ module RubySMB::Dcerpc::Ndr
 
     def initialize_instance
       @actual_count = is_a?(BinData::Stringz) ? 1 : 0
+      if has_parameter?(:initial_value)
+        @actual_count += eval_parameter(:initial_value).size
+      end
       super
     end
 
@@ -520,7 +531,7 @@ module RubySMB::Dcerpc::Ndr
 
       if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
         max_count = get_max_count
-        io.writebytes([max_count].pack('L'))
+        io.writebytes([max_count].pack('L')) if max_count
       end
 
       super
@@ -532,7 +543,6 @@ module RubySMB::Dcerpc::Ndr
       end
 
       if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
-        obj = self[field_names.last]
         set_max_count(io.readbytes(4).unpack('L').first)
       end
 
@@ -577,7 +587,7 @@ module RubySMB::Dcerpc::Ndr
         )
       end
       obj_class = field.last.prototype.instance_variable_get(:@obj_class)
-      @has_conformant_array = true if obj_class.is_a?(ConfClassPlugin)
+      @has_conformant_array = true if obj_class.is_a?(ConfClassPlugin) && !obj_class.is_a?(PointerClassPlugin)
       @has_conformant_array = true if obj_class < NdrStruct && obj_class.has_conformant_array
     end
 
@@ -612,40 +622,67 @@ module RubySMB::Dcerpc::Ndr
   #
 
   module TopLevelPlugin
-    def do_write(io)
-      update_ref_ids(self)
+    def snapshot
+      update_ref_ids
       super
     end
 
-    def update_ref_ids(obj, pos = 0)
+    def do_write(io, is_deferred: false)
+      update_ref_ids if is_top_level_ptr
+      if is_deferred
+        super(io, is_deferred: is_deferred)
+      else
+        super(io)
+      end
+    end
+
+    def do_num_bytes
+      update_ref_ids if is_top_level_ptr
+      super
+    end
+
+    def update_ref_ids(obj = self, pos = 0)
       return pos unless obj
 
       case obj
-      when BinData::Record, BinData::Struct
-        obj.each_pair do |_name, field|
-          pos = update_ref_ids(field, pos)
-        end
       when PointerPlugin
         if obj.is_alias?
           ref_field = obj.fetch_alias_referent
-          raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
-          if ref_field.class != obj.class
-            raise ArgumentError, "Pointer points to a different referent type: #{ref_field.class} (set to #{obj.class})"
+          if ref_field
+            if ref_field.class != obj.class
+              raise ArgumentError, "Pointer points to a different referent type: #{ref_field.class} (set to #{obj.class})"
+            end
+            obj.ref_id = ref_field.ref_id
           end
-          obj.ref_id = ref_field.ref_id
         else
-          unless obj.ref_id == 0
+          if obj.ref_id != 0 || (obj.ref_id == 0 && obj.eval_parameter(:initial_value))
             obj.ref_id = RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + (pos * 4)
             pos += 1
           end
-          return pos
         end
       when ArrayPlugin
         obj.each do |element|
           pos = update_ref_ids(element, pos)
         end
+      when BinData::Record, BinData::Struct
+        obj.each_pair do |_name, field|
+          pos = update_ref_ids(field, pos)
+        end
+      when BinData::Choice
+        pos = update_ref_ids(obj.send(:current_choice), pos)
       end
       return pos
+    end
+
+    def set_top_level_ptr
+      @top_level_ptr = true
+      update_ref_ids
+    end
+    def unset_top_level_ptr
+      @top_level_ptr = false
+    end
+    def is_top_level_ptr
+      !!@top_level_ptr
     end
   end
 
@@ -658,8 +695,14 @@ module RubySMB::Dcerpc::Ndr
     attr_accessor :ref_id
 
     def initialize_instance
-      extend_top_level_class unless parent.nil?
-      @ref_id = 0 if @ref_id.nil?
+      if @ref_id.nil?
+        if eval_parameter(:initial_value)
+          @ref_id = INITIAL_REF_ID
+        else
+          @ref_id = 0
+        end
+      end
+      extend_top_level_class
       # TODO: validate ref_to parameter, if any:
       #  - should point to an existing pointer in the main structure
       #  - cannot be positioned before the pointer it is refering to
@@ -668,22 +711,25 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def extend_top_level_class
-      return if parent.nil?
-      current_parent = parent
+      current = self
       loop do
-        if current_parent.parent.nil?
-          current_parent.extend(TopLevelPlugin) unless current_parent.is_a?(TopLevelPlugin)
+        current.extend(TopLevelPlugin) unless current.is_a?(TopLevelPlugin)
+        if current.parent.nil?
+          current.set_top_level_ptr unless current.is_top_level_ptr
           break
         else
-          current_parent = current_parent.parent
+          current.unset_top_level_ptr if current.is_top_level_ptr
+          current = current.parent
         end
       end
     end
 
     def snapshot
       if is_alias?
-        fetch_alias_referent
-      elsif @ref_id == 0
+        ref_field = fetch_alias_referent
+        raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
+        ref_field
+      elsif @ref_id == 0 && !eval_parameter(:initial_value)
         :null
       else
         super
@@ -707,7 +753,7 @@ module RubySMB::Dcerpc::Ndr
           return
         end
       end
-      super(io) unless @ref_id == 0 || is_alias?
+      super(io) unless (@ref_id == 0 && !eval_parameter(:initial_value)) || is_alias?
     end
 
     def parent_constructed_type(obj = self.parent)
@@ -735,7 +781,8 @@ module RubySMB::Dcerpc::Ndr
         @ref_id = 0
       elsif is_alias?
         ref_field = fetch_alias_referent
-        ref_field.assign(val) if ref_field
+        raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
+        ref_field.assign(val)
       else
         @ref_id = INITIAL_REF_ID if @ref_id == 0
         super
@@ -747,8 +794,12 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def fetch_alias_referent(current: parent, ref: get_parameter(:ref_to), name: nil)
+      return if current.nil?
       if current.get_parameter(:ref_to) == ref
-        raise "Pointer alias refering to #{ref} cannot be found. This referent should appears before the alias in the stream"
+        raise ArgumentError.new(
+          "Pointer alias refering to #{ref} cannot be found. This referent "\
+          "should appears before the alias in the stream"
+        )
       end
       return current if name == ref
       res = nil

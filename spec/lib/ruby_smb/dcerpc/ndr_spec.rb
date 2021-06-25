@@ -382,7 +382,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
     end
   end
 
-  context 'with elements' do
+  context 'with size information' do
     before :example do
       subject << 5
       subject << 7
@@ -421,26 +421,129 @@ RSpec.shared_examples "a NDR Array" do |counter|
         end
       end
     end
+  end
 
-    context 'when reading a binary stream' do
+  context 'when reading a binary stream' do
+    before :example do
+      subject.read(binary_stream)
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(values.size)
+    end
+    it 'sets the new element values' do
+      values.each_with_index do |value, i|
+        expect(subject[i]).to eq(value)
+      end
+    end
+    it 'has the same binary representation than the original binary stream' do
+      expect(subject.to_binary_s).to eq(binary_stream)
+    end
+    counter.each do |name, position|
+      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+      it "sets #{name} to the new number of elements" do
+        expect(counter_value).to eq(values.size)
+      end
+    end
+  end
+
+  context 'when calling #do_num_bytes' do
+    before :example do
+      subject.assign(values)
+    end
+    it 'returns the expected number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary_stream.size)
+    end
+    context 'with NDR structures' do
+      let(:array_with_struct) do
+        described_class.new([{a: 2, b: 'A'}, {a: 3, b: 'B'}], type: :test_struct)
+      end
       before :example do
-        subject.read(binary_stream)
+        test_struct = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+          default_parameters byte_align: 4
+          ndr_uint32 :a
+          ndr_char   :b
+        end
+        BinData::RegisteredClasses.register('test_struct', test_struct)
       end
-      it 'has the expected size' do
-        expect(subject.size).to eq(values.size)
+
+      it 'returns the expected number of bytes, including padding' do
+        uint32_size = 4
+        char_size = 1
+        pad_size = 3
+        expected_nb = (uint32_size + char_size) * 2
+        expected_nb += pad_size
+        expected_nb += 4 if counter['max_count']
+        expected_nb += 8 if counter['actual_count']
+        expect(array_with_struct.do_num_bytes).to eq(expected_nb)
       end
-      it 'sets the new element values' do
-        values.each_with_index do |value, i|
-          expect(subject[i]).to eq(value)
+    end
+  end
+
+  context 'when it is embedded in a NDR structure' do
+    let(:embedded_struct) do
+      Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+        default_parameters byte_align: 4
+        ndr_uint32 :a
+      end
+    end
+    context 'directly as an array' do
+      before :example do
+        embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: :ndr_uint16)
+      end
+      let(:test_instance) { embedded_struct.new(a: 3, ary: values) }
+      let(:binary_str) do
+        binary_str = "".b
+        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
+        binary_str << "#{[3].pack('L')}"
+        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
+        binary_str << "#{values.pack("S#{values.size}")}"
+        binary_str
+      end
+
+      context 'when writing the stream of bytes' do
+        it 'moves #max_count from any conformant array to the beginning of the structure' do
+          expect(test_instance.to_binary_s).to eq(binary_str)
         end
       end
-      it 'has the same binary representation than the original binary stream' do
-        expect(subject.to_binary_s).to eq(binary_stream)
+      context 'when reading a stream of bytes' do
+        it 'reads #max_count from any conformant array at the beginning of the structure' do
+          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary: values })
+        end
       end
-      counter.each do |name, position|
-        let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
-        it "sets #{name} to the new number of elements" do
-          expect(counter_value).to eq(values.size)
+    end
+    context 'as a pointer to an array' do
+      before :example do
+        array_ptr = Class.new(described_class) do
+          default_parameters byte_align: 4
+          arg_processor :ndr_pointer
+          extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
+          def initialize_shared_instance
+            super
+            extend RubySMB::Dcerpc::Ndr::PointerPlugin
+          end
+        end
+        BinData::RegisteredClasses.register('test_array_ptr', array_ptr)
+        embedded_struct.send(:test_array_ptr, :ary_ptr, type: :ndr_uint16)
+      end
+      let(:test_instance) { test_instance = embedded_struct.new(a: 3, ary_ptr: values) }
+      let(:binary_str) do
+        ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
+        binary_str = "#{[3].pack('L')}"
+        binary_str << "#{ref_id}"
+        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
+        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
+        binary_str << "#{values.pack("S#{values.size}")}"
+        binary_str
+      end
+
+      context 'when writing the stream of bytes' do
+        it 'does not move #max_count from any conformant array to the beginning of the structure' do
+          expect(test_instance.to_binary_s).to eq(binary_str)
+        end
+      end
+      context 'when reading a stream of bytes' do
+        it 'reads #max_count from any conformant array at the beginning of the structure' do
+          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary_ptr: values })
         end
       end
     end
@@ -1407,12 +1510,12 @@ end
   NdrWideStringPtr: {
     parent_class: :NdrConfVarWideString,
     data: 'Test3'.encode('utf-16le'),
-    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}", size: 4
+    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').b}", size: 4
   },
   NdrWideStringzPtr: {
     parent_class: :NdrConfVarWideStringz,
     data: 'Test4'.encode('utf-16le'),
-    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00", size: 4
+    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').b}\x00\x00", size: 4
   },
   NdrByteArrayPtr: {
     parent_class: :NdrConfVarArray,
@@ -1429,8 +1532,8 @@ end
     subject { described_class.new }
     let(:class_with_ref_to) do
       struct = Class.new(BinData::Record) do
-        endian  :little
-        uint32   :a
+        endian :little
+        ndr_uint32 :a
       end
       struct.send(described_class.bindata_name.to_sym, :b)
       struct.send(described_class.bindata_name.to_sym, :c, ref_to: :b)
@@ -1465,6 +1568,10 @@ end
         subject.initialize_instance
         expect(subject.ref_id).to eq(5)
       end
+      it 'sets #ref_id to INITIAL_REF_ID by default when :initial_value parameter is provided' do
+        test_instance = described_class.new(nil, {initial_value: info[:data]})
+        expect(test_instance.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
+      end
     end
 
     describe '#extend_top_level_class' do
@@ -1481,7 +1588,7 @@ end
         BinData::RegisteredClasses.register('test_struct', struct_class)
         test_class = Class.new(BinData::Record) do
           endian  :little
-          uint32      :a
+          ndr_uint32  :a
           test_struct :b
         end
         expect(ref_to_instance.is_a?(RubySMB::Dcerpc::Ndr::TopLevelPlugin)).to eq(true)
@@ -1494,6 +1601,13 @@ end
       end
       it 'outputs the referent when it refers to another Top-Level pointer' do
         expect(ref_to_instance.snapshot).to eq({a:1, b:info[:data], c:info[:data]})
+      end
+      # BinData does not support initial_value parameter for arrays
+      unless ndr_class == :NdrByteArrayPtr
+        it 'outputs the :initial_value parameter value when nothing has been assigned yet' do
+          test_ptr = described_class.new(nil, {initial_value: info[:data]})
+          expect(test_ptr.snapshot).to eq(info[:data])
+        end
       end
     end
 
@@ -1515,6 +1629,13 @@ end
       it 'outputs the initial referent ID and the referent representaiton if it is not embedded in another constructed structure' do
         allow(subject).to receive(:parent_constructed_type).and_return(nil)
         expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+      end
+      # BinData does not support initial_value parameter for arrays
+      unless ndr_class == :NdrByteArrayPtr
+        it 'outputs the :initial_value parameter value when nothing has been assigned yet' do
+          test_ptr = described_class.new(nil, {initial_value: info[:data]})
+          expect(test_ptr.new.to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+        end
       end
       context 'when embedded in another constructed structure'do
         let(:embedding_struct) do
@@ -1553,19 +1674,17 @@ end
         expect(subject.read("\x00\x00\x00\x00".b)).to eq(:null)
       end
       it 'reads the referent ID followed by the representation of the referent' do
-        ref_id = 10
-        expect(subject.read("#{[ref_id].pack('L')}#{info[:binary]}")).to eq(info[:data])
-        expect(subject.ref_id).to eq(ref_id)
+        expect(subject.read("#{ref_id}#{info[:binary]}")).to eq(info[:data])
+        expect(subject.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
       end
       it 'reads the referent ID of the Top-Level pointer it is refering to' do
-        ref_id = 20
         align = (4 - (info[:binary].size % 4)) % 4
         pad = "\x00" * align
         binary_str = "#{[1].pack('L')}"\
-                     "#{[ref_id].pack('L')}"\
+                     "#{ref_id}"\
                      "#{info[:binary]}"\
                      "#{pad}"\
-                     "#{[ref_id].pack('L')}"
+                     "#{ref_id}"
         test_instance = class_with_ref_to.read(binary_str)
         expect(test_instance.c.snapshot).to eq(info[:data])
         expect(test_instance.c.ref_id).to eq(test_instance.b.ref_id)
@@ -1629,6 +1748,25 @@ end
       it 'returns the referent' do
         expect(ref_to_instance.c.fetch_alias_referent).to eq(info[:data])
       end
+      context 'when the referent is in a NDR structure' do
+        let(:class_with_ref_to) do
+          test_struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+            default_parameters(byte_align: 4)
+            ndr_uint32     :a
+          end
+          test_struct_class.send(described_class.bindata_name.to_sym, :ptr1)
+          BinData::RegisteredClasses.register('test_struct', test_struct_class)
+          struct = Class.new(BinData::Record) do
+            test_struct :struct1
+          end
+          struct.send(described_class.bindata_name.to_sym, :ptr2, ref_to: :ptr1)
+          struct
+        end
+        let(:ref_to_instance) { class_with_ref_to.new(struct1: { a: 2, ptr1: info[:data] }) }
+        it 'returns the referent' do
+          expect(ref_to_instance.ptr2.fetch_alias_referent).to eq(info[:data])
+        end
+      end
     end
 
     describe '#do_num_bytes' do
@@ -1647,6 +1785,7 @@ end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
+  let(:ref_id) { RubySMB::Dcerpc::Ndr::INITIAL_REF_ID }
   let(:struct_with_ptr) do
     Class.new(BinData::Record) do
       default_parameters byte_align: 4
@@ -1660,8 +1799,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
   let(:random_struct) do
     Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
       default_parameters byte_align: 4
-
       endian              :little
+
       ndr_uint32          :rand1
       ndr_conf_var_string :rand2
     end
@@ -1673,7 +1812,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
   end
 
   context 'with a BinData structure' do
-    let(:array_struct) do
+    let(:test_struct) do
       Class.new(BinData::Record) do
         endian          :little
 
@@ -1683,138 +1822,247 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
         ndr_uint32_ptr  :ptr4
       end
     end
-    subject do
-      array_struct.new(
-        a: 55,
-        ptr1: 'M',
-        d: {
-          b: 66,
-          ptr2: 'A',
-          ptr3: 33
-        },
-        ptr4: 44
-      )
+    let(:snapshot) { { a: 55, ptr1: 'M', d: { b: 66, ptr2: 'A', ptr3: 33 }, ptr4: 44 } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
     end
 
-    it 'Increments the reference IDs by 4 for each pointer' do
-      ref_id = RubySMB::Dcerpc::Ndr::INITIAL_REF_ID
-      output_str =
-        "#{[55].pack('L')}"\
-        "#{[ref_id].pack('L')}"\
-        "M"\
-        "\x00\x00\x00"\
-        "#{[66].pack('L')}"\
-        "#{[ref_id + 4].pack('L')}"\
-        "A"\
-        "\x00\x00\x00"\
-        "#{[ref_id + 8].pack('L')}"\
-        "#{[33].pack('L')}"\
-        "#{[ref_id + 12].pack('L')}"\
-        "#{[44].pack('L')}"
-      expect(subject.to_binary_s).to eq(output_str)
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+  end
+
+  context 'with a BinData structure containing pointers with :initial_value set' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
+
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1, initial_value: 'M'
+        struct_with_ptr :d
+        ndr_uint32_ptr  :ptr4, initial_value: 44
+      end
+    end
+    let(:snapshot) { { a: 55, d: { b: 66, ptr2: 'A', ptr3: 33 } } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      # Add pointer values from :initial_value to snapshot
+      snapshot[:ptr1] = 'M'
+      snapshot[:ptr4] = 44
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+  end
+
+  context 'with a BinData::Choice' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
+
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1
+        choice :choice1, selection: :a, byte_align: 4 do
+          struct_with_ptr 55
+        end
+        ndr_uint32_ptr  :ptr4
+      end
+    end
+    let(:snapshot) { { a: 55, ptr1: 'M', choice1: { b: 66, ptr2: 'A', ptr3: 33 }, ptr4: 44 } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
     end
   end
 
   context 'with a NDR array and an alias pointer' do
-    let(:array_struct) do
+    let(:test_struct) do
       Class.new(BinData::Record) do
         endian          :little
-        uint32          :a, byte_align: 4
+
+        ndr_uint32      :a
         ndr_char_ptr    :ptr1
         ndr_conf_array  :array1, type: :random_struct
         struct_with_ptr :d
         ndr_uint32_ptr  :ptr4, ref_to: :ptr3
       end
     end
-    subject do
-      array_struct.new(
+    let(:snapshot) do
+      {
         a: 55,
         ptr1: 'M',
         array1: [
-          {
-            rand1: 2,
-            rand2: 'Test1'
-          },
-          {
-            rand1: 6,
-            rand2: 'Test2'
-          }
+          { rand1: 2, rand2: 'Test1' },
+          { rand1: 6, rand2: 'Test2' }
         ],
-        d: {
-          b: 66,
-          ptr2: 'A',
-          ptr3: 33
-        }
-      )
+        d: { b: 66, ptr2: 'A', ptr3: 33 }
+      }
+    end
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[2].pack('L')}"\
+      "#{[2].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "#{[0].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "Test1"\
+      "\x00\x00\x00"\
+      "#{[6].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "#{[0].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "Test2"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 8].pack('L')}"
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
     end
 
-    it 'Increments the reference IDs by 4 for each non-alias pointer' do
-      ref_id = RubySMB::Dcerpc::Ndr::INITIAL_REF_ID
-      output_str =
-        "#{[55].pack('L')}"\
-        "#{[ref_id].pack('L')}"\
-        "M"\
-        "\x00\x00\x00"\
-        "#{[2].pack('L')}"\
-        "#{[2].pack('L')}"\
-        "#{[5].pack('L')}"\
-        "#{[0].pack('L')}"\
-        "#{[5].pack('L')}"\
-        "Test1"\
-        "\x00\x00\x00"\
-        "#{[6].pack('L')}"\
-        "#{[5].pack('L')}"\
-        "#{[0].pack('L')}"\
-        "#{[5].pack('L')}"\
-        "Test2"\
-        "\x00\x00\x00"\
-        "#{[66].pack('L')}"\
-        "#{[ref_id + 4].pack('L')}"\
-        "A"\
-        "\x00\x00\x00"\
-        "#{[ref_id + 8].pack('L')}"\
-        "#{[33].pack('L')}"\
-        "#{[ref_id + 8].pack('L')}"
-      expect(subject.to_binary_s).to eq(output_str)
+    it 'Increments the reference IDs by 4 for each non-alias pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
     end
-  end
 
-  context 'with a NDR array and an alias pointer positioned after the referent pointer' do
-    let(:array_struct) do
-      Class.new(RubySMB::Dcerpc::Ndr::NdrConfArray) do
-        endian          :little
-        uint32          :a
-        ndr_char_ptr    :ptr1
-        ndr_conf_array  :array1, type: :random_struct
-        # :ptr3 is part of :d structure, which appears after :ptr4
-        ndr_uint32_ptr  :ptr4, ref_to: :ptr3
-        struct_with_ptr :d
+    it 'Increments the reference IDs by 4 for each non-alias pointer when reading' do
+      # Adding the alias pointer to the snapshot
+      snapshot[:ptr4] = snapshot[:d][:ptr3].dup
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
+    end
+
+    it 'Increments the reference IDs by 4 for each non-alias pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
+    end
+
+    context 'when the alias pointer is positioned after the referent pointer' do
+      let(:test_struct2) do
+        Class.new(BinData::Record) do
+          endian          :little
+
+          ndr_uint32      :a
+          ndr_char_ptr    :ptr1
+          ndr_conf_array  :array1, type: :random_struct
+          # :ptr3 is part of :d structure, which appears after :ptr4
+          ndr_uint32_ptr  :ptr4, ref_to: :ptr3
+          struct_with_ptr :d
+        end
+      end
+
+      it 'raises an exception' do
+        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
       end
     end
-    subject do
-      array_struct.new([
-        a: 55,
-        ptr1: 'M',
-        array1: [
-          {
-            rand1: 2,
-            rand2: 'Test1'
-          },
-          {
-            rand1: 6,
-            rand2: 'Test2'
-          }
-        ],
-        d: {
-          b: 66,
-          ptr2: 'A',
-          ptr3: 33
-        }
-      ])
-    end
 
-    it 'raises an exception' do
-      expect { subject.to_binary_s }.to raise_error
+    context 'when the alias pointer refers to a non-existing pointer' do
+      let(:test_struct2) do
+        Class.new(BinData::Record) do
+          endian          :little
+
+          ndr_uint32      :a
+          ndr_char_ptr    :ptr1
+          ndr_conf_array  :array1, type: :random_struct
+          ndr_uint32_ptr  :ptr4, ref_to: :ptr5
+          struct_with_ptr :d
+        end
+      end
+
+      it 'raises an exception' do
+        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
+      end
     end
   end
 end
