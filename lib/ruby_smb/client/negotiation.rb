@@ -9,8 +9,8 @@ module RubySMB
       # It also keeps track of the negotiated dialect.
       #
       # @return [void]
-      def negotiate
-        request_packet  = negotiate_request
+      def negotiate(negotiate_packet: nil)
+        request_packet  = negotiate_packet ? negotiate_packet : smb1_negotiate_request
         raw_response    = send_recv(request_packet)
         response_packet = negotiate_response(raw_response)
         # The list of dialect identifiers sent to the server is stored
@@ -108,18 +108,12 @@ module RubySMB
       # @return [String] The SMB version as a string ('SMB1', 'SMB2')
       def parse_negotiate_response(packet)
         case packet
+        when RubySMB::SMB1::Packet::NegotiateResponse
+          smb1_response(packet)
+          self.challenge = packet.data_block.challenge
+          'SMB1'
         when RubySMB::SMB1::Packet::NegotiateResponseExtended
-          self.smb1 = true
-          self.smb2 = false
-          self.smb3 = false
-          self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
-          self.dialect = packet.negotiated_dialect.to_s
-          # MaxBufferSize is largest message server will receive, measured from start of the SMB header. Subtract 260
-          # for protocol overhead. Then this value can be used for max read/write size without having to factor in
-          # protocol overhead every time.
-          self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
-          self.negotiated_smb_version = 1
-          self.session_encrypt_data = false
+          smb1_response(packet)
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
@@ -285,6 +279,20 @@ module RubySMB
         end
 
         packet
+      end
+
+      def smb1_response(packet)
+        self.smb1 = true
+        self.smb2 = false
+        self.smb3 = false
+        self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
+        self.dialect = packet.negotiated_dialect.to_s
+        # MaxBufferSize is largest message server will receive, measured from start of the SMB header. Subtract 260
+        # for protocol overhead. Then this value can be used for max read/write size without having to factor in
+        # protocol overhead every time.
+        self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
+        self.negotiated_smb_version = 1
+        self.session_encrypt_data = false
       end
     end
   end

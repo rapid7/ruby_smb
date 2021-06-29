@@ -138,6 +138,11 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :smb1
 
+    # Challenge value returned by the server during SMB1 negotiation with Extended Security turned off
+    # @!attribute [rw] challenge
+    #       @return [String]
+    attr_accessor :challenge
+
     # Whether or not the Client should support SMB2
     # @!attribute [rw] smb2
     #   @return [Boolean]
