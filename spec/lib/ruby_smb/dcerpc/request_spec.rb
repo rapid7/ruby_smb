@@ -83,7 +83,7 @@ RSpec.describe RubySMB::Dcerpc::Request do
       end
 
       it 'selects the expected packet structure' do
-        expect(packet.stub).to eq(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host))
+        expect(packet.stub).to eq(RubySMB::Dcerpc::Srvsvc::NetShareEnumAllRequest.new)
       end
     end
 
@@ -144,7 +144,7 @@ RSpec.describe RubySMB::Dcerpc::Request do
   it 'reads its own binary representation and output the same packet' do
     packet = described_class.new(
       { :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL },
-      { :endpoint => 'Srvsvc', :host => '1.2.3.4' }
+      { :endpoint => 'Srvsvc' }
     )
     packet.pdu_header.pfc_flags.object_uuid = 1
     packet.object = '8a885d04-1ceb-11c9-9fe8-08002b104860'
