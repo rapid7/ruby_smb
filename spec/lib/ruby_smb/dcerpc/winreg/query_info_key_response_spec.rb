@@ -23,8 +23,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryInfoKeyResponse do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::RrpUnicodeString
     end
 
-    it 'has an initial value of 0' do
-      expect(packet.lp_class).to eq(0)
+    it 'has the expected initial value' do
+      expect(packet.lp_class).to eq({:buffer_length=>0, :maximum_length=>0, :buffer=>:null})
     end
   end
 

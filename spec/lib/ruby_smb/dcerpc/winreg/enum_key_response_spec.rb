@@ -36,8 +36,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyResponse do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::PrrpUnicodeString
     end
 
-    it 'has a initial value of :null' do
-      expect(packet.lp_class).to eq(:null)
+    it 'has the expected initial value' do
+      expect(packet.lp_class).to eq({:buffer_length=>0, :maximum_length=>0, :buffer=>:null})
     end
   end
 
