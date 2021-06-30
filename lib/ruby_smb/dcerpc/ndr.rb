@@ -79,6 +79,14 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
+  class NdrFileTime < RubySMB::Field::FileTime
+    # Note that the original Microsoft FILETIME structure is composed of two
+    # DWORDs, whereas RubySMB implementation uses an Uint64 field. For this
+    # reason, the alignement is set to the size of a DWORD (4 bytes) to match
+    # Microsoft structures.
+    default_parameters byte_align: 4
+  end
+
 
 
   #####################################
@@ -342,9 +350,9 @@ module RubySMB::Dcerpc::Ndr
     attr_accessor :max_count
 
     def initialize_instance
-      @max_count = is_a?(BinData::Stringz) ? 1 : 0
+      @max_count = 0
       if has_parameter?(:initial_value)
-        @max_count += eval_parameter(:initial_value).size
+        update_max_count(eval_parameter(:initial_value))
       end
       super
     end
@@ -363,8 +371,7 @@ module RubySMB::Dcerpc::Ndr
       if val.is_a?(ConfStringPlugin)
         @max_count = val.max_count
       else
-        @max_count = val.to_s.length
-        @max_count += 1 if is_a?(BinData::Stringz)
+        update_max_count(val)
       end
       super
     end
@@ -372,15 +379,25 @@ module RubySMB::Dcerpc::Ndr
     def do_num_bytes
       4 + super
     end
+
+    def update_max_count(val)
+      if is_a?(BinData::Stringz)
+        @max_count = val.to_s.strip.length
+        # Only count the terminating NULL byte if the string is not empty
+        @max_count += 1 if @max_count > 0
+      else
+        @max_count = val.to_s.length
+      end
+    end
   end
 
   module VarStringPlugin
     attr_accessor :actual_count
 
     def initialize_instance
-      @actual_count = is_a?(BinData::Stringz) ? 1 : 0
+      @actual_count = 0
       if has_parameter?(:initial_value)
-        @actual_count += eval_parameter(:initial_value).size
+        update_actual_count(eval_parameter(:initial_value))
       end
       super
     end
@@ -389,24 +406,33 @@ module RubySMB::Dcerpc::Ndr
       offset = 0
       io.writebytes([offset].pack('L'))
       io.writebytes([@actual_count].pack('L'))
-      super
+      super if @actual_count > 0
     end
 
     def do_read(io)
       # offset value is not used
       io.seekbytes(4)
       @actual_count = io.readbytes(4).unpack('L').first
-      super
+      super if @actual_count > 0
     end
 
     def assign(val)
-      @actual_count = val.to_s.length
-      @actual_count += 1 if is_a?(BinData::Stringz)
+      update_actual_count(val)
       super
     end
 
     def do_num_bytes
-      8 + super
+      @actual_count > 0 ? (8 + super) : 8
+    end
+
+    def update_actual_count(val)
+      if is_a?(BinData::Stringz)
+        @actual_count = val.to_s.strip.length
+        # Only count the terminating NULL byte if the string is not empty
+        @actual_count += 1 if @actual_count > 0
+      else
+        @actual_count = val.to_s.length
+      end
     end
   end
 
@@ -466,10 +492,6 @@ module RubySMB::Dcerpc::Ndr
       extend VarStringPlugin
       extend ConfStringPlugin
     end
-
-    def is_null_terminated?
-      self.value[-1] == "\x00"
-    end
   end
 
   class NdrConfVarStringz < BinData::Stringz
@@ -493,10 +515,6 @@ module RubySMB::Dcerpc::Ndr
       super
       extend VarStringPlugin
       extend ConfStringPlugin
-    end
-
-    def is_null_terminated?
-      self.value[-1] == "\x00".encode('utf-16le')
     end
   end
 
@@ -594,7 +612,7 @@ module RubySMB::Dcerpc::Ndr
     def self.method_missing(symbol, *args, &block)
       field = super
       if field.is_a?(::Array) && field.last.is_a?(BinData::SanitizedField)
-        unless field.last.has_parameter?(:byte_align)
+        unless field.last.has_parameter?(:byte_align) || field.last.instantiate.bit_aligned?
           raise ArgumentError.new(
             "NDR Structures must only include elements with the `:byte_align` "\
             "parameter set. This makes sure the whole structure is correctly "\
@@ -939,8 +957,8 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  class NdrFileTimePtr < RubySMB::Field::FileTime
-    default_parameters byte_align: 4, referent_byte_align: 8
+  class NdrFileTimePtr < NdrFileTime
+    default_parameters byte_align: 4
     arg_processor :ndr_pointer
     extend PointerClassPlugin
     def initialize_shared_instance
