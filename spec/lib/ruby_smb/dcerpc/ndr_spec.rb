@@ -241,6 +241,15 @@ end
   end
 end
 
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFileTime do
+  it 'is a RubySMB::Field::FileTime' do
+    expect(described_class).to be < RubySMB::Field::FileTime
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+end
+
 #####################################
 #       NDR Constructed Types       #
 #####################################
@@ -799,14 +808,8 @@ RSpec.shared_examples "a NDR String" do |conformant:, char_size:, null_terminate
     expect(subject).to eq('')
   end
 
-  if null_terminated
-    it 'has a binary representation of one NULL string terminator by default' do
-      expect(subject.to_binary_s[first_char_offset..-1]).to eq("\x00" * char_size)
-    end
-  else
-    it 'has a binary representation of an empty string by default' do
-      expect(subject.to_binary_s[first_char_offset..-1]).to be_empty
-    end
+  it 'has a binary representation of an empty string by default' do
+    expect(subject.to_binary_s[first_char_offset..-1]).to be_empty
   end
 
   it 'reads itself' do
@@ -836,9 +839,9 @@ RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
   it_behaves_like 'a Varying String', offset: 4, null_terminated: null_terminated
 
   describe '#initialize' do
-    it "sets #max_count to #{minimum_size} (uint32) by default#{' (NULL terminator)' if null_terminated}" do
-      expect(subject.max_count).to eq(minimum_size)
-      expect(subject.to_binary_s[0, 4]).to eq([minimum_size].pack('L'))
+    it "sets #max_count to 0 (uint32) by default" do
+      expect(subject.max_count).to eq(0)
+      expect(subject.to_binary_s[0, 4]).to eq([0].pack('L'))
     end
   end
 
@@ -866,7 +869,16 @@ RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
 
     context 'with a varying string' do
       it "sets #max_count to the string length#{' (including the NULL terminator)' if null_terminated}" do
-        str = RubySMB::Dcerpc::Ndr::NdrVarString.new(value)
+        case subject
+        when RubySMB::Field::Stringz16
+          str = RubySMB::Dcerpc::Ndr::NdrVarWideStringz.new(value)
+        when RubySMB::Field::String16
+          str = RubySMB::Dcerpc::Ndr::NdrVarWideString.new(value)
+        when BinData::Stringz
+          str = RubySMB::Dcerpc::Ndr::NdrVarStringz.new(value)
+        when BinData::String
+          str = RubySMB::Dcerpc::Ndr::NdrVarString.new(value)
+        end
         subject.assign(str)
         expect(subject.max_count).to eq(value.length + minimum_size)
       end
@@ -874,7 +886,16 @@ RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
 
     context 'with a conformant varying string' do
       it 'sets #max_count to the conformant varying string #max_count value' do
-        str = RubySMB::Dcerpc::Ndr::NdrConfVarString.new(value)
+        case subject
+        when RubySMB::Field::Stringz16
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz.new(value)
+        when RubySMB::Field::String16
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarWideString.new(value)
+        when BinData::Stringz
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarStringz.new(value)
+        when BinData::String
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarString.new(value)
+        end
         str.max_count = 30
         subject.assign(str)
         expect(subject.max_count).to eq(30)
@@ -894,9 +915,9 @@ RSpec.shared_examples "a Varying String" do |offset: 0, null_terminated:|
   minimum_size = null_terminated ? 1 : 0
 
   describe '#initialize' do
-    it "sets #actual_count to #{minimum_size} (uint32) by default#{' (NULL terminator)' if null_terminated}" do
-      expect(subject.actual_count).to eq(minimum_size)
-      expect(subject.to_binary_s[offset + 4, 4]).to eq([minimum_size].pack('L'))
+    it 'sets #actual_count to 0 (uint32) by default' do
+      expect(subject.actual_count).to eq(0)
+      expect(subject.to_binary_s[offset + 4, 4]).to eq([0].pack('L'))
     end
   end
 
@@ -1113,6 +1134,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
             ndr_uint32 :a
           end.new
         }.to raise_error(ArgumentError)
+      end
+
+      it 'does not raise error when the field is a BinData:Bit*' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+            bit2 :a
+          end.new
+        }.to_not raise_error
       end
     end
   end
@@ -1523,9 +1554,9 @@ end
     binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04", size: 4
   },
   NdrFileTimePtr: {
-    parent_class: RubySMB::Field::FileTime,
+    parent_class: :NdrFileTime,
     data: 132682503830000000,
-    binary: [132682503830000000].pack('Q'), size: 8
+    binary: [132682503830000000].pack('Q'), size: 4
   }
 }.each do |ndr_class, info|
   RSpec.describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
@@ -2632,7 +2663,7 @@ RSpec.describe 'Alignment' do
         binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04",
         size: 4
       },
-      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 8 }
+      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 4 }
     }.each do |ndr_class, info|
       describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
         ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
