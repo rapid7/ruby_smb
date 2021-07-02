@@ -35,12 +35,12 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
 
     it 'sets #buffer_length to the expected value' do
       packet.assign('spec_test')
-      expect(packet.buffer_length).to eq(('spec_test'.size) * 2)
+      expect(packet.buffer_length).to eq(('spec_test'.size + 1) * 2)
     end
 
     it 'sets #maximum_length to the expected value' do
       packet.assign('spec_test')
-      expect(packet.maximum_length).to eq(('spec_test'.size) * 2)
+      expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
     end
   end
 

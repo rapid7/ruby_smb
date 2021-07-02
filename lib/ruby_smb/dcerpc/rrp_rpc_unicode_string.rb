@@ -16,6 +16,7 @@ module RubySMB
         when BinData::Stringz, BinData::String, String
           self.buffer = val.to_s
           val_length = val.strip.length
+          val_length += 1 unless val == ''
           self.buffer_length = val_length * 2
           # Don't reset maximum_length if the buffer is NULL to make sure we can
           # set it independently of the buffer size
