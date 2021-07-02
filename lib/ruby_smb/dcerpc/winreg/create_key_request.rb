@@ -45,28 +45,20 @@ module RubySMB
 
         rpc_hkey                 :hkey
         rrp_unicode_string       :lp_sub_key
-        string                   :pad1, length: -> { pad_length(self.lp_sub_key) }
+        #string                   :pad1, length: -> { pad_length(self.lp_sub_key) }
         rrp_unicode_string       :lp_class
-        string                   :pad2, length: -> { pad_length(self.lp_class) }
-        uint32                   :dw_options
+        #string                   :pad2, length: -> { pad_length(self.lp_class) }
+        ndr_uint32               :dw_options
         regsam                   :sam_desired
         prpc_security_attributes :lp_security_attributes
-        string                   :pad3, length: -> { pad_length(self.lp_security_attributes) }
+        #string                   :pad3, length: -> { pad_length(self.lp_security_attributes) }
         ndr_uint32_ptr           :lpdw_disposition
 
         def initialize_instance
           super
           @opnum = REG_CREATE_KEY
         end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
       end
-
     end
   end
 end

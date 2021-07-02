@@ -11,21 +11,14 @@ module RubySMB
 
         ndr_uint32_ptr     :lp_type
         ndr_byte_array_ptr :lp_data
-        string             :pad, length: -> { pad_length(self.lp_data) }
+        #string             :pad, length: -> { pad_length(self.lp_data) }
         ndr_uint32_ptr     :lpcb_data
         ndr_uint32_ptr     :lpcb_len
-        uint32             :error_status
+        ndr_uint32         :error_status
 
         def initialize_instance
           super
           @opnum = REG_QUERY_VALUE
-        end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
         end
 
         # Returns the data portion of the registry value formatted according to its type:
@@ -47,7 +40,7 @@ module RubySMB
           when 11
             bytes.unpack('Q<').first
           else
-            ""
+            ''
           end
         end
 

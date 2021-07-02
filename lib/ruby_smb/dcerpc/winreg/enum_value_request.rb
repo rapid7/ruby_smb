@@ -12,9 +12,9 @@ module RubySMB
         endian :little
 
         rpc_hkey           :hkey
-        uint32             :dw_index
+        ndr_uint32         :dw_index
         rrp_unicode_string :lp_value_name
-        string             :pad, length: -> { pad_length }
+        #string             :pad, length: -> { pad_length }
         ndr_uint32_ptr     :lp_type
         ndr_byte_array_ptr :lp_data
         ndr_uint32_ptr     :lpcb_data
@@ -24,15 +24,7 @@ module RubySMB
           super
           @opnum = REG_ENUM_VALUE
         end
-
-        # Determines the correct length for the padding in front of
-        # #lp_type. It should always force a 4-byte alignment.
-        def pad_length
-          offset = (lp_value_name.abs_offset + lp_value_name.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
       end
-
     end
   end
 end

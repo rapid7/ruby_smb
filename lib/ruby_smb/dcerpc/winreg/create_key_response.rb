@@ -19,7 +19,7 @@ module RubySMB
 
         prpc_hkey      :hkey
         ndr_uint32_ptr :lpdw_disposition
-        uint32         :error_status
+        ndr_uint32     :error_status
 
         def initialize_instance
           super

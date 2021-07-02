@@ -13,10 +13,10 @@ module RubySMB
 
         rpc_hkey           :hkey
         rrp_unicode_string :lp_value_name
-        string             :pad1, length: -> { pad_length(self.lp_value_name) }
+        #string             :pad1, length: -> { pad_length(self.lp_value_name) }
         ndr_uint32_ptr     :lp_type
         ndr_byte_array_ptr :lp_data
-        string             :pad2, length: -> { pad_length(self.lp_data) }
+        #string             :pad2, length: -> { pad_length(self.lp_data) }
         ndr_uint32_ptr     :lpcb_data
         ndr_uint32_ptr     :lpcb_len
 
@@ -24,15 +24,7 @@ module RubySMB
           super
           @opnum = REG_QUERY_VALUE
         end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
       end
-
     end
   end
 end
