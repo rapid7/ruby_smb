@@ -3,7 +3,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
 
   it { is_expected.to respond_to :lp_type }
   it { is_expected.to respond_to :lp_data }
-  it { is_expected.to respond_to :pad }
   it { is_expected.to respond_to :lpcb_data }
   it { is_expected.to respond_to :lpcb_len }
   it { is_expected.to respond_to :error_status }
@@ -25,17 +24,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
     end
   end
 
-  describe '#pad' do
-    it 'is a string' do
-      expect(packet.pad).to be_a BinData::String
-    end
-
-    it 'should keep #lpcb_data 4-byte aligned' do
-      packet.lp_data = 'spec_test'.bytes
-      expect(packet.lpcb_data.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#lpcb_data' do
     it 'is a Ndr::NdrUint32Ptr structure' do
       expect(packet.lpcb_data).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
@@ -49,8 +37,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::QueryValueResponse do
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
