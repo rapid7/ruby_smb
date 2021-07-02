@@ -3,31 +3,34 @@ module RubySMB
     # The Bind ACK PDU as defined in
     # [The bind_ack PDU](http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06_04_04)
 
-    class PResultT < BinData::Record
+    class PResultT < Ndr::NdrStruct
+      default_parameter byte_align: 4
       endian :little
 
-      uint16        :result,          label: 'Presentation context negotiation results'
-      uint16        :reason,          label: 'Rejection reason'
+      ndr_uint16        :result,          label: 'Presentation context negotiation results'
+      ndr_uint16        :reason,          label: 'Rejection reason'
       p_syntax_id_t :transfer_syntax, label: 'Presentation syntax ID',
         uuid: ->      { Ndr::UUID },
         ver_major: -> { Ndr::VER_MAJOR },
         ver_minor: -> { Ndr::VER_MINOR }
     end
 
-    class PResultListT < BinData::Record
+    class PResultListT < Ndr::NdrStruct
+      default_parameter byte_align: 4
       endian :little
 
-      uint8  :n_results, label: 'Number of results'
-      uint8  :reserved
-      uint16 :reserved2
-      array  :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }
+      ndr_uint8  :n_results, label: 'Number of results'
+      ndr_uint8  :reserved
+      ndr_uint16 :reserved2
+      array  :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }, byte_align: 4
     end
 
-    class PortAnyT < BinData::Record
+    class PortAnyT < Ndr::NdrStruct
+      default_parameter byte_align: 2
       endian :little
 
-      uint16  :str_length, label: 'Length', initial_value: -> { port_spec.to_binary_s.size }
-      stringz :port_spec,  label: 'Port string spec'
+      ndr_uint16  :str_length, label: 'Length', initial_value: -> { port_spec.to_binary_s.size }
+      stringz :port_spec, label: 'Port string spec', byte_align: 2
     end
 
     class BindAck < BinData::Record
@@ -46,11 +49,10 @@ module RubySMB
 
       pdu_header :pdu_header,         label: 'PDU header'
 
-      uint16     :max_xmit_frag,      label: 'Max transmit frag size',  initial_value: RubySMB::Dcerpc::MAX_XMIT_FRAG
-      uint16     :max_recv_frag,      label: 'Max receive frag size',   initial_value: RubySMB::Dcerpc::MAX_RECV_FRAG
-      uint32     :assoc_group_id,     label: 'Association group ID'
+      ndr_uint16     :max_xmit_frag,      label: 'Max transmit frag size',  initial_value: RubySMB::Dcerpc::MAX_XMIT_FRAG
+      ndr_uint16     :max_recv_frag,      label: 'Max receive frag size',   initial_value: RubySMB::Dcerpc::MAX_RECV_FRAG
+      ndr_uint32     :assoc_group_id,     label: 'Association group ID'
       port_any_t :sec_addr,           label: 'Secondary address'
-      string     :pad,                length: -> { pad_length }
 
       p_result_list_t :p_result_list, label: 'Presentation context result list'
       string :auth_verifier, label: 'Authentication verifier',
@@ -60,11 +62,6 @@ module RubySMB
       def initialize_instance
         super
         pdu_header.ptype = RubySMB::Dcerpc::PTypes::BIND_ACK
-      end
-
-      def pad_length
-        offset = (sec_addr.abs_offset + sec_addr.do_num_bytes) % 4
-        (4 - offset) % 4
       end
     end
   end

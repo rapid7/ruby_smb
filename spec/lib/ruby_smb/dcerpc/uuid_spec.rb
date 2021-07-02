@@ -12,6 +12,10 @@ RSpec.describe RubySMB::Dcerpc::Uuid do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'is 4-byte aligned' do
+    expect(packet.eval_parameter(:byte_align)).to eq(4)
+  end
+
   describe '#time_low' do
     it 'should be a 32-bit unsigned integer' do
       expect(packet.time_low).to be_a BinData::Uint32le
