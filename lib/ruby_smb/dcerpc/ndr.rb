@@ -189,26 +189,44 @@ module RubySMB::Dcerpc::Ndr
   module ConfClassPlugin; end
 
   module ConfPlugin
-    attr_accessor :max_count_from_read
+    attr_accessor :read_until_index, :max_count
 
     def initialize_instance
-      @max_count_from_read = 0
+      @read_until_index = 0
+      @max_count = 0
       super
     end
 
     def do_write(io)
       unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
-        max_count = [length].pack('L')
-        io.writebytes(max_count)
+        io.writebytes([@max_count].pack('L'))
       end
       super(io)
     end
 
     def do_read(io)
       unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
-        @max_count_from_read = io.readbytes(4).unpack('L').first
+        @max_count = @read_until_index = io.readbytes(4).unpack('L').first
       end
       super(io)
+    end
+
+    def insert(index, *objs)
+      obj = super
+      @max_count = length
+      obj
+    end
+
+    def slice_index(index)
+      obj = super
+      @max_count = length
+      obj
+    end
+
+    def []=(index, value)
+      obj = super
+      @max_count = length
+      obj
     end
 
     def do_num_bytes
@@ -217,24 +235,43 @@ module RubySMB::Dcerpc::Ndr
   end
 
   module VarPlugin
-    attr_reader :actual_count_from_read
+    attr_accessor :read_until_index, :actual_count, :offset
 
     def initialize_instance
-      @actual_count_from_read = 0
+      @read_until_index = 0
+      @actual_count = 0
+      @offset = 0
       super
     end
 
     def do_write(io)
-      offset = 0
-      io.writebytes([offset].pack('L'))
-      io.writebytes([length].pack('L')) # actual_count
-      super(io)
+      io.writebytes([@offset].pack('L'))
+      io.writebytes([@actual_count].pack('L'))
+      super(io) if @actual_count > 0
     end
 
     def do_read(io)
-      io.seekbytes(4)
-      @actual_count_from_read = io.readbytes(4).unpack('L').first
-      super(io)
+      @offset = io.readbytes(4).unpack('L').first
+      @actual_count = @read_until_index = io.readbytes(4).unpack('L').first
+      super(io) if @actual_count > 0
+    end
+
+    def insert(index, *objs)
+      obj = super
+      @actual_count = length
+      obj
+    end
+
+    def slice_index(index)
+      obj = super
+      @actual_count = length
+      obj
+    end
+
+    def []=(index, value)
+      obj = super
+      @actual_count = length
+      obj
     end
 
     def do_num_bytes
@@ -292,7 +329,7 @@ module RubySMB::Dcerpc::Ndr
   # [Uni-dimensional Conformant Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_02)
   class NdrConfArray < BinData::Array
     default_parameters(
-      :read_until => lambda { index == (@obj.max_count_from_read - 1) },
+      :read_until => lambda { index == (@obj.read_until_index - 1) },
       :byte_align => 4
     )
     arg_processor :ndr_array
@@ -309,7 +346,7 @@ module RubySMB::Dcerpc::Ndr
   # [Uni-dimensional Varying Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_03)
   class NdrVarArray < BinData::Array
     default_parameters(
-      :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
+      :read_until => lambda { index == (@obj.read_until_index - 1) },
       :byte_align => 4
     )
     arg_processor :ndr_array
@@ -323,7 +360,7 @@ module RubySMB::Dcerpc::Ndr
   # Uni-dimensional Conformant-varying Arrays
   class NdrConfVarArray < BinData::Array
     default_parameters(
-      :read_until => lambda { index == (@obj.actual_count_from_read - 1) },
+      :read_until => lambda { index == (@obj.read_until_index - 1) },
       :byte_align => 4
     )
     arg_processor :ndr_array
@@ -392,9 +429,10 @@ module RubySMB::Dcerpc::Ndr
   end
 
   module VarStringPlugin
-    attr_accessor :actual_count
+    attr_accessor :actual_count, :offset
 
     def initialize_instance
+      @offset = 0
       @actual_count = 0
       if has_parameter?(:initial_value)
         update_actual_count(eval_parameter(:initial_value))
@@ -403,15 +441,13 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_write(io)
-      offset = 0
-      io.writebytes([offset].pack('L'))
+      io.writebytes([@offset].pack('L'))
       io.writebytes([@actual_count].pack('L'))
       super if @actual_count > 0
     end
 
     def do_read(io)
-      # offset value is not used
-      io.seekbytes(4)
+      @offset = io.readbytes(4).unpack('L').first
       @actual_count = io.readbytes(4).unpack('L').first
       super if @actual_count > 0
     end
@@ -578,7 +614,7 @@ module RubySMB::Dcerpc::Ndr
     def set_max_count(val)
       obj = self[field_names.last]
       if obj.class.is_a?(ConfClassPlugin)
-        obj.max_count_from_read = val
+        obj.read_until_index = val
       elsif obj.is_a?(NdrStruct)
         obj.set_max_count(val)
       end
