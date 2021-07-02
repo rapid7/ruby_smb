@@ -16,14 +16,14 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
   end
 
   describe '#cb_in_security_descriptor' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.cb_in_security_descriptor).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.cb_in_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#cb_out_security_descriptor' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.cb_out_security_descriptor).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.cb_out_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -61,8 +61,8 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
   end
 
   describe '#n_length' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.n_length).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.n_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -73,8 +73,8 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
   end
 
   describe '#b_inheritHandle' do
-    it 'should be a 8-bit unsigned integer' do
-      expect(packet.b_inheritHandle).to be_a BinData::Uint8
+    it 'should be a NdrUint8' do
+      expect(packet.b_inheritHandle).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
     end
   end
 
