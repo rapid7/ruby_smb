@@ -436,6 +436,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
     before :example do
       subject.read(binary_stream)
     end
+
     it 'has the expected size' do
       expect(subject.size).to eq(values.size)
     end
@@ -451,6 +452,45 @@ RSpec.shared_examples "a NDR Array" do |counter|
       let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
       it "sets #{name} to the new number of elements" do
         expect(counter_value).to eq(values.size)
+      end
+    end
+    it 'sets @read_until_index to the number of elements' do
+      expect(subject.read_until_index).to eq(values.size)
+    end
+    context 'with an empty array' do
+      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
+      before :example do
+        subject.read(empty_binary_str)
+      end
+      it 'is an empty array' do
+        expect(subject).to eq([])
+      end
+      it 'sets @read_until_index to 0' do
+        expect(subject.read_until_index).to eq(0)
+      end
+      counter.each do |name, _position|
+        it "sets #{name} to 0" do
+          expect(subject.send(name.to_sym)).to eq(0)
+        end
+      end
+    end
+  end
+
+  context 'when outputing a binary stream' do
+    before :example do
+      subject.assign(values)
+    end
+
+    it 'outputs the expected binary' do
+      expect(subject.to_binary_s).to eq(binary_stream)
+    end
+    context 'with an empty array' do
+      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
+      before :example do
+        subject.assign([])
+      end
+      it 'outputs the expected binary' do
+        expect(subject.to_binary_s).to eq(empty_binary_str)
       end
     end
   end
@@ -1684,7 +1724,7 @@ end
         it 'defers the referent representation' do
           test_instance = subject.new(info[:data])
           test_instance.to_binary_s
-          expect(embedding_struct.deferred_ptrs).to eq([test_instance])
+          expect(embedding_struct.instance_variable_get(:@deferred_ptrs)).to eq([test_instance])
         end
         it 'correctly defers the referent after the embedding structure in the stream' do
           ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
