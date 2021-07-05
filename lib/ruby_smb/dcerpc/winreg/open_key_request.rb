@@ -13,7 +13,6 @@ module RubySMB
 
         rpc_hkey           :hkey
         rrp_unicode_string :lp_sub_key
-        #string             :pad, length: -> { pad_length }
         ndr_uint32         :dw_options
         regsam             :sam_desired
 

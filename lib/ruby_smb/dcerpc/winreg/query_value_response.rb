@@ -11,7 +11,6 @@ module RubySMB
 
         ndr_uint32_ptr     :lp_type
         ndr_byte_array_ptr :lp_data
-        #string             :pad, length: -> { pad_length(self.lp_data) }
         ndr_uint32_ptr     :lpcb_data
         ndr_uint32_ptr     :lpcb_len
         ndr_uint32         :error_status

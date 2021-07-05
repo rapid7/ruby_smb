@@ -1,8 +1,8 @@
 RSpec.describe RubySMB::Dcerpc::Svcctl::LpBoundedDword8k do
   subject(:packet) { described_class.new }
 
-  it 'is BinData::Uint32le subclass' do
-    expect(described_class).to be < BinData::Uint32le
+  it 'is NdrUint32 subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrUint32
   end
 end
 
@@ -24,20 +24,20 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigW do
   end
 
   describe '#dw_service_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_service_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_service_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_start_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_start_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_start_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_error_control' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_error_control).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_error_control).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -54,8 +54,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigW do
   end
 
   describe '#dw_tag_id' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_tag_id).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -118,8 +118,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigWResponse do
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

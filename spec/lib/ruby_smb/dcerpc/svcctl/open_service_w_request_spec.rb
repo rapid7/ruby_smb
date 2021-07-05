@@ -3,7 +3,6 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenServiceWRequest do
 
   it { is_expected.to respond_to :lp_sc_handle }
   it { is_expected.to respond_to :lp_service_name }
-  it { is_expected.to respond_to :pad }
   it { is_expected.to respond_to :dw_desired_access }
 
   it 'is little endian' do
@@ -23,23 +22,18 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenServiceWRequest do
     end
   end
 
-  describe '#pad' do
-    it 'is a string' do
-      expect(packet.pad).to be_a BinData::String
+  describe '#dw_desired_access' do
+    it 'is a NdrUint32' do
+      expect(packet.dw_desired_access).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
+  end
 
-    it 'should keep #dw_desired_access 4-byte aligned' do
-      packet.lp_service_name = "test"
+  it 'should keep #dw_desired_access 4-byte aligned' do
+    5.times do |i|
+      packet.lp_service_name = "A" * i
       expect(packet.dw_desired_access.abs_offset % 4).to eq 0
     end
   end
-
-  describe '#dw_desired_access' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_desired_access).to be_a BinData::Uint32le
-    end
-  end
-
   describe '#initialize_instance' do
     it 'sets #opnum to OPEN_SERVICE_W constant' do
       expect(packet.opnum).to eq(RubySMB::Dcerpc::Svcctl::OPEN_SERVICE_W)

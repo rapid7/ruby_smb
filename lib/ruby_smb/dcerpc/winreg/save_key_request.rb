@@ -13,7 +13,6 @@ module RubySMB
 
         rpc_hkey                 :hkey
         rrp_unicode_string       :lp_file
-        #string                   :pad, length: -> { pad_length(self.lp_file) }
         prpc_security_attributes :lp_security_attributes
 
         def initialize_instance

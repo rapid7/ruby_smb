@@ -11,7 +11,7 @@ module RubySMB
         endian :little
 
         ndr_uint32_ptr :dw_tag_id
-        uint32         :error_status
+        ndr_uint32     :error_status
 
         def initialize_instance
           super

@@ -4,7 +4,7 @@ module RubySMB
   module Dcerpc
     module Svcctl
 
-      class LpBoundedDword8k < BinData::Uint32le; end
+      class LpBoundedDword8k < RubySMB::Dcerpc::Ndr::NdrUint32; end
 
       # [2.2.15 QUERY_SERVICE_CONFIGW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-scmr/97200665-5631-42ea-9917-6f9b41f02391)
       class QueryServiceConfigW < RubySMB::Dcerpc::Ndr::NdrStruct
@@ -31,7 +31,7 @@ module RubySMB
 
         query_service_config_w :lp_service_config
         lp_bounded_dword8k     :pcb_bytes_needed
-        uint32                 :error_status
+        ndr_uint32             :error_status
 
         def initialize_instance
           super

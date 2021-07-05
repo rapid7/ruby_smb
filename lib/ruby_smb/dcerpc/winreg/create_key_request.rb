@@ -45,13 +45,10 @@ module RubySMB
 
         rpc_hkey                 :hkey
         rrp_unicode_string       :lp_sub_key
-        #string                   :pad1, length: -> { pad_length(self.lp_sub_key) }
         rrp_unicode_string       :lp_class
-        #string                   :pad2, length: -> { pad_length(self.lp_class) }
         ndr_uint32               :dw_options
         regsam                   :sam_desired
         prpc_security_attributes :lp_security_attributes
-        #string                   :pad3, length: -> { pad_length(self.lp_security_attributes) }
         ndr_uint32_ptr           :lpdw_disposition
 
         def initialize_instance

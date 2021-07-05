@@ -10,19 +10,11 @@ module RubySMB
 
         sc_rpc_handle             :lp_sc_handle
         ndr_conf_var_wide_stringz :lp_service_name
-        string                    :pad, length: -> { pad_length(self.lp_service_name) }
-        uint32                    :dw_desired_access
+        ndr_uint32                :dw_desired_access
 
         def initialize_instance
           super
           @opnum = OPEN_SERVICE_W
-        end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
         end
       end
 
