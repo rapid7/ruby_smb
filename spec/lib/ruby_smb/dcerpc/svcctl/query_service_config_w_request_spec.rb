@@ -15,8 +15,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigWRequest do
   end
 
   describe '#cb_buf_size' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.cb_buf_size).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.cb_buf_size).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

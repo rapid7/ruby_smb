@@ -26,8 +26,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#max_xmit_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_xmit_frag).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.max_xmit_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -36,8 +36,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#max_recv_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_recv_frag).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.max_recv_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -46,15 +46,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#assoc_group_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.assoc_group_id).to be_a BinData::Uint32le
-    end
-  end
-
-  describe '#pad' do
-    it 'should keep #p_result_list 4-byte aligned' do
-      packet.sec_addr.port_spec = "test"
-      expect(packet.p_result_list.abs_offset % 4).to eq 0
+    it 'should be a NdrUint32' do
+      expect(packet.assoc_group_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -87,18 +80,6 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
     end
   end
 
-  describe '#pad_length' do
-    it 'returns 0 when #p_result_list is already 4-byte aligned' do
-      packet.sec_addr.port_spec = 'align'
-      expect(packet.pad_length).to eq 0
-    end
-
-    it 'returns 2 when #p_result_list is only 2-byte aligned' do
-      packet.sec_addr.port_spec = 'align' + 'AA'
-      expect(packet.pad_length).to eq 2
-    end
-  end
-
   it 'reads its own binary representation and output the same packet' do
     packet.sec_addr.port_spec = "port spec"
     packet.p_result_list.n_results = 2
@@ -120,8 +101,8 @@ RSpec.describe RubySMB::Dcerpc::PortAnyT do
   end
 
   describe '#str_length' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.str_length).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.str_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should be the size of #port_spec string, including the NULL terminator' do
@@ -193,14 +174,14 @@ RSpec.describe RubySMB::Dcerpc::PResultT do
   end
 
   describe '#result' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.result).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.result).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 
   describe '#reason' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.reason).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.reason).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 

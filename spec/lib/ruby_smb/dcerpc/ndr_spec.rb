@@ -1,1729 +1,2741 @@
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrPointer do
-  subject(:packet) do
-    Class.new(described_class) do
-      endian :little
-      string :referent
-    end.new
+require 'ruby_smb/dcerpc/ndr'
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrBoolean do
+  it 'is a BinData::Uint32le class' do
+    expect(described_class).to be < BinData::Uint32le
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
   end
 
-  it { is_expected.to respond_to :referent_id }
+  subject(:boolean) { described_class.new }
 
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent_id' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.referent_id).to be_a BinData::Uint32le
+  context 'with #new' do
+    it 'is false its default value' do
+      expect(boolean.new).to eq(false)
     end
-
-    it 'has an initial value of 0' do
-      expect(packet.referent_id).to eq(0)
+    it 'sets true to true' do
+      expect(boolean.new(true)).to eq(true)
     end
-  end
-
-  describe '#get' do
-    it 'returns :null when #referent_id is 0' do
-      packet.referent_id = 0
-      expect(packet.get).to eq(:null)
+    it 'sets false to false' do
+      expect(boolean.new(false)).to eq(false)
     end
-
-    it 'returns #referent when #referent_id is not 0' do
-      packet.set('spec_test')
-      expect(packet.get).to eq(packet.referent)
+    it 'sets 1 to true' do
+      expect(boolean.new(1)).to eq(true)
     end
-  end
-
-  describe '#set' do
-    context 'when the value is :null' do
-      it 'clears #referent' do
-        expect(packet.referent).to receive(:clear)
-        packet.set(:null)
-      end
-
-      it 'sets #referent_id to 0' do
-        packet.set(:null)
-        expect(packet.referent_id).to eq(0)
-      end
+    it 'sets 0 to false' do
+      expect(boolean.new(0)).to eq(false)
     end
-
-    context 'when the value is a string' do
-      let(:str) { 'spec_test' }
-
-      it 'sets #referent to the value' do
-        packet.set(str)
-        expect(packet.referent).to eq(str)
-      end
-
-      it 'calls #set when #referent support it' do
-        module TestSet; def set(v); end; end
-        packet.referent.extend(TestSet)
-        expect(packet.referent).to receive(:set).with(str)
-        packet.set(str)
-      end
-
-      it 'assigns directly to #referent when it does not support #set' do
-        expect(packet).to receive(:referent=).with(str)
-        packet.set(str)
-      end
-
-      it 'sets #referent_id to a random value' do
-        rnd = double('Random Value')
-        allow(packet).to receive(:rand).and_return(rnd)
-        expect(packet).to receive(:referent_id=).with(rnd)
-        packet.set(str)
-      end
-
-      it 'does not change #referent_id if it is already set' do
-        packet.referent_id = 0xCCCCCC
-        packet.set(str)
-        expect(packet.referent_id).to eq(0xCCCCCC)
-      end
+    it 'sets any integer > 0 to true' do
+      expect(boolean.new(rand(1..1000))).to eq(true)
+    end
+    it 'raises an ArgumentError error when passing a String' do
+      expect { boolean.new("false") }.to raise_error(ArgumentError)
     end
   end
 
-  describe '#do_read' do
-    let(:io) { StringIO.new }
+  context 'with #assign' do
+    it 'sets true to true' do
+      boolean.assign(true)
+      expect(boolean).to eq(true)
+    end
+    it 'sets false to false' do
+      boolean.assign(false)
+      expect(boolean).to eq(false)
+    end
+    it 'sets 1 to true' do
+      boolean.assign(1)
+      expect(boolean).to eq(true)
+    end
+    it 'sets 0 to false' do
+      boolean.assign(0)
+      expect(boolean).to eq(false)
+    end
+    it 'sets any integer > 0 to true' do
+      boolean.assign(rand(1..100))
+      expect(boolean).to eq(true)
+    end
+    it 'raises an ArgumentError error when passing a String' do
+      expect { boolean.assign("false") }.to raise_error(ArgumentError)
+    end
+  end
 
-    it 'asks referent_id to read the io stream' do
-      expect(packet.referent_id).to receive(:do_read).with(io)
-      packet.do_read(io)
+  context 'when reading data' do
+    it 'sets false with an uint32 zero value' do
+      boolean.read("\x00\x00\x00\x00")
+      expect(boolean).to eq(false)
+    end
+    it 'sets true with an uint32 1 value' do
+      boolean.read("\x01\x00\x00\x00")
+      expect(boolean).to eq(true)
+    end
+    it 'sets true with any uint32 value > 0' do
+      boolean.read([rand(1..1000)].pack('L'))
+      expect(boolean).to eq(true)
+    end
+    it 'reads itself' do
+      expect(boolean.read(described_class.new(true).to_binary_s)).to eq(true)
+    end
+  end
+
+  context 'with #to_binary_s' do
+    it 'returns the expected true binary representation' do
+      boolean.assign(true)
+      expect(boolean.to_binary_s).to eq("\x01\x00\x00\x00")
+    end
+    it 'returns the expected false binary representation' do
+      boolean.assign(false)
+      expect(boolean.to_binary_s).to eq("\x00\x00\x00\x00")
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrChar do
+  it 'is a BinData::String class' do
+    expect(described_class).to be < BinData::String
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(1)
+  end
+
+  subject(:char) { described_class.new }
+
+  context 'with #new' do
+    it 'is "\x00" its default value' do
+      expect(char.new).to eq("\x00")
+    end
+    it 'sets a character' do
+      expect(char.new('A')).to eq('A')
+    end
+    it 'sets the first character when passing a String' do
+      expect(char.new('ABC')).to eq('A')
+    end
+    it 'does not set a value when passing anything else than a string' do
+      char.new(['ABC'])
+      expect(char).to eq("\x00")
+      char.new(67)
+      expect(char).to eq("\x00")
+    end
+  end
+
+  context 'with #assign' do
+    it 'sets a character' do
+      char.assign('A')
+      expect(char).to eq('A')
+    end
+    it 'sets the first character when passing a String' do
+      char.assign('ABC')
+      expect(char).to eq('A')
+    end
+    it 'converts the argument to string and keeps the first character' do
+      char.assign(['ABC'])
+      expect(char).to eq('[')
+      char.assign(67)
+      expect(char).to eq('6')
+    end
+  end
+
+  context 'when reading data' do
+    it 'sets a character' do
+      char.read("\x41")
+      expect(char).to eq('A')
+    end
+    it 'reads itself' do
+      expect(char.read(described_class.new('A').to_binary_s)).to eq('A')
+    end
+  end
+
+  context 'with #to_binary_s' do
+    it 'returns the expected character binary representation' do
+      char.assign('A')
+      expect(char.to_binary_s).to eq("\x41")
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrWideChar do
+  it 'is a RubySMB::Field::String16 class' do
+    expect(described_class).to be < RubySMB::Field::String16
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(2)
+  end
+
+  subject(:char) { described_class.new }
+
+  context 'with #new' do
+    it 'is "\x00" its default value' do
+      expect(char.new).to eq("\x00".encode('utf-16le'))
+    end
+    it 'sets a character' do
+      expect(char.new('A')).to eq('A'.encode('utf-16le'))
+    end
+    it 'sets the first character when passing a String' do
+      expect(char.new('ABC')).to eq('A'.encode('utf-16le'))
+    end
+    it 'does not set a value when passing anything else than a string' do
+      char.new(['ABC'])
+      expect(char).to eq("\x00".encode('utf-16le'))
+      char.new(67)
+      expect(char).to eq("\x00".encode('utf-16le'))
+    end
+  end
+
+  context 'with #assign' do
+    it 'sets a character' do
+      char.assign('A')
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'sets the first character when passing a String' do
+      char.assign('ABC')
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'converts the argument to string and keeps the first character' do
+      char.assign(['ABC'])
+      expect(char).to eq('['.encode('utf-16le'))
+      char.assign(67)
+      expect(char).to eq('6'.encode('utf-16le'))
+    end
+  end
+
+  context 'when reading data' do
+    it 'sets a character' do
+      char.read("\x41\x00")
+      expect(char).to eq('A'.encode('utf-16le'))
+    end
+    it 'reads itself' do
+      expect(char.read(described_class.new('A').to_binary_s)).to eq('A'.encode('utf-16le'))
+    end
+  end
+
+  context 'with #to_binary_s' do
+    it 'returns the expected character binary representation' do
+      char.assign('A')
+      expect(char.to_binary_s).to eq("\x41\x00")
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrEnum do
+  it 'is a BinData::Int16le class' do
+    expect(described_class).to be < BinData::Int16le
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(2)
+  end
+end
+
+{
+  NdrUint8: { parent_class: :Uint8, nb_bytes: 1},
+  NdrUint16: { parent_class: :Uint16le, nb_bytes: 2},
+  NdrUint32: { parent_class: :Uint32le, nb_bytes: 4},
+  NdrUint64: { parent_class: :Uint64le, nb_bytes: 8},
+}.each do |klass, info|
+  RSpec.describe(RubySMB::Dcerpc::Ndr.const_get(klass)) do
+    it "is a BinData::#{info[:parent_class]} class" do
+      expect(described_class).to be < BinData.const_get(info[:parent_class])
+    end
+    it 'has :byte_align parameter set to the expected value' do
+      expect(described_class.default_parameters[:byte_align]).to eq(info[:nb_bytes])
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFileTime do
+  it 'is a RubySMB::Field::FileTime' do
+    expect(described_class).to be < RubySMB::Field::FileTime
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+end
+
+#####################################
+#       NDR Constructed Types       #
+#####################################
+
+
+#
+# Arrays
+#
+
+RSpec.shared_examples "a BinData::Array" do
+  it 'is a BinData::Array class' do
+    expect(described_class).to be < BinData::Array
+  end
+  it 'is an empty array by default' do
+    expect(subject).to eq([])
+  end
+
+  context 'with elements' do
+    before :example do
+      subject << 5
+      subject << 7
+    end
+    it 'contains the expected element types' do
+      expect(subject.all? {|e| e.is_a?(RubySMB::Dcerpc::Ndr::NdrUint16)}).to be true
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(2)
     end
 
-    context 'when it can process #referent' do
+    context 'when setting a value at index greater than the current number of elements' do
       before :example do
-        allow(packet).to receive(:process_referent?).and_return(true)
-        allow(packet.referent_id).to receive(:do_read)
+        subject[4] = 14
+      end
+      it 'adds elements until it reaches the new index' do
+        expect(subject.size).to eq(5)
+      end
+      it 'sets the new elements to the element type default value' do
+        expect(subject[0]).to eq(5)
+        expect(subject[1]).to eq(7)
+        expect(subject[2]).to eq(0)
+        expect(subject[3]).to eq(0)
+        expect(subject[4]).to eq(14)
+      end
+    end
+
+    context 'when reading a value at index greater than the current number of elements' do
+      let(:new_element) {BinData::Uint16le.new(1)}
+      before :example do
+        new_element.assign(subject[4])
+      end
+      it 'adds elements until it reaches the new index' do
+        expect(subject.size).to eq(5)
+      end
+      it 'adds elements a default element' do
+        expect(new_element).to eq(0)
+      end
+      it 'sets the new elements to the element type default value' do
+        expect(subject[0]).to eq(5)
+        expect(subject[1]).to eq(7)
+        expect(subject[2]).to eq(0)
+        expect(subject[3]).to eq(0)
+        expect(subject[4]).to eq(new_element)
+      end
+    end
+
+    context 'when assigning another array' do
+      let(:new_array) { [1,2,3] }
+      before :example do
+        subject.assign(new_array)
+      end
+      it 'has the same size than the other array' do
+        expect(subject.size).to eq(new_array.size)
+      end
+      it 'replaces all the elements' do
+        new_array.each_with_index do |e, i|
+          expect(subject[i]).to eq(e)
+        end
+      end
+    end
+  end
+end
+
+RSpec.shared_examples "a NDR Array" do |counter|
+  counter.each do |name, position|
+    it "has #{name} set to 0 (uint32) by default" do
+      expect(subject.to_binary_s[position*4, 4]).to eq("\x00\x00\x00\x00")
+    end
+  end
+  it 'reads itself' do
+    subject << 5
+    subject << 7
+    subject << 45
+    expect(subject.read(subject.to_binary_s)).to eq([5, 7, 45])
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(subject.eval_parameter(:byte_align)).to eq(4)
+  end
+
+  context 'when checking if its elements have :byte_align parameter set' do
+    it 'does not raise error when the :byte_align parameter is set in the element class' do
+      test_element = Class.new(BinData::Record) do
+        default_parameters byte_align: 4
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: :test_element, byte_align: 4) }.to_not raise_error
+    end
+    it 'does not raise error when the :byte_align parameter is set during instantiation' do
+      test_element = Class.new(BinData::Record) do
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: [:test_element, {byte_align: 4}], byte_align: 4) }.to_not raise_error
+    end
+    context 'with a NDR element' do
+      it 'does not raise error when the type element is a symbol' do
+        expect { described_class.new(type: :ndr_uint32, byte_align: 4) }.to_not raise_error
+      end
+      it 'does not raise error when the type element is a class' do
+        expect { described_class.new(type: RubySMB::Dcerpc::Ndr::NdrUint32, byte_align: 4) }.to_not raise_error
+      end
+    end
+    it 'raises an ArgumentError when no :byte_align is provided' do
+      test_element = Class.new(BinData::Record) do
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: :test_element, byte_align: 4) }.to raise_error(ArgumentError)
+    end
+    it 'raises an ArgumentError when other parameters than :byte_align are provided' do
+      test_element = Class.new(BinData::Array) do
+        default_parameters type: :uint8
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: [:test_element, {other_param: 1}], byte_align: 4) }.to raise_error(ArgumentError)
+    end
+  end
+
+  context 'with size information' do
+    before :example do
+      subject << 5
+      subject << 7
+    end
+    counter.each do |name, position|
+      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+
+      it "sets #{name} to a little endian uint32 value representing the number of elements" do
+        expect(counter_value).to eq(subject.size)
+      end
+      it "updates #{name} when adding one element" do
+        subject << 10
+        expect(counter_value).to eq(subject.size)
       end
 
-      it 'asks referent to read the io stream if referent_id is not 0' do
-        packet.referent_id = 0xCCCC
-        expect(packet.referent).to receive(:do_read).with(io)
-        packet.do_read(io)
+      context 'when setting a value at index greater than the current number of elements' do
+        it "sets #{name} to the new number of elements" do
+          subject[4] = 14
+          expect(counter_value).to eq(5)
+        end
       end
 
-      it 'does not ask referent to read the io stream if referent_id is 0' do
-        packet.referent_id = 0
-        expect(packet.referent).to_not receive(:do_read).with(io)
-        packet.do_read(io)
+      context 'when reading a value at index greater than the current number of elements' do
+        it "sets #{name} to the new number of elements" do
+          new_element = BinData::Uint16le.new(1)
+          new_element.assign(subject[4])
+          expect(counter_value).to eq(5)
+        end
       end
+
+      context 'when assigning another array' do
+        it "sets #{name} to the new number of elements" do
+          new_array = [1,2,3]
+          subject.assign(new_array)
+          expect(counter_value).to eq(3)
+        end
+      end
+    end
+  end
+
+  context 'when reading a binary stream' do
+    before :example do
+      subject.read(binary_stream)
+    end
+
+    it 'has the expected size' do
+      expect(subject.size).to eq(values.size)
+    end
+    it 'sets the new element values' do
+      values.each_with_index do |value, i|
+        expect(subject[i]).to eq(value)
+      end
+    end
+    it 'has the same binary representation than the original binary stream' do
+      expect(subject.to_binary_s).to eq(binary_stream)
+    end
+    counter.each do |name, position|
+      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
+      it "sets #{name} to the new number of elements" do
+        expect(counter_value).to eq(values.size)
+      end
+    end
+    it 'sets @read_until_index to the number of elements' do
+      expect(subject.read_until_index).to eq(values.size)
+    end
+    context 'with an empty array' do
+      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
+      before :example do
+        subject.read(empty_binary_str)
+      end
+      it 'is an empty array' do
+        expect(subject).to eq([])
+      end
+      it 'sets @read_until_index to 0' do
+        expect(subject.read_until_index).to eq(0)
+      end
+      counter.each do |name, _position|
+        it "sets #{name} to 0" do
+          expect(subject.send(name.to_sym)).to eq(0)
+        end
+      end
+    end
+  end
+
+  context 'when outputing a binary stream' do
+    before :example do
+      subject.assign(values)
+    end
+
+    it 'outputs the expected binary' do
+      expect(subject.to_binary_s).to eq(binary_stream)
+    end
+    context 'with an empty array' do
+      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
+      before :example do
+        subject.assign([])
+      end
+      it 'outputs the expected binary' do
+        expect(subject.to_binary_s).to eq(empty_binary_str)
+      end
+    end
+  end
+
+  context 'when calling #do_num_bytes' do
+    before :example do
+      subject.assign(values)
+    end
+    it 'returns the expected number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary_stream.size)
+    end
+    context 'with NDR structures' do
+      let(:array_with_struct) do
+        described_class.new([{a: 2, b: 'A'}, {a: 3, b: 'B'}], type: :test_struct)
+      end
+      before :example do
+        test_struct = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+          default_parameters byte_align: 4
+          ndr_uint32 :a
+          ndr_char   :b
+        end
+        BinData::RegisteredClasses.register('test_struct', test_struct)
+      end
+
+      it 'returns the expected number of bytes, including padding' do
+        uint32_size = 4
+        char_size = 1
+        pad_size = 3
+        expected_nb = (uint32_size + char_size) * 2
+        expected_nb += pad_size
+        expected_nb += 4 if counter['max_count']
+        expected_nb += 8 if counter['actual_count']
+        expect(array_with_struct.do_num_bytes).to eq(expected_nb)
+      end
+    end
+  end
+
+  context 'when it is embedded in a NDR structure' do
+    let(:embedded_struct) do
+      Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+        default_parameters byte_align: 4
+        ndr_uint32 :a
+      end
+    end
+    context 'directly as an array' do
+      before :example do
+        embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: :ndr_uint16)
+      end
+      let(:test_instance) { embedded_struct.new(a: 3, ary: values) }
+      let(:binary_str) do
+        binary_str = "".b
+        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
+        binary_str << "#{[3].pack('L')}"
+        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
+        binary_str << "#{values.pack("S#{values.size}")}"
+        binary_str
+      end
+
+      context 'when writing the stream of bytes' do
+        it 'moves #max_count from any conformant array to the beginning of the structure' do
+          expect(test_instance.to_binary_s).to eq(binary_str)
+        end
+      end
+      context 'when reading a stream of bytes' do
+        it 'reads #max_count from any conformant array at the beginning of the structure' do
+          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary: values })
+        end
+      end
+    end
+    context 'as a pointer to an array' do
+      before :example do
+        array_ptr = Class.new(described_class) do
+          default_parameters byte_align: 4
+          arg_processor :ndr_pointer
+          extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
+          def initialize_shared_instance
+            super
+            extend RubySMB::Dcerpc::Ndr::PointerPlugin
+          end
+        end
+        BinData::RegisteredClasses.register('test_array_ptr', array_ptr)
+        embedded_struct.send(:test_array_ptr, :ary_ptr, type: :ndr_uint16)
+      end
+      let(:test_instance) { test_instance = embedded_struct.new(a: 3, ary_ptr: values) }
+      let(:binary_str) do
+        ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
+        binary_str = "#{[3].pack('L')}"
+        binary_str << "#{ref_id}"
+        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
+        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
+        binary_str << "#{values.pack("S#{values.size}")}"
+        binary_str
+      end
+
+      context 'when writing the stream of bytes' do
+        it 'does not move #max_count from any conformant array to the beginning of the structure' do
+          expect(test_instance.to_binary_s).to eq(binary_str)
+        end
+      end
+      context 'when reading a stream of bytes' do
+        it 'reads #max_count from any conformant array at the beginning of the structure' do
+          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary_ptr: values })
+        end
+      end
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixArray do
+  it 'is a BinData::Array class' do
+    expect(described_class).to be < BinData::Array
+  end
+  it 'is an empty array by default' do
+    expect(described_class.new(type: :ndr_uint16, byte_align: 2)).to eq([])
+  end
+
+  subject { described_class.new(type: :ndr_uint16, byte_align: 2, initial_length: 4) }
+
+  it 'is an array of initial_length default elements by default' do
+    expect(subject).to eq([0, 0, 0, 0])
+  end
+
+  context 'when checking if its elements have :byte_align parameter set' do
+    it 'does not raise error when the :byte_align parameter is set in the element class' do
+      test_element = Class.new(BinData::Record) do
+        default_parameters byte_align: 4
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: :test_element, byte_align: 4) }.to_not raise_error
+    end
+    it 'does not raise error when the :byte_align parameter is set during instantiation' do
+      test_element = Class.new(BinData::Record) do
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: [:test_element, {byte_align: 4}], byte_align: 4) }.to_not raise_error
+    end
+    context 'with a NDR element' do
+      it 'does not raise error when the type element is a symbol' do
+        expect { described_class.new(type: :ndr_uint32, byte_align: 4) }.to_not raise_error
+      end
+      it 'does not raise error when the type element is a class' do
+        expect { described_class.new(type: RubySMB::Dcerpc::Ndr::NdrUint32, byte_align: 4) }.to_not raise_error
+      end
+    end
+    it 'raises an ArgumentError when no :byte_align is provided' do
+      test_element = Class.new(BinData::Record) do
+        endian :little
+        uint32 :a
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: :test_element, byte_align: 4) }.to raise_error(ArgumentError)
+    end
+    it 'raises an ArgumentError when other parameters than :byte_align are provided' do
+      test_element = Class.new(BinData::Array) do
+        default_parameters type: :uint8
+      end
+      BinData::RegisteredClasses.register('test_element', test_element)
+      expect { described_class.new(type: [:test_element, {other_param: 1}], byte_align: 4) }.to raise_error(ArgumentError)
+    end
+  end
+
+  context 'with elements' do
+    before :example do
+      subject.assign([1, 2, 3, 4])
+    end
+    it 'contains the expected element types' do
+      expect(subject.all? {|e| e.is_a?(BinData::Uint16le)}).to be true
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(4)
+    end
+
+    context 'when setting a value to an element array' do
+      context 'in the array bounds' do
+        it 'does not raise error and sets the new value' do
+          expect { subject[3] = 14 }.to_not raise_error
+          expect(subject[3]).to eq(14)
+        end
+      end
+      context 'outside of the array bounds' do
+        it 'raises an error' do
+          expect { subject[4] = 14 }.to raise_error(ArgumentError)
+        end
+      end
+    end
+    context 'when reading the value of an element array' do
+      context 'in the array bounds' do
+        it 'does not raise error and returns the value' do
+          expect { subject[3] }.to_not raise_error
+          expect(subject[3]).to eq(4)
+        end
+      end
+      context 'outside of the array bounds' do
+        it 'raises an error' do
+          expect { subject[4] }.to raise_error(ArgumentError)
+        end
+      end
+    end
+    context 'when assigning another array' do
+      context 'with the same number of elements' do
+        it 'does not raise error and returns the value' do
+          expect { subject.assign([5, 6, 7, 8]) }.to_not raise_error
+          expect(subject).to eq([5, 6, 7, 8])
+        end
+      end
+      context 'with more elements' do
+        it 'raises an error' do
+          expect { subject.assign([5, 6, 7, 8, 9]) }.to raise_error(ArgumentError)
+        end
+      end
+      context 'with less elements' do
+        it 'raises an error' do
+          expect { subject.assign([5, 6, 7]) }.to raise_error(ArgumentError)
+        end
+      end
+    end
+    context 'when pushing a new element' do
+      it 'raises an error' do
+        expect { subject << 88 }.to raise_error(ArgumentError)
+      end
+    end
+    context 'when unshifting a new element' do
+      it 'raises an error' do
+        expect { subject.unshift(88) }.to raise_error(ArgumentError)
+      end
+    end
+    context 'when concatenating another array' do
+      it 'raises an error' do
+        expect { subject.concat([3,4]) }.to raise_error(ArgumentError)
+      end
+    end
+    context 'when cheking if :byte_align parameter is set' do
+      it 'does not raise error when it is set' do
+        expect { described_class.new(type: :ndr_uint16, byte_align: 2, initial_length: 4) }.to_not raise_error
+      end
+
+      it 'raises an error when it is not set' do
+        expect { described_class.new(type: :uint16le, initial_length: 4) }.to raise_error(ArgumentError)
+      end
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixedByteArray do
+  it 'is a RubySMB::Dcerpc::Ndr::NdrFixArray class' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrFixArray
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(1)
+  end
+
+  subject { described_class.new(initial_length: 4) }
+
+  it 'composed of NdrUint8 elements' do
+    expect(subject[0]).to be_a( RubySMB::Dcerpc::Ndr::NdrUint8)
+  end
+
+  it 'has #initial_length elements' do
+    expect(subject.size).to eq(4)
+  end
+
+  describe '#assign' do
+    it 'assign elements from another array of bytes' do
+      ary = [0x33, 0x43, 0x64, 0x22]
+      subject.assign(ary)
+      expect(subject).to eq(ary)
+    end
+
+    it 'assign bytes from string' do
+      str = '_Str'
+      subject.assign(str)
+      expect(subject).to eq(str.bytes)
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfArray do
+  subject { described_class.new(type: :ndr_uint16) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'max_count' => 0 } do
+    let(:binary_stream) {
+      "\x03\x00\x00\x00"\
+      "\x09\x00"\
+      "\x03\x00"\
+      "\x06\x00".b
+    }
+    let(:values) { [9, 3, 6] }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarArray do
+  subject { described_class.new(type: :ndr_uint16) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'actual_count' => 1 } do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x03\x00"\
+      "\x01\x00"\
+      "\x07\x00"\
+      "\x02\x00".b
+    }
+    let(:values) { [3, 1, 7, 2] }
+  end
+  it 'has offset always set to 0' do
+    expect(subject.to_binary_s[0,4]).to eq("\x00\x00\x00\x00")
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
+  subject { described_class.new(type: :ndr_uint16) }
+  it_behaves_like 'a BinData::Array'
+  it_behaves_like 'a NDR Array', { 'max_count' => 0, 'actual_count' => 2 } do
+    let(:binary_stream) {
+      "\x04\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x02\x00"\
+      "\x09\x00"\
+      "\x08\x00"\
+      "\x05\x00".b
+    }
+    let(:values) { [2, 9, 8, 5] }
+  end
+  it 'has offset always set to 0' do
+    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
+    subject.assign([1,2])
+    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
+  end
+end
+
+
+#
+# Strings
+#
+
+RSpec.shared_examples "a NDR String" do |conformant:, char_size:, null_terminated:|
+  let(:first_char_offset) { conformant ? 12 : 8}
+
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
+  if conformant
+    it_behaves_like "a Conformant Varying String", null_terminated: null_terminated
+  else
+    it_behaves_like "a Varying String", null_terminated: null_terminated
+  end
+
+  it 'is an empty string by default' do
+    expect(subject).to eq('')
+  end
+
+  it 'has a binary representation of an empty string by default' do
+    expect(subject.to_binary_s[first_char_offset..-1]).to be_empty
+  end
+
+  it 'reads itself' do
+    subject.assign(value)
+    expect(subject.read(subject.to_binary_s)).to eq(value)
+  end
+
+  context 'when reading another binary stream' do
+    before :example do
+      subject.read(binary_stream)
+    end
+    it 'has the expected size' do
+      expect(subject.size).to eq(value.size)
+    end
+    it 'sets the new element values' do
+      expect(subject.to_s).to eq(value)
+    end
+    it 'has the same binary representation than the original binary stream' do
+      expect(subject.to_binary_s).to eq(binary_stream)
+    end
+  end
+end
+
+RSpec.shared_examples "a Conformant Varying String" do |null_terminated:|
+  minimum_size = null_terminated ? 1 : 0
+
+  it_behaves_like 'a Varying String', offset: 4, null_terminated: null_terminated
+
+  describe '#initialize' do
+    it "sets #max_count to 0 (uint32) by default" do
+      expect(subject.max_count).to eq(0)
+      expect(subject.to_binary_s[0, 4]).to eq([0].pack('L'))
     end
   end
 
   describe '#do_write' do
-    let(:io) { StringIO.new }
+    it "writes #max_count corresponding to the number of elements#{' (including the NULL terminator)' if null_terminated}" do
+      subject.assign(value)
+      expect(subject.to_binary_s[0, 4]).to eq([value.size + minimum_size].pack('L'))
+    end
+  end
 
-    it 'asks referent_id to write the io stream' do
-      expect(packet.referent_id).to receive(:do_write).with(io)
-      packet.do_write(io)
+  describe '#do_read' do
+    it "sets #max_count to the string size#{' (including the NULL terminator)' if null_terminated}" do
+      subject.read(binary_stream)
+      expect(subject.max_count).to eq(value.size + minimum_size)
+    end
+  end
+
+  describe '#assign' do
+    context 'with a string' do
+      it "sets #max_count to the string length#{' (including the NULL terminator)' if null_terminated}" do
+        subject.assign(value)
+        expect(subject.max_count).to eq(value.length + minimum_size)
+      end
     end
 
-    context 'when it can process #referent' do
+    context 'with a varying string' do
+      it "sets #max_count to the string length#{' (including the NULL terminator)' if null_terminated}" do
+        case subject
+        when RubySMB::Field::Stringz16
+          str = RubySMB::Dcerpc::Ndr::NdrVarWideStringz.new(value)
+        when RubySMB::Field::String16
+          str = RubySMB::Dcerpc::Ndr::NdrVarWideString.new(value)
+        when BinData::Stringz
+          str = RubySMB::Dcerpc::Ndr::NdrVarStringz.new(value)
+        when BinData::String
+          str = RubySMB::Dcerpc::Ndr::NdrVarString.new(value)
+        end
+        subject.assign(str)
+        expect(subject.max_count).to eq(value.length + minimum_size)
+      end
+    end
+
+    context 'with a conformant varying string' do
+      it 'sets #max_count to the conformant varying string #max_count value' do
+        case subject
+        when RubySMB::Field::Stringz16
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz.new(value)
+        when RubySMB::Field::String16
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarWideString.new(value)
+        when BinData::Stringz
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarStringz.new(value)
+        when BinData::String
+          str = RubySMB::Dcerpc::Ndr::NdrConfVarString.new(value)
+        end
+        str.max_count = 30
+        subject.assign(str)
+        expect(subject.max_count).to eq(30)
+      end
+    end
+  end
+
+  describe '#do_num_bytes' do
+    it 'give the correct total size in bytes' do
+      subject.assign(value)
+      expect(subject.do_num_bytes).to eq(binary_stream.size)
+    end
+  end
+end
+
+RSpec.shared_examples "a Varying String" do |offset: 0, null_terminated:|
+  minimum_size = null_terminated ? 1 : 0
+
+  describe '#initialize' do
+    it 'sets #actual_count to 0 (uint32) by default' do
+      expect(subject.actual_count).to eq(0)
+      expect(subject.to_binary_s[offset + 4, 4]).to eq([0].pack('L'))
+    end
+  end
+
+  describe '#do_write' do
+    it 'always writes 0 for "offset"' do
+      expect(subject.to_binary_s[offset, 4]).to eq("\x00\x00\x00\x00".b)
+      subject.assign('Test')
+      expect(subject.to_binary_s[offset, 4]).to eq("\x00\x00\x00\x00".b)
+    end
+
+    it "writes #actual_count corresponding to the number of elements#{' (including the NULL terminator)' if null_terminated}" do
+      subject.assign(value)
+      expect(subject.to_binary_s[offset + 4, 4]).to eq([value.size + minimum_size].pack('L'))
+    end
+  end
+
+  describe '#do_read' do
+    it "sets #actual_count to the string size#{' (including the NULL terminator)' if null_terminated}" do
+      subject.read(binary_stream)
+      expect(subject.actual_count).to eq(value.size + minimum_size)
+    end
+  end
+
+  describe '#assign' do
+    it "sets #actual_count to the string length#{' (including the NULL terminator)' if null_terminated}" do
+      subject.assign(value)
+      expect(subject.actual_count).to eq(value.length + minimum_size)
+    end
+  end
+
+  describe '#do_num_bytes' do
+    it 'give the correct total size in bytes' do
+      subject.assign(value)
+      expect(subject.do_num_bytes).to eq(binary_stream.size)
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarString do
+  subject { described_class.new }
+  it 'is a BinData::String class' do
+    expect(described_class).to be < BinData::String
+    expect(described_class).not_to be < RubySMB::Field::String16
+  end
+  it_behaves_like 'a NDR String', conformant: false, char_size: 1, null_terminated: false do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x41\x42\x43\x44".b
+    }
+    let(:value) { 'ABCD' }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
+  subject { described_class.new }
+  it 'is a BinData::Stringz class' do
+    expect(described_class).to be < BinData::Stringz
+    expect(described_class).not_to be < RubySMB::Field::Stringz16
+  end
+  it_behaves_like 'a NDR String', conformant: false, char_size: 1, null_terminated: true do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x42\x43\x44\x00".b
+    }
+    let(:value) { 'ABCD' }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
+  subject { described_class.new }
+  it 'is a RubySMB::Field::String16 class' do
+    expect(described_class).to be < RubySMB::Field::String16
+  end
+  it_behaves_like 'a NDR String', conformant: false, char_size: 2, null_terminated: false do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
+  subject { described_class.new }
+  it 'is a RubySMB::Field::Stringz16 class' do
+    expect(described_class).to be < RubySMB::Field::Stringz16
+  end
+  it_behaves_like 'a NDR String', conformant: false, char_size: 2, null_terminated: true do
+    let(:binary_stream) {
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
+  subject { described_class.new }
+  it 'is a BinData::String class' do
+    expect(described_class).to be < BinData::String
+    expect(described_class).not_to be < RubySMB::Field::String16
+  end
+  it_behaves_like 'a NDR String', conformant: true, char_size: 1, null_terminated: false do
+    let(:binary_stream) {
+      "\x04\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x41\x42\x43\x44".b
+    }
+    let(:value) { 'ABCD' }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
+  subject { described_class.new }
+  it 'is a BinData::Stringz class' do
+    expect(described_class).to be < BinData::Stringz
+    expect(described_class).not_to be < RubySMB::Field::Stringz16
+  end
+  it_behaves_like 'a NDR String', conformant: true, char_size: 1, null_terminated: true do
+    let(:binary_stream) {
+      "\x05\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x42\x43\x44\x00".b
+    }
+    let(:value) { 'ABCD' }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
+  subject { described_class.new }
+  it 'is a RubySMB::Field::String16 class' do
+    expect(described_class).to be < RubySMB::Field::String16
+  end
+  it_behaves_like 'a NDR String', conformant: true, char_size: 2, null_terminated: false do
+    let(:binary_stream) {
+      "\x04\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x04\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
+  subject { described_class.new }
+  it 'is a RubySMB::Field::Stringz16 class' do
+    expect(described_class).to be < RubySMB::Field::Stringz16
+  end
+  it_behaves_like 'a NDR String', conformant: true, char_size: 2, null_terminated: true do
+    let(:binary_stream) {
+      "\x05\x00\x00\x00"\
+      "\x00\x00\x00\x00"\
+      "\x05\x00\x00\x00"\
+      "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
+    }
+    let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+end
+
+
+#
+# Structures
+#
+
+RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
+
+  describe 'Struct.method_missing' do
+    context 'When validating conformant arrays' do
+      let(:super_result) { double('Super method_missing result') }
+      let(:super_result_array) { [super_result] }
       before :example do
-        allow(packet).to receive(:process_referent?).and_return(true)
-        allow(packet.referent_id).to receive(:do_write)
+        allow(super_result).to receive(:has_parameter?).and_return(true)
+        allow(BinData::Record).to receive(:method_missing).and_return(super_result_array)
+        allow(described_class).to receive(:validate_conformant_array)
+        allow(described_class).to receive(:default_parameters).and_return({byte_align: 4})
+      end
+      it 'calls the superclass method_missing and returns the result' do
+        expect(described_class.method_missing(1, 2)).to eq(super_result_array)
+      end
+      it 'performs conformant array validation if the field is an array of BinData::SanitizedField' do
+        allow(super_result).to receive(:is_a?).with(BinData::SanitizedField).and_return(true)
+        described_class.method_missing(1, 2)
+        expect(described_class).to have_received(:validate_conformant_array).with(super_result_array)
+      end
+      it 'does not perform conformant array validation if the field is not an array of BinData::SanitizedField' do
+        allow(super_result).to receive(:is_a?).with(BinData::SanitizedField).and_return(false)
+        described_class.method_missing(1, 2)
+        expect(described_class).to_not have_received(:validate_conformant_array).with(super_result_array)
+      end
+    end
+
+    context 'when cheking if the fields have :byte_align parameter' do
+      it 'does not raise error when it is set' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+            ndr_uint32 :a
+          end.new
+        }.to_not raise_error
       end
 
-      it 'asks referent to write the io stream if referent_id is not 0' do
-        packet.referent_id = 0xCCCC
-        expect(packet.referent).to receive(:do_write).with(io)
-        packet.do_write(io)
+      it 'raises an error when it is not set' do
+        expect {
+          Class.new(described_class) do
+            endian :little
+            ndr_uint32 :a
+          end.new
+        }.to raise_error(ArgumentError)
       end
 
-      it 'does not ask referent to write the io stream if referent_id is 0' do
-        packet.referent_id = 0
-        expect(packet.referent).to_not receive(:do_write).with(io)
-        packet.do_write(io)
+      it 'does not raise error when the field is a BinData:Bit*' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+            bit2 :a
+          end.new
+        }.to_not raise_error
       end
     end
   end
 
-  describe '#process_referent?' do
-    let(:ndr_struct) { RubySMB::Dcerpc::Ndr::NdrStruct.new }
-    it 'returns false if the parent is a NdrStruct' do
-      obj = described_class.new(nil, {}, ndr_struct)
-      expect(obj.process_referent?).to be false
+  describe 'Struct.validate_conformant_array' do
+    context 'with a conformant array' do
+      it 'does not raise error if the array is the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_uint32     :a
+            ndr_conf_array :b, type: :ndr_uint16
+          end
+        }.to_not raise_error
+      end
+      it 'raises error if the array is not the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_conf_array :b, type: :ndr_uint16
+            ndr_uint32     :a
+          end
+        }.to raise_error(ArgumentError)
+      end
     end
 
-    it 'returns false if one of the parents is a NdrStruct' do
-      obj1 = described_class.new(nil, {}, ndr_struct)
-      obj2 = described_class.new(nil, {}, obj1)
-      obj3 = described_class.new(nil, {}, obj2)
-      obj4 = described_class.new(nil, {}, obj3)
-      obj5 = described_class.new(nil, {}, obj4)
-      expect(obj5.process_referent?).to be false
+    context 'with a conformant varying array' do
+      it 'does not raise error if the array is the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_uint32         :a
+            ndr_conf_var_array :b, type: :ndr_uint16
+          end
+        }.to_not raise_error
+      end
+      it 'raises error if the array is not the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_conf_var_array :b, type: :ndr_uint16
+            ndr_uint32         :a
+          end
+        }.to raise_error(ArgumentError)
+      end
     end
 
-    it 'returns true if none of the parents is a NdrStruct' do
-      obj1 = described_class.new
-      obj2 = described_class.new(nil, {}, obj1)
-      obj3 = described_class.new(nil, {}, obj2)
-      obj4 = described_class.new(nil, {}, obj3)
-      obj5 = described_class.new(nil, {}, obj4)
-      expect(obj5.process_referent?).to be true
+    context 'with an embedded structure containing a conformant array' do
+      after :example do
+        BinData::RegisteredClasses.unregister('test_struct')
+      end
+
+      context 'when the embedded structure is the last member' do
+        it 'does not raise error' do
+          expect {
+            struct_with_array = Class.new(described_class) do
+              default_parameters byte_align: 4
+              endian :little
+
+              ndr_uint32         :a
+              ndr_conf_var_array :b, type: :ndr_uint16
+            end
+            BinData::RegisteredClasses.register('test_struct', struct_with_array)
+            Class.new(described_class) do
+              default_parameters byte_align: 4
+              endian :little
+
+              ndr_uint32  :a
+              test_struct :b
+            end
+          }.to_not raise_error
+        end
+      end
+
+      context 'when the embedded structure is not the last member' do
+        it 'raises error' do
+          expect {
+            struct_with_array = Class.new(described_class) do
+              default_parameters byte_align: 4
+              endian :little
+
+              ndr_uint32         :a
+              ndr_conf_var_array :b, type: :ndr_uint16
+            end
+            BinData::RegisteredClasses.register('test_struct', struct_with_array)
+            Class.new(described_class) do
+              default_parameters byte_align: 4
+              endian :little
+
+              test_struct :b
+              ndr_uint32  :a
+            end
+          }.to raise_error(ArgumentError)
+        end
+      end
     end
+
+    it 'is a BinData::Record class' do
+      expect(described_class).to be < BinData::Record
+    end
+
+    context 'with only primitives' do
+      let(:struct) do
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint8   :a
+          ndr_uint16  :b
+          ndr_uint32  :c
+          ndr_char    :d
+          ndr_boolean :e
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: 0, d: "\x00", e: false)
+      end
+      it 'reads itself' do
+        values = {a: 44, b: 444, c: 4444, d: "T", e: true}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 1, b: 2, c: 3, d: "A", e: true)
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 1, b: 2, c: 3, d: "A", e: true)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x01"\
+            "\x00"\
+            "\x02\x00"\
+            "\x03\x00\x00\x00"\
+            "\x41"\
+            "\x00\x00\x00"\
+            "\x01\x00\x00\x00".b
+          )
+        end
+      end
+    end
+
+    context 'with fixed arrays' do
+      let(:struct) do
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32    :a
+          ndr_fix_array :b, type: :ndr_uint32, initial_length: 3, byte_align: 4
+          ndr_uint32    :c
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: [0, 0, 0], c: 0)
+      end
+      it 'reads itself' do
+        values = {a: 44, b: [1,2,3], c: 4444}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x05\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with varying arrays' do
+      let(:struct) do
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32    :a
+          ndr_var_array :b, type: :ndr_uint32
+          ndr_uint32    :c
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: [], c: 0)
+      end
+      it 'reads itself' do
+        values = {a: 44, b: [1,2,3], c: 4444}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x05\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with conformant arrays' do
+      let(:struct) do
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32     :a
+          ndr_uint32     :b
+          ndr_conf_array :c, type: :ndr_uint32
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: [])
+      end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: [1,2,3]}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with a conformant varying array' do
+      let(:struct) do
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32         :a
+          ndr_uint32         :b
+          ndr_conf_var_array :c, type: :ndr_uint32
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: [])
+      end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: [1,2,3]}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"
+          )
+        end
+      end
+    end
+
+    context 'with an embedded structure containing a conformant arrays' do
+      after :example do
+        BinData::RegisteredClasses.unregister('test_struct')
+      end
+
+      let(:struct) do
+        struct_with_array = Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian :little
+
+          ndr_uint32         :a
+          ndr_conf_var_array :b, type: :ndr_uint32
+        end
+        BinData::RegisteredClasses.register('test_struct', struct_with_array)
+        Class.new(described_class) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32  :a
+          ndr_uint32  :b
+          test_struct :c
+        end
+      end
+
+      it 'initializes the members to their default value' do
+        expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: []})
+      end
+      it 'reads itself' do
+        values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3, 4]}}
+        struct_instance = struct.new(values)
+        expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+      end
+      context 'with values' do
+        subject do
+          struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        end
+        it 'returns the expected member values' do
+          expect(subject). to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        end
+        it 'outputs the expected binary representation' do
+          expect(subject.to_binary_s). to eq(
+            "\x04\x00\x00\x00"\
+            "\x05\x00\x00\x00"\
+            "\x06\x00\x00\x00"\
+            "\x07\x00\x00\x00"\
+            "\x00\x00\x00\x00"\
+            "\x04\x00\x00\x00"\
+            "\x01\x00\x00\x00"\
+            "\x02\x00\x00\x00"\
+            "\x03\x00\x00\x00"\
+            "\x04\x00\x00\x00"
+          )
+        end
+      end
+    end
+
   end
+end
 
-  describe '#read' do
-    let(:struct) do
-      Class.new(described_class) do
-        attr_accessor :str_length
+
+#
+# Pointers
+#
+{
+  NdrUint8Ptr: { parent_class: :NdrUint8, data: 2, binary: "\x02", size: 1 },
+  NdrUint16Ptr: { parent_class: :NdrUint16, data: 3, binary: [3].pack('S'), size: 2 },
+  NdrUint32Ptr: { parent_class: :NdrUint32, data: 5, binary: [5].pack('L'), size: 4 },
+  NdrUint64Ptr: { parent_class: :NdrUint64, data: 7, binary: [7].pack('Q'), size: 8 },
+  NdrCharPtr: { parent_class: :NdrChar, data: 'C', binary: 'C', size: 1 },
+  NdrBooleanPtr: { parent_class: :NdrBoolean, data: true, binary: [1].pack('L'), size: 4 },
+  NdrStringPtr: {
+    parent_class: :NdrConfVarString,
+    data: 'Test1',
+    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1", size: 4
+  },
+  NdrStringzPtr: {
+    parent_class: :NdrConfVarStringz,
+    data: 'Test2',
+    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00", size: 4
+  },
+  NdrWideStringPtr: {
+    parent_class: :NdrConfVarWideString,
+    data: 'Test3'.encode('utf-16le'),
+    binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').b}", size: 4
+  },
+  NdrWideStringzPtr: {
+    parent_class: :NdrConfVarWideStringz,
+    data: 'Test4'.encode('utf-16le'),
+    binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').b}\x00\x00", size: 4
+  },
+  NdrByteArrayPtr: {
+    parent_class: :NdrConfVarArray,
+    data: [1,2,3,4],
+    binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04", size: 4
+  },
+  NdrFileTimePtr: {
+    parent_class: :NdrFileTime,
+    data: 132682503830000000,
+    binary: [132682503830000000].pack('Q'), size: 4
+  }
+}.each do |ndr_class, info|
+  RSpec.describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
+    subject { described_class.new }
+    let(:class_with_ref_to) do
+      struct = Class.new(BinData::Record) do
         endian :little
-        string :referent, read_length: -> { self.str_length }
+        ndr_uint32 :a
+      end
+      struct.send(described_class.bindata_name.to_sym, :b)
+      struct.send(described_class.bindata_name.to_sym, :c, ref_to: :b)
+      struct
+    end
+    let(:ref_to_instance) { class_with_ref_to.new(a: 1, b: info[:data]) }
+    let(:ref_id) { [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L') }
+
+    it 'is a RubySMB::Dcerpc::Ndr::PointerClassPlugin class' do
+      expect(described_class).to be_a(RubySMB::Dcerpc::Ndr::PointerClassPlugin)
+    end
+    it 'is not a Top Level class' do
+      expect(described_class).not_to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
+    end
+    it "is a RubySMB::Dcerpc::Ndr::#{info[:parent_class]} class" do
+      parent_class = if info[:parent_class].is_a?(Symbol)
+                       RubySMB::Dcerpc::Ndr.const_get(info[:parent_class])
+                     else
+                       info[:parent_class]
+                     end
+      expect(described_class).to be < parent_class
+    end
+
+    it { is_expected.to respond_to :ref_id }
+
+    describe '#initialize_instance' do
+      it 'sets #ref_id to 0 by default' do
+        expect(subject.ref_id).to eq(0)
+      end
+      it 'does not reset #ref_id to 0 when it has already be set to a value' do
+        subject.ref_id = 5
+        subject.initialize_instance
+        expect(subject.ref_id).to eq(5)
+      end
+      it 'sets #ref_id to INITIAL_REF_ID by default when :initial_value parameter is provided' do
+        test_instance = described_class.new(nil, {initial_value: info[:data]})
+        expect(test_instance.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
       end
     end
 
-    context 'with a null string' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(struct.read(raw)).to eq(packet)
-        expect(struct.read(raw).to_binary_s).to eq(raw)
+    describe '#extend_top_level_class' do
+      it 'does not extend to Top Level class if there is no parent in the structure' do
+        subject.extend_top_level_class
+        expect(described_class).not_to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
+      end
+      it 'extends the top level structure to Top Level class' do
+        struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+          default_parameters byte_align: 4
+          endian  :little
+        end
+        struct_class.send(described_class.bindata_name.to_sym, :c)
+        BinData::RegisteredClasses.register('test_struct', struct_class)
+        test_class = Class.new(BinData::Record) do
+          endian  :little
+          ndr_uint32  :a
+          test_struct :b
+        end
+        expect(ref_to_instance.is_a?(RubySMB::Dcerpc::Ndr::TopLevelPlugin)).to eq(true)
       end
     end
 
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        struct_obj = struct.new
-        struct_obj.str_length = 'testing'.size
-        expect(struct_obj.read(raw)).to eq(packet)
-        expect(struct_obj.read(raw).to_binary_s).to eq(raw)
+    describe '#snapshot' do
+      it 'outputs :null by default' do
+        expect(subject.snapshot).to eq(:null)
+      end
+      it 'outputs the referent when it refers to another Top-Level pointer' do
+        expect(ref_to_instance.snapshot).to eq({a:1, b:info[:data], c:info[:data]})
+      end
+      # BinData does not support initial_value parameter for arrays
+      unless ndr_class == :NdrByteArrayPtr
+        it 'outputs the :initial_value parameter value when nothing has been assigned yet' do
+          test_ptr = described_class.new(nil, {initial_value: info[:data]})
+          expect(test_ptr.snapshot).to eq(info[:data])
+        end
+      end
+    end
+
+    describe '#do_write' do
+      it 'outputs 32-bit zero binary representation when it is a null pointer' do
+        expect(subject.to_binary_s).to eq("\x00\x00\x00\x00".b)
+      end
+      it 'outputs the initial referent ID followed by the representation of the referent' do
+        expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+      end
+      it 'outputs the referent ID of the Top-Level pointer it is refering to' do
+        align = (4 - (info[:binary].size % 4)) % 4
+        pad = "\x00" * align
+        expect(ref_to_instance.to_binary_s).to eq(
+          "#{[1].pack('L')}#{ref_id}#{info[:binary]}#{pad}#{ref_id}"
+        )
+        expect(ref_to_instance.c.to_binary_s).to eq(ref_id)
+      end
+      it 'outputs the initial referent ID and the referent representaiton if it is not embedded in another constructed structure' do
+        allow(subject).to receive(:parent_constructed_type).and_return(nil)
+        expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+      end
+      # BinData does not support initial_value parameter for arrays
+      unless ndr_class == :NdrByteArrayPtr
+        it 'outputs the :initial_value parameter value when nothing has been assigned yet' do
+          test_ptr = described_class.new(nil, {initial_value: info[:data]})
+          expect(test_ptr.new.to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+        end
+      end
+      context 'when embedded in another constructed structure'do
+        let(:embedding_struct) do
+          subject.assign(info[:data])
+          subject2 = described_class.new(info[:data].dup)
+          RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, subject2], type: described_class)
+        end
+        before :example do
+          allow(subject).to receive(:parent_constructed_type).and_return(embedding_struct)
+        end
+
+        it 'outputs the initial referent ID only' do
+          expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}".b)
+        end
+        it 'defers the referent representation' do
+          test_instance = subject.new(info[:data])
+          test_instance.to_binary_s
+          expect(embedding_struct.instance_variable_get(:@deferred_ptrs)).to eq([test_instance])
+        end
+        it 'correctly defers the referent after the embedding structure in the stream' do
+          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+          output_str = "#{[2].pack('L')}#{ref_id}#{ref_id2}".b
+          align = (info[:size] - (output_str.size % info[:size])) % info[:size]
+          output_str << "\x00".b * align
+          output_str << info[:binary]
+          align = (info[:size] - (output_str.size % info[:size])) % info[:size]
+          output_str << "\x00".b * align
+          output_str << info[:binary]
+          expect(embedding_struct.to_binary_s).to eq(output_str)
+        end
+      end
+    end
+
+    describe '#do_read' do
+      it 'reads a 32-bit zero binary representation as a null pointer' do
+        expect(subject.read("\x00\x00\x00\x00".b)).to eq(:null)
+      end
+      it 'reads the referent ID followed by the representation of the referent' do
+        expect(subject.read("#{ref_id}#{info[:binary]}")).to eq(info[:data])
+        expect(subject.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
+      end
+      it 'reads the referent ID of the Top-Level pointer it is refering to' do
+        align = (4 - (info[:binary].size % 4)) % 4
+        pad = "\x00" * align
+        binary_str = "#{[1].pack('L')}"\
+                     "#{ref_id}"\
+                     "#{info[:binary]}"\
+                     "#{pad}"\
+                     "#{ref_id}"
+        test_instance = class_with_ref_to.read(binary_str)
+        expect(test_instance.c.snapshot).to eq(info[:data])
+        expect(test_instance.c.ref_id).to eq(test_instance.b.ref_id)
+      end
+      it 'reads the initial referent ID and the referent representaiton if it is not embedded in another constructed structure' do
+        allow(subject).to receive(:parent_constructed_type).and_return(nil)
+        expect(subject.read("#{ref_id}#{info[:binary]}".b)).to eq(info[:data])
+        expect(subject.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
+      end
+      context 'when embedded in another constructed structure'do
+        let(:test_struct) { described_class.new(info[:data].dup) }
+        let(:embedding_struct) do
+          subject.assign(info[:data])
+          RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, test_struct], type: described_class)
+        end
+        let(:binary_str) do
+          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+          binary_str = "#{[2].pack('L')}#{ref_id}#{ref_id2}".b
+          align = (info[:size] - (binary_str.size % info[:size])) % info[:size]
+          binary_str << "\x00".b * align
+          binary_str << info[:binary]
+          align = (info[:size] - (binary_str.size % info[:size])) % info[:size]
+          binary_str << "\x00".b * align
+          binary_str << info[:binary]
+          binary_str
+        end
+        it 'correctly defers the referent after the embedding structure in the stream' do
+          obj = embedding_struct.read(binary_str)
+          expect(obj).to eq([subject, test_struct])
+        end
+      end
+    end
+
+    describe '#assign' do
+      it 'sets #ref_id to 0 when assigning :null' do
+        subject.assign(:null)
+        expect(subject.ref_id).to eq(0)
+      end
+      it 'assigns the value to the referent when it refers to another Top-Level pointer' do
+        ref_to_instance.c = info[:data]
+        expect(ref_to_instance.b).to eq(info[:data])
+      end
+      it 'sets #ref_id to the initial reference ID value' do
+        subject.assign(info[:data])
+        expect(subject.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
+      end
+      it 'does not change #ref_id when it has already been set' do
+        subject.ref_id = 20
+        subject.assign(info[:data])
+        expect(subject.ref_id).to eq(20)
+      end
+    end
+
+    describe '#alias?' do
+      it 'returns true if it refers to another Top-Level pointer' do
+        expect(ref_to_instance.c.is_alias?).to be true
+      end
+    end
+
+    describe '#fetch_alias_referent' do
+      it 'returns the referent' do
+        expect(ref_to_instance.c.fetch_alias_referent).to eq(info[:data])
+      end
+      context 'when the referent is in a NDR structure' do
+        let(:class_with_ref_to) do
+          test_struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+            default_parameters(byte_align: 4)
+            ndr_uint32     :a
+          end
+          test_struct_class.send(described_class.bindata_name.to_sym, :ptr1)
+          BinData::RegisteredClasses.register('test_struct', test_struct_class)
+          struct = Class.new(BinData::Record) do
+            test_struct :struct1
+          end
+          struct.send(described_class.bindata_name.to_sym, :ptr2, ref_to: :ptr1)
+          struct
+        end
+        let(:ref_to_instance) { class_with_ref_to.new(struct1: { a: 2, ptr1: info[:data] }) }
+        it 'returns the referent' do
+          expect(ref_to_instance.ptr2.fetch_alias_referent).to eq(info[:data])
+        end
+      end
+    end
+
+    describe '#do_num_bytes' do
+      it 'returns 4 if it is a null pointer' do
+        expect(subject.do_num_bytes).to eq(4)
+      end
+      it 'returns 4 if it refers to another Top-Level pointer' do
+        expect(ref_to_instance.c.do_num_bytes).to eq(4)
+      end
+      it "returns #{4 + info[:binary].size} a first-instance pointer" do
+        subject.assign(info[:data])
+        expect(subject.do_num_bytes).to eq(4 + info[:binary].size)
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrString do
-  subject(:packet) { described_class.new }
+RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
+  let(:ref_id) { RubySMB::Dcerpc::Ndr::INITIAL_REF_ID }
+  let(:struct_with_ptr) do
+    Class.new(BinData::Record) do
+      default_parameters byte_align: 4
+      endian :little
 
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :offset }
-  it { is_expected.to respond_to :actual_count }
-  it { is_expected.to respond_to :str }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
+      uint32         :b
+      ndr_char_ptr   :ptr2
+      ndr_uint32_ptr :ptr3
     end
   end
+  let(:random_struct) do
+    Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+      default_parameters byte_align: 4
+      endian              :little
 
-  describe '#offset' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.offset).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial valu of 0' do
-      expect(packet.offset).to eq(0)
+      ndr_uint32          :rand1
+      ndr_conf_var_string :rand2
     end
   end
 
-  describe '#actual_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.actual_count).to be_a BinData::Uint32le
+  before :example do
+    BinData::RegisteredClasses.register('struct_with_ptr', struct_with_ptr)
+    BinData::RegisteredClasses.register('random_struct', random_struct)
+  end
+
+  context 'with a BinData structure' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
+
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1
+        struct_with_ptr :d
+        ndr_uint32_ptr  :ptr4
+      end
+    end
+    let(:snapshot) { { a: 55, ptr1: 'M', d: { b: 66, ptr2: 'A', ptr3: 33 }, ptr4: 44 } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
     end
   end
 
-  describe '#str' do
-    it 'is a RubySMB::Field::Stringz16' do
-      expect(packet.str).to be_a RubySMB::Field::Stringz16
+  context 'with a BinData structure containing pointers with :initial_value set' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
+
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1, initial_value: 'M'
+        struct_with_ptr :d
+        ndr_uint32_ptr  :ptr4, initial_value: 44
+      end
+    end
+    let(:snapshot) { { a: 55, d: { b: 66, ptr2: 'A', ptr3: 33 } } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
     end
 
-    it 'exists if #actual_count is greater than 0' do
-      packet.actual_count = 4
-      expect(packet.str?).to be true
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
     end
 
-    it 'does not exist if #actual_count is 0' do
-      expect(packet.str?).to be false
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      # Add pointer values from :initial_value to snapshot
+      snapshot[:ptr1] = 'M'
+      snapshot[:ptr4] = 44
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
+    end
+
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(8).times
     end
   end
 
-  describe '#get' do
-    it 'returns 0 when #actual_count is 0' do
-      expect(packet.get).to eq(0)
-    end
+  context 'with a BinData::Choice' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
 
-    it 'returns #str when #actual_count is greater than 0' do
-      str = 'spec_test'
-      strz16 = RubySMB::Field::Stringz16.new(str)
-      packet.set(str)
-      expect(packet.get).to eq(strz16)
-    end
-  end
-
-  describe '#set' do
-    context 'when the value is 0' do
-      it 'sets #actual_count to 0' do
-        packet.set(0)
-        expect(packet.actual_count).to eq(0)
-      end
-
-      it 'clears #str' do
-        expect(packet.str).to receive(:clear)
-        packet.set(0)
-      end
-
-      it 'keeps #actual_count set to 0 when called from #to_binary_s' do
-        packet.set(0)
-        packet.to_binary_s
-        expect(packet.actual_count).to eq(0)
-      end
-
-      it 'keeps #actual_count set to 0 when called from #do_num_bytes' do
-        packet.set(0)
-        packet.to_binary_s
-        packet.do_num_bytes
-        expect(packet.actual_count).to eq(0)
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1
+        choice :choice1, selection: :a, byte_align: 4 do
+          struct_with_ptr 55
+        end
+        ndr_uint32_ptr  :ptr4
       end
     end
+    let(:snapshot) { { a: 55, ptr1: 'M', choice1: { b: 66, ptr2: 'A', ptr3: 33 }, ptr4: 44 } }
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 12].pack('L')}"\
+      "#{[44].pack('L')}".b
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
+    end
 
-    context 'when the value is a string' do
-      let(:str) { 'spec_test' }
+    it 'Increments the reference IDs by 4 for each pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
+    end
 
-      it 'sets #str to the value' do
-        packet.set(str)
-        strz16 = RubySMB::Field::Stringz16.new(str)
-        expect(packet.str).to eq(strz16)
-      end
+    it 'Increments the reference IDs by 4 for each pointer when reading' do
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
+    end
 
-      it 'sets #max_count and #actual_count to the expected value' do
-        packet.set(str)
-        expect(packet.max_count).to eq(str.length + 1)
-        expect(packet.actual_count).to eq(str.length + 1)
-      end
-
-      it 'sets #actual_count to 0 when the value is an empty string' do
-        packet.actual_count = 10
-        packet.set('')
-        expect(packet.actual_count).to eq(0)
-      end
-
-      it 'keeps custom #max_count and #offset values when called from #to_binary_s' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.offset = 10
-        packet.to_binary_s
-        expect(packet.max_count).to eq(3)
-        expect(packet.offset).to eq(10)
-      end
-
-      it 'keeps custom #max_count value when called from #do_num_bytes' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.offset = 10
-        packet.do_num_bytes
-        expect(packet.max_count).to eq(3)
-        expect(packet.offset).to eq(10)
-      end
-
-      it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-        packet.set(str)
-        packet.max_count = 3
-        packet.set(str * 2)
-        expect(packet.max_count).to eq(str.size * 2 + 1)
-      end
+    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(9).times
     end
   end
 
-  describe '#clear' do
-    it 'clears #str' do
-      expect(packet.str).to receive(:clear)
-      packet.clear
+  context 'with a NDR array and an alias pointer' do
+    let(:test_struct) do
+      Class.new(BinData::Record) do
+        endian          :little
+
+        ndr_uint32      :a
+        ndr_char_ptr    :ptr1
+        ndr_conf_array  :array1, type: :random_struct
+        struct_with_ptr :d
+        ndr_uint32_ptr  :ptr4, ref_to: :ptr3
+      end
+    end
+    let(:snapshot) do
+      {
+        a: 55,
+        ptr1: 'M',
+        array1: [
+          { rand1: 2, rand2: 'Test1' },
+          { rand1: 6, rand2: 'Test2' }
+        ],
+        d: { b: 66, ptr2: 'A', ptr3: 33 }
+      }
+    end
+    let(:binary) do
+      "#{[55].pack('L')}"\
+      "#{[ref_id].pack('L')}"\
+      "M"\
+      "\x00\x00\x00"\
+      "#{[2].pack('L')}"\
+      "#{[2].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "#{[0].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "Test1"\
+      "\x00\x00\x00"\
+      "#{[6].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "#{[0].pack('L')}"\
+      "#{[5].pack('L')}"\
+      "Test2"\
+      "\x00\x00\x00"\
+      "#{[66].pack('L')}"\
+      "#{[ref_id + 4].pack('L')}"\
+      "A"\
+      "\x00\x00\x00"\
+      "#{[ref_id + 8].pack('L')}"\
+      "#{[33].pack('L')}"\
+      "#{[ref_id + 8].pack('L')}"
+    end
+    subject { test_struct.new(snapshot) }
+    before :example do
+      allow(subject).to receive(:update_ref_ids).and_call_original
     end
 
-    it 'clears #actual_count' do
-      expect(packet.actual_count).to receive(:clear)
-      packet.clear
+    it 'Increments the reference IDs by 4 for each non-alias pointer when writing' do
+      expect(subject.to_binary_s).to eq(binary)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
     end
 
-    it 'does to clear out #max_count and #offset' do
-      expect(packet.max_count).to_not receive(:clear)
-      expect(packet.offset).to_not receive(:clear)
-      packet.clear
-    end
-  end
-
-  describe '#to_s' do
-    it 'calls str#to_s' do
-      expect(packet.str).to receive(:to_s)
-      packet.to_s
+    it 'Increments the reference IDs by 4 for each non-alias pointer when reading' do
+      # Adding the alias pointer to the snapshot
+      snapshot[:ptr4] = snapshot[:d][:ptr3].dup
+      expect(subject.read(binary)).to eq(snapshot)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
     end
 
-    it 'outputs the expected string with the correct encoding' do
-      str = 'testing'
-      packet.assign(str)
-      expect(packet.to_s.encoding).to eq(Encoding::UTF_16LE)
-      expect(packet.to_s).to eq(str.encode(Encoding::UTF_16LE))
+    it 'Increments the reference IDs by 4 for each non-alias pointer when counting the total number of bytes' do
+      expect(subject.do_num_bytes).to eq(binary.size)
+      expect(subject).to have_received(:update_ref_ids).exactly(15).times
     end
-  end
 
-  describe '#read' do
-    context 'with a null string' do
-      it 'reads its own binary representation' do
-        packet.set(0)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    context 'when the alias pointer is positioned after the referent pointer' do
+      let(:test_struct2) do
+        Class.new(BinData::Record) do
+          endian          :little
+
+          ndr_uint32      :a
+          ndr_char_ptr    :ptr1
+          ndr_conf_array  :array1, type: :random_struct
+          # :ptr3 is part of :d structure, which appears after :ptr4
+          ndr_uint32_ptr  :ptr4, ref_to: :ptr3
+          struct_with_ptr :d
+        end
+      end
+
+      it 'raises an exception' do
+        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
       end
     end
 
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
+    context 'when the alias pointer refers to a non-existing pointer' do
+      let(:test_struct2) do
+        Class.new(BinData::Record) do
+          endian          :little
 
-    context 'with different #offset and #max_count values' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        packet.max_count = 256
-        packet.offset = 40
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+          ndr_uint32      :a
+          ndr_char_ptr    :ptr1
+          ndr_conf_array  :array1, type: :random_struct
+          ndr_uint32_ptr  :ptr4, ref_to: :ptr5
+          struct_with_ptr :d
+        end
       end
-    end
 
-    context 'with #actual_count less than elements size' do
-      it 'reads its own binary representation reduced to #actual_count elements' do
-        str = '12345'
-        packet.set(str)
-        packet.actual_count = 4
-        max_count = packet.max_count.to_i
-        raw = packet.to_binary_s
-        packet2 = described_class.read(raw)
-        expect(packet2.max_count).to eq(max_count)
-        expect(packet2.offset).to eq(0)
-        expect(packet2.actual_count).to eq(4)
-        expect(packet2.str).to eq(str[0,3].encode(Encoding::UTF_16LE))
-        expect(packet2.to_binary_s).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x001\x002\x003\x00\x00\x00".b)
+      it 'raises an exception' do
+        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpStr do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a NdrString' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrString
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
+RSpec.describe ::BinData::NdrPointerArgProcessor do
+  let(:embedding_struct) do
+    Class.new(BinData::Record) do
+      ndr_class :a
     end
   end
 
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+  before :example do
+    ndr_class = Class.new(ref_class) do
+      #default_parameters byte_align: 4
+      arg_processor :ndr_pointer
+    end
+    BinData::RegisteredClasses.register('ndr_class', ndr_class)
+  end
+
+  context 'with a NDR structure as referent' do
+    let(:ref_class) { RubySMB::Dcerpc::Ndr::NdrUint32 }
+    it 'does not raise error' do
+      expect { embedding_struct }.to_not raise_error
+    end
+  end
+  context 'with a BinData structure as referent' do
+    let(:ref_class) { BinData::Uint32le }
+
+    it 'raises an error' do
+      expect { embedding_struct }.to raise_error(ArgumentError)
+    end
+    context 'with byte_align parameter' do
+      let(:embedding_struct) do
+        Class.new(BinData::Record) do
+          ndr_class :a, byte_align: 4
+        end
+      end
+      it 'raises an error' do
+        expect { embedding_struct }.to raise_error(ArgumentError)
       end
     end
-
-    context 'with a normal string' do
-      it 'reads its own binary representation' do
-        packet.set('testing')
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    context 'with referent_byte_align parameter' do
+      let(:embedding_struct) do
+        Class.new(BinData::Record) do
+          ndr_class :a, referent_byte_align: 4
+        end
+      end
+      it 'does not raise error' do
+        expect { embedding_struct }.to_not raise_error
       end
     end
   end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrContextHandle do
-  let(:uuid) { 'c3bce70d-5155-472b-9f2f-b824e5fc9b60' }
-  let(:attr) { 123 }
-  subject(:packet) { described_class.new }
+  it 'is a BinData::Primitive class' do
+    expect(described_class).to be < BinData::Primitive
+  end
+
+  subject { described_class.new }
 
   it { is_expected.to respond_to :context_handle_attributes }
   it { is_expected.to respond_to :context_handle_uuid }
 
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#context_handle_attributes' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.context_handle_attributes).to be_a BinData::Uint32le
+  context 'with #get' do
+    it 'returns a hash with the default values' do
+      expect(subject.get).to eq({context_handle_attributes: 0, context_handle_uuid: '00000000-0000-0000-0000-000000000000'})
+    end
+    it 'returns a hash with the expected values' do
+      subject.assign(context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000')
+      expect(subject.get).to eq({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
     end
   end
 
-  describe '#context_handle_uuid' do
-    it 'is a UUID' do
-      expect(packet.context_handle_uuid).to be_a RubySMB::Dcerpc::Uuid
-    end
-  end
-
-  describe '#get' do
-    it 'returns the expeted hash' do
-      packet.context_handle_attributes = attr
-      packet.context_handle_uuid = uuid
-      expect(packet.get).to eq({context_handle_attributes: attr, context_handle_uuid: uuid})
-    end
-  end
-
-  describe '#set' do
-    let(:handle) { {context_handle_attributes: attr, context_handle_uuid: uuid} }
-
-    context 'when the value is a hash' do
-      it 'sets #context_handle_attributes and #context_handle_uuid to the expected values' do
-        packet.set(handle)
-        expect(packet.context_handle_attributes).to eq(attr)
-        expect(packet.context_handle_uuid).to eq(uuid)
-      end
-    end
-
-    context 'when the value is a NdrContextHandle'do
-      it 'reads the value binary representaion ' do
-        ndr_context_handle = described_class.new(handle)
-        allow(ndr_context_handle).to receive(:to_binary_s).and_call_original
-        packet.set(ndr_context_handle)
-        expect(ndr_context_handle).to have_received(:to_binary_s)
-        expect(packet.get).to eq(ndr_context_handle)
-      end
-    end
-
-    context 'when the value is a binary string'do
-      it 'reads the value' do
-        ndr_context_handle = described_class.new(handle)
-        packet.set(ndr_context_handle.to_binary_s)
-        expect(packet.get).to eq(ndr_context_handle)
-      end
-    end
-  end
-
-  describe '#read' do
+  context 'with #set' do
     context 'with a hash' do
-      it 'reads its own binary representation' do
-        packet.set({context_handle_attributes: attr, context_handle_uuid: uuid})
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+      it 'sets the expected values' do
+        subject.set({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
+        expect(subject).to eq({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
       end
     end
-
-    context 'with a NdrContextHandle' do
-      it 'reads its own binary representation' do
-        nch = described_class.new
-        nch.set({context_handle_attributes: attr, context_handle_uuid: uuid})
-        packet.set(nch)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    context 'with a NdrContextHandle object' do
+      it 'sets the expected values' do
+        object = described_class.new
+        object.set({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
+        subject.set(object)
+        expect(subject).to eq({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
       end
     end
-
     context 'with a binary string' do
-      it 'reads its own binary representation' do
-        packet.set("{\x00\x00\x00\r\xE7\xBC\xC3UQ+G\x9F/\xB8$\xE5\xFC\x9B`".b)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+      it 'sets the expected values' do
+        subject.set("\x04\x00\x00\x00\x05\x04\x80\x57\x01\x03\x30\x33\x55\x66\x04\x00\x23\x00\x70\x00")
+        expect(subject).to eq({context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000'})
       end
     end
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpDword do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.referent).to be_a BinData::Uint32le
+RSpec.describe 'Alignment' do
+  RSpec.shared_examples 'an aligned structure' do |align: 4, field_value:, field_binary:|
+    let(:struct_obj) do
+      struct_class.new(aligned_field: field_value)
     end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
+    it "is #{align}-bytes aligned" do
+      expect(struct_obj.aligned_field.rel_offset % align).to eq(0)
     end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
+    it 'includes padding in its binary representation' do
+      expect(struct_obj.to_binary_s).to eq("A#{"\x00" * (align - 1)}#{field_binary}".b)
     end
   end
 
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal integer' do
-      it 'reads its own binary representation' do
-        packet.set(123)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpByteArray do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a NdrByteArray structure' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrByteArray
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
+  let(:params) { {} }
+  let(:struct_class) do
+    Class.new(BinData::Record) do
+      endian  :little
+      string  :one_byte, value: 'A'
     end
   end
 
-  describe '#set' do
-    it 'accepts a NdrLpByteArray structure' do
-      struct = described_class.new([1, 2, 3])
-      packet.set(struct)
-      expect(packet).to eq(struct)
+  context 'in a BinData::Struct' do
+    let(:params) { {} }
+    before :example do
+      struct_class.send(described_class.bindata_name.to_sym, :aligned_field, params)
     end
 
-    it 'accepts a NdrLpByteArray null pointer' do
-      struct = described_class.new
-      packet.set(struct)
-      expect(packet).to eq(:null)
+    describe RubySMB::Dcerpc::Ndr::NdrBoolean do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: true,
+        field_binary: [1].pack('L')
+      )
     end
 
-    it 'accepts a BinData::Array' do
-      struct = BinData::Array.new([1, 2, 3], type: :uint8)
-      packet.set(struct)
-      expect(packet).to eq(struct)
+    describe RubySMB::Dcerpc::Ndr::NdrWideChar do
+      it_behaves_like(
+        'an aligned structure',
+        align: 2,
+        field_value: 'B'.encode('utf-16le'),
+        field_binary: "B\x00"
+      )
     end
 
-    it 'accepts an Array' do
-      struct = Array.new([1, 2, 3])
-      packet.set(struct)
-      expect(packet).to eq(struct)
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
+    describe RubySMB::Dcerpc::Ndr::NdrEnum do
+      it_behaves_like(
+        'an aligned structure',
+        align: 2,
+        field_value: 3,
+        field_binary: [3].pack('S')
+      )
     end
 
-    context 'with a normal array of bytes' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpByte do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :elements }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #elements size' do
-      packet.elements = [1, 2, 3]
-      expect(packet.max_count).to eq(3)
-    end
-  end
-
-  describe '#elements' do
-    it 'is a Bindata::Array' do
-      expect(packet.elements).to be_a BinData::Array
-    end
-
-    it 'is 8-bit unsigned integer elements' do
-      expect(packet.elements[0]).to be_a BinData::Uint8
-    end
-
-    it 'exists if #max_count is greater than 0' do
-      packet.max_count = 2
-      expect(packet.elements?).to be true
-    end
-
-    it 'does not exist if #max_count is 0' do
-      packet.max_count = 0
-      expect(packet.elements?).to be false
-    end
-
-    it 'reads at most #max_counts elements' do
-      bin = "ABCDEFG".b
-      packet.max_count = 3
-      packet.elements.read(bin)
-      expect(packet.elements).to eq(bin.bytes[0,3])
-    end
-  end
-
-  describe '#get' do
-    it 'returns the elements' do
-      packet.elements = [1, 2, 3]
-      expect(packet.get).to eq([1, 2, 3])
-    end
-  end
-
-  describe '#set' do
-    it 'sets #elements as expected' do
-      packet.set([1, 2, 3])
-      expect(packet.elements).to eq([1, 2, 3])
-    end
-
-    it 'sets #max_count to the number of elements set' do
-      packet.set([1, 2, 3])
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new([1, 2, 3], type: :uint8)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq([1, 2, 3])
-    end
-
-    it 'keeps custom #max_count value when called from #to_binary_s' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'keeps custom #max_count value when called from #do_num_bytes' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.set([1, 2, 3, 4, 5])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with #max_count less than elements size' do
-      it 'reads its own binary representation reduced to #max_count elements' do
-        packet.set([1, 2, 3, 4, 5])
-        packet.max_count = 3
-        raw = packet.to_binary_s
-        packet2 = described_class.new([1, 2, 3])
-        raw2 = packet2.to_binary_s
-        expect(described_class.read(raw)).to eq(packet2)
-        expect(described_class.read(raw).to_binary_s).to eq(raw2)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrByteArray do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :offset }
-  it { is_expected.to respond_to :actual_count }
-  it { is_expected.to respond_to :bytes }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #actual_count' do
-      packet.actual_count = 345
-      expect(packet.max_count).to eq(345)
-    end
-  end
-
-  describe '#offset' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.offset).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value of 0' do
-      expect(packet.offset).to eq(0)
-    end
-  end
-
-  describe '#actual_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.actual_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #bytes size' do
-      packet.bytes << 2 << 3 << 4 << 5
-      expect(packet.actual_count).to eq(4)
-    end
-  end
-
-  describe '#bytes' do
-    it 'is a Bindata::Array' do
-      expect(packet.bytes).to be_a BinData::Array
-    end
-
-    it 'has an initial length equal to #actual_count' do
-      packet.actual_count = 3
-      expect(packet.bytes.size).to eq(3)
-    end
-
-    it 'is 8-bit unsigned integer elements' do
-      expect(packet.bytes[0]).to be_a BinData::Uint8
-    end
-  end
-
-  describe '#get' do
-    it 'returns bytes' do
-      packet.bytes = [1, 2, 3]
-      expect(packet.get).to eq([1, 2, 3])
-    end
-  end
-
-  describe '#set' do
-    it 'sets #bytes as expected' do
-      packet.set([1, 2, 3])
-      expect(packet.bytes).to eq([1, 2, 3])
-    end
-
-    it 'sets #actual_count and #max_count to the number of bytes set' do
-      packet.set([1, 2, 3])
-      expect(packet.max_count).to eq(3)
-      expect(packet.actual_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new([1, 2, 3], type: :uint8)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.bytes).to eq([1, 2, 3])
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #to_binary_s' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.offset = 40
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-      expect(packet.offset).to eq(40)
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #do_num_bytes' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.offset = 40
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-      expect(packet.offset).to eq(40)
-    end
-
-    it 'sets #max_count to the number of bytes set after setting custom #max_count value' do
-      packet.set([1, 2, 3, 4, 5])
-      packet.max_count = 3
-      packet.set([1, 2, 3, 4, 5])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set([1, 2, 3])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with #max_count less than elements size' do
-      it 'reads its own binary representation reduced to #max_count elements' do
-        packet.set([1, 2, 3, 4, 5])
-        packet.actual_count = 3
-        max_count = packet.max_count.to_i
-        raw = packet.to_binary_s
-        packet2 = described_class.read(raw)
-        expect(packet2.max_count).to eq(max_count)
-        expect(packet2.offset).to eq(0)
-        expect(packet2.actual_count).to eq(3)
-        expect(packet2.bytes).to eq([1, 2, 3])
-        expect(packet2.to_binary_s).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x01\x02\x03".b)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpFileTime do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a FileTime' do
-      expect(packet.referent).to be_a RubySMB::Field::FileTime
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal FileTime' do
-      it 'reads its own binary representation' do
-        time = RubySMB::Field::FileTime.new(Time.now)
-        packet.set(time)
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
-  describe '#do_read' do
-    let(:io) { BinData::IO::Read.new(bin_str) }
-    context 'with a structure containg an array of pointers to integer' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_dword, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x01\x00\x00\x00" + # b[0]
-          "\x02\x00\x00\x00" + # b[1]
-          "\x03\x00\x00\x00"  # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([1, 2, 3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(3)
-          expect(struct.c).to eq(55)
+    describe RubySMB::Dcerpc::Ndr::NdrFixArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2, 3],
+          field_binary: [1, 2, 3].pack('LLL')
+        ) do
+          let(:params) { {type: :ndr_uint32, initial_length: 3, byte_align: 4} }
         end
       end
-
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "\x00\x00\x00\x00" + # b[1] referent_id (null)
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x01\x00\x00\x00" + # b[0]
-          "\x03\x00\x00\x00"  # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([1, :null, 3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(1)
-          expect(struct.b[1].referent_id).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(3)
-          expect(struct.c).to eq(55)
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          align: 8,
+          field_value: [1, 2],
+          field_binary: [1, 2].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64, initial_length: 2, byte_align: 8} }
         end
       end
     end
 
-    context 'with a structure containg an array of pointers to strings' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_str, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # b[1]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, str2, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(str2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
+    describe RubySMB::Dcerpc::Ndr::NdrConfArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2, 3],
+          field_binary: [3].pack('L') + [1, 2, 3].pack('LLL')
+        ) do
+          let(:params) { {type: :ndr_uint32 } }
         end
       end
-
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "\x00\x00\x00\x00" + # b[1] referent_id (null)
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, :null, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
-        end
-      end
-
-      context 'with null strings' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b[0]
-          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + # b[1] null string
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, 0, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(0)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
-        end
-      end
-
-      context 'with padding' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b[0] referent_id
-          "&_>=" +             # b[1] referent_id
-          "T\r%\x18" +         # b[2] referent_id
-          "7\x00\x00\x00" +    # c
-          "\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00" + # b[0]
-          "\x00\x00" + # pad
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # b[1]
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # b[2]
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq([str1, str2, str3])
-          expect(struct.b[0].referent_id).to eq(2635975080)
-          expect(struct.b[0].referent).to eq(str1)
-          expect(struct.b[1].referent_id).to eq(1027497766)
-          expect(struct.b[1].referent).to eq(str2)
-          expect(struct.b[2].referent_id).to eq(405081428)
-          expect(struct.b[2].referent).to eq(str3)
-          expect(struct.c).to eq(55)
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2],
+          field_binary: [2].pack('L') + [1, 2].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64 } }
         end
       end
     end
 
-    context 'with a structure containg an pointers to strings' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32     :a
-          ndr_lp_str :b
-          ndr_lp_str :c
-          ndr_lp_str :d
-          uint32     :e
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(str2)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(str2)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+    describe RubySMB::Dcerpc::Ndr::NdrVarArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1 ,2 ,3],
+          field_binary: [0].pack('L') + [3].pack('L') + [1, 2, 3].pack('LLL')
+        ) do
+          let(:params) { {type: :ndr_uint32 } }
         end
       end
-
-      context 'with null pointers' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "\x00\x00\x00\x00" + # c referent_id (null)
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(:null)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(0)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2],
+          field_binary: [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64 } }
         end
       end
+    end
 
-      context 'with null strings' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00" + # b
-          "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" + # c null string
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
-        end
-
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test1'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(0)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(0)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2, 3],
+          field_binary: [3].pack('L') + [0].pack('L') + [3].pack('L') + [1, 2, 3].pack('LLL')
+        ) do
+          let(:params) { {type: :ndr_uint32 } }
         end
       end
-
-      context 'with padding' do
-        let(:bin_str) do
-          "\x03\x00\x00\x00" + # a
-          "\xA8\xC9\x1D\x9D" + # b referent_id
-          "&_>=" +             # c referent_id
-          "T\r%\x18" +         # d referent_id
-          "7\x00\x00\x00" +    # c
-          "\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00" + # b
-          "\x00\x00" + # pad
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00" + # c
-          "\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00"   # d
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [1, 2],
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64 } }
         end
+      end
+    end
 
-        it 'reads as expected' do
-          struct.do_read(io)
-          str1 = 'test'.encode(Encoding::UTF_16LE)
-          str2 = 'test2'.encode(Encoding::UTF_16LE)
-          str3 = 'test3'.encode(Encoding::UTF_16LE)
-          expect(struct.a).to eq(3)
-          expect(struct.b).to eq(str1)
-          expect(struct.c).to eq(str2)
-          expect(struct.d).to eq(str3)
-          expect(struct.b.referent_id).to eq(2635975080)
-          expect(struct.b.referent).to eq(str1)
-          expect(struct.c.referent_id).to eq(1027497766)
-          expect(struct.c.referent).to eq(str2)
-          expect(struct.d.referent_id).to eq(405081428)
-          expect(struct.d.referent).to eq(str3)
-          expect(struct.e).to eq(55)
+    describe RubySMB::Dcerpc::Ndr::NdrVarString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1",
+        field_binary: [0].pack('L') + [5].pack('L') + "Test1"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1",
+        field_binary: [0].pack('L') + [6].pack('L') + "Test1\x00"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1".encode('utf-16le'),
+        field_binary: [0].pack('L') + [5].pack('L') + "Test1".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1".encode('utf-16le'),
+        field_binary: [0].pack('L') + [6].pack('L') + "Test1\x00".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1",
+        field_binary: [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test1"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1",
+        field_binary: [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1".encode('utf-16le'),
+        field_binary: [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test1".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: "Test1".encode('utf-16le'),
+        field_binary: [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    {
+      NdrUint8Ptr: { data: 2, binary: "\x02" },
+      NdrUint16Ptr: { data: 3, binary: [3].pack('S') },
+      NdrUint32Ptr: { data: 5, binary: [5].pack('L') },
+      NdrUint64Ptr: { data: 7, binary: [7].pack('Q') },
+      NdrCharPtr: { data: 'C', binary: 'C' },
+      NdrBooleanPtr: { data: true, binary: [1].pack('L')},
+      NdrStringPtr: { data: 'Test1', binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1" },
+      NdrStringzPtr: { data: 'Test2', binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00" },
+      NdrWideStringPtr: { data: 'Test3'.encode('utf-16le'), binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').force_encoding('ASCII')}" },
+      NdrWideStringzPtr: { data: 'Test4'.encode('utf-16le'), binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').force_encoding('ASCII')}\x00\x00" },
+      NdrByteArrayPtr: { data: [1,2,3,4], binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04" },
+      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q') }
+    }.each do |ndr_class, info|
+      describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: info[:data],
+          field_binary: [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')+ info[:binary]
+        )
+      end
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrContextHandle do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: { context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000' },
+        field_binary: "\x04\x00\x00\x00\x05\x04\x80\x57\x01\x03\x30\x33\x55\x66\x04\x00\x23\x00\x70\x00"
+      )
+    end
+  end
+
+  context 'in a NDR structure' do
+    describe 'Structure of mixed integers' do
+      before :example do
+        ndr_struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+          default_parameters byte_align: 4
+          endian  :little
+
+          ndr_uint32  :int_value1, byte_align: 4
+          ndr_uint8   :int_value2
         end
+        BinData::RegisteredClasses.register('ndr_struct_class', ndr_struct_class)
+        struct_class.send(:ndr_struct_class, :aligned_field, params)
+      end
+
+      it_behaves_like(
+        'an aligned structure',
+        align: 4,
+        field_value: { int_value1: 5, int_value2: 3 },
+        field_binary: [5].pack('L') + "\x03"
+      ) do
+        # #byte_align is set according to the type of the largest element in
+        # the structure (uint32):
+        let(:params) { {byte_align: 4 } }
       end
     end
   end
 
-  describe '#do_write' do
-    let(:raw_io) { BinData::IO.create_string_io }
-    let(:io) { BinData::IO::Write.new(raw_io) }
-    context 'with a structure containg an array of pointers to integer' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_dword, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
+  context 'in a conformant array' do
+    let(:params) { {} }
+    before :example do
+      struct_class.send(:ndr_conf_array, :aligned_field, { :type => [ described_class, params ] } )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrBoolean do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [true, false, true],
+        field_binary: [3].pack('L') + [1, 0, 1].pack('LLL')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrWideChar do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: 'ABC'.encode('utf-16le').chars,
+        field_binary: [3].pack('L') + "A\x00B\x00C\x00"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrEnum do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [1, 2, 3],
+        field_binary: [3].pack('L') + [1, 2, 3].pack('SSS')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrFixArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [1, 2].pack('LL') + [3, 4].pack('LL')
+        ) do
+          let(:params) { {type: :ndr_uint32, initial_length: 2, byte_align: 4} }
+        end
       end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: [1, 2, 3], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(4)).to eq("\x01\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(4)).to eq("\x02\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: [1, :null, 3], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # b[1] referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(4)).to eq("\x01\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [1, 2].pack('QQ') + [3, 4].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64, initial_length: 2, byte_align: 8} }
         end
       end
     end
 
-    context 'with a structure containg an array of pointers to strings' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32 :a
-          array  :b, type: :ndr_lp_str, read_until: -> { index == a - 1 }
-          uint32 :c
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 'test2', 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+    describe RubySMB::Dcerpc::Ndr::NdrConfArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [2].pack('L') + [1, 2].pack('LL') + [2].pack('L') + [3, 4].pack('LL')
+        ) do
+          let(:params) { {type: :ndr_uint32} }
         end
       end
-
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', :null, 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # b[1] referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with null strings' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 0, 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(12)).to eq("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".b) # b[1] null string
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with padding' do
-        let(:packet) do
-          struct.new(a: 3, b: ['test1', 'test', 'test3'], c: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[0] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[1] referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b[2] referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b[0]
-          expect(raw_io.read(22)).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00".b) # b[1]
-          expect(raw_io.read(2)).to eq("\x00\x00".b) # pad
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # b[2]
-          expect(raw_io.eof).to be true
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [3, 4].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64} }
         end
       end
     end
 
-    context 'with a structure containg pointers to strings' do
-      subject(:struct) do
-        Class.new(described_class) do
-          endian :little
-          uint32     :a
-          ndr_lp_str :b
-          ndr_lp_str :c
-          ndr_lp_str :d
-          uint32     :e
-        end.new
-      end
-
-      context 'without null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 'test2', d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x002\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
+    describe RubySMB::Dcerpc::Ndr::NdrVarArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('LL') + [0].pack('L') + [2].pack('L') + [3, 4].pack('LL')
+        ) do
+          let(:params) { {type: :ndr_uint32} }
         end
       end
-
-      context 'with null pointers' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: :null, d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("\x00\x00\x00\x00".b) # c referent_id (null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with null strings' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 0, d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(12)).to eq("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".b) # c
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
-        end
-      end
-
-      context 'with padding' do
-        let(:packet) do
-          struct.new(a: 3, b: 'test1', c: 'test', d: 'test3', e: 55)
-        end
-
-        it 'writes as expected' do
-          packet.do_write(io)
-          raw_io.rewind
-          expect(raw_io.read(4)).to eq("\x03\x00\x00\x00".b) # a
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # b referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # c referent_id (random but not null)
-          expect(raw_io.read(4)).to_not eq("\x00\x00\x00\x00".b) # d referent_id (random but not null)
-          expect(raw_io.read(4)).to eq("7\x00\x00\x00".b) # e
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x001\x00\x00\x00".b) # b
-          expect(raw_io.read(22)).to eq("\x05\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00t\x00e\x00s\x00t\x00\x00\x00".b) # c
-          expect(raw_io.read(2)).to eq("\x00\x00".b) # pad
-          expect(raw_io.read(24)).to eq("\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00t\x00e\x00s\x00t\x003\x00\x00\x00".b) # d
-          expect(raw_io.eof).to be true
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [0].pack('L') + [2].pack('L') + [3, 4].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64} }
         end
       end
     end
-  end
-end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrStringPtrsw do
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :elements }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#max_count' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
-    end
-
-    it 'has an initial value equal to #elements size' do
-      packet.elements = ['A', 'B', 'C']
-      expect(packet.max_count).to eq(3)
-    end
-  end
-
-  describe '#elements' do
-    it 'is a Bindata::Array' do
-      expect(packet.elements).to be_a BinData::Array
-    end
-
-    it 'is an array of NdrLpStr' do
-      expect(packet.elements[0]).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
-    end
-
-    it 'exists if #max_count is greater than 0' do
-      packet.max_count = 2
-      expect(packet.elements?).to be true
-    end
-
-    it 'does not exist if #max_count is 0' do
-      packet.max_count = 0
-      expect(packet.elements?).to be false
-    end
-  end
-
-  describe '#get' do
-    it 'returns elements' do
-      packet.elements = ['1', '2', '3']
-      expect(packet.get).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-  end
-
-  describe '#set' do
-    it 'sets #elements as expected' do
-      packet.set(['1', '2', '3'])
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-
-    it 'sets #max_count to the number of elements set' do
-      packet.set(['1', '2', '3'])
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'calls #to_ary before setting the elements' do
-      ary = BinData::Array.new(['1','2', '3'], type: :ndr_lp_str)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-
-    it 'keeps custom #max_count value when called from #to_binary_s' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.to_binary_s
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'keeps custom #max_count and #offset values when called from #do_num_bytes' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.do_num_bytes
-      expect(packet.max_count).to eq(3)
-    end
-
-    it 'sets #max_count to the number of elements set after setting custom #max_count value' do
-      packet.set(['1', '2', '3', '4', '5'])
-      packet.max_count = 3
-      packet.set(['1', '2', '3', '4', '5'])
-      expect(packet.max_count).to eq(5)
-    end
-  end
-
-  describe '#read' do
-    context 'with a no elements' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
+      context 'with an array of NdrUint32' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('LL') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [3, 4].pack('LL')
+        ) do
+          let(:params) { {type: :ndr_uint32 } }
+        end
+      end
+      context 'with an array of NdrUint64' do
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ [1, 2], [3, 4] ],
+          field_binary: [2].pack('L') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [3, 4].pack('QQ')
+        ) do
+          let(:params) { {type: :ndr_uint64} }
+        end
       end
     end
 
-    context 'with some elements' do
-      it 'reads its own binary representation' do
-        packet.set(['1', '2', '3'])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
+    describe RubySMB::Dcerpc::Ndr::NdrVarString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1", "Test2" ],
+        field_binary: [2].pack('L') + [0].pack('L') + [5].pack('L') + "Test1" + [0].pack('L') + [5].pack('L') + "Test2"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1", "Test2" ],
+        field_binary: [2].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00" + [0].pack('L') + [6].pack('L') + "Test2\x00"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
+        field_binary: [2].pack('L') + [0].pack('L') + [5].pack('L') + "Test1".encode('utf-16le').force_encoding('ASCII') + [0].pack('L') + [5].pack('L') + "Test2".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
+        field_binary: [2].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00".encode('utf-16le').force_encoding('ASCII') + [0].pack('L') + [6].pack('L') + "Test2\x00".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1", "Test2" ],
+        field_binary: [2].pack('L') + [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test1" + [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test2"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1", "Test2" ],
+        field_binary: [2].pack('L') + [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00" + [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test2\x00"
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
+        field_binary: [2].pack('L') + [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test1".encode('utf-16le').force_encoding('ASCII') + [5].pack('L') + [0].pack('L') + [5].pack('L') + "Test2".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [ "Test1".encode('utf-16le'), "Test2".encode('utf-16le') ],
+        field_binary: [2].pack('L') + [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test1\x00".encode('utf-16le').force_encoding('ASCII') + [6].pack('L') + [0].pack('L') + [6].pack('L') + "Test2\x00".encode('utf-16le').force_encoding('ASCII')
+      )
+    end
+
+    {
+      NdrUint8Ptr: { data: 2, binary: "\x02", size: 1 },
+      NdrUint16Ptr: { data: 3, binary: [3].pack('S'), size: 2 },
+      NdrUint32Ptr: { data: 5, binary: [5].pack('L'), size: 4 },
+      NdrUint64Ptr: { data: 7, binary: [7].pack('Q'), size: 8 },
+      NdrCharPtr: { data: 'C', binary: 'C', size: 1 },
+      NdrBooleanPtr: { data: true, binary: [1].pack('L'), size: 4 },
+      NdrStringPtr: {
+        data: 'Test1',
+        binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}Test1",
+        size: 4
+      },
+      NdrStringzPtr: {
+        data: 'Test2',
+        binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}Test2\x00",
+        size: 4
+      },
+      NdrWideStringPtr: {
+        data: 'Test3'.encode('utf-16le'),
+        binary: "#{[5].pack('L')}#{[0].pack('L')}#{[5].pack('L')}#{'Test3'.encode('utf-16le').b}",
+        size: 4
+      },
+      NdrWideStringzPtr: {
+        data: 'Test4'.encode('utf-16le'),
+        binary: "#{[6].pack('L')}#{[0].pack('L')}#{[6].pack('L')}#{'Test4'.encode('utf-16le').b}\x00\x00",
+        size: 4
+      },
+      NdrByteArrayPtr: {
+        data: [1,2,3,4],
+        binary: "#{[4].pack('L')}#{[0].pack('L')}#{[4].pack('L')}\x01\x02\x03\x04",
+        size: 4
+      },
+      NdrFileTimePtr: { data: 132682503830000000, binary: [132682503830000000].pack('Q'), size: 4 }
+    }.each do |ndr_class, info|
+      describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
+        ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
+        ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+        binary_str = [2].pack('L') + ref_id + ref_id2
+        # Embedding structure starts with 'A' + pad (4 bytes)
+        current_size = 4 + binary_str.size
+        align = (info[:size] - (current_size % info[:size])) % info[:size]
+        binary_str << "\x00".b * align
+        current_size += align
+        binary_str << info[:binary]
+        current_size += info[:binary].size
+        align = (info[:size] - (current_size % info[:size])) % info[:size]
+        binary_str << "\x00".b * align
+        binary_str << info[:binary]
+        it_behaves_like(
+          'an aligned structure',
+          field_value: [ info[:data], info[:data] ],
+          field_binary: binary_str
+        )
       end
     end
-  end
-end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrLpStringPtrsw do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
-  end
-
-  subject(:packet) { described_class.new }
-
-  it { is_expected.to respond_to :referent }
-
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  describe '#referent' do
-    it 'is a NdrStringPtrsw structure' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::Ndr::NdrStringPtrsw
-    end
-
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-  end
-
-  describe '#set' do
-    it 'calls #to_ary before setting the elements, if supported' do
-      ary = BinData::Array.new(['1', '2', '3'], type: :ndr_lp_str)
-      expect(ary).to receive(:to_ary).and_call_original
-      packet.set(ary)
-      expect(packet.elements).to eq(['1', '2', '3'].map {|e| e.encode(Encoding::UTF_16LE)})
-    end
-  end
-
-  describe '#read' do
-    context 'with a null pointer' do
-      it 'reads its own binary representation' do
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
-    end
-
-    context 'with a normal NdrStringPtrsw structure' do
-      it 'reads its own binary representation' do
-        packet.set(['1', '2', '3'])
-        raw = packet.to_binary_s
-        expect(described_class.read(raw)).to eq(packet)
-        expect(described_class.read(raw).to_binary_s).to eq(raw)
-      end
+    describe RubySMB::Dcerpc::Ndr::NdrContextHandle do
+      it_behaves_like(
+        'an aligned structure',
+        field_value: [
+          { context_handle_attributes: 4, context_handle_uuid: '57800405-0301-3330-5566-040023007000' },
+          { context_handle_attributes: 2, context_handle_uuid: '57800405-0301-3330-5566-040023007000' }
+        ],
+        field_binary: [2].pack('L') + "\x04\x00\x00\x00\x05\x04\x80\x57\x01\x03\x30\x33\x55\x66\x04\x00\x23\x00\x70\x00\x02\x00\x00\x00\x05\x04\x80\x57\x01\x03\x30\x33\x55\x66\x04\x00\x23\x00\x70\x00"
+      )
     end
   end
 end

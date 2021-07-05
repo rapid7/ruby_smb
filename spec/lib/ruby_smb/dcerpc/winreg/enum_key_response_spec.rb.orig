@@ -1,34 +1,16 @@
-RSpec.describe RubySMB::Dcerpc::Winreg::RpcHkey do
-  it 'is NdrContextHandle subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrContextHandle
-  end
-end
-
-RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyRequest do
+RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyResponse do
   subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :hkey }
-  it { is_expected.to respond_to :dw_index }
   it { is_expected.to respond_to :lp_name }
   it { is_expected.to respond_to :lp_class }
   it { is_expected.to respond_to :lpft_last_write_time }
+  it { is_expected.to respond_to :error_status }
   it { is_expected.to respond_to :opnum }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  describe '#hkey' do
-    it 'is a RpcHkey structure' do
-      expect(packet.hkey).to be_a RubySMB::Dcerpc::Winreg::RpcHkey
-    end
-  end
-
-  describe '#dw_index' do
-    it 'is a NdrUint32' do
-      expect(packet.dw_index).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
-    end
-  end
 
   describe '#lp_name' do
     it 'is a RrpUnicodeString structure' do
@@ -40,11 +22,35 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyRequest do
     it 'is a PrrpUnicodeString structure' do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::PrrpUnicodeString
     end
+<<<<<<< Updated upstream
+
+    it 'has the expected initial value' do
+      expect(packet.lp_class).to eq({:buffer_length=>0, :maximum_length=>0, :buffer=>:null})
+    end
+  end
+
+  describe '#pad2' do
+    it 'is a string' do
+      expect(packet.pad2).to be_a BinData::String
+    end
+
+    it 'should keep #lpft_last_write_time 4-byte aligned' do
+      packet.lp_class = "test"
+      expect(packet.lpft_last_write_time.abs_offset % 4).to eq 0
+    end
+=======
+>>>>>>> Stashed changes
   end
 
   describe '#lpft_last_write_time' do
     it 'is a NdrFileTimePtr structure' do
       expect(packet.lpft_last_write_time).to be_a RubySMB::Dcerpc::Ndr::NdrFileTimePtr
+    end
+  end
+
+  describe '#error_status' do
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -54,3 +60,4 @@ RSpec.describe RubySMB::Dcerpc::Winreg::EnumKeyRequest do
     end
   end
 end
+

@@ -24,14 +24,14 @@ RSpec.describe RubySMB::Dcerpc::Winreg::CreateKeyResponse do
   end
 
   describe '#lpdw_disposition' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a Ndr::NdrUint32Ptr structure' do
+      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

@@ -16,14 +16,14 @@ RSpec.describe RubySMB::Dcerpc::PSyntaxIdT do
   end
 
   describe '#if_ver_major' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.if_ver_major).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.if_ver_major).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 
   describe '#if_ver_minor' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.if_ver_minor).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.if_ver_minor).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 

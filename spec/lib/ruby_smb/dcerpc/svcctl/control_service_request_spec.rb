@@ -16,8 +16,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ControlServiceRequest do
   end
 
   describe '#dw_control' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_control).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_control).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

@@ -36,24 +36,62 @@ scm_handle = svcctl.open_sc_manager_w(address)
 svc_handle = svcctl.open_service_w(scm_handle, service)
 svc_status = svcctl.query_service_status(svc_handle)
 
+puts
 case svc_status.dw_current_state
 when RubySMB::Dcerpc::Svcctl::SERVICE_RUNNING
   puts("Service #{service} is running")
 when RubySMB::Dcerpc::Svcctl::SERVICE_STOPPED
   puts("Service #{service} is in stopped state")
 end
+puts
 
 svc_config = svcctl.query_service_config(svc_handle)
+
+service_type = 'Service type: '
+case svc_config.dw_service_type
+when RubySMB::Dcerpc::Svcctl::SERVICE_KERNEL_DRIVER
+  service_type << 'Driver service'
+when RubySMB::Dcerpc::Svcctl::SERVICE_FILE_SYSTEM_DRIVER
+  service_type << 'File system driver service'
+when RubySMB::Dcerpc::Svcctl::SERVICE_WIN32_OWN_PROCESS
+  service_type << 'Service that runs in its own process'
+when RubySMB::Dcerpc::Svcctl::SERVICE_WIN32_SHARE_PROCESS
+  service_type << 'Service that shares a process with other services'
+end
+
+start_type = 'Service start type: '
 case svc_config.dw_start_type
 when RubySMB::Dcerpc::Svcctl::SERVICE_DISABLED
-  puts("Service #{service} is disabled")
+  start_type << 'Service is disabled'
 when RubySMB::Dcerpc::Svcctl::SERVICE_BOOT_START, RubySMB::Dcerpc::Svcctl::SERVICE_SYSTEM_START
-  puts("Service #{service} starts when the system boots up (driver)")
+  start_type << 'Service starts when the system boots up (driver)'
 when RubySMB::Dcerpc::Svcctl::SERVICE_AUTO_START
-  puts("Service #{service} starts automatically during system startup")
+  start_type << 'Service starts automatically during system startup'
 when RubySMB::Dcerpc::Svcctl::SERVICE_DEMAND_START
-  puts("Service #{service} starts manually")
+  start_type << 'Service starts manually'
 end
+
+error_control = 'Error control: '
+case svc_config.dw_error_control
+when RubySMB::Dcerpc::Svcctl::SERVICE_ERROR_IGNORE
+  error_control << 'SERVICE_ERROR_IGNORE'
+when RubySMB::Dcerpc::Svcctl::SERVICE_ERROR_NORMAL
+  error_control << 'SERVICE_ERROR_NORMAL'
+when RubySMB::Dcerpc::Svcctl::SERVICE_ERROR_SEVERE
+  error_control << 'SERVICE_ERROR_SEVERE'
+when RubySMB::Dcerpc::Svcctl::SERVICE_ERROR_CRITICAL
+  error_control << 'SERVICE_ERROR_CRITICAL'
+end
+
+puts service_type
+puts start_type
+puts error_control
+puts "Binary path: #{svc_config.lp_binary_path_name.to_s.encode('utf-8')}"
+puts "Load ordering service group: #{svc_config.lp_load_order_group.to_s.encode('utf-8')}"
+puts "Service group tag ID: #{svc_config.dw_tag_id.to_s.encode('utf-8')}"
+puts "Dependencies: #{svc_config.lp_dependencies.to_s.encode('utf-8')}"
+puts "Service start name: #{svc_config.lp_service_start_name.to_s.encode('utf-8')}"
+
 
 if svcctl
   svcctl.close_service_handle(svc_handle) if svc_handle

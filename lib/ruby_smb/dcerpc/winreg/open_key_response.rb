@@ -9,9 +9,10 @@ module RubySMB
       class OpenKeyResponse < BinData::Record
         attr_reader :opnum
 
-        endian    :little
-        prpc_hkey :phk_result
-        uint32    :error_status
+        endian :little
+
+        prpc_hkey     :phk_result
+        ndr_uint32    :error_status
 
         def initialize_instance
           super

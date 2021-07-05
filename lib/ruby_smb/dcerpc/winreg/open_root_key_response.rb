@@ -21,8 +21,8 @@ module RubySMB
         attr_reader :opnum
 
         endian    :little
-        prpc_hkey :ph_key
-        uint32    :error_status
+        prpc_hkey  :ph_key
+        ndr_uint32 :error_status
 
         def initialize_instance
           super

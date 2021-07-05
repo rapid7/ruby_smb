@@ -8,8 +8,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::SaveKeyResponse do
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

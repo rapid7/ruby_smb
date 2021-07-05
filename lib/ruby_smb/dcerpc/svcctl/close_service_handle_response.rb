@@ -11,7 +11,7 @@ module RubySMB
         endian :little
 
         sc_rpc_handle :h_sc_object
-        uint32        :error_status
+        ndr_uint32    :error_status
 
         def initialize_instance
           super

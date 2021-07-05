@@ -9,7 +9,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/ndr'
     require 'ruby_smb/dcerpc/ptypes'
     require 'ruby_smb/dcerpc/p_syntax_id_t'
-    require 'ruby_smb/dcerpc/rrp_unicode_string'
+    require 'ruby_smb/dcerpc/rrp_rpc_unicode_string'
     require 'ruby_smb/dcerpc/rpc_security_attributes'
     require 'ruby_smb/dcerpc/pdu_header'
     require 'ruby_smb/dcerpc/srvsvc'

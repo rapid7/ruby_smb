@@ -1,38 +1,30 @@
 RSpec.describe RubySMB::Dcerpc::Winreg::PRegistryServerName do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+  it 'is BinData::Array subclass' do
+    expect(described_class).to be < BinData::Array
+  end
+
+  it 'is a RubySMB::Dcerpc::Ndr::PointerClassPlugin class' do
+    expect(described_class).to be_a(RubySMB::Dcerpc::Ndr::PointerClassPlugin)
   end
 
   subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :referent }
+  it { is_expected.to respond_to :ref_id }
 
-  it 'is little endian' do
-    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  it 'is an array of UTF-16LE strings' do
+    expect(packet[0]).to be_a RubySMB::Field::String16
   end
 
-  describe '#referent' do
-    it 'is a string in UTF-16LE' do
-      expect(packet.referent).to be_a RubySMB::Field::String16
-    end
-
-    it 'only exists if #referent_id is not 0' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
-
-    it 'reads 4-bytes' do
-      str = 'spec_test'.encode('utf-16le')
-      packet.referent.read(str)
-      expect(packet.referent.to_binary_s.bytes).to eq(str.bytes[0,4])
-    end
+  it 'is :null if #ref_id is 0' do
+    packet.ref_id = 0
+    expect(packet).to eq(:null)
   end
 end
 
 RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do
   subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :p_registry_server_name }
+  it { is_expected.to respond_to :server_name }
   it { is_expected.to respond_to :sam_desired }
   it { is_expected.to respond_to :opnum }
 
@@ -40,9 +32,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  describe '#p_registry_server_name' do
+  describe '#server_name' do
     it 'is a PRegistryServerName structure' do
-      expect(packet.p_registry_server_name).to be_a RubySMB::Dcerpc::Winreg::PRegistryServerName
+      expect(packet.server_name).to be_a RubySMB::Dcerpc::Winreg::PRegistryServerName
     end
   end
 
@@ -60,8 +52,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do
       end
     end
 
-    it 'sets #p_registry_server_name.referent to :null' do
-      expect(packet.p_registry_server_name).to eq(:null)
+    it 'sets #server_name.referent to :null' do
+      expect(packet.server_name).to eq(:null)
     end
 
     context 'when #opnum is not OPEN_HKPD, OPEN_HKPT or OPEN_HKPN' do

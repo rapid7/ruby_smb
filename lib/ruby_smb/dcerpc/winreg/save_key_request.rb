@@ -13,22 +13,13 @@ module RubySMB
 
         rpc_hkey                 :hkey
         rrp_unicode_string       :lp_file
-        string                   :pad, length: -> { pad_length(self.lp_file) }
         prpc_security_attributes :lp_security_attributes
 
         def initialize_instance
           super
           @opnum = REG_SAVE_KEY
         end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
       end
-
     end
   end
 end

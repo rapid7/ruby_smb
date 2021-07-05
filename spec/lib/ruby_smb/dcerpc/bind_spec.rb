@@ -36,8 +36,8 @@ RSpec.describe RubySMB::Dcerpc::Bind do
   end
 
   describe '#max_xmit_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_xmit_frag).to be_a BinData::Uint16le
+    it 'should be NdrUint16' do
+      expect(packet.max_xmit_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -46,8 +46,8 @@ RSpec.describe RubySMB::Dcerpc::Bind do
   end
 
   describe '#max_recv_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_recv_frag).to be_a BinData::Uint16le
+    it 'should be NdrUint16' do
+      expect(packet.max_recv_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -56,8 +56,8 @@ RSpec.describe RubySMB::Dcerpc::Bind do
   end
 
   describe '#assoc_group_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.assoc_group_id).to be_a BinData::Uint32le
+    it 'should be NdrUint32' do
+      expect(packet.assoc_group_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -125,8 +125,8 @@ RSpec.describe RubySMB::Dcerpc::PContListT do
   end
 
   describe '#n_context_elem' do
-    it 'should be a 8-bit unsigned integer' do
-      expect(packet.n_context_elem).to be_a BinData::Uint8
+    it 'should be NdrUint8' do
+      expect(packet.n_context_elem).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
     end
 
     it 'should have the default value 1' do
@@ -183,14 +183,14 @@ RSpec.describe RubySMB::Dcerpc::PContElemT do
   end
 
   describe '#p_cont_id' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.p_cont_id).to be_a BinData::Uint16le
+    it 'should be NdrUint16' do
+      expect(packet.p_cont_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 
   describe '#n_transfer_syn' do
-    it 'should be a 8-bit unsigned integer' do
-      expect(packet.n_transfer_syn).to be_a BinData::Uint8
+    it 'should be NdrUint8' do
+      expect(packet.n_transfer_syn).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
     end
 
     it 'should have the default value 1' do

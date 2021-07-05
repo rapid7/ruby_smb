@@ -16,13 +16,10 @@ RSpec.describe RubySMB::Dcerpc::Winreg::CreateKeyRequest do
 
   it { is_expected.to respond_to :hkey }
   it { is_expected.to respond_to :lp_sub_key }
-  it { is_expected.to respond_to :pad1 }
   it { is_expected.to respond_to :lp_class }
-  it { is_expected.to respond_to :pad2 }
   it { is_expected.to respond_to :dw_options }
   it { is_expected.to respond_to :sam_desired }
   it { is_expected.to respond_to :lp_security_attributes }
-  it { is_expected.to respond_to :pad3 }
   it { is_expected.to respond_to :lpdw_disposition }
 
   describe '#hkey' do
@@ -37,37 +34,15 @@ RSpec.describe RubySMB::Dcerpc::Winreg::CreateKeyRequest do
     end
   end
 
-  describe '#pad1' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #lp_class 4-byte aligned' do
-      packet.lp_sub_key = "test"
-      expect(packet.lp_class.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#lp_class' do
     it 'is a RrpUnicodeString structure' do
       expect(packet.lp_class).to be_a RubySMB::Dcerpc::RrpUnicodeString
     end
   end
 
-  describe '#pad2' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #dw_options 4-byte aligned' do
-      packet.lp_class = "test"
-      expect(packet.dw_options.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#dw_options' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_options).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_options).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -83,21 +58,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg::CreateKeyRequest do
     end
   end
 
-  describe '#pad3' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #lpdw_disposition 4-byte aligned' do
-      sc = RubySMB::Dcerpc::RpcSecurityDescriptor.new(lp_security_descriptor: [1,2,3,4])
-      packet.lp_security_attributes = RubySMB::Dcerpc::RpcSecurityAttributes.new(rpc_security_descriptor: sc)
-      expect(packet.lpdw_disposition.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#lpdw_disposition' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.lpdw_disposition).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 

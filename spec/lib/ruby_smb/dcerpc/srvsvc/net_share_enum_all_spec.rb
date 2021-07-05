@@ -1,189 +1,228 @@
-RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAll do
-  subject(:packet) { described_class.new(host: '1.2.3.4') }
+RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAllRequest do
+  subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :referent_id }
-  it { is_expected.to respond_to :max_count }
-  it { is_expected.to respond_to :offset }
-  it { is_expected.to respond_to :actual_count }
-  it { is_expected.to respond_to :server_unc }
-  it { is_expected.to respond_to :pad }
-  it { is_expected.to respond_to :level }
-  it { is_expected.to respond_to :ctr }
-  it { is_expected.to respond_to :ctr_referent_id }
-  it { is_expected.to respond_to :ctr_count }
-  it { is_expected.to respond_to :pointer_to_array }
-  it { is_expected.to respond_to :max_buffer }
-  it { is_expected.to respond_to :resume_referent_id }
+  it { is_expected.to respond_to :server_name }
+  it { is_expected.to respond_to :info_struct }
+  it { is_expected.to respond_to :prefered_maximum_length }
   it { is_expected.to respond_to :resume_handle }
-  it { is_expected.to respond_to :opnum }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  context 'when \'host\' parameter is not provided' do
-    it 'raises an ArgumentError' do
-      expect { described_class.new }.to raise_error(ArgumentError)
+  describe '#server_name' do
+    it 'is a SrvsvcHandle' do
+      expect(packet.server_name).to be_a RubySMB::Dcerpc::Srvsvc::SrvsvcHandle
     end
   end
 
-  describe '#referent_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.referent_id).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 1' do
-      expect(packet.referent_id).to eq 1
+  describe '#info_struct' do
+    it 'is a LpshareEnumStruct' do
+      expect(packet.info_struct).to be_a RubySMB::Dcerpc::Srvsvc::LpshareEnumStruct
     end
   end
 
-  describe '#max_count' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.max_count).to be_a BinData::Uint32le
+  describe '#prefered_maximum_length' do
+    it 'is a NdrUint32' do
+      expect(packet.prefered_maximum_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
 
-    it 'should be the number of unicode characters in the #server_unc field' do
-      expect(packet.max_count).to eq(packet.server_unc.do_num_bytes / 2)
-    end
-  end
-
-  describe '#offset' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.offset).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 0' do
-      expect(packet.offset).to eq 0
-    end
-  end
-
-  describe '#actual_count' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.actual_count).to be_a BinData::Uint32le
-    end
-
-    it 'should be the same value than #max_count' do
-      expect(packet.actual_count).to eq(packet.max_count)
-    end
-  end
-
-  describe '#server_unc' do
-    it 'is a Stringz16' do
-      expect(packet.server_unc).to be_a RubySMB::Field::Stringz16
-    end
-
-    it 'uses the #host parameter value to create the UNC unicode string' do
-      expect(packet.server_unc).to eq("\\\\#{"1.2.3.4".encode('utf-8')}".encode('utf-16le'))
-    end
-  end
-
-  describe '#pad' do
-    it 'should keep #level 4-byte aligned' do
-      expect(packet.level.abs_offset % 4).to eq 0
-    end
-  end
-
-  describe '#level' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.level).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 1' do
-      expect(packet.level).to eq 1
-    end
-  end
-
-  describe '#ctr' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.ctr).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 1' do
-      expect(packet.ctr).to eq 1
-    end
-  end
-
-  describe '#ctr_referent_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.ctr_referent_id).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 1' do
-      expect(packet.ctr_referent_id).to eq 1
-    end
-  end
-
-  describe '#ctr_count' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.ctr_count).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 0' do
-      expect(packet.ctr_count).to eq 0
-    end
-  end
-
-  describe '#pointer_to_array' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.pointer_to_array).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 0' do
-      expect(packet.pointer_to_array).to eq 0
-    end
-  end
-
-  describe '#max_buffer' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.max_buffer).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 4294967295' do
-      expect(packet.max_buffer).to eq 4294967295
-    end
-  end
-
-  describe '#resume_referent_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.resume_referent_id).to be_a BinData::Uint32le
-    end
-
-    it 'should have a default value of 1' do
-      expect(packet.resume_referent_id).to eq 1
+    it 'has a default value of 0xFFFFFFFF' do
+      expect(packet.prefered_maximum_length).to eq(0xFFFFFFFF)
     end
   end
 
   describe '#resume_handle' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.resume_handle).to be_a BinData::Uint32le
+    it 'is a NdrUint32Ptr' do
+      expect(packet.resume_handle).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
 
-    it 'should have a default value of 0' do
-      expect(packet.resume_handle).to eq 0
+    it 'has a default value of 0' do
+      expect(packet.resume_handle).to eq(0)
     end
   end
 
   describe '#initialize_instance' do
-    it 'sets #opnum to REG_CLOSE_KEY constant' do
+    it 'sets #opnum to NET_SHARE_ENUM_ALL constant' do
       expect(packet.opnum).to eq(RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL)
     end
   end
+end
 
-  describe '#pad_length' do
-    it 'returns 0 when #level is already 4-byte aligned' do
-      expect(packet.pad_length).to eq 0
-    end
+RSpec.describe RubySMB::Dcerpc::Srvsvc::NetShareEnumAllResponse do
+  subject(:packet) { described_class.new }
 
-    it 'returns 2 when #level is only 2-byte aligned' do
-      packet.server_unc = packet.server_unc + 'A'.encode('utf-16le')
-      expect(packet.pad_length).to eq 2
+  it { is_expected.to respond_to :info_struct }
+  it { is_expected.to respond_to :total_entries }
+  it { is_expected.to respond_to :resume_handle }
+  it { is_expected.to respond_to :error_status }
+
+  it 'is little endian' do
+    expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  end
+
+  describe '#info_struct' do
+    it 'is a LpshareEnumStruct' do
+      expect(packet.info_struct).to be_a RubySMB::Dcerpc::Srvsvc::LpshareEnumStruct
     end
   end
 
-  describe 'class method self.parse_response' do
-    # TODO: this class method will be refactored to use proper BinData NDR
-    # fields once they are ready (see https://github.com/rapid7/ruby_smb/issues/124)
+  describe '#total_entries' do
+    it 'is a NdrUint32' do
+      expect(packet.total_entries).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+  end
+
+  describe '#resume_handle' do
+    it 'is a NdrUint32Ptr' do
+      expect(packet.resume_handle).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
+    end
+  end
+
+  describe '#error_status' do
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+  end
+
+  describe '#initialize_instance' do
+    it 'sets #opnum to NET_SHARE_ENUM_ALL constant' do
+      expect(packet.opnum).to eq(RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL)
+    end
   end
 end
 
+RSpec.describe RubySMB::Dcerpc::Srvsvc::LpshareEnumStruct do
+  it 'is a NdrStruct' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
 
+  subject(:packet) { described_class.new }
+
+  it { is_expected.to respond_to :level }
+  it { is_expected.to respond_to :switch_value }
+  it { is_expected.to respond_to :share_info }
+
+  describe '#level' do
+    it 'is a NdrUint32' do
+      expect(packet.level).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+
+    it 'has a default value of 1' do
+      expect(packet.level).to eq 1
+    end
+  end
+
+  describe '#switch_value' do
+    it 'is a NdrUint32' do
+      expect(packet.switch_value).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+
+    it 'has a default value set to the #level value' do
+      expect(packet.switch_value).to eq packet.level
+    end
+
+    it 'is an hidden field' do
+      expect(packet.snapshot).to_not have_key(:switch_value)
+    end
+  end
+
+  describe '#share_info' do
+    it 'is a BinData::Choice' do
+      expect(packet.share_info).to be_a BinData::Choice
+    end
+
+    it 'selects a structure according to :level value and set the default value' do
+      expect(packet.share_info.snapshot).to eq({ entries_read: 0, buffer: :null })
+      # Trying to with a non existing enum value, since only Level 1 is implemented so far
+      packet.level = 0
+      expect { packet.share_info.snapshot }.to raise_error(IndexError)
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::LpshareInfo1Container do
+  it 'is a ShareInfo1Container' do
+    expect(described_class).to be < RubySMB::Dcerpc::Srvsvc::ShareInfo1Container
+  end
+  it 'is a NDR pointer' do
+    expect(described_class.new).to be_a RubySMB::Dcerpc::Ndr::PointerPlugin
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::ShareInfo1Container do
+  it 'is a NdrStruct' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+
+  subject(:packet) { described_class.new }
+
+  it { is_expected.to respond_to :entries_read }
+  it { is_expected.to respond_to :buffer }
+
+  describe '#entries_read' do
+    it 'is a NdrUint32' do
+      expect(packet.entries_read).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+  end
+
+  describe '#buffer' do
+    it 'is a LpshareInfo1' do
+      expect(packet.buffer).to be_a RubySMB::Dcerpc::Srvsvc::LpshareInfo1
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::LpshareInfo1 do
+  it 'is a ShareInfo1' do
+    expect(described_class).to be < RubySMB::Dcerpc::Srvsvc::ShareInfo1
+  end
+  it 'is a NDR pointer' do
+    expect(described_class.new).to be_a RubySMB::Dcerpc::Ndr::PointerPlugin
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::ShareInfo1 do
+  it 'is a NdrConfArray' do
+    expect(described_class.new).to be_a RubySMB::Dcerpc::Ndr::NdrConfArray
+  end
+  it 'contains element of type ShareInfo1Element' do
+    expect(described_class.default_parameters[:type]).to eq(:share_info1_element)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::ShareInfo1Element do
+  it 'is a NdrStruct' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+
+  subject(:packet) { described_class.new }
+
+  it { is_expected.to respond_to :shi1_netname }
+  it { is_expected.to respond_to :shi1_type }
+  it { is_expected.to respond_to :shi1_remark }
+
+  describe '#shi1_netname' do
+    it 'is a NdrConfVarWideStringz' do
+      expect(packet.shi1_netname).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
+    end
+  end
+
+  describe '#shi1_type' do
+    it 'is a NdrUint32' do
+      expect(packet.shi1_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+  end
+
+  describe '#shi1_remark' do
+    it 'is a NdrConfVarWideStringz' do
+      expect(packet.shi1_remark).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
+    end
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Srvsvc::SrvsvcHandle do
+  it 'is a NdrWideStringzPtr' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrWideStringzPtr
+  end
+end

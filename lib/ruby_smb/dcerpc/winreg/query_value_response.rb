@@ -9,29 +9,21 @@ module RubySMB
 
         endian :little
 
-        ndr_lp_dword      :lp_type
-        ndr_lp_byte_array :lp_data
-        string            :pad, length: -> { pad_length(self.lp_data) }
-        ndr_lp_dword      :lpcb_data
-        ndr_lp_dword      :lpcb_len
-        uint32            :error_status
+        ndr_uint32_ptr     :lp_type
+        ndr_byte_array_ptr :lp_data
+        ndr_uint32_ptr     :lpcb_data
+        ndr_uint32_ptr     :lpcb_len
+        ndr_uint32         :error_status
 
         def initialize_instance
           super
           @opnum = REG_QUERY_VALUE
         end
 
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
-
         # Returns the data portion of the registry value formatted according to its type:
         # [3.1.1.5 Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rrp/3d64dbea-f016-4373-8cac-e43bf343837d)
         def data
-          bytes = lp_data.bytes.to_a.pack('C*')
+          bytes = lp_data.to_a.pack('C*')
           case lp_type
           when 1,2
             bytes.force_encoding('utf-16le').strip
@@ -47,7 +39,7 @@ module RubySMB
           when 11
             bytes.unpack('Q<').first
           else
-            ""
+            ''
           end
         end
 

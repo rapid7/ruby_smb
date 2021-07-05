@@ -1,4 +1,8 @@
 RSpec.describe RubySMB::Dcerpc::Svcctl::ServiceStatus do
+  it 'is a NdrStruct' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :dw_service_type }
@@ -14,44 +18,44 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ServiceStatus do
   end
 
   describe '#dw_service_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_service_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_service_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_current_state' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_current_state).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_current_state).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_controls_accepted' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_controls_accepted).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_controls_accepted).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_win32_exit_code' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_win32_exit_code).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_win32_exit_code).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_service_specific_exit_code' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_service_specific_exit_code).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_service_specific_exit_code).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_check_point' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_check_point).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_check_point).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_wait_hint' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_wait_hint).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_wait_hint).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

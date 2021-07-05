@@ -5,8 +5,10 @@ module RubySMB
       # This class represents a REGSAM structure as defined in
       # [2.2.3 REGSAM](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rrp/fefbc801-b141-4bb1-9dcb-bf366da3ae7e)
       # [2.4.3 ACCESS_MASK](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/7a53f60e-e730-4dfe-bbe9-b21b62eb790b)
-      class Regsam < BinData::Record
+      class Regsam < Ndr::NdrStruct
+        default_parameter byte_align: 4
         endian  :little
+
         bit2    :reserved,               label: 'Reserved Space'
         bit1    :key_create_link,        label: 'Key Create Link'
         bit1    :key_notify,             label: 'Key Notify'

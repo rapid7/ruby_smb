@@ -38,7 +38,7 @@ module RubySMB
           string                            :default
         end
         choice 'Srvsvc', selection: -> { opnum } do
-          net_share_enum_all RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL, host: -> { host rescue '' }
+          net_share_enum_all_request RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL
           string             :default
         end
         choice 'Svcctl', selection: -> { opnum } do
