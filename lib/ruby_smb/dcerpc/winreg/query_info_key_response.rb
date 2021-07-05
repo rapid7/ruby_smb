@@ -9,7 +9,6 @@ module RubySMB
         endian :little
 
         rrp_unicode_string :lp_class, initial_value: 0
-        #string             :pad,      length: -> { pad_length }
         ndr_uint32         :lpc_sub_keys
         ndr_uint32         :lpc_max_sub_key_len
         ndr_uint32         :lpc_max_class_len

@@ -13,10 +13,8 @@ module RubySMB
 
         rpc_hkey           :hkey
         rrp_unicode_string :lp_value_name
-        #string             :pad1, length: -> { pad_length(self.lp_value_name) }
         ndr_uint32_ptr     :lp_type
         ndr_byte_array_ptr :lp_data
-        #string             :pad2, length: -> { pad_length(self.lp_data) }
         ndr_uint32_ptr     :lpcb_data
         ndr_uint32_ptr     :lpcb_len
 

@@ -1,8 +1,8 @@
 RSpec.describe RubySMB::Dcerpc::Svcctl::SvcctlHandleW do
   subject(:packet) { described_class.new }
 
-  it 'is Ndr::NdrWideStringPtr subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrWideStringPtr
+  it 'is Ndr::NdrWideStringzPtr subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrWideStringzPtr
   end
 end
 
@@ -10,9 +10,7 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenSCManagerWRequest do
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :lp_machine_name }
-  it { is_expected.to respond_to :pad1 }
   it { is_expected.to respond_to :lp_database_name }
-  it { is_expected.to respond_to :pad2 }
   it { is_expected.to respond_to :dw_desired_access }
 
   it 'is little endian' do
@@ -25,43 +23,35 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::OpenSCManagerWRequest do
     end
   end
 
-  describe '#pad1' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #lp_database_name 4-byte aligned' do
-      packet.lp_machine_name = "test"
-      expect(packet.lp_database_name.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#lp_database_name' do
-    it 'is a Ndr::NdrWideStringPtr structure' do
-      expect(packet.lp_database_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
-    end
-  end
-
-  describe '#pad2' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #dw_desired_access 4-byte aligned' do
-      packet.lp_database_name = "test"
-      expect(packet.dw_desired_access.abs_offset % 4).to eq 0
+    it 'is a Ndr::NdrWideStringzPtr structure' do
+      expect(packet.lp_database_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringzPtr
     end
   end
 
   describe '#dw_desired_access' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_desired_access).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_desired_access).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#initialize_instance' do
     it 'sets #opnum to OPEN_SC_MANAGER_W constant' do
       expect(packet.opnum).to eq(RubySMB::Dcerpc::Svcctl::OPEN_SC_MANAGER_W)
+    end
+  end
+
+  it 'should keep #lp_database_name 4-byte aligned' do
+    5.times do |i|
+      packet.lp_machine_name = "A" * i
+      expect(packet.lp_database_name.abs_offset % 4).to eq 0
+    end
+  end
+
+  it 'should keep #dw_desired_access 4-byte aligned' do
+    5.times do |i|
+      packet.lp_database_name = "A" * i
+      expect(packet.dw_desired_access.abs_offset % 4).to eq 0
     end
   end
 

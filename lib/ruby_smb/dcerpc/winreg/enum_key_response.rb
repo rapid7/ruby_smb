@@ -10,9 +10,7 @@ module RubySMB
         endian :little
 
         rrp_unicode_string  :lp_name
-        #string              :pad1,     length: -> { pad_length1 }
         prrp_unicode_string :lp_class
-        #string              :pad2,     length: -> { pad_length2 }
         ndr_file_time_ptr   :lpft_last_write_time
         ndr_uint32          :error_status
 

@@ -6,17 +6,12 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
   it { is_expected.to respond_to :dw_start_type }
   it { is_expected.to respond_to :dw_error_control }
   it { is_expected.to respond_to :lp_binary_path_name }
-  it { is_expected.to respond_to :pad1 }
   it { is_expected.to respond_to :lp_load_order_group }
-  it { is_expected.to respond_to :pad2 }
   it { is_expected.to respond_to :dw_tag_id }
   it { is_expected.to respond_to :lp_dependencies }
-  it { is_expected.to respond_to :pad3 }
   it { is_expected.to respond_to :dw_depend_size }
   it { is_expected.to respond_to :lp_service_start_name }
-  it { is_expected.to respond_to :pad4 }
   it { is_expected.to respond_to :lp_password }
-  it { is_expected.to respond_to :pad5 }
   it { is_expected.to respond_to :dw_pw_size }
   it { is_expected.to respond_to :lp_display_name }
 
@@ -31,20 +26,20 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
   end
 
   describe '#dw_service_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_service_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_service_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_start_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_start_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_start_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_start_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_start_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_start_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -54,31 +49,9 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
     end
   end
 
-  describe '#pad1' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #lp_load_order_group 4-byte aligned' do
-      packet.lp_binary_path_name = "test"
-      expect(packet.lp_load_order_group.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#lp_load_order_group' do
     it 'is a NdrWideStringPtr structure' do
       expect(packet.lp_load_order_group).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
-    end
-  end
-
-  describe '#pad2' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #dw_tag_id 4-byte aligned' do
-      packet.lp_load_order_group = "test"
-      expect(packet.dw_tag_id.abs_offset % 4).to eq 0
     end
   end
 
@@ -95,37 +68,15 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
     end
   end
 
-  describe '#pad3' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #dw_depend_size 4-byte aligned' do
-      packet.lp_dependencies = [1, 2, 3, 4]
-      expect(packet.dw_depend_size.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#dw_depend_size' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_depend_size).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_depend_size).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#lp_service_start_name' do
     it 'is a NdrWideStringPtr structure' do
       expect(packet.lp_service_start_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
-    end
-  end
-
-  describe '#pad4' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #lp_password 4-byte aligned' do
-      packet.lp_service_start_name = "test"
-      expect(packet.lp_password.abs_offset % 4).to eq 0
     end
   end
 
@@ -136,20 +87,9 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
     end
   end
 
-  describe '#pad5' do
-    it 'is a string' do
-      expect(packet.pad1).to be_a BinData::String
-    end
-
-    it 'should keep #dw_pw_size 4-byte aligned' do
-      packet.lp_password = [1, 2, 3, 4]
-      expect(packet.dw_pw_size.abs_offset % 4).to eq 0
-    end
-  end
-
   describe '#dw_pw_size' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_pw_size).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_pw_size).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
 
     it 'is set to the number of elements in #lp_password array' do
@@ -161,6 +101,41 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWRequest do
   describe '#lp_display_name' do
     it 'is a NdrWideStringPtr structure' do
       expect(packet.lp_display_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
+    end
+  end
+
+  it 'should keep #lp_load_order_group 4-byte aligned' do
+    5.times do |i|
+      packet.lp_binary_path_name = "A" * i
+      expect(packet.lp_load_order_group.abs_offset % 4).to eq 0
+    end
+  end
+
+  it 'should keep #dw_tag_id 4-byte aligned' do
+    5.times do |i|
+      packet.lp_load_order_group = "A" * i
+      expect(packet.dw_tag_id.abs_offset % 4).to eq 0
+    end
+  end
+
+  it 'should keep #dw_depend_size 4-byte aligned' do
+    5.times do |i|
+      packet.lp_dependencies = [1] * i
+      expect(packet.dw_depend_size.abs_offset % 4).to eq 0
+    end
+  end
+
+  it 'should keep #lp_password 4-byte aligned' do
+    5.times do |i|
+      packet.lp_service_start_name = "A" * i
+      expect(packet.lp_password.abs_offset % 4).to eq 0
+    end
+  end
+
+  it 'should keep #dw_pw_size 4-byte aligned' do
+    5.times do |i|
+      packet.lp_password = [1] * i
+      expect(packet.dw_pw_size.abs_offset % 4).to eq 0
     end
   end
 
