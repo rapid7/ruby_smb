@@ -13,11 +13,17 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
     it 'should be a NdrUint16' do
       expect(packet.buffer_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
+    it 'is 0 by default' do
+      expect(packet.buffer_length).to eq(0)
+    end
   end
 
   describe '#maximum_length' do
     it 'should be a NdrUint16' do
       expect(packet.maximum_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
+    end
+    it 'is 0 by default' do
+      expect(packet.maximum_length).to eq(0)
     end
   end
 
@@ -25,22 +31,43 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
     it 'should be a NdrWideStringzPtr' do
       expect(packet.buffer).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringzPtr
     end
+    it 'is :null by default' do
+      expect(packet.buffer).to eq(:null)
+    end
   end
 
   describe '#assign' do
-    it 'sets #buffer to the expected value' do
-      packet.assign('spec_test')
-      expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
-    end
+    context 'with a string' do
+      before :example do
+        packet.assign('spec_test')
+      end
+      it 'sets #buffer to the expected value' do
+        expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
+      end
 
-    it 'sets #buffer_length to the expected value' do
-      packet.assign('spec_test')
-      expect(packet.buffer_length).to eq(('spec_test'.size + 1) * 2)
-    end
+      it 'sets #buffer_length to the expected value' do
+        expect(packet.buffer_length).to eq(('spec_test'.size + 1) * 2)
+      end
 
-    it 'sets #maximum_length to the expected value' do
-      packet.assign('spec_test')
-      expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
+      it 'sets #maximum_length to the expected value' do
+        expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
+      end
+    end
+    context 'with a :null pointer' do
+      before :example do
+        packet.assign(:null)
+      end
+      it 'sets #buffer to :null' do
+        expect(packet.buffer).to eq(:null)
+      end
+
+      it 'sets #buffer_length to 0' do
+        expect(packet.buffer_length).to eq(0)
+      end
+
+      it 'sets #maximum_length to 0' do
+        expect(packet.maximum_length).to eq(0)
+      end
     end
   end
 
@@ -129,11 +156,17 @@ RSpec.describe RubySMB::Dcerpc::RpcUnicodeString do
     it 'should be a NdrUint16' do
       expect(packet.buffer_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
+    it 'is 0 by default' do
+      expect(packet.buffer_length).to eq(0)
+    end
   end
 
   describe '#maximum_length' do
     it 'should be a NdrUint16' do
       expect(packet.maximum_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
+    end
+    it 'is 0 by default' do
+      expect(packet.maximum_length).to eq(0)
     end
   end
 
@@ -141,22 +174,43 @@ RSpec.describe RubySMB::Dcerpc::RpcUnicodeString do
     it 'should be a NdrWideStringPtr' do
       expect(packet.buffer).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
+    it 'is :null by default' do
+      expect(packet.buffer).to eq(:null)
+    end
   end
 
   describe '#assign' do
-    it 'sets #buffer to the expected value' do
-      packet.assign('spec_test')
-      expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
-    end
+    context 'with a string' do
+      before :example do
+        packet.assign('spec_test')
+      end
+      it 'sets #buffer to the expected value' do
+        expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
+      end
 
-    it 'sets #buffer_length to the expected value' do
-      packet.assign('spec_test')
+      it 'sets #buffer_length to the expected value' do
       expect(packet.buffer_length).to eq(('spec_test'.size) * 2)
-    end
+      end
 
-    it 'sets #maximum_length to the expected value' do
-      packet.assign('spec_test')
+      it 'sets #maximum_length to the expected value' do
       expect(packet.maximum_length).to eq(('spec_test'.size) * 2)
+      end
+    end
+    context 'with a :null pointer' do
+      before :example do
+        packet.assign(:null)
+      end
+      it 'sets #buffer to :null' do
+        expect(packet.buffer).to eq(:null)
+      end
+
+      it 'sets #buffer_length to 0' do
+        expect(packet.buffer_length).to eq(0)
+      end
+
+      it 'sets #maximum_length to 0' do
+        expect(packet.maximum_length).to eq(0)
+      end
     end
   end
 

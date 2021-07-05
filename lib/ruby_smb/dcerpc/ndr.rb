@@ -97,19 +97,30 @@ module RubySMB::Dcerpc::Ndr
     def set_top_level
       @deferred_ptrs = []
     end
-    def unset_top_level
-      @deferred_ptrs = nil
-    end
+
     def is_top_level?
       !@deferred_ptrs.nil?
     end
+
     def defer_ptr(ref)
       @deferred_ptrs << ref
     end
-    def deferred_ptrs
-      @deferred_ptrs
+
+    def has_deferred_ptrs?
+      !!@deferred_ptrs&.any?
     end
-    def clear_deferred_ptrs
+
+    def write_ptr(io)
+      @deferred_ptrs.each do |ptr_ref|
+        ptr_ref.do_write(io, is_deferred: true)
+      end
+      @deferred_ptrs.clear
+    end
+
+    def read_ptr(io)
+      @deferred_ptrs.each do |ptr_ref|
+        ptr_ref.do_read(io, is_deferred: true)
+      end
       @deferred_ptrs.clear
     end
   end
@@ -127,30 +138,16 @@ module RubySMB::Dcerpc::Ndr
 
     def do_write(io)
       super
-      if is_top_level? && !deferred_ptrs.empty?
+      if is_top_level? && has_deferred_ptrs?
         write_ptr(io)
       end
     end
 
-    def write_ptr(io)
-      deferred_ptrs.each do |ptr_ref|
-        ptr_ref.do_write(io, is_deferred: true)
-      end
-      clear_deferred_ptrs
-    end
-
     def do_read(io)
       super
-      if is_top_level? && !deferred_ptrs.empty?
+      if is_top_level? && has_deferred_ptrs?
         read_ptr(io)
       end
-    end
-
-    def read_ptr(io)
-      deferred_ptrs.each do |ptr_ref|
-        ptr_ref.do_read(io, is_deferred: true)
-      end
-      clear_deferred_ptrs
     end
 
     def sum_num_bytes_below_index(index)
@@ -201,14 +198,14 @@ module RubySMB::Dcerpc::Ndr
       unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
         io.writebytes([@max_count].pack('L'))
       end
-      super(io)
+      super(io) if is_a?(VarPlugin) || @max_count > 0
     end
 
     def do_read(io)
       unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
-        @max_count = @read_until_index = io.readbytes(4).unpack('L').first
+        set_max_count(io.readbytes(4).unpack('L').first)
       end
-      super(io)
+      super(io) if is_a?(VarPlugin) || @max_count > 0
     end
 
     def insert(index, *objs)
@@ -231,6 +228,10 @@ module RubySMB::Dcerpc::Ndr
 
     def do_num_bytes
       4 + super
+    end
+
+    def set_max_count(val)
+        @max_count = @read_until_index = val
     end
   end
 
@@ -575,20 +576,31 @@ module RubySMB::Dcerpc::Ndr
   #
 
   module StructPlugin
-    # 1. if there is an array with conformant info in the structure, check if it is the last member
-    #   --> if the structure contains a structure with an array, it has to be the last member too
-    # 2. if ok, max_count is moved to the beginning
+    include ConstructedTypePlugin
+
+    def initialize_instance
+      set_top_level unless is_top_level?
+      super
+    end
+
     def do_write(io)
       if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
         io.writebytes("\x00" * bytes_to_align(self, io.offset))
       end
 
+      # 1. if there is an array with conformant info in the structure, check if it is the last member
+      #   --> if the structure contains a structure with an array, it has to be the last member too
+      # 2. if ok, max_count is moved to the beginning
       if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
         max_count = get_max_count
         io.writebytes([max_count].pack('L')) if max_count
       end
 
       super
+
+      if is_top_level? && has_deferred_ptrs?
+        write_ptr(io)
+      end
     end
 
     def do_read(io)
@@ -601,6 +613,10 @@ module RubySMB::Dcerpc::Ndr
       end
 
       super
+
+      if is_top_level? && has_deferred_ptrs?
+        read_ptr(io)
+      end
     end
 
     def get_max_count
@@ -613,11 +629,7 @@ module RubySMB::Dcerpc::Ndr
 
     def set_max_count(val)
       obj = self[field_names.last]
-      if obj.class.is_a?(ConfClassPlugin)
-        obj.read_until_index = val
-      elsif obj.is_a?(NdrStruct)
-        obj.set_max_count(val)
-      end
+      obj.set_max_count(val)
     end
   end
 

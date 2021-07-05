@@ -13,14 +13,15 @@ module RubySMB
 
       def assign(val)
         case val
+        when :null
+          self.buffer = val
+          self.buffer_length = 0
+          self.maximum_length = 0
         when BinData::Stringz, BinData::String, String
           self.buffer = val.to_s
           val_length = val.strip.length
           val_length += 1 unless val == ''
           self.buffer_length = val_length * 2
-          # Don't reset maximum_length if the buffer is NULL to make sure we can
-          # set it independently of the buffer size
-          return if self.maximum_length > 0 && self.buffer == :null
           self.maximum_length = val_length * 2
         else
           super
@@ -32,6 +33,10 @@ module RubySMB
           self.buffer.max_count = val / 2
         end
         self.maximum_length.assign(val)
+      end
+
+      def to_s
+        self.buffer
       end
     end
 
@@ -66,13 +71,14 @@ module RubySMB
 
       def assign(val)
         case val
+        when :null
+          self.buffer = val
+          self.buffer_length = 0
+          self.maximum_length = 0
         when BinData::Stringz, BinData::String, String
           self.buffer = val.to_s
           val_length = val.strip.length
           self.buffer_length = val_length * 2
-          # Don't reset maximum_length if the buffer is NULL to make sure we can
-          # set it independently of the buffer size
-          return if self.maximum_length > 0 && self.buffer == :null
           self.maximum_length = val_length * 2
         else
           super
@@ -84,6 +90,10 @@ module RubySMB
           self.buffer.max_count = val / 2
         end
         self.maximum_length.assign(val)
+      end
+
+      def to_s
+        self.buffer
       end
     end
 
