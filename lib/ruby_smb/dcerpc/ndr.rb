@@ -591,7 +591,9 @@ module RubySMB::Dcerpc::Ndr
       # 1. if there is an array with conformant info in the structure, check if it is the last member
       #   --> if the structure contains a structure with an array, it has to be the last member too
       # 2. if ok, max_count is moved to the beginning
-      if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
+      klass = self.class
+      klass = self.class.superclass if is_a?(PointerPlugin)
+      if klass.has_conformant_array && !parent.is_a?(NdrStruct)
         max_count = get_max_count
         io.writebytes([max_count].pack('L')) if max_count
       end
@@ -608,7 +610,9 @@ module RubySMB::Dcerpc::Ndr
         io.seekbytes(bytes_to_align(self, io.offset))
       end
 
-      if self.class.has_conformant_array && !parent.is_a?(NdrStruct)
+      klass = self.class
+      klass = self.class.superclass if is_a?(PointerPlugin)
+      if klass.has_conformant_array && !parent.is_a?(NdrStruct)
         set_max_count(io.readbytes(4).unpack('L').first)
       end
 
@@ -621,7 +625,7 @@ module RubySMB::Dcerpc::Ndr
 
     def get_max_count
       obj = self[field_names.last]
-      return obj.length if obj.class.is_a?(ConfClassPlugin)
+      return obj.length if obj.is_a?(ConfPlugin)
       if obj.is_a?(NdrStruct)
         return obj.get_max_count
       end
@@ -823,9 +827,16 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def parent_constructed_type(obj = self.parent)
-      return obj if obj.is_a?(ConstructedTypePlugin)
       return nil if obj.nil?
-      return parent_constructed_type(obj.parent)
+      if obj.is_a?(PointerPlugin)
+        return obj if obj.is_a?(ConstructedTypePlugin)
+        return nil
+      end
+      if obj.is_a?(ConstructedTypePlugin)
+        res = parent_constructed_type(obj.parent)
+        return res || obj
+      end
+      return nil
     end
 
     def do_read(io, is_deferred: false)
