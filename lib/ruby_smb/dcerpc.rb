@@ -16,6 +16,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/svcctl'
     require 'ruby_smb/dcerpc/winreg'
     require 'ruby_smb/dcerpc/netlogon'
+    require 'ruby_smb/dcerpc/samr'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/bind'

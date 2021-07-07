@@ -16,6 +16,9 @@ module RubySMB
 
       # Raised when an error is returned during a Svcctl operation
       class SvcctlError < DcerpcError; end
+
+      # Raised when an error is returned during a Samr operation
+      class SamrError < DcerpcError; end
     end
   end
 end

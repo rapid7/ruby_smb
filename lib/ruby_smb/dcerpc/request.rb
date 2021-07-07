@@ -52,6 +52,14 @@ module RubySMB
           close_service_handle_request    RubySMB::Dcerpc::Svcctl::CLOSE_SERVICE_HANDLE
           string                          :default
         end
+        choice 'Samr', selection: -> { opnum } do
+          samr_connect_request                     RubySMB::Dcerpc::Samr::SAMR_CONNECT
+          samr_lookup_domain_in_sam_server_request RubySMB::Dcerpc::Samr::SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER
+          samr_open_domain_request                 RubySMB::Dcerpc::Samr::SAMR_OPEN_DOMAIN
+          samr_enumerate_users_in_domain_request   RubySMB::Dcerpc::Samr::SAMR_ENUMERATE_USERS_IN_DOMAIN
+          samr_rid_to_sid_request                  RubySMB::Dcerpc::Samr::SAMR_RID_TO_SID
+          string                                   :default
+        end
         string :default
       end
 
