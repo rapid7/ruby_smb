@@ -19,6 +19,9 @@ module RubySMB
 
       # Raised when an error is returned during a Samr operation
       class SamrError < DcerpcError; end
+
+      # Raised when an error is returned during a Wkssvc operation
+      class WkssvcError < DcerpcError; end
     end
   end
 end

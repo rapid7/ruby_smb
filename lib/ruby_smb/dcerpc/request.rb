@@ -60,6 +60,10 @@ module RubySMB
           samr_rid_to_sid_request                  RubySMB::Dcerpc::Samr::SAMR_RID_TO_SID
           string                                   :default
         end
+        choice 'Wkssvc', selection: -> { opnum } do
+          netr_wksta_get_info_request RubySMB::Dcerpc::Wkssvc::NETR_WKSTA_GET_INFO
+          string                      :default
+        end
         string :default
       end
 
