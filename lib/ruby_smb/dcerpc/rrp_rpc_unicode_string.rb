@@ -42,13 +42,7 @@ module RubySMB
 
     # A pointer to a RRP_UNICODE_STRING structure
     class PrrpUnicodeString < RrpUnicodeString
-      default_parameters byte_align: 4
-      arg_processor :ndr_pointer
       extend Ndr::PointerClassPlugin
-      def initialize_shared_instance
-        super
-        extend Ndr::PointerPlugin
-      end
     end
 
     # A RPC_UNICODE_STRING structure as defined in
@@ -99,13 +93,7 @@ module RubySMB
 
     # A pointer to a RPC_UNICODE_STRING structure
     class PrpcUnicodeString < RpcUnicodeString
-      default_parameters byte_align: 4
-      arg_processor :ndr_pointer
       extend Ndr::PointerClassPlugin
-      def initialize_shared_instance
-        super
-        extend Ndr::PointerPlugin
-      end
     end
   end
 end

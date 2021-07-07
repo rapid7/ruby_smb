@@ -128,6 +128,43 @@ module RubySMB::Dcerpc::Ndr
   #
   # Arrays
   #
+
+  module ArrayClassPlugin
+    module ExtendArrayPlugin
+      def initialize_shared_instance
+        super
+        extend ArrayPlugin
+      end
+    end
+    module ExtendConfPlugin
+      def initialize_shared_instance
+        super
+        extend ConfPlugin
+      end
+    end
+    module ExtendVarPlugin
+      def initialize_shared_instance
+        super
+        extend VarPlugin
+      end
+    end
+    def self.extended(target)
+      target.default_parameters(
+        :read_until => lambda { index == (@obj.read_until_index - 1) },
+        :byte_align => 4
+      )
+      target.arg_processor :ndr_array
+      class_name = target.to_s.split('::').last
+      if class_name.include?('NdrVar') || class_name.include?('NdrConfVar')
+        target.include ExtendVarPlugin
+      end
+      if class_name.include?('NdrConf')
+        target.include ExtendConfPlugin
+        target.extend ConfClassPlugin
+      end
+      target.include ExtendArrayPlugin
+    end
+  end
   module ArrayPlugin
     include ConstructedTypePlugin
 
@@ -164,22 +201,6 @@ module RubySMB::Dcerpc::Ndr
           sum + nbytes
         end
       end
-    end
-  end
-
-  module FixPlugin
-    def insert(index, *objs)
-      fixed_size = get_parameter(:initial_length)
-      if (length + objs.size) != fixed_size
-        raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
-      else
-        super
-      end
-    end
-
-    def append_new_element
-      fixed_size = get_parameter(:initial_length)
-      raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
     end
   end
 
@@ -312,8 +333,21 @@ module RubySMB::Dcerpc::Ndr
 
     def initialize_shared_instance
       super
-      extend FixPlugin
       extend ArrayPlugin
+    end
+
+    def insert(index, *objs)
+      fixed_size = get_parameter(:initial_length)
+      if (length + objs.size) != fixed_size
+        raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
+      else
+        super
+      end
+    end
+
+    def append_new_element
+      fixed_size = get_parameter(:initial_length)
+      raise ArgumentError, "Can't add new elements to a NdrFixArray (set to #{fixed_size} elements)"
     end
   end
 
@@ -329,51 +363,17 @@ module RubySMB::Dcerpc::Ndr
 
   # [Uni-dimensional Conformant Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_02)
   class NdrConfArray < BinData::Array
-    default_parameters(
-      :read_until => lambda { index == (@obj.read_until_index - 1) },
-      :byte_align => 4
-    )
-    arg_processor :ndr_array
-
-    extend ConfClassPlugin
-
-    def initialize_shared_instance
-      super
-      extend ConfPlugin
-      extend ArrayPlugin
-    end
+    extend ArrayClassPlugin
   end
 
   # [Uni-dimensional Varying Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_03)
   class NdrVarArray < BinData::Array
-    default_parameters(
-      :read_until => lambda { index == (@obj.read_until_index - 1) },
-      :byte_align => 4
-    )
-    arg_processor :ndr_array
-
-    def initialize_shared_instance
-      super
-      extend VarPlugin
-      extend ArrayPlugin
-    end
+    extend ArrayClassPlugin
   end
+
   # Uni-dimensional Conformant-varying Arrays
   class NdrConfVarArray < BinData::Array
-    default_parameters(
-      :read_until => lambda { index == (@obj.read_until_index - 1) },
-      :byte_align => 4
-    )
-    arg_processor :ndr_array
-
-    extend ConfClassPlugin
-
-    def initialize_shared_instance
-      super
-      extend VarPlugin
-      extend ConfPlugin
-      extend ArrayPlugin
-    end
+    extend ArrayClassPlugin
   end
 
   # TODO: Multi-dimensional Arrays
@@ -383,6 +383,34 @@ module RubySMB::Dcerpc::Ndr
   #
   # Strings
   #
+
+  module StringClassPlugin
+    module ExtendVarStringPlugin
+      def initialize_shared_instance
+        super
+        extend VarStringPlugin
+      end
+    end
+    module ExtendConfStringPlugin
+      def initialize_shared_instance
+        super
+        extend ConfStringPlugin
+      end
+    end
+    def self.extended(target)
+      target.default_parameters byte_align: 4
+      char_size = 1
+      char_size = 2 if target < RubySMB::Field::String16 || target < RubySMB::Field::Stringz16
+      if target < BinData::Stringz
+        target.default_parameters(:max_length => lambda { @obj.actual_count * char_size })
+      else
+        target.default_parameters(:length => lambda { @obj.actual_count * char_size })
+      end
+      target.include ExtendVarStringPlugin
+      class_name = target.to_s.split('::').last
+      target.include ExtendConfStringPlugin if class_name.include?('NdrConfVar')
+    end
+  end
 
   module ConfStringPlugin
     attr_accessor :max_count
@@ -475,96 +503,36 @@ module RubySMB::Dcerpc::Ndr
 
   # [Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_01)
   class NdrVarString < BinData::String
-    default_parameters(
-      :length => lambda { @obj.actual_count },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrVarStringz < BinData::Stringz
-    default_parameters(
-      :max_length => lambda { @obj.actual_count },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrVarWideString < RubySMB::Field::String16
-    default_parameters(
-      :length => lambda { @obj.actual_count * 2 },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrVarWideStringz < RubySMB::Field::Stringz16
-    default_parameters(
-      :max_length => lambda { @obj.actual_count * 2 },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   # [Conformant and Varying Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02)
   class NdrConfVarString < BinData::String
-    default_parameters(
-      :length => lambda { @obj.actual_count },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-      extend ConfStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrConfVarStringz < BinData::Stringz
-    default_parameters(
-      :max_length => lambda { @obj.actual_count },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-      extend ConfStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrConfVarWideString < RubySMB::Field::String16
-    default_parameters(
-      :length => lambda { @obj.actual_count * 2 },
-      byte_align: 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-      extend ConfStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   class NdrConfVarWideStringz < RubySMB::Field::Stringz16
-    default_parameters(
-      :max_length => lambda { @obj.actual_count * 2 },
-      :byte_align => 4
-    )
-    def initialize_shared_instance
-      super
-      extend VarStringPlugin
-      extend ConfStringPlugin
-    end
+    extend StringClassPlugin
   end
 
   # TODO:[Arrays of Strings](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_05)
@@ -691,6 +659,21 @@ module RubySMB::Dcerpc::Ndr
   # [Pointers](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_10)
   #
 
+  module PointerClassPlugin
+    module ExtendPointerPlugin
+      def initialize_shared_instance
+        super
+        extend PointerPlugin
+      end
+    end
+    def self.extended(target)
+      target.default_parameters byte_align: 4
+      target.arg_processor :ndr_pointer
+      target.include ExtendPointerPlugin
+    end
+  end
+
+
   module TopLevelPlugin
     def snapshot
       update_ref_ids
@@ -755,8 +738,6 @@ module RubySMB::Dcerpc::Ndr
       !!@top_level_ptr
     end
   end
-
-  module PointerClassPlugin; end
 
   # The initial reference ID starts at 0x00020000, which is what Windows appears to do.
   INITIAL_REF_ID = 0x00020000
@@ -903,15 +884,11 @@ module RubySMB::Dcerpc::Ndr
 
   class ::BinData::NdrPointerArgProcessor < BinData::BaseArgProcessor
     def sanitize_parameters!(obj_class, params)
-      res = nil
-      if obj_class.superclass.respond_to?(:arg_processor)
-        res = obj_class.superclass.arg_processor.sanitize_parameters!(obj_class.superclass, params)
-      end
+      obj_klass = obj_class
+      obj_klass = obj_class.superclass if obj_class.superclass.arg_processor == self
+      res = obj_class.superclass.arg_processor.sanitize_parameters!(obj_klass, params)
 
-      byte_align = false
-      if obj_class.superclass.respond_to?(:default_parameters)
-        return res if obj_class.superclass.default_parameters[:byte_align]
-      end
+      return res if obj_class.superclass.default_parameters[:byte_align]
       return res if params[:referent_byte_align]
 
       raise ArgumentError.new(
@@ -920,6 +897,11 @@ module RubySMB::Dcerpc::Ndr
         "NDR element instead, or provide the `:referent_byte_align` parameter "\
         "when defining the structure (Faulty pointer class: #{obj_class})"
       )
+    end
+
+    def extract_args(obj_class, obj_args)
+      obj_class = obj_class.superclass if obj_class.superclass.arg_processor == self
+      obj_class.superclass.arg_processor.extract_args(obj_class, obj_args)
     end
   end
 
@@ -932,13 +914,7 @@ module RubySMB::Dcerpc::Ndr
     new_klass_name = "#{klass.to_s}Ptr"
     unless self.const_defined?(new_klass_name)
       new_klass = Class.new(RubySMB::Dcerpc::Ndr.const_get(klass)) do
-        default_parameters byte_align: 4
-        arg_processor :ndr_pointer
         extend PointerClassPlugin
-        def initialize_shared_instance
-          super
-          extend PointerPlugin
-        end
       end
       self.const_set(new_klass_name, new_klass)
       BinData::RegisteredClasses.register(new_klass_name, new_klass)
@@ -947,83 +923,36 @@ module RubySMB::Dcerpc::Ndr
 
   # Pointers to other classes
   class NdrCharPtr < NdrChar
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrBooleanPtr < NdrBoolean
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrStringPtr < NdrConfVarString
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrStringzPtr < NdrConfVarStringz
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrWideStringPtr < NdrConfVarWideString
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrWideStringzPtr < NdrConfVarWideStringz
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrByteArrayPtr < NdrConfVarArray
-    default_parameters(type: :ndr_uint8, :byte_align => 4)
-    arg_processor :ndr_pointer
+    default_parameters type: :ndr_uint8
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
   class NdrFileTimePtr < NdrFileTime
-    default_parameters byte_align: 4
-    arg_processor :ndr_pointer
     extend PointerClassPlugin
-    def initialize_shared_instance
-      super
-      extend PointerPlugin
-    end
   end
 
 

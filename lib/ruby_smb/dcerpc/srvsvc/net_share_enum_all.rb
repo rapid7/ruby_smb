@@ -19,13 +19,7 @@ module RubySMB
       end
 
       class LpshareInfo1 < ShareInfo1
-        default_parameters byte_align: 4
-        arg_processor :ndr_pointer
         extend Ndr::PointerClassPlugin
-        def initialize_shared_instance
-          super
-          extend Ndr::PointerPlugin
-        end
       end
 
       # [2.2.4.33 SHARE_INFO_1_CONTAINER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/919abd5d-87d9-4ffa-b4b1-632a66053bc6)
@@ -37,13 +31,7 @@ module RubySMB
       end
 
       class LpshareInfo1Container < ShareInfo1Container
-        default_parameters byte_align: 4
-        arg_processor :ndr_pointer
         extend Ndr::PointerClassPlugin
-        def initialize_shared_instance
-          super
-          extend Ndr::PointerPlugin
-        end
       end
 
       # [2.2.4.38 SHARE_ENUM_STRUCT](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/79ee052e-e16b-4ec5-b4b7-e99777c26eca)

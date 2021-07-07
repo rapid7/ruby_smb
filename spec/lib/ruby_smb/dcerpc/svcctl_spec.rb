@@ -6,9 +6,6 @@ RSpec.describe RubySMB::Dcerpc::Svcctl do
       name: 'svcctl'
     )
   end
-  it 'fail' do
-    expect(true).to be true
-  end
 
   describe '#open_sc_manager_w' do
     let(:rhost) { '1.2.3.4' }

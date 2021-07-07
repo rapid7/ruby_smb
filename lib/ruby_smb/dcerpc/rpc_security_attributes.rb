@@ -26,13 +26,7 @@ module RubySMB
     # This class represents a pointer to a RPC_SECURITY_ATTRIBUTES structure as defined in
     # [2.2.7 RPC_SECURITY_ATTRIBUTES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rrp/bc37b8cf-8c94-4804-ad53-0aaf5eaf0ecb)
     class PrpcSecurityAttributes < RpcSecurityAttributes
-      default_parameters byte_align: 4
-      arg_processor :ndr_pointer
       extend Ndr::PointerClassPlugin
-      def initialize_shared_instance
-        super
-        extend Ndr::PointerPlugin
-      end
     end
 
   end
