@@ -180,6 +180,8 @@ RSpec.describe RubySMB::Dcerpc::Samr do
 
   describe '#samr_enumerate_users_in_domain' do
     let(:domain_handle) { double('domain_handle') }
+    let(:enumeration_context) { double('enumeration_context') }
+    let(:user_account_control) { double('user_account_control') }
     let(:samr_enumerate_users_in_domain_request) { double('SamrEnumerateUsersInDomainRequest') }
     let(:response) { double('Response') }
     let(:samr_enumerate_users_in_domain_response) { double('SamrEnumerateUsersInDomainResponse') }
@@ -199,10 +201,16 @@ RSpec.describe RubySMB::Dcerpc::Samr do
     end
 
     it 'sets the request with the expected values' do
-      samr.samr_enumerate_users_in_domain(domain_handle: domain_handle)
+      samr.samr_enumerate_users_in_domain(
+        domain_handle: domain_handle,
+        enumeration_context: enumeration_context,
+        user_account_control: user_account_control
+      )
       expect(described_class::SamrEnumerateUsersInDomainRequest).to have_received(:new).with(
         domain_handle: domain_handle,
-        prefered_maximum_length: 65535
+        enumeration_context: enumeration_context,
+        user_account_control: user_account_control,
+        prefered_maximum_length: 0xFFFFFFFF
       )
     end
     it 'send the expected request structure' do
@@ -312,6 +320,57 @@ RSpec.describe RubySMB::Dcerpc::Samr do
         expect(samr.samr_rid_to_sid(object_handle: object_handle, rid: '')).to eq(
           "S-1-5-21-419547006-9459028-4093171872-500"
         )
+      end
+    end
+  end
+
+  describe '#close_handle' do
+    let(:samr_close_handle_request) { double('SamrCloseHandleRequest') }
+    let(:response) { double('Response') }
+    let(:samr_close_handle_response) { double('SamrCloseHandleResponse') }
+    let(:sam_handle) { double('sam_handle') }
+    before :example do
+      allow(described_class::SamrCloseHandleRequest).to receive(:new).and_return(samr_close_handle_request)
+      allow(samr).to receive(:dcerpc_request).and_return(response)
+      allow(described_class::SamrCloseHandleResponse).to receive(:read).and_return(samr_close_handle_response)
+      allow(samr_close_handle_response).to receive_messages(
+        :error_status => WindowsError::Win32::ERROR_SUCCESS,
+        :sam_handle => sam_handle
+      )
+    end
+
+    it 'sets the request with the expected values' do
+      samr.close_handle(sam_handle)
+      expect(described_class::SamrCloseHandleRequest).to have_received(:new).with(sam_handle: sam_handle)
+    end
+    it 'send the expected request structure' do
+      samr.close_handle(sam_handle)
+      expect(samr).to have_received(:dcerpc_request).with(samr_close_handle_request)
+    end
+    context 'when an IOError occurs while parsing the response' do
+      it 'raises a RubySMB::Dcerpc::Error::InvalidPacket' do
+        allow(described_class::SamrCloseHandleResponse).to receive(:read).and_raise(IOError)
+        expect { samr.close_handle(sam_handle) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+    end
+    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+      it 'raises a RubySMB::Dcerpc::Error::WinregError' do
+        allow(samr_close_handle_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_INVALID_DATA)
+        expect { samr.close_handle(sam_handle) }.to raise_error(RubySMB::Dcerpc::Error::SamrError)
+      end
+    end
+    it 'returns the expected handler' do
+      expect(samr.close_handle(sam_handle)).to eq(sam_handle)
+    end
+    context 'with a real binary stream' do
+      it 'returns the expected value' do
+        raw_response = "\x00\x00\x00\x00\e\x05ucy\xE3\b@\xAC\xFDjc\xEB\xD1?\xBF\x00\x00\x00\x00"
+        allow(samr).to receive(:dcerpc_request).and_return(raw_response)
+        allow(described_class::SamrCloseHandleResponse).to receive(:read).and_call_original
+        expect(samr.close_handle(sam_handle)).to eq({
+          :context_handle_attributes=>0,
+          :context_handle_uuid=>"6375051b-e379-4008-acfd-6a63ebd13fbf"
+        })
       end
     end
   end

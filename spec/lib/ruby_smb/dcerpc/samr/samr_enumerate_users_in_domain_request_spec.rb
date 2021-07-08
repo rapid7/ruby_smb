@@ -24,8 +24,8 @@ RSpec.describe RubySMB::Dcerpc::Samr::SamrEnumerateUsersInDomainRequest do
     end
   end
   describe '#user_account_control' do
-    it 'is a UserAccountControl structure' do
-      expect(packet.user_account_control).to be_a RubySMB::Dcerpc::Samr::UserAccountControl
+    it 'is a NdrUint32 structure' do
+      expect(packet.user_account_control).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
   describe '#prefered_maximum_length' do
@@ -44,7 +44,8 @@ RSpec.describe RubySMB::Dcerpc::Samr::SamrEnumerateUsersInDomainRequest do
         context_handle_attributes: 0,
         context_handle_uuid: "fc873b90-d9a9-46a4-b9ea-f44bb1c272a7"
       },
-      enumeration_context: 0,
+      enumeration_context: 44,
+      user_account_control: 123,
       prefered_maximum_length: 65535
     })
     expected_output = {
@@ -52,35 +53,8 @@ RSpec.describe RubySMB::Dcerpc::Samr::SamrEnumerateUsersInDomainRequest do
         context_handle_attributes: 0,
         context_handle_uuid: "fc873b90-d9a9-46a4-b9ea-f44bb1c272a7"
       },
-      enumeration_context: 0,
-      user_account_control: {
-        user_encrypted_text_password_allowed: 0,
-        user_passwd_cant_change: 0,
-        user_passwd_notreqd: 0,
-        user_lockout: 0,
-        user_homedir_required: 0,
-        reserved1: 0,
-        user_account_disabled: 0,
-        user_script: 0,
-        reserved3: 0,
-        user_server_trust_account: 0,
-        user_workstation_trust_account: 0,
-        user_interdomain_trust_account: 0,
-        reserved2: 0,
-        user_normal_account: 0,
-        user_temp_duplicate_account: 0,
-        user_password_expired: 0,
-        user_dont_require_preauth: 0,
-        user_use_des_key_only: 0,
-        user_not_delegated: 0,
-        user_trusted_for_delegation: 0,
-        user_smartcard_required: 0,
-        user_mns_logon_account: 0,
-        user_dont_expire_passwd: 0,
-        reserved4: 0,
-        user_no_auth_data_required: 0,
-        user_trusted_to_authenticate_for_delegation: 0
-      },
+      enumeration_context: 44,
+      user_account_control: 123,
       prefered_maximum_length: 65535
     }
     expect(packet.read(new_packet.to_binary_s)).to eq(expected_output)

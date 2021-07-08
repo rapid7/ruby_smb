@@ -58,6 +58,7 @@ module RubySMB
           samr_open_domain_request                 RubySMB::Dcerpc::Samr::SAMR_OPEN_DOMAIN
           samr_enumerate_users_in_domain_request   RubySMB::Dcerpc::Samr::SAMR_ENUMERATE_USERS_IN_DOMAIN
           samr_rid_to_sid_request                  RubySMB::Dcerpc::Samr::SAMR_RID_TO_SID
+          samr_close_handle_request                RubySMB::Dcerpc::Samr::SAMR_CLOSE_HANDLE
           string                                   :default
         end
         choice 'Wkssvc', selection: -> { opnum } do

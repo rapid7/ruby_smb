@@ -7,11 +7,12 @@ module RubySMB
       VER_MINOR = 0
 
       # Operation numbers
-      SAMR_CONNECT = 0x0000
+      SAMR_CONNECT                     = 0x0000
+      SAMR_CLOSE_HANDLE                = 0x0001
       SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER = 0x0005
-      SAMR_OPEN_DOMAIN = 0x0007
-      SAMR_ENUMERATE_USERS_IN_DOMAIN = 0x000D
-      SAMR_RID_TO_SID = 0x0041
+      SAMR_OPEN_DOMAIN                 = 0x0007
+      SAMR_ENUMERATE_USERS_IN_DOMAIN   = 0x000D
+      SAMR_RID_TO_SID                  = 0x0041
 
       class SamprHandle < Ndr::NdrContextHandle; end
 
@@ -24,90 +25,203 @@ module RubySMB
       ################
       # ACCESS_MASK Values
 
-      # Common Values
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/15b9ebf7-161d-4c83-a672-dceb2ac8c448
-
-      # Specifies the ability to delete the object.
+      # [2.2.1.1 Common ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/15b9ebf7-161d-4c83-a672-dceb2ac8c448)
       DELETE                 = 0x00010000
-      # Specifies the ability to read the security descriptor.
       READ_CONTROL           = 0x00020000
-      # Specifies the ability to update the discretionary access control list
-      # (DACL) of the security descriptor.
       WRITE_DAC              = 0x00040000
-      # Specifies the ability to update the Owner field of the security
-      # descriptor.
       WRITE_OWNER            = 0x00080000
-      # Specifies access to the system security portion of the security
-      # descriptor.
       ACCESS_SYSTEM_SECURITY = 0x01000000
-      # Indicates that the caller is requesting the most access possible to the
-      # object.
       MAXIMUM_ALLOWED        = 0x02000000
 
 
-      # Server values
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e8afb15e-c053-4984-b84b-66877236e141
-
-      # Specifies access control to obtain a server handle.
+      # [2.2.1.3 Server ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e8afb15e-c053-4984-b84b-66877236e141)
       SAM_SERVER_CONNECT           = 0x00000001
-      # Does not specify any access control.
       SAM_SERVER_SHUTDOWN          = 0x00000002
-      # Does not specify any access control.
       SAM_SERVER_INITIALIZE        = 0x00000004
-      # Does not specify any access control.
       SAM_SERVER_CREATE_DOMAIN     = 0x00000008
-      # Specifies access control to view domain objects.
       SAM_SERVER_ENUMERATE_DOMAINS = 0x00000010
-      # Specifies access control to perform SID-to-name translation.
       SAM_SERVER_LOOKUP_DOMAIN     = 0x00000020
-      # The specified accesses for a GENERIC_ALL request.
       SAM_SERVER_ALL_ACCESS        = 0x000F003F
-      # The specified accesses for a GENERIC_READ request.
       SAM_SERVER_READ              = 0x00020010
-      # The specified accesses for a GENERIC_WRITE request.
       SAM_SERVER_WRITE             = 0x0002000E
-      # The specified accesses for a GENERIC_EXECUTE request.
       SAM_SERVER_EXECUTE           = 0x00020021
 
-      # Domain values
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/aef23495-f6aa-48e9-aebc-22e022a2b4eb
-
-      # Specifies access control to read password policy.
+      # [2.2.1.4 Domain ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/aef23495-f6aa-48e9-aebc-22e022a2b4eb)
       DOMAIN_READ_PASSWORD_PARAMETERS = 0x00000001
-      # Specifies access control to write password policy.
       DOMAIN_WRITE_PASSWORD_PARAMS    = 0x00000002
-      # Specifies access control to read attributes not related to password
-      # policy.
       DOMAIN_READ_OTHER_PARAMETERS    = 0x00000004
-      # Specifies access control to write attributes not related to password
-      # policy.
       DOMAIN_WRITE_OTHER_PARAMETERS   = 0x00000008
-      # Specifies access control to create a user object.
       DOMAIN_CREATE_USER              = 0x00000010
-      # Specifies access control to create a group object.
       DOMAIN_CREATE_GROUP             = 0x00000020
-      # Specifies access control to create an alias object.
       DOMAIN_CREATE_ALIAS             = 0x00000040
-      # Specifies access control to read the alias membership of a set of SIDs.
       DOMAIN_GET_ALIAS_MEMBERSHIP     = 0x00000080
-      # Specifies access control to enumerate objects.
       DOMAIN_LIST_ACCOUNTS            = 0x00000100
-      # Specifies access control to look up objects by name and SID.
       DOMAIN_LOOKUP                   = 0x00000200
-      # Specifies access control to various administrative operations on the
-      # server.
       DOMAIN_ADMINISTER_SERVER        = 0x00000400
-      # The specified accesses for a GENERIC_ALL request.
       DOMAIN_ALL_ACCESS               = 0x000F07FF
-      # The specified accesses for a GENERIC_READ request.
       DOMAIN_READ                     = 0x00020084
-      # The specified accesses for a GENERIC_WRITE request.
       DOMAIN_WRITE                    = 0x0002047A
-      # The specified accesses for a GENERIC_EXECUTE request.
       DOMAIN_EXECUTE                  = 0x00020301
 
+      # [2.2.1.5 Group ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/f24f9fa8-798d-4e7d-a110-a5eda6900f41)
+      GROUP_READ_INFORMATION  = 0x00000001
+      GROUP_WRITE_ACCOUNT     = 0x00000002
+      GROUP_ADD_MEMBER        = 0x00000004
+      GROUP_REMOVE_MEMBER     = 0x00000008
+      GROUP_LIST_MEMBERS      = 0x00000010
+      GROUP_ALL_ACCESS        = 0x000F001F
+      GROUP_READ              = 0x00020010
+      GROUP_WRITE             = 0x0002000E
+      GROUP_EXECUTE           = 0x00020001
 
-      require 'ruby_smb/dcerpc/samr/user_account_control'
+      # [2.2.1.6 Alias ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2da21c6c-5b15-46c8-bd4e-6a8443216e1a)
+      ALIAS_ADD_MEMBER        = 0x00000001
+      ALIAS_REMOVE_MEMBER     = 0x00000002
+      ALIAS_LIST_MEMBERS      = 0x00000004
+      ALIAS_READ_INFORMATION  = 0x00000008
+      ALIAS_WRITE_ACCOUNT     = 0x00000010
+      ALIAS_ALL_ACCESS        = 0x000F001F
+      ALIAS_READ              = 0x00020004
+      ALIAS_WRITE             = 0x00020013
+      ALIAS_EXECUTE           = 0x00020008
+
+      # [2.2.1.7 User ACCESS_MASK Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c0be3f43-bcf9-43ee-b027-3d02ab372c53)
+      USER_READ_GENERAL            = 0x00000001
+      USER_READ_PREFERENCES        = 0x00000002
+      USER_WRITE_PREFERENCES       = 0x00000004
+      USER_READ_LOGON              = 0x00000008
+      USER_READ_ACCOUNT            = 0x00000010
+      USER_WRITE_ACCOUNT           = 0x00000020
+      USER_CHANGE_PASSWORD         = 0x00000040
+      USER_FORCE_PASSWORD_CHANGE   = 0x00000080
+      USER_LIST_GROUPS             = 0x00000100
+      USER_READ_GROUP_INFORMATION  = 0x00000200
+      USER_WRITE_GROUP_INFORMATION = 0x00000400
+      USER_ALL_ACCESS              = 0x000F07FF
+      USER_READ                    = 0x0002031A
+      USER_WRITE                   = 0x00020044
+      USER_EXECUTE                 = 0x00020041
+
+      # [2.2.1.8 USER_ALL Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2675c176-72e0-4ac9-ae6d-cdd87b8ba520)
+      USER_ALL_USERNAME            = 0x00000001
+      USER_ALL_FULLNAME            = 0x00000002
+      USER_ALL_USERID              = 0x00000004
+      USER_ALL_PRIMARYGROUPID      = 0x00000008
+      USER_ALL_ADMINCOMMENT        = 0x00000010
+      USER_ALL_USERCOMMENT         = 0x00000020
+      USER_ALL_HOMEDIRECTORY       = 0x00000040
+      USER_ALL_HOMEDIRECTORYDRIVE  = 0x00000080
+      USER_ALL_SCRIPTPATH          = 0x00000100
+      USER_ALL_PROFILEPATH         = 0x00000200
+      USER_ALL_WORKSTATIONS        = 0x00000400
+      USER_ALL_LASTLOGON           = 0x00000800
+      USER_ALL_LASTLOGOFF          = 0x00001000
+      USER_ALL_LOGONHOURS          = 0x00002000
+      USER_ALL_BADPASSWORDCOUNT    = 0x00004000
+      USER_ALL_LOGONCOUNT          = 0x00008000
+      USER_ALL_PASSWORDCANCHANGE   = 0x00010000
+      USER_ALL_PASSWORDMUSTCHANGE  = 0x00020000
+      USER_ALL_PASSWORDLASTSET     = 0x00040000
+      USER_ALL_ACCOUNTEXPIRES      = 0x00080000
+      USER_ALL_USERACCOUNTCONTROL  = 0x00100000
+      USER_ALL_PARAMETERS          = 0x00200000
+      USER_ALL_COUNTRYCODE         = 0x00400000
+      USER_ALL_CODEPAGE            = 0x00800000
+      USER_ALL_NTPASSWORDPRESENT   = 0x01000000
+      USER_ALL_LMPASSWORDPRESENT   = 0x02000000
+      USER_ALL_PRIVATEDATA         = 0x04000000
+      USER_ALL_PASSWORDEXPIRED     = 0x08000000
+      USER_ALL_SECURITYDESCRIPTOR  = 0x10000000
+      USER_ALL_UNDEFINED_MASK      = 0xC0000000
+
+      # [2.2.1.9 ACCOUNT_TYPE Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e742be45-665d-4576-b872-0bc99d1e1fbe)
+      SAM_DOMAIN_OBJECT             = 0x00000000
+      SAM_GROUP_OBJECT              = 0x10000000
+      SAM_NON_SECURITY_GROUP_OBJECT = 0x10000001
+      SAM_ALIAS_OBJECT              = 0x20000000
+      SAM_NON_SECURITY_ALIAS_OBJECT = 0x20000001
+      SAM_USER_OBJECT               = 0x30000000
+      SAM_MACHINE_ACCOUNT           = 0x30000001
+      SAM_TRUST_ACCOUNT             = 0x30000002
+      SAM_APP_BASIC_GROUP           = 0x40000000
+      SAM_APP_QUERY_GROUP           = 0x40000001
+
+      # [2.2.1.10 SE_GROUP Attributes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9e093bd2-e451-4dd5-9700-97b977d7ebb2)
+      SE_GROUP_MANDATORY            = 0x00000001
+      SE_GROUP_ENABLED_BY_DEFAULT   = 0x00000002
+      SE_GROUP_ENABLED              = 0x00000004
+
+      # [2.2.1.11 GROUP_TYPE Codes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/1f8d7ea1-fcc1-4833-839a-f94d67c08fcd)
+      GROUP_TYPE_ACCOUNT_GROUP      = 0x00000002
+      GROUP_TYPE_RESOURCE_GROUP     = 0x00000004
+      GROUP_TYPE_UNIVERSAL_GROUP    = 0x00000008
+      GROUP_TYPE_SECURITY_ENABLED   = 0x80000000
+      GROUP_TYPE_SECURITY_ACCOUNT   = 0x80000002
+      GROUP_TYPE_SECURITY_RESOURCE  = 0x80000004
+      GROUP_TYPE_SECURITY_UNIVERSAL = 0x80000008
+
+      # [2.2.1.12 USER_ACCOUNT Codes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/b10cfda1-f24f-441b-8f43-80cb93e786ec)
+      USER_ACCOUNT_DISABLED                       = 0x00000001
+      USER_HOME_DIRECTORY_REQUIRED                = 0x00000002
+      USER_PASSWORD_NOT_REQUIRED                  = 0x00000004
+      USER_TEMP_DUPLICATE_ACCOUNT                 = 0x00000008
+      USER_NORMAL_ACCOUNT                         = 0x00000010
+      USER_MNS_LOGON_ACCOUNT                      = 0x00000020
+      USER_INTERDOMAIN_TRUST_ACCOUNT              = 0x00000040
+      USER_WORKSTATION_TRUST_ACCOUNT              = 0x00000080
+      USER_SERVER_TRUST_ACCOUNT                   = 0x00000100
+      USER_DONT_EXPIRE_PASSWORD                   = 0x00000200
+      USER_ACCOUNT_AUTO_LOCKED                    = 0x00000400
+      USER_ENCRYPTED_TEXT_PASSWORD_ALLOWED        = 0x00000800
+      USER_SMARTCARD_REQUIRED                     = 0x00001000
+      USER_TRUSTED_FOR_DELEGATION                 = 0x00002000
+      USER_NOT_DELEGATED                          = 0x00004000
+      USER_USE_DES_KEY_ONLY                       = 0x00008000
+      USER_DONT_REQUIRE_PREAUTH                   = 0x00010000
+      USER_PASSWORD_EXPIRED                       = 0x00020000
+      USER_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = 0x00040000
+      USER_NO_AUTH_DATA_REQUIRED                  = 0x00080000
+      USER_PARTIAL_SECRETS_ACCOUNT                = 0x00100000
+      USER_USE_AES_KEYS                           = 0x00200000
+
+      # [2.2.1.13 UF_FLAG Codes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/10bf6c8e-34af-4cf9-8dff-6b6330922863)
+      UF_SCRIPT                                 = 0x00000001
+      UF_ACCOUNTDISABLE                         = 0x00000002
+      UF_HOMEDIR_REQUIRED                       = 0x00000008
+      UF_LOCKOUT                                = 0x00000010
+      UF_PASSWD_NOTREQD                         = 0x00000020
+      UF_PASSWD_CANT_CHANGE                     = 0x00000040
+      UF_ENCRYPTED_TEXT_PASSWORD_ALLOWED        = 0x00000080
+      UF_TEMP_DUPLICATE_ACCOUNT                 = 0x00000100
+      UF_NORMAL_ACCOUNT                         = 0x00000200
+      UF_INTERDOMAIN_TRUST_ACCOUNT              = 0x00000800
+      UF_WORKSTATION_TRUST_ACCOUNT              = 0x00001000
+      UF_SERVER_TRUST_ACCOUNT                   = 0x00002000
+      UF_DONT_EXPIRE_PASSWD                     = 0x00010000
+      UF_MNS_LOGON_ACCOUNT                      = 0x00020000
+      UF_SMARTCARD_REQUIRED                     = 0x00040000
+      UF_TRUSTED_FOR_DELEGATION                 = 0x00080000
+      UF_NOT_DELEGATED                          = 0x00100000
+      UF_USE_DES_KEY_ONLY                       = 0x00200000
+      UF_DONT_REQUIRE_PREAUTH                   = 0x00400000
+      UF_PASSWORD_EXPIRED                       = 0x00800000
+      UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = 0x01000000
+      UF_NO_AUTH_DATA_REQUIRED                  = 0x02000000
+      UF_PARTIAL_SECRETS_ACCOUNT                = 0x04000000
+      UF_USE_AES_KEYS                           = 0x08000000
+
+      # [2.2.1.14 Predefined RIDs](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/565a6584-3061-4ede-a531-f5c53826504b)
+      DOMAIN_USER_RID_ADMIN                 = 0x000001F4
+      DOMAIN_USER_RID_GUEST                 = 0x000001F5
+      DOMAIN_USER_RID_KRBTGT                = 0x000001F6
+      DOMAIN_GROUP_RID_ADMINS               = 0x00000200
+      DOMAIN_GROUP_RID_USERS                = 0x00000201
+      DOMAIN_GROUP_RID_COMPUTERS            = 0x00000203
+      DOMAIN_GROUP_RID_CONTROLLERS          = 0x00000204
+      DOMAIN_ALIAS_RID_ADMINS               = 0x00000220
+      DOMAIN_GROUP_RID_READONLY_CONTROLLERS = 0x00000209
+
+
       require 'ruby_smb/dcerpc/samr/rpc_sid'
 
       require 'ruby_smb/dcerpc/samr/samr_connect_request'
@@ -120,6 +234,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_enumerate_users_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_request'
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_response'
+      require 'ruby_smb/dcerpc/samr/samr_close_handle_request'
+      require 'ruby_smb/dcerpc/samr/samr_close_handle_response'
 
       # Returns a handle to a server object.
       #
@@ -224,10 +340,17 @@ module RubySMB
       #  SamrEnumerateUsersInDomainResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
       #  is not STATUS_SUCCESS
-      def samr_enumerate_users_in_domain(domain_handle:)
+      def samr_enumerate_users_in_domain(domain_handle:,
+                                         enumeration_context: 0,
+                                         user_account_control: USER_NORMAL_ACCOUNT |
+                                                               USER_WORKSTATION_TRUST_ACCOUNT |
+                                                               USER_SERVER_TRUST_ACCOUNT |
+                                                               USER_INTERDOMAIN_TRUST_ACCOUNT)
         samr_enum_users_request = SamrEnumerateUsersInDomainRequest.new(
           domain_handle: domain_handle,
-          prefered_maximum_length: 65535
+          enumeration_context: enumeration_context,
+          user_account_control: user_account_control,
+          prefered_maximum_length: 0xFFFFFFFF
         )
         response = dcerpc_request(samr_enum_users_request)
         begin
@@ -270,6 +393,32 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_rid_to_sid_response.error_status.value).join(',')}"
         end
         samr_rid_to_sid_response.sid
+      end
+
+      # Closes (that is, releases server-side resources used by) any context
+      # handle obtained from this RPC interface
+      #
+      # @param sam_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #  handle to close
+      # @return [RubySMB::Dcerpc::Samr::SamprHandle] A zero handle on success
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #  SamrCloseHandle packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #  is not STATUS_SUCCESS
+      def close_handle(sam_handle)
+        samr_close_handle_request = SamrCloseHandleRequest.new(sam_handle: sam_handle)
+        response = dcerpc_request(samr_close_handle_request)
+        begin
+          samr_close_handle_response = SamrCloseHandleResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrCloseHandleResponse'
+        end
+        unless samr_close_handle_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned with samr_connect: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_close_handle_response.error_status.value).join(',')}"
+        end
+        samr_close_handle_response.sam_handle
       end
     end
   end

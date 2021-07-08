@@ -8,10 +8,11 @@ module RubySMB
 
         endian :little
 
-        sampr_handle         :domain_handle
-        ndr_uint32           :enumeration_context
-        user_account_control :user_account_control
-        ndr_uint32           :prefered_maximum_length
+        sampr_handle :domain_handle
+        ndr_uint32   :enumeration_context
+        # UserAccountControl flags are defined in lib/ruby_smb/dcerpc/samr.rb
+        ndr_uint32   :user_account_control
+        ndr_uint32   :prefered_maximum_length
 
         def initialize_instance
           super

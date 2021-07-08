@@ -41,5 +41,8 @@ users.each do |rid, name|
   puts "#{"%-5s" % rid} | #{"%-43s" % sid} | #{name.encode('UTF-8')}"
 end
 
+samr.close_handle(server_handle)
+samr.close_handle(domain_handle)
+
 client.disconnect!
 
