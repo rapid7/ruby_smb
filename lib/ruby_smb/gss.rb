@@ -2,6 +2,10 @@ module RubySMB
   # module containing methods required for using the [GSS-API](http://www.rfc-editor.org/rfc/rfc2743.txt)
   # for Secure Protected Negotiation(SPNEGO) in SMB Authentication.
   module Gss
+    OID_SPNEGO = OpenSSL::ASN1::ObjectId.new('1.3.6.1.5.5.2')
+    OID_NEGOEX = OpenSSL::ASN1::ObjectId.new('1.3.6.1.4.1.311.2.2.30')
+    OID_NTLMSSP = OpenSSL::ASN1::ObjectId.new('1.3.6.1.4.1.311.2.2.10')
+
     # Cargo culted from Rex. Hacked Together ASN1 encoding that works for our GSS purposes
     # @todo Document these magic numbers
     def self.asn1encode(str = '')
