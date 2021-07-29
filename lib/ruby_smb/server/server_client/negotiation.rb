@@ -112,10 +112,9 @@ module RubySMB
           end
 
           send_packet(response)
-          @state = :session_setup1
+          @state = :session_setup
           @dialect = dialect
         end
-
       end
     end
   end

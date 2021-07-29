@@ -3,15 +3,17 @@ require 'socket'
 module RubySMB
   class Server
     require 'ruby_smb/server/server_client'
+    require 'ruby_smb/gss/provider'
 
     Connection = Struct.new(:client, :thread)
 
-    def initialize(server_sock: nil)
+    def initialize(server_sock: nil, gss_provider: nil)
       server_sock = ::TCPServer.new(445) if server_sock.nil?
 
       @server_guid = SecureRandom.random_bytes(16)
       @server_sock = server_sock
       @connections = []
+      @gss_provider = gss_provider || Gss::NTLMProvider.new
     end
 
     def run(&block)
@@ -24,7 +26,7 @@ module RubySMB
       end
     end
 
-    attr_accessor :server_guid
+    attr_accessor :gss_provider, :server_guid
   end
 end
 

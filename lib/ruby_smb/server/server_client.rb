@@ -15,6 +15,13 @@ module RubySMB
         @dispatcher = dispatcher
         @state = :negotiate
         @dialect = nil
+        @message_id = 0
+        @session_id = nil
+        @gss_processor = server.gss_provider.new_processor(self)
+      end
+
+      def process_gss(buffer)
+        @gss_processor.process(buffer)
       end
 
       def run
@@ -28,10 +35,8 @@ module RubySMB
           case @state
           when :negotiate
             handle_negotiate(raw_request)
-          when :session_setup1
-            handle_session_setup1(raw_request)
-          when :session_setup2
-            handle_session_setup2(raw_request)
+          when :session_setup
+            handle_session_setup(raw_request)
           end
 
           break if @dispatcher.tcp_socket.closed?
