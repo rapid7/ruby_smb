@@ -71,7 +71,9 @@ module RubySMB
         def handle_negotiate_smb2(raw_request)
           request = SMB2::Packet::NegotiateRequest.read(raw_request)
 
-          dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).sort.last
+          #dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).sort.last
+          # todo: support newer than 3.0.2
+          dialect = ([0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).sort.last
           if dialect.nil?
             # todo: respond with an appropriate error when no dialect is supported
             disconnect!
@@ -93,22 +95,25 @@ module RubySMB
           response.security_buffer = Negotiation.build_gss_api.to_der
 
           response.negotiate_context_offset = response.negotiate_context_list.abs_offset
-          response.add_negotiate_context(SMB2::NegotiateContext.new(
-            context_type: SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
-            data: SMB2::PreauthIntegrityCapabilities.new(
-              hash_algorithms: [ SMB2::PreauthIntegrityCapabilities::SHA_512 ],
-              salt: SecureRandom.random_bytes(32))
-          ))
-          response.add_negotiate_context(SMB2::NegotiateContext.new(
-            context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
-            data: SMB2::EncryptionCapabilities.new(
-              # todo: Windows Server 2019 only returns AES-128-CCM but we should support GCM too
-              ciphers: [ SMB2::EncryptionCapabilities::AES_128_CCM ]
-            )
-          ))
+          if dialect == 0x311
+            response.add_negotiate_context(SMB2::NegotiateContext.new(
+              context_type: SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
+              data: SMB2::PreauthIntegrityCapabilities.new(
+                hash_algorithms: [ SMB2::PreauthIntegrityCapabilities::SHA_512 ],
+                salt: SecureRandom.random_bytes(32))
+            ))
+            response.add_negotiate_context(SMB2::NegotiateContext.new(
+              context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
+              data: SMB2::EncryptionCapabilities.new(
+                # todo: Windows Server 2019 only returns AES-128-CCM but we should support GCM too
+                ciphers: [ SMB2::EncryptionCapabilities::AES_128_CCM ]
+              )
+            ))
+          end
 
           send_packet(response)
           @state = :session_setup1
+          @dialect = dialect
         end
 
       end

@@ -8,10 +8,13 @@ module RubySMB
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
 
+      attr_reader :dialect, :state
+
       def initialize(server, dispatcher)
         @server = server
         @dispatcher = dispatcher
         @state = :negotiate
+        @dialect = nil
       end
 
       def run

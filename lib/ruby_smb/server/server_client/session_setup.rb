@@ -2,6 +2,33 @@ module RubySMB
   class Server
     class ServerClient
       module SessionSetup
+        NTLM_NEGOTIATE_FLAGS = {
+          :UNICODE                  => 1 << 0,
+          :OEM                      => 1 << 1,
+          :REQUEST_TARGET           => 1 << 2,
+          :SIGN                     => 1 << 4,
+          :SEAL                     => 1 << 5,
+          :DATAGRAM                 => 1 << 6,
+          :LAN_MANAGER_KEY          => 1 << 7,
+          :NTLM                     => 1 << 9,
+          :NT_ONLY                  => 1 << 10,
+          :ANONYMOUS                => 1 << 11,
+          :OEM_DOMAIN_SUPPLIED      => 1 << 12,
+          :OEM_WORKSTATION_SUPPLIED => 1 << 13,
+          :ALWAYS_SIGN              => 1 << 15,
+          :TARGET_TYPE_DOMAIN       => 1 << 16,
+          :TARGET_TYPE_SERVER       => 1 << 17,
+          :TARGET_TYPE_SHARE        => 1 << 18,
+          :EXTENDED_SECURITY        => 1 << 19,
+          :IDENTIFY                 => 1 << 20,
+          :NON_NT_SESSION           => 1 << 22,
+          :TARGET_INFO              => 1 << 23,
+          :VERSION_INFO             => 1 << 25,
+          :KEY128                   => 1 << 29,
+          :KEY_EXCHANGE             => 1 << 30,
+          :KEY56                    => 1 << 31
+        }.freeze
+
         def handle_session_setup1(raw_request)
           request = SMB2::Packet::SessionSetupRequest.read(raw_request)
 
@@ -31,7 +58,12 @@ module RubySMB
           type1_msg = Net::NTLM::Message::Type1.parse(raw_type1_msg)
           type2_msg = Net::NTLM::Message::Type2.new.tap do |msg|
             msg.target_name = 'LOCALHOST'.encode('UTF-16LE').b
-            msg.flag = 0xe28a8215
+            #msg.flag = 0xe28a8a15 | 0x800
+            msg.flag = 0
+            %i{ KEY56 KEY128 KEY_EXCHANGE UNICODE TARGET_INFO VERSION_INFO }.each do |flag|
+              msg.flag |= NTLM_NEGOTIATE_FLAGS.fetch(flag)
+            end
+
             msg.challenge = SecureRandom.bytes(8).unpack1('Q')
             target_info = Net::NTLM::TargetInfo.new('')
             target_info.av_pairs.merge!({
@@ -45,7 +77,7 @@ module RubySMB
             msg.enable(:target_info)
             msg.context = 0
             msg.enable(:context)
-            msg.os_version = "\x06\x01\x00\x00\x00\x00\x00\x0f".b # Version 6.1 (Build 0); NTLM Current Revision 15
+            msg.os_version = "\x06\x01\x00\x00\x00\x00\x00\x0f".b # Version 6.1 (Build 0); NTLM Current Revision 15 # todo: make this non-binary
             msg.enable(:os_version)
           end
 
@@ -69,8 +101,10 @@ module RubySMB
             return
           end
 
-          # fix this, sometimes it's 010 when the client is windows, otherwise it's 000 when the client is RubySMB
-          raw_type3_msg = Gss.asn1dig(gss_api, 0, 1, 0)&.value
+          # fixme: sometimes it's 010 when the client is windows, otherwise it's 000 when the client is RubySMB see:
+          #   https://datatracker.ietf.org/doc/html/rfc2478#section-3.2.14
+          neg_token_init = Hash[RubySMB::Gss.asn1dig(gss_api, 0).value.map { |obj| [obj.tag, obj.value[0].value] }]
+          raw_type3_msg = neg_token_init[2]
           type3_msg = Net::NTLM::Message::Type1.parse(raw_type3_msg)
 
           gss = OpenSSL::ASN1::ASN1Data.new([
