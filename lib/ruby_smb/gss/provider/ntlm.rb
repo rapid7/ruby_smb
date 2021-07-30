@@ -64,7 +64,7 @@ module RubySMB
                 msg.flag |= NEGOTIATE_FLAGS.fetch(flag)
               end
 
-              @server_challenge = msg.challenge = SecureRandom.bytes(8).unpack1('Q')
+              @server_challenge = msg.challenge = @provider.generate_server_challenge.unpack1('Q')
               target_info = Net::NTLM::TargetInfo.new('')
               target_info.av_pairs.merge!({
                 Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => 'LOCALHOST'.encode('UTF-16LE').b,
@@ -178,6 +178,15 @@ module RubySMB
           @allow_anonymous = allow_anonymous
           @default_domain = default_domain
           @accounts = []
+          @generate_server_challenge = -> { SecureRandom.bytes(8) }
+        end
+
+        def generate_server_challenge(&block)
+          if block.nil?
+            @generate_server_challenge.call
+          else
+            @generate_server_challenge = block
+          end
         end
 
         def new_processor(server_client)
