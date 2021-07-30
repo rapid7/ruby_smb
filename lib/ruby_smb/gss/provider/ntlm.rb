@@ -2,6 +2,12 @@ module RubySMB
   module Gss
     module Provider
       class NTLM < Base
+        Account = Struct.new(:username, :password, :domain) do
+          def to_s
+            "#{domain}\\#{username}"
+          end
+        end
+
         class Processor < Processor::Base
           NEGOTIATE_FLAGS = {
             :UNICODE                  => 1 << 0,
@@ -79,13 +85,21 @@ module RubySMB
           end
 
           def process_ntlm_type3(type3_msg)
+            if type3_msg.user == '' && type3_msg.domain == ''
+              if @provider.allow_anonymous
+                return WindowsError::NTStatus::STATUS_SUCCESS
+              end
+
+              return WindowsError::NTStatus::STATUS_LOGON_FAILURE
+            end
+
             digest = OpenSSL::Digest::MD5.new
             their_nt_proof_str = type3_msg.ntlm_response[0...digest.digest_length]
             their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
 
             account = @provider.get_account(
-              type3_msg.user.force_encoding('UTF-16LE'),
-              domain: type3_msg.domain.force_encoding('UTF-16LE')
+              type3_msg.user,
+              domain: type3_msg.domain
             )
             return WindowsError::NTStatus::STATUS_LOGON_FAILURE if account.nil?
 
@@ -113,7 +127,7 @@ module RubySMB
             raw_type1_msg = Gss.asn1dig(gss_api, 1, 0, 1, 0)&.value
             return unless raw_type1_msg
 
-            type1_msg = Net::NTLM::Message::Type1.parse(raw_type1_msg)
+            type1_msg = Net::NTLM::Message.parse(raw_type1_msg)
             type2_msg = process_ntlm_type1(type1_msg)
 
             Result.new(Gss.gss_type2(type2_msg.serialize), WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
@@ -123,9 +137,15 @@ module RubySMB
             neg_token_init = Hash[RubySMB::Gss.asn1dig(gss_api, 0).value.map { |obj| [obj.tag, obj.value[0].value] }]
             raw_type3_msg = neg_token_init[2]
 
-            type3_msg = Net::NTLM::Message::Type1.parse(raw_type3_msg)
+            type3_msg = Net::NTLM::Message.parse(raw_type3_msg)
+            if type3_msg.flag & NEGOTIATE_FLAGS[:UNICODE] == NEGOTIATE_FLAGS[:UNICODE]
+              type3_msg.domain.force_encoding('UTF-16LE')
+              type3_msg.user.force_encoding('UTF-16LE')
+              type3_msg.workstation.force_encoding('UTF-16LE')
+            end
+
             nt_status = process_ntlm_type3(type3_msg)
-            buffer = nil
+            buffer = identity = nil
 
             case nt_status
             when WindowsError::NTStatus::STATUS_SUCCESS
@@ -138,11 +158,24 @@ module RubySMB
               ], 1, :CONTEXT_SPECIFIC).to_der
             end
 
-            Result.new(buffer, nt_status)
+            account = @provider.get_account(
+              type3_msg.user,
+              domain: type3_msg.domain
+            )
+            if account.nil?
+              if @provider.allow_anonymous
+                identity = :anonymous
+              end
+            else
+              identity = account.to_s
+            end
+
+            Result.new(buffer, nt_status, identity)
           end
         end
 
-        def initialize(default_domain: 'WORKGROUP')
+        def initialize(allow_anonymous: false, default_domain: 'WORKGROUP')
+          @allow_anonymous = allow_anonymous
           @default_domain = default_domain
           @accounts = []
         end

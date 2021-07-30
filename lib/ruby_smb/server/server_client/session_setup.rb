@@ -18,7 +18,10 @@ module RubySMB
           response.smb2_header.session_id = @session_id = @session_id || SecureRandom.random_bytes(4).unpack1('V')
           response.buffer = gss_result.buffer unless gss_result.nil?
           send_packet(response)
-          @state = :authenticated if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
+          if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
+            @state = :authenticated
+            @identity = gss_result.identity
+          end
         end
       end
     end

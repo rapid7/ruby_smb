@@ -18,6 +18,7 @@ module RubySMB
         @message_id = 0
         @session_id = nil
         @gss_processor = server.gss_provider.new_processor(self)
+        @identity = nil
       end
 
       def process_gss(buffer)
