@@ -101,7 +101,7 @@ module RubySMB
             path.to_binary_s.length
           end
         end
-        string16     :path,           label: 'Path Buffer',    onlyif: -> { flags != SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT }
+        string16     :path,           label: 'Path Buffer',    onlyif: -> { flags != SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT }, read_length: -> { path_length }
         tree_connect_request_extension :tree_connect_request_extension, label: 'Tree Connect Request Extension', onlyif: -> { flags == SMB2_TREE_CONNECT_FLAG_EXTENSION_PRESENT }
       end
     end
