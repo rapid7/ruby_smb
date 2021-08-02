@@ -117,26 +117,37 @@ module RubySMB
               return WindowsError::NTStatus::STATUS_LOGON_FAILURE
             end
 
-            digest = OpenSSL::Digest::MD5.new
-            their_nt_proof_str = type3_msg.ntlm_response[0...digest.digest_length]
-            their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
-
             account = @provider.get_account(
               type3_msg.user,
               domain: type3_msg.domain
             )
             return WindowsError::NTStatus::STATUS_LOGON_FAILURE if account.nil?
 
+            matches = false
+            case type3_msg.ntlm_version
+            when :ntlmv1
+              my_ntlm_response = Net::NTLM::ntlm_response({:ntlm_hash => Net::NTLM::ntlm_hash(account.password), :challenge => [@server_challenge].pack('Q')})
+              matches = my_ntlm_response == type3_msg.ntlm_response
+            when :ntlmv2
+              digest = OpenSSL::Digest::MD5.new
+              their_nt_proof_str = type3_msg.ntlm_response[0...digest.digest_length]
+              their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
 
-            ntlmv2_hash = Net::NTLM.ntlmv2_hash(
-              account.username.encode('UTF-16LE'),
-              account.password.encode('UTF-16LE'),
-              type3_msg.domain.encode('UTF-16LE'),  # don't use the account domain because of the special '.' value
-              {:client_challenge => their_blob[16...24], :unicode => true}
-            )
+              ntlmv2_hash = Net::NTLM.ntlmv2_hash(
+                account.username,
+                account.password,
+                type3_msg.domain,  # don't use the account domain because of the special '.' value
+                {:client_challenge => their_blob[16...24]}
+              )
 
-            my_nt_proof_str = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, [@server_challenge].pack('Q') + their_blob)
-            return WindowsError::NTStatus::STATUS_LOGON_FAILURE unless my_nt_proof_str == their_nt_proof_str
+              my_nt_proof_str = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, [@server_challenge].pack('Q') + their_blob)
+              matches = my_nt_proof_str == their_nt_proof_str
+            else
+              # the only other value Net::NTLM will return for this is ntlm_session
+              raise NotImplementedError, "authentication via ntlm version #{type3_msg.ntlm_version} is not supported"
+            end
+
+            return WindowsError::NTStatus::STATUS_LOGON_FAILURE unless matches
 
             WindowsError::NTStatus::STATUS_SUCCESS
           end
