@@ -51,7 +51,7 @@ module RubySMB
         send_packet(response)
       end
 
-      def process_gss(buffer)
+      def process_gss(buffer=nil)
         @gss_processor.process(buffer)
       end
 

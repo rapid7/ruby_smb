@@ -15,29 +15,6 @@ module RubySMB
           end
         end
 
-        def self.build_gss_api
-          # this is only NTLMSSP (as opposed to SPNEGO + NTLMSSP)
-          OpenSSL::ASN1::ASN1Data.new([
-            Gss::OID_SPNEGO,
-            OpenSSL::ASN1::ASN1Data.new([
-              OpenSSL::ASN1::Sequence.new([
-                OpenSSL::ASN1::ASN1Data.new([
-                  OpenSSL::ASN1::Sequence.new([
-                    Gss::OID_NTLMSSP
-                  ])
-                ], 0, :CONTEXT_SPECIFIC),
-                OpenSSL::ASN1::ASN1Data.new([
-                  OpenSSL::ASN1::ASN1Data.new([
-                    OpenSSL::ASN1::ASN1Data.new([
-                      OpenSSL::ASN1::GeneralString.new('not_defined_in_RFC4178@please_ignore')
-                    ], 0, :CONTEXT_SPECIFIC)
-                  ], 16, :UNIVERSAL)
-                ], 3, :CONTEXT_SPECIFIC)
-              ])
-            ], 0, :CONTEXT_SPECIFIC)
-          ], 0, :APPLICATION)
-        end
-
         def handle_negotiate_smb1(raw_request)
           request = SMB1::Packet::NegotiateRequest.read(raw_request)
 
@@ -63,7 +40,7 @@ module RubySMB
           response.max_write_size = 0x800000
           response.system_time.set(Time.now)
           response.security_buffer_offset = response.security_buffer.abs_offset
-          response.security_buffer = Negotiation.build_gss_api.to_der
+          response.security_buffer = process_gss.buffer
 
           send_packet(response)
         end
@@ -92,7 +69,7 @@ module RubySMB
           response.system_time.set(Time.now)
 
           response.security_buffer_offset = response.security_buffer.abs_offset
-          response.security_buffer = Negotiation.build_gss_api.to_der
+          response.security_buffer = process_gss.buffer
 
           response.negotiate_context_offset = response.negotiate_context_list.abs_offset
           if dialect == 0x311
