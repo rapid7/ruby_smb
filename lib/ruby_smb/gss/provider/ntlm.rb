@@ -88,7 +88,8 @@ module RubySMB
                 msg.flag |= NEGOTIATE_FLAGS.fetch(flag)
               end
 
-              @server_challenge = msg.challenge = @provider.generate_server_challenge.unpack1('Q')
+              @server_challenge = @provider.generate_server_challenge
+              msg.challenge = @server_challenge.unpack1('Q')
               target_info = Net::NTLM::TargetInfo.new('')
               target_info.av_pairs.merge!({
                 Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => 'LOCALHOST'.encode('UTF-16LE').b,
@@ -126,7 +127,10 @@ module RubySMB
             matches = false
             case type3_msg.ntlm_version
             when :ntlmv1
-              my_ntlm_response = Net::NTLM::ntlm_response({:ntlm_hash => Net::NTLM::ntlm_hash(account.password), :challenge => [@server_challenge].pack('Q')})
+              my_ntlm_response = Net::NTLM::ntlm_response(
+                ntlm_hash: Net::NTLM::ntlm_hash(account.password.encode('UTF-16LE'), unicode: true),
+                challenge: @server_challenge
+              )
               matches = my_ntlm_response == type3_msg.ntlm_response
             when :ntlmv2
               digest = OpenSSL::Digest::MD5.new
@@ -134,13 +138,13 @@ module RubySMB
               their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
 
               ntlmv2_hash = Net::NTLM.ntlmv2_hash(
-                account.username,
-                account.password,
-                type3_msg.domain,  # don't use the account domain because of the special '.' value
-                {:client_challenge => their_blob[16...24]}
+                account.username.encode('UTF-16LE'),
+                account.password.encode('UTF-16LE'),
+                type3_msg.domain.encode('UTF-16LE'),  # don't use the account domain because of the special '.' value
+                {client_challenge: their_blob[16...24], unicode: true}
               )
 
-              my_nt_proof_str = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, [@server_challenge].pack('Q') + their_blob)
+              my_nt_proof_str = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, @server_challenge + their_blob)
               matches = my_nt_proof_str == their_nt_proof_str
             else
               # the only other value Net::NTLM will return for this is ntlm_session
@@ -163,6 +167,10 @@ module RubySMB
             return unless raw_type1_msg
 
             type1_msg = Net::NTLM::Message.parse(raw_type1_msg)
+            if type1_msg.flag & NEGOTIATE_FLAGS[:UNICODE] == NEGOTIATE_FLAGS[:UNICODE]
+              type1_msg.domain.force_encoding('UTF-16LE')
+              type1_msg.workstation.force_encoding('UTF-16LE')
+            end
             type2_msg = process_ntlm_type1(type1_msg)
 
             Result.new(Gss.gss_type2(type2_msg.serialize), WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
@@ -209,9 +217,9 @@ module RubySMB
           end
         end
 
-        def initialize(allow_anonymous: false, default_domain: 'WORKGROUP')
+        def initialize(allow_anonymous: false, default_domain: nil)
           @allow_anonymous = allow_anonymous
-          @default_domain = default_domain
+          @default_domain = default_domain || 'WORKGROUP'
           @accounts = []
           @generate_server_challenge = -> { SecureRandom.bytes(8) }
         end
@@ -232,10 +240,10 @@ module RubySMB
 
         def get_account(username, domain: nil)
           # the username and password values should use the native encoding for the comparison in the #find operation
-          username.encode!
-          domain.encode!
-          domain = @default_domain if domain == '.' || domain.nil?
-          @accounts.find { |account| account.username == username && (domain.nil? || account.domain == domain) }
+          username = username.downcase
+          domain = @default_domain if domain == '.'.encode(domain.encoding) || domain.nil?
+          domain = domain.downcase
+          @accounts.find { |account| account.username.encode(username.encoding).downcase == username && account.domain.encode(domain.encoding).downcase == domain }
         end
 
         #
