@@ -8,7 +8,7 @@ module RubySMB
 
         # An SMB_Parameters Block as defined by the {NegotiateResponseExtended}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
-          uint16          :dialect_index, label: 'Dialect Index'
+          uint16          :dialect_index,     label: 'Dialect Index'
           security_mode   :security_mode
           uint16          :max_mpx_count,     label: 'Max Multiplex Count'
           uint16          :max_number_vcs,    label: 'Max Virtual Circuits'
