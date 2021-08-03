@@ -14,5 +14,5 @@ module RubySMB
   end
 end
 
-require 'ruby_smb/gss/provider/processor'
+require 'ruby_smb/gss/provider/authenticator'
 require 'ruby_smb/gss/provider/ntlm'

@@ -1,7 +1,7 @@
 module RubySMB
   module Gss
     module Provider
-      module Processor
+      module Authenticator
         class Base
           def initialize(provider, server_client)
             @provider = provider

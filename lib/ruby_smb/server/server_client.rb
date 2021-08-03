@@ -19,7 +19,7 @@ module RubySMB
         @dialect = nil
         @message_id = 0
         @session_id = nil
-        @gss_processor = server.gss_provider.new_processor(self)
+        @gss_authenticator = server.gss_provider.new_authenticator(self)
         @identity = nil
         @tree_connections = {}
       end
@@ -56,7 +56,7 @@ module RubySMB
       end
 
       def process_gss(buffer=nil)
-        @gss_processor.process(buffer)
+        @gss_authenticator.process(buffer)
       end
 
       def run

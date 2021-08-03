@@ -8,7 +8,7 @@ module RubySMB
           end
         end
 
-        class Processor < Processor::Base
+        class Authenticator < Authenticator::Base
           NEGOTIATE_FLAGS = {
             :UNICODE                  => 1 << 0,
             :OEM                      => 1 << 1,
@@ -224,10 +224,10 @@ module RubySMB
           end
         end
 
-        def new_processor(server_client)
+        def new_authenticator(server_client)
           # build and return an instance that can process and track stateful information for a particular connection but
           # that's backed by this particular provider
-          Processor.new(self, server_client)
+          Authenticator.new(self, server_client)
         end
 
         def get_account(username, domain: nil)
