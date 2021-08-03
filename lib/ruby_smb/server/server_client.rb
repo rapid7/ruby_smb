@@ -24,6 +24,10 @@ module RubySMB
         @tree_connections = {}
       end
 
+      def getpeername
+        @dispatcher.tcp_socket.getpeername
+      end
+
       def handle_authenticated(raw_request)
         response = nil
 
