@@ -35,12 +35,9 @@ class HaxorNTLMProvider < RubySMB::Gss::Provider::NTLM
         hash << ":#{bin_to_hex(type3_msg.ntlm_response[16.. -1])}"
       end
 
-      unless hash_type.nil?
-        version = @server_client.metadialect.version_name
-        puts "[#{version}] #{hash_type} Client   : #{client}"
-        puts "[#{version}] #{hash_type} Username : #{username}"
-        puts "[#{version}] #{hash_type} Hash     : #{hash}"
-      end
+      puts "[SMB] #{hash_type} Client   : #{client}"
+      puts "[SMB] #{hash_type} Username : #{username}"
+      puts "[SMB] #{hash_type} Hash     : #{hash}"
 
       WindowsError::NTStatus::STATUS_ACCESS_DENIED
     end
