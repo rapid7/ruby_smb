@@ -38,6 +38,7 @@ module RubySMB
 
           def reset!
             @server_challenge = nil
+            @exported_session_key = nil
           end
 
           def process(request_buffer=nil)
@@ -146,6 +147,18 @@ module RubySMB
 
               my_nt_proof_str = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, @server_challenge + their_blob)
               matches = my_nt_proof_str == their_nt_proof_str
+              if matches
+                user_session_key = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, my_nt_proof_str)
+                if type3_msg.flag & NEGOTIATE_FLAGS[:KEY_EXCHANGE] == NEGOTIATE_FLAGS[:KEY_EXCHANGE]
+                  rc4 = OpenSSL::Cipher.new('rc4')
+                  rc4.decrypt
+                  rc4.key = user_session_key
+                  @exported_session_key = rc4.update type3_msg.session_key
+                  @exported_session_key << rc4.final
+                else
+                  @exported_session_key = user_session_key
+                end
+              end
             else
               # the only other value Net::NTLM will return for this is ntlm_session
               raise NotImplementedError, "authentication via ntlm version #{type3_msg.ntlm_version} is not supported"

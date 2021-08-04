@@ -4,7 +4,7 @@ module RubySMB
       Result = Struct.new(:buffer, :nt_status, :identity)
 
       class Base
-        def new_processor(server_client)
+        def new_authenticator(server_client)
           raise NotImplementedError
         end
 
