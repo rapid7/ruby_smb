@@ -70,26 +70,25 @@ module RubySMB
         def handle_negotiate_smb2(raw_request)
           request = SMB2::Packet::NegotiateRequest.read(raw_request)
 
-          #dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).sort.last
-          # todo: support newer than 3.0.2
-          dialect = ([0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).first
-          if dialect.nil?
-            # todo: respond with an appropriate error when no dialect is supported
-            disconnect!
-            return
-          end
+          dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).first
 
           response = SMB2::Packet::NegotiateResponse.new
           response.smb2_header.credits = 1
           response.security_mode.signing_enabled = 1
-          response.dialect_revision = dialect
           response.server_guid = @server.server_guid
-
           response.max_transact_size = 0x800000
           response.max_read_size = 0x800000
           response.max_write_size = 0x800000
           response.system_time.set(Time.now)
+          if dialect.nil?
+            # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b39f253e-4963-40df-8dff-2f9040ebbeb1
+            # > If a common dialect is not found, the server MUST fail the request with STATUS_NOT_SUPPORTED.
+            response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED.value
+            send_packet(response)
+            return
+          end
 
+          response.dialect_revision = dialect
           response.security_buffer_offset = response.security_buffer.abs_offset
           response.security_buffer = process_gss.buffer
 

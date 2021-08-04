@@ -6,7 +6,7 @@ module RubySMB
           case @dialect
           when 'NT LM 0.12'
             handle_session_setup_smb1(raw_request)
-          when '0x302', '0x300', '0x210', '0x202'
+          when '0x311', '0x302', '0x300', '0x210', '0x202'
             handle_session_setup_smb2(raw_request)
           end
         end
