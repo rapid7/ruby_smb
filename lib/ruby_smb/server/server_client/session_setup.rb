@@ -56,10 +56,13 @@ module RubySMB
           response.smb2_header.session_id = @session_id = @session_id || SecureRandom.random_bytes(4).unpack1('V')
           response.buffer = gss_result.buffer
 
+          update_preauth_hash(request) if @dialect == '0x311'
           send_packet(response)
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
             @state = :authenticated
             @identity = gss_result.identity
+          elsif @dialect == '0x311'
+            update_preauth_hash(response)
           end
         end
       end

@@ -22,6 +22,8 @@ module RubySMB
         @gss_authenticator = server.gss_provider.new_authenticator(self)
         @identity = nil
         @tree_connections = {}
+        @preauth_integrity_hash_algorithm = nil
+        @preauth_integrity_hash_value = nil
       end
 
       def getpeername
@@ -91,6 +93,18 @@ module RubySMB
 
       def send_packet(packet)
         @dispatcher.send_packet(packet)
+      end
+
+      def update_preauth_hash(data)
+        unless @preauth_integrity_hash_algorithm
+          raise RubySMB::Error::EncryptionError.new(
+            'Cannot compute the Preauth Integrity Hash value: Preauth Integrity Hash Algorithm is nil'
+          )
+        end
+        @preauth_integrity_hash_value = OpenSSL::Digest.digest(
+          @preauth_integrity_hash_algorithm,
+          @preauth_integrity_hash_value + data.to_binary_s
+        )
       end
     end
   end

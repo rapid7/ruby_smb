@@ -64,6 +64,15 @@ module RubySMB
           self.negotiate_context_list
         end
 
+        # Find the first Negotiate Context structure that matches the given
+        # context type
+        #
+        # @param [Integer] the Negotiate Context structure you wish to add
+        # @return [NegotiateContext] the Negotiate Context structure or nil if
+        # not found
+        def find_negotiate_context(type)
+          negotiate_context_list.find { |nc| nc.context_type == type }
+        end
 
         private
 

@@ -88,25 +88,42 @@ module RubySMB
             return
           end
 
-          response.dialect_revision = dialect
-          response.security_buffer_offset = response.security_buffer.abs_offset
-          response.security_buffer = process_gss.buffer
-
           response.negotiate_context_offset = response.negotiate_context_list.abs_offset
           if dialect == 0x311
+            # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b39f253e-4963-40df-8dff-2f9040ebbeb1
+            nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES)
+            @preauth_integrity_hash_algorithm = SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
+            unless @preauth_integrity_hash_algorithm
+              response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER.value
+              send_packet(response)
+              return
+            end
+            @preauth_integrity_hash_value = "\x00" * 64
             response.add_negotiate_context(SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
               data: SMB2::PreauthIntegrityCapabilities.new(
                 hash_algorithms: [ SMB2::PreauthIntegrityCapabilities::SHA_512 ],
                 salt: SecureRandom.random_bytes(32))
             ))
+
+            nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
+            cipher = nc&.data&.ciphers&.first
+            cipher = 0 unless SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
             response.add_negotiate_context(SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
               data: SMB2::EncryptionCapabilities.new(
-                # todo: Windows Server 2019 only returns AES-128-CCM but we should support GCM too
-                ciphers: [ SMB2::EncryptionCapabilities::AES_128_CCM ]
+                ciphers: [ cipher ]
               )
             ))
+          end
+
+          response.dialect_revision = dialect
+          response.security_buffer_offset = response.security_buffer.abs_offset
+          response.security_buffer = process_gss.buffer
+
+          if dialect == 0x311
+            update_preauth_hash(request)
+            update_preauth_hash(response)
           end
 
           send_packet(response)
