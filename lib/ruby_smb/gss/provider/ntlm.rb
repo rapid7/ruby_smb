@@ -37,8 +37,8 @@ module RubySMB
           }.freeze
 
           def reset!
+            super
             @server_challenge = nil
-            @exported_session_key = nil
           end
 
           def process(request_buffer=nil)
@@ -153,10 +153,10 @@ module RubySMB
                   rc4 = OpenSSL::Cipher.new('rc4')
                   rc4.decrypt
                   rc4.key = user_session_key
-                  @exported_session_key = rc4.update type3_msg.session_key
-                  @exported_session_key << rc4.final
+                  @session_key = rc4.update type3_msg.session_key
+                  @session_key << rc4.final
                 else
-                  @exported_session_key = user_session_key
+                  @session_key = user_session_key
                 end
               end
             else
