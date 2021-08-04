@@ -2,18 +2,18 @@ module RubySMB
   # Represents an SMB client capable of talking to SMB1 or SMB2 servers and handling
   # all end-user client functionality.
   class Client
+    require 'ruby_smb/signing'
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
-    require 'ruby_smb/client/signing'
     require 'ruby_smb/client/tree_connect'
     require 'ruby_smb/client/echo'
     require 'ruby_smb/client/utils'
     require 'ruby_smb/client/winreg'
     require 'ruby_smb/client/encryption'
 
+    include RubySMB::Signing
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
-    include RubySMB::Client::Signing
     include RubySMB::Client::TreeConnect
     include RubySMB::Client::Echo
     include RubySMB::Client::Utils
@@ -436,14 +436,14 @@ module RubySMB
       when 'SMB1'
         packet.smb_header.uid = self.user_id if self.user_id
         packet.smb_header.pid_low = self.pid if self.pid
-        packet = smb1_sign(packet)
+        packet = smb1_sign(packet) if signing_required && !session_key.empty?
       when 'SMB2'
         packet = increment_smb_message_id(packet)
         packet.smb2_header.session_id = session_id
-        unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest)
-          if self.smb2
+        unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest) || session_key.empty?
+          if self.smb2 && signing_required
             packet = smb2_sign(packet)
-          elsif self.smb3
+          elsif self.smb3 && (signing_required || packet.is_a?(RubySMB::SMB2::Packet::TreeConnectRequest))
             packet = smb3_sign(packet)
           end
         end
