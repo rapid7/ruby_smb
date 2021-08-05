@@ -128,7 +128,7 @@ module RubySMB
 
           send_packet(response)
           @state = :session_setup
-          @dialect = "0x#{dialect.to_s(16)}"
+          @dialect = "0x%04x" % dialect
         end
       end
     end

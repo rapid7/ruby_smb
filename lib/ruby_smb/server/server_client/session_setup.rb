@@ -6,7 +6,7 @@ module RubySMB
           case @dialect
           when 'NT LM 0.12'
             handle_session_setup_smb1(raw_request)
-          when '0x311', '0x302', '0x300', '0x210', '0x202'
+          when '0x0311', '0x0302', '0x0300', '0x0210', '0x0202'
             handle_session_setup_smb2(raw_request)
           end
         end
@@ -56,12 +56,12 @@ module RubySMB
           response.smb2_header.session_id = @session_id = @session_id || SecureRandom.random_bytes(4).unpack1('V')
           response.buffer = gss_result.buffer
 
-          update_preauth_hash(request) if @dialect == '0x311'
+          update_preauth_hash(request) if @dialect == '0x0311'
           send_packet(response)
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
             @state = :authenticated
             @identity = gss_result.identity
-          elsif @dialect == '0x311'
+          elsif @dialect == '0x0311'
             update_preauth_hash(response)
           end
         end
