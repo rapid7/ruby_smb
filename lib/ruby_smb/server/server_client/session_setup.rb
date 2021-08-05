@@ -33,11 +33,11 @@ module RubySMB
             response.data_block.security_blob = gss_result.buffer
           end
 
-          send_packet(response)
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
             @state = :authenticated
             @identity = gss_result.identity
           end
+          send_packet(response)
         end
 
         def handle_session_setup_smb2(raw_request)
@@ -57,13 +57,14 @@ module RubySMB
           response.buffer = gss_result.buffer
 
           update_preauth_hash(request) if @dialect == '0x0311'
-          send_packet(response)
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
             @state = :authenticated
             @identity = gss_result.identity
+            @session_key = @gss_authenticator.session_key
           elsif @dialect == '0x0311'
             update_preauth_hash(response)
           end
+          send_packet(response)
         end
       end
     end

@@ -220,7 +220,7 @@ module RubySMB
             )
             if account.nil?
               if @provider.allow_anonymous
-                identity = :anonymous
+                identity = IDENTITY_ANONYMOUS
               end
             else
               identity = account.to_s

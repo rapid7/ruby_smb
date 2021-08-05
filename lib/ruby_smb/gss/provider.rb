@@ -1,6 +1,7 @@
 module RubySMB
   module Gss
     module Provider
+      IDENTITY_ANONYMOUS = :anonymous
       Result = Struct.new(:buffer, :nt_status, :identity)
 
       class Base

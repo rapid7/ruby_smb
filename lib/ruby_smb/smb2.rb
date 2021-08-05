@@ -1,7 +1,7 @@
 module RubySMB
   # A packet parsing and manipulation library for the SMB2 protocol
   #
-  # [[MS-SMB2] Server Mesage Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
+  # [[MS-SMB2] Server Message Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
   module SMB2
     # Protocol ID value. Translates to \xFESMB
     SMB2_PROTOCOL_ID = 0xFE534D42

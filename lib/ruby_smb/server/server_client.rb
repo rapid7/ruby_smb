@@ -3,10 +3,12 @@ module RubySMB
     class ServerClient
 
       require 'ruby_smb/dialect'
+      require 'ruby_smb/signing'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
       require 'ruby_smb/server/server_client/tree_connect'
 
+      include RubySMB::Signing
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
       include RubySMB::Server::ServerClient::TreeConnect
@@ -20,6 +22,7 @@ module RubySMB
         @dialect = nil
         @message_id = 0
         @session_id = nil
+        @session_key = nil
         @gss_authenticator = server.gss_provider.new_authenticator(self)
         @identity = nil
         @tree_connections = {}
@@ -97,6 +100,15 @@ module RubySMB
       end
 
       def send_packet(packet)
+        if @state == :authenticated && @identity != Gss::Provider::IDENTITY_ANONYMOUS && !@session_key.nil?
+          case metadialect.family
+          when Dialect::FAMILY_SMB2
+            packet = smb2_sign(packet)
+          when Dialect::FAMILY_SMB3
+            packet = smb3_sign(packet)
+          end
+        end
+
         @dispatcher.send_packet(packet)
       end
 

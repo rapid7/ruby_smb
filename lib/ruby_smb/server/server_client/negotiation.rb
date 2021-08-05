@@ -62,9 +62,9 @@ module RubySMB
           response.data_block.server_guid = @server.server_guid
           response.data_block.security_blob = process_gss.buffer
 
-          send_packet(response)
           @state = :session_setup
           @dialect = dialect
+          send_packet(response)
         end
 
         def handle_negotiate_smb2(raw_request)
@@ -88,47 +88,56 @@ module RubySMB
             return
           end
 
-          response.negotiate_context_offset = response.negotiate_context_list.abs_offset
+          contexts = []
+          hash_algorithm = hash_value = nil
           if dialect == 0x311
             # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b39f253e-4963-40df-8dff-2f9040ebbeb1
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES)
-            @preauth_integrity_hash_algorithm = SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
-            unless @preauth_integrity_hash_algorithm
+            hash_algorithm = SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
+            hash_value = "\x00" * 64
+            unless hash_algorithm
               response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER.value
               send_packet(response)
               return
             end
-            @preauth_integrity_hash_value = "\x00" * 64
-            response.add_negotiate_context(SMB2::NegotiateContext.new(
+
+            contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
               data: SMB2::PreauthIntegrityCapabilities.new(
                 hash_algorithms: [ SMB2::PreauthIntegrityCapabilities::SHA_512 ],
                 salt: SecureRandom.random_bytes(32))
-            ))
+            )
 
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
             cipher = nc&.data&.ciphers&.first
             cipher = 0 unless SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
-            response.add_negotiate_context(SMB2::NegotiateContext.new(
+            contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
               data: SMB2::EncryptionCapabilities.new(
                 ciphers: [ cipher ]
               )
-            ))
+            )
           end
 
+          # the order in which the response is built is important to ensure it is valid
           response.dialect_revision = dialect
           response.security_buffer_offset = response.security_buffer.abs_offset
           response.security_buffer = process_gss.buffer
+          if dialect == 0x311
+            response.negotiate_context_offset = response.negotiate_context_list.abs_offset
+            contexts.each { |nc| response.add_negotiate_context(nc) }
+          end
+          @preauth_integrity_hash_algorithm = hash_algorithm
+          @preauth_integrity_hash_value = hash_value
 
           if dialect == 0x311
             update_preauth_hash(request)
             update_preauth_hash(response)
           end
 
-          send_packet(response)
           @state = :session_setup
           @dialect = "0x%04x" % dialect
+          send_packet(response)
         end
       end
     end
