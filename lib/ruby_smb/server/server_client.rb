@@ -6,12 +6,10 @@ module RubySMB
       require 'ruby_smb/signing'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
-      require 'ruby_smb/server/server_client/tree_connect'
 
       include RubySMB::Signing
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
-      include RubySMB::Server::ServerClient::TreeConnect
 
       attr_reader :dialect, :state
 
@@ -45,16 +43,7 @@ module RubySMB
         when "\xff\x53\x4d\x42".b
           raise NotImplementedError
         when "\xfe\x53\x4d\x42".b
-          header = SMB2::SMB2Header.read(raw_request)
-          case header.command
-          when SMB2::Commands::TREE_CONNECT
-            response = do_tree_connect_smb2(SMB2::Packet::TreeConnectRequest.read(raw_request))
-          end
-
-          unless response.nil?
-            response.smb2_header.message_id = @message_id += 1
-            response.smb2_header.session_id = @session_id
-          end
+          raise NotImplementedError
         end
 
         if response.nil?
