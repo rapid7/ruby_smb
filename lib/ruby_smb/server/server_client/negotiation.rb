@@ -4,6 +4,11 @@ module RubySMB
   class Server
     class ServerClient
       module Negotiation
+        #
+        # Handle an SMB negotiation request. Once negotiation is complete, the state will be updated to :session_setup.
+        # At this point the @dialect will have been set along with other dialect-specific values.
+        #
+        # @param [String] raw_request the negotiation request to process
         def handle_negotiate(raw_request)
           case raw_request[0...4]
           when "\xff\x53\x4d\x42".b

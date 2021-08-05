@@ -28,7 +28,7 @@ module RubySMB
     def smb2_sign(packet)
       packet.smb2_header.flags.signed = 1
       packet.smb2_header.signature = "\x00" * 16
-      hmac = OpenSSL::HMAC.digest(OpenSSL::Digest::SHA256.new, session_key, packet.to_binary_s)
+      hmac = OpenSSL::HMAC.digest(OpenSSL::Digest.new('SHA256'), session_key, packet.to_binary_s)
       packet.smb2_header.signature = hmac[0, 16]
 
       packet
@@ -41,11 +41,11 @@ module RubySMB
     def smb3_sign(packet)
       case @dialect
       when '0x0300', '0x0302'
-        signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
+        signing_key = Crypto::KDF.counter_mode(@session_key, "SMB2AESCMAC\x00", "SmbSign\x00")
       when '0x0311'
-        signing_key = RubySMB::Crypto::KDF.counter_mode(@session_key, "SMBSigningKey\x00", @preauth_integrity_hash_value)
+        signing_key = Crypto::KDF.counter_mode(@session_key, "SMBSigningKey\x00", @preauth_integrity_hash_value)
       else
-        raise RubySMB::Error::SigningError.new("Dialect #{@dialect.inspect} is incompatible with SMBv3 signing")
+        raise Error::SigningError.new("Dialect #{@dialect.inspect} is incompatible with SMBv3 signing")
       end
 
       packet.smb2_header.flags.signed = 1

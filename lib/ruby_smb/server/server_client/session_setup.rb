@@ -2,6 +2,11 @@ module RubySMB
   class Server
     class ServerClient
       module SessionSetup
+        #
+        # Setup a new session based on the negotiated dialect. Once session setup is complete, the state will be updated
+        # to :authenticated.
+        #
+        # @param [String] raw_request the session setup request to process
         def handle_session_setup(raw_request)
           case metadialect.order
           when Dialect::ORDER_SMB1

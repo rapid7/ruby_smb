@@ -1,7 +1,12 @@
 module RubySMB
   module Gss
     module Provider
+      #
+      # A GSS provider that authenticates clients via the NT LAN Manager (NTLM) Security Support Provider (NTLMSSP)
+      # protocol.
+      #
       class NTLM < Base
+        # An account representing an identity for which this provider will accept authentication attempts.
         Account = Struct.new(:username, :password, :domain) do
           def to_s
             "#{domain}\\#{username}"
@@ -81,6 +86,12 @@ module RubySMB
             result
           end
 
+          #
+          # Process the NTLM type 1 message and build a type 2 response message.
+          #
+          # @param [Net::NTLM::Message::Type1] type1_msg the NTLM type 1 message received by the client that should be
+          #   processed
+          # @return [Net::NTLM::Message::Type2] the NTLM type 2 response message with which to reply to the client
           def process_ntlm_type1(type1_msg)
             type2_msg = Net::NTLM::Message::Type2.new.tap do |msg|
               msg.target_name = 'LOCALHOST'.encode('UTF-16LE').b
@@ -110,6 +121,13 @@ module RubySMB
             type2_msg
           end
 
+          #
+          # Process the NTLM type 3 message and either accept or reject the authentication attempt.
+          #
+          # @param [Net::NTLM::Message::Type3] type3_msg the NTLM type 3 message received by the client that should be
+          #   processed
+          # @return [WindowsError::ErrorCode] an NT Status error code representing the operations outcome where
+          #   STATUS_SUCCESS is a successful authentication attempt and anything else is a failure
           def process_ntlm_type3(type3_msg)
             if type3_msg.user == '' && type3_msg.domain == ''
               if @provider.allow_anonymous
@@ -171,6 +189,8 @@ module RubySMB
 
           private
 
+          # take the GSS blob, extract the NTLM type 1 message and pass it to the process method to build the response
+          # which is then put back into a new GSS reply-blob
           def process_gss_type1(gss_api)
             unless Gss.asn1dig(gss_api, 1, 0, 0, 0, 0)&.value == Gss::OID_NTLMSSP.value
               return
@@ -189,6 +209,8 @@ module RubySMB
             Result.new(Gss.gss_type2(type2_msg.serialize), WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
           end
 
+          # take the GSS blob, extract the NTLM type 3 message and pass it to the process method to build the response
+          # which is then put back into a new GSS reply-blob
           def process_gss_type3(gss_api)
             neg_token_init = Hash[RubySMB::Gss.asn1dig(gss_api, 0).value.map { |obj| [obj.tag, obj.value[0].value] }]
             raw_type3_msg = neg_token_init[2]
@@ -230,6 +252,9 @@ module RubySMB
           end
         end
 
+        # @param [Boolean] allow_anonymous whether or not to allow anonymous authentication attempts
+        # @param [String] default_domain the default domain to use for authentication, unless specified 'WORKGROUP' will
+        #   be used
         def initialize(allow_anonymous: false, default_domain: nil)
           @allow_anonymous = allow_anonymous
           @default_domain = default_domain || 'WORKGROUP'
@@ -237,6 +262,11 @@ module RubySMB
           @generate_server_challenge = -> { SecureRandom.bytes(8) }
         end
 
+        #
+        # Generate the 8-byte server challenge. If a block is specified, it's used as the challenge generation routine
+        # and should return an 8-byte value.
+        #
+        # @return [String] an 8-byte challenge value
         def generate_server_challenge(&block)
           if block.nil?
             @generate_server_challenge.call
@@ -251,6 +281,14 @@ module RubySMB
           Authenticator.new(self, server_client)
         end
 
+        #
+        # Lookup and return an account based on the username and optionally, the domain. If no domain is specified or
+        # or it is the special value '.', the default domain will be used. The username and domain values are case
+        # insensitive.
+        #
+        # @param [String] username the username of the account to fetch.
+        # @param [String, nil] domain the domain in which the account to fetch exists.
+        # @return [Account, nil] the account if it was found
         def get_account(username, domain: nil)
           # the username and password values should use the native encoding for the comparison in the #find operation
           username = username.downcase
@@ -270,6 +308,8 @@ module RubySMB
           @accounts << Account.new(username, password, domain)
         end
 
+        #
+        # The default domain value to use for accounts which do not have one specified or use the special '.' value.
         attr_reader :default_domain
       end
     end

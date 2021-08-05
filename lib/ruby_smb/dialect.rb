@@ -1,4 +1,6 @@
 module RubySMB
+  # Definitions that define metadata around a particular SMB dialect. This is useful for grouping dialects into a
+  # hierarchy as well as printing them as human readable strings with varying degrees of specificity.
   module Dialect
     # the order (taxonomic ranking) of the family, 2 and 3 are intentionally combined
     ORDER_SMB1 = 'SMB1'.freeze
@@ -17,7 +19,7 @@ module RubySMB
     # the names are meant to be human readable and may change in the future, use the #dialect, #order and #family
     # attributes for any programmatic comparisons
     Definition = Struct.new(:dialect, :order, :family, :version_name, :full_name) do
-      alias :short_name :version_name
+      alias_method :short_name, :version_name
     end
 
     ALL = [
@@ -29,8 +31,13 @@ module RubySMB
       Definition.new('0x0311',     ORDER_SMB2, FAMILY_SMB3, VERSION_SMB3, 'SMB v3.1.1'.freeze)
     ].map { |definition| [definition.dialect, definition] }.to_h
 
+    #
+    # Retrieve a dialect definition. The definition contains metadata describing the particular dialect.
+    #
+    # @param [Integer, String] dialect the dialect to retrieve the definition for
+    # @return [Definition, nil] the definition if it was found
     def self.[](dialect)
-      dialect = "0x%04x" % dialect if dialect.is_a? Integer
+      dialect = '0x%04x' % dialect if dialect.is_a? Integer
       ALL[dialect]
     end
   end
