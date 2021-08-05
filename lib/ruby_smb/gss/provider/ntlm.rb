@@ -187,6 +187,8 @@ module RubySMB
             WindowsError::NTStatus::STATUS_SUCCESS
           end
 
+          attr_accessor :server_challenge
+
           private
 
           # take the GSS blob, extract the NTLM type 1 message and pass it to the process method to build the response
@@ -234,18 +236,18 @@ module RubySMB
                   ], 0, :CONTEXT_SPECIFIC)
                 ])
               ], 1, :CONTEXT_SPECIFIC).to_der
-            end
 
-            account = @provider.get_account(
-              type3_msg.user,
-              domain: type3_msg.domain
-            )
-            if account.nil?
-              if @provider.allow_anonymous
-                identity = IDENTITY_ANONYMOUS
+              account = @provider.get_account(
+                type3_msg.user,
+                domain: type3_msg.domain
+              )
+              if account.nil?
+                if @provider.allow_anonymous
+                  identity = IDENTITY_ANONYMOUS
+                end
+              else
+                identity = account.to_s
               end
-            else
-              identity = account.to_s
             end
 
             Result.new(buffer, nt_status, identity)
@@ -292,7 +294,7 @@ module RubySMB
         def get_account(username, domain: nil)
           # the username and password values should use the native encoding for the comparison in the #find operation
           username = username.downcase
-          domain = @default_domain if domain == '.'.encode(domain.encoding) || domain.nil?
+          domain = @default_domain if domain.nil? || domain == '.'.encode(domain.encoding)
           domain = domain.downcase
           @accounts.find { |account| account.username.encode(username.encoding).downcase == username && account.domain.encode(domain.encoding).downcase == domain }
         end

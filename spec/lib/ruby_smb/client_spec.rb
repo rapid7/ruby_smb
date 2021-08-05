@@ -2085,7 +2085,7 @@ RSpec.describe RubySMB::Client do
         it 'generates the HMAC based on the packet and the NTLM session key and signs the packet with it' do
           smb2_client.session_key = 'foo'
           smb2_client.signing_required = true
-          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest::SHA256), smb2_client.session_key, request1.to_binary_s).and_return(fake_hmac)
+          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest), smb2_client.session_key, request1.to_binary_s).and_return(fake_hmac)
           expect(smb2_client.smb2_sign(request1).smb2_header.signature).to eq fake_hmac
         end
       end
