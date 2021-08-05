@@ -3,10 +3,10 @@ module RubySMB
     class ServerClient
       module SessionSetup
         def handle_session_setup(raw_request)
-          case @dialect
-          when 'NT LM 0.12'
+          case metadialect.order
+          when Dialect::ORDER_SMB1
             handle_session_setup_smb1(raw_request)
-          when '0x0311', '0x0302', '0x0300', '0x0210', '0x0202'
+          when Dialect::ORDER_SMB2
             handle_session_setup_smb2(raw_request)
           end
         end

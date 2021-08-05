@@ -2,6 +2,7 @@ module RubySMB
   class Server
     class ServerClient
 
+      require 'ruby_smb/dialect'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
       require 'ruby_smb/server/server_client/tree_connect'
@@ -24,6 +25,10 @@ module RubySMB
         @tree_connections = {}
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
+      end
+
+      def metadialect
+        Dialect::ALL[@dialect]
       end
 
       def getpeername

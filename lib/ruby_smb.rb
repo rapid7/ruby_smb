@@ -27,4 +27,5 @@ module RubySMB
   require 'ruby_smb/crypto'
   require 'ruby_smb/compression'
   require 'ruby_smb/server'
+  require 'ruby_smb/dialect'
 end
