@@ -13,7 +13,7 @@ module RubySMB
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
 
-      attr_reader :dialect, :state
+      attr_reader :dialect, :identity, :state, :session_key
 
       # @param [Server] server the server that accepted this connection
       # @param [Dispatcher::Socket] dispatcher the connection's socket dispatcher
