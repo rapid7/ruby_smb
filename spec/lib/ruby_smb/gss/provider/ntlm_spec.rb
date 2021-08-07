@@ -28,7 +28,7 @@ RSpec.describe RubySMB::Gss::Provider::NTLM do
     end
 
     it 'should take a generator block' do
-      random_challenge = Random.bytes(8)
+      random_challenge = Random.new.bytes(8)
       provider.generate_server_challenge do
         random_challenge
       end
@@ -189,7 +189,7 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
     end
 
     it 'should handle an embedded NTLM type 3 message' do
-      authenticator.server_challenge = Random.bytes(8)
+      authenticator.server_challenge = Random.new.bytes(8)
       expect(authenticator).to receive(:process_ntlm_type3).and_call_original
       result = authenticator.process(RubySMB::Gss.gss_type3(type3_msg.serialize))
       expect(result).to be_a RubySMB::Gss::Provider::Result

@@ -62,7 +62,7 @@ RSpec.describe RubySMB::Server::ServerClient do
   end
 
   describe '#run' do
-    let(:packet) { Random.bytes(16) }
+    let(:packet) { Random.new.bytes(16) }
     before(:each) do
       expect(server_client).to receive(:recv_packet).and_return(packet)
       # this hook should ensure that the dispatcher loop returns after processing a single request
@@ -124,7 +124,7 @@ RSpec.describe RubySMB::Server::ServerClient do
 
           context 'and the identity is not anonymous' do
             before(:each) do
-              server_client.instance_eval { @identity = 'WORKGROUP\RubySMB'; @session_key = Random.bytes(16) }
+              server_client.instance_eval { @identity = 'WORKGROUP\RubySMB'; @session_key = Random.new.bytes(16) }
             end
 
             it 'does sign packets' do

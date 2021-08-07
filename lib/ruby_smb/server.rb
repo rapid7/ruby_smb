@@ -15,7 +15,7 @@ module RubySMB
     def initialize(server_sock: nil, gss_provider: nil)
       server_sock = ::TCPServer.new(445) if server_sock.nil?
 
-      @server_guid = Random.bytes(16)
+      @server_guid = Random.new.bytes(16)
       @server_sock = server_sock
       @connections = []
       @gss_provider = gss_provider || Gss::Provider::NTLM.new

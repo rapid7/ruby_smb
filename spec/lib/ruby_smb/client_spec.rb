@@ -210,7 +210,7 @@ RSpec.describe RubySMB::Client do
     context 'when signing' do
       it 'calls #smb1_sign if it is an SMB1 packet' do
         allow(client).to receive(:signing_required).and_return(true)
-        allow(client).to receive(:session_key).and_return(Random.bytes(16))
+        allow(client).to receive(:session_key).and_return(Random.new.bytes(16))
         expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
         client.send_recv(smb1_request)
       end
@@ -226,7 +226,7 @@ RSpec.describe RubySMB::Client do
         it 'calls #smb2_sign if it is an SMB2 client' do
           allow(smb2_client).to receive(:is_status_pending?).and_return(false)
           allow(smb2_client).to receive(:signing_required).and_return(true)
-          allow(smb2_client).to receive(:session_key).and_return(Random.bytes(16))
+          allow(smb2_client).to receive(:session_key).and_return(Random.new.bytes(16))
           expect(smb2_client).to receive(:smb2_sign).with(smb2_request).and_call_original
           smb2_client.send_recv(smb2_request)
         end
