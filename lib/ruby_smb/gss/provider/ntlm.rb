@@ -104,10 +104,10 @@ module RubySMB
               msg.challenge = @server_challenge.unpack1('Q')
               target_info = Net::NTLM::TargetInfo.new('')
               target_info.av_pairs.merge!({
-                Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => 'LOCALHOST'.encode('UTF-16LE').b,
-                Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME => 'LOCALHOST'.encode('UTF-16LE').b,
-                Net::NTLM::TargetInfo::MSV_AV_DNS_DOMAIN_NAME => "\x00\x00".b,
-                Net::NTLM::TargetInfo::MSV_AV_DNS_COMPUTER_NAME => 'LOCALHOST'.encode('UTF-16LE').b,
+                Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => @provider.netbios_domain.encode('UTF-16LE').b,
+                Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME => @provider.netbios_hostname.encode('UTF-16LE').b,
+                Net::NTLM::TargetInfo::MSV_AV_DNS_DOMAIN_NAME => @provider.dns_domain.encode('UTF-16LE').b,
+                Net::NTLM::TargetInfo::MSV_AV_DNS_COMPUTER_NAME => @provider.dns_hostname.encode('UTF-16LE').b,
                 Net::NTLM::TargetInfo::MSV_AV_TIMESTAMP => [(Time.now.to_i + Net::NTLM::TIME_OFFSET) * Field::FileTime::NS_MULTIPLIER].pack('Q')
               })
               msg.target_info = target_info.to_s
@@ -262,6 +262,9 @@ module RubySMB
           @default_domain = default_domain || 'WORKGROUP'
           @accounts = []
           @generate_server_challenge = -> { SecureRandom.bytes(8) }
+
+          @dns_domain = @netbios_domain = 'LOCALDOMAIN'
+          @dns_hostname = @netbios_hostname = 'LOCALHOST'
         end
 
         #
@@ -313,6 +316,8 @@ module RubySMB
         #
         # The default domain value to use for accounts which do not have one specified or use the special '.' value.
         attr_reader :default_domain
+
+        attr_accessor :dns_domain, :dns_hostname, :netbios_domain, :netbios_hostname
       end
     end
   end
