@@ -8,22 +8,29 @@ module RubySMB
         #
         # @param [String] raw_request the session setup request to process
         def handle_session_setup(raw_request)
+          response = nil
+
           case metadialect.order
           when Dialect::ORDER_SMB1
-            handle_session_setup_smb1(raw_request)
+            request = SMB1::Packet::SessionSetupRequest.read(raw_request)
+            response = do_session_setup_smb1(request)
           when Dialect::ORDER_SMB2
-            handle_session_setup_smb2(raw_request)
+            request = SMB2::Packet::SessionSetupRequest.read(raw_request)
+            response = do_session_setup_smb2(request)
           end
+
+          if response.nil?
+            disconnect!
+          else
+            send_packet(response)
+          end
+
+          nil
         end
 
-        def handle_session_setup_smb1(raw_request)
-          request = SMB1::Packet::SessionSetupRequest.read(raw_request)
-
+        def do_session_setup_smb1(request)
           gss_result = process_gss(request.data_block.security_blob)
-          if gss_result.nil?
-            disconnect!
-            return
-          end
+          return if gss_result.nil?
 
           response = SMB1::Packet::SessionSetupResponse.new
           response.smb_header.pid_low = request.smb_header.pid_low
@@ -42,17 +49,13 @@ module RubySMB
             @state = :authenticated
             @identity = gss_result.identity
           end
-          send_packet(response)
+
+          response
         end
 
-        def handle_session_setup_smb2(raw_request)
-          request = SMB2::Packet::SessionSetupRequest.read(raw_request)
-
+        def do_session_setup_smb2(request)
           gss_result = process_gss(request.buffer)
-          if gss_result.nil?
-            disconnect!
-            return
-          end
+          return if gss_result.nil?
 
           response = SMB2::Packet::SessionSetupResponse.new
           response.smb2_header.nt_status = gss_result.nt_status.value
@@ -69,7 +72,8 @@ module RubySMB
           elsif @dialect == '0x0311'
             update_preauth_hash(response)
           end
-          send_packet(response)
+
+          response
         end
       end
     end

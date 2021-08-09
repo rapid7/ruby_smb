@@ -10,19 +10,26 @@ module RubySMB
         #
         # @param [String] raw_request the negotiation request to process
         def handle_negotiate(raw_request)
+          response = nil
           case raw_request[0...4]
           when "\xff\x53\x4d\x42".b
-            handle_negotiate_smb1(raw_request)
+            request = SMB1::Packet::NegotiateRequest.read(raw_request)
+            response = do_negotiate_smb1(request)
           when "\xfe\x53\x4d\x42".b
-            handle_negotiate_smb2(raw_request)
-          else
-            disconnect!
+            request = SMB2::Packet::NegotiateRequest.read(raw_request)
+            response = do_negotiate_smb2(request)
           end
+
+          if response.nil?
+            disconnect!
+          else
+            send_packet(response)
+          end
+
+          nil
         end
 
-        def handle_negotiate_smb1(raw_request)
-          request = SMB1::Packet::NegotiateRequest.read(raw_request)
-
+        def do_negotiate_smb1(request)
           if request.dialects.map(&:dialect_string).include?(Client::SMB1_DIALECT_SMB2_WILDCARD)
             response = SMB2::Packet::NegotiateResponse.new
             response.smb2_header.credits = 1
@@ -36,9 +43,7 @@ module RubySMB
             response.system_time.set(Time.now)
             response.security_buffer_offset = response.security_buffer.abs_offset
             response.security_buffer = process_gss.buffer
-
-            send_packet(response)
-            return
+            return response
           end
 
           dialect_strings = request.dialects.map(&:dialect_string).map(&:value)
@@ -50,9 +55,7 @@ module RubySMB
             response.parameter_block.word_count = 1
             response.parameter_block.dialect_index = 0xffff
             response.data_block.byte_count = 0
-            send_packet(response)
-            disconnect!
-            return
+            return response
           end
 
           response = SMB1::Packet::NegotiateResponseExtended.new
@@ -69,12 +72,10 @@ module RubySMB
 
           @state = :session_setup
           @dialect = dialect
-          send_packet(response)
+          response
         end
 
-        def handle_negotiate_smb2(raw_request)
-          request = SMB2::Packet::NegotiateRequest.read(raw_request)
-
+        def do_negotiate_smb2(request)
           dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).first
 
           response = SMB2::Packet::NegotiateResponse.new
@@ -89,8 +90,7 @@ module RubySMB
             # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b39f253e-4963-40df-8dff-2f9040ebbeb1
             # > If a common dialect is not found, the server MUST fail the request with STATUS_NOT_SUPPORTED.
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED.value
-            send_packet(response)
-            return
+            return response
           end
 
           contexts = []
@@ -102,8 +102,7 @@ module RubySMB
             hash_value = "\x00" * 64
             unless hash_algorithm
               response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER.value
-              send_packet(response)
-              return
+              return response
             end
 
             contexts << SMB2::NegotiateContext.new(
@@ -142,7 +141,7 @@ module RubySMB
 
           @state = :session_setup
           @dialect = "0x%04x" % dialect
-          send_packet(response)
+          response
         end
       end
     end
