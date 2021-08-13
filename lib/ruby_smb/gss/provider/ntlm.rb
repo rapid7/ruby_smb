@@ -13,6 +13,20 @@ module RubySMB
           end
         end
 
+        class OSVersion < BinData::Record
+          endian :big
+          default_parameter :ntlm_revision => 15
+
+          uint8  :major
+          uint8  :minor
+          uint16 :build
+          uint32 :ntlm_revision
+
+          def to_s
+            "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"
+          end
+        end
+
         class Authenticator < Authenticator::Base
           NEGOTIATE_FLAGS = {
             :UNICODE                  => 1 << 0,
@@ -114,7 +128,7 @@ module RubySMB
               msg.enable(:target_info)
               msg.context = 0
               msg.enable(:context)
-              msg.os_version = [ 6, 1, 0, 15].pack('CCnN') # Version 6.1 (Build 0); NTLM Current Revision 15
+              msg.os_version = OSVersion.new(major: 6, minor: 3).to_binary_s
               msg.enable(:os_version)
             end
 
