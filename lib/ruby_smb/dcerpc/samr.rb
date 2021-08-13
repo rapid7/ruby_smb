@@ -12,9 +12,79 @@ module RubySMB
       SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER = 0x0005
       SAMR_OPEN_DOMAIN                 = 0x0007
       SAMR_ENUMERATE_USERS_IN_DOMAIN   = 0x000D
+      SAMR_GET_ALIAS_MEMBERSHIP        = 0x0010
+      SAMR_OPEN_USER                   = 0x0022
+      SAMR_GET_GROUPS_FOR_USER         = 0x0027
       SAMR_RID_TO_SID                  = 0x0041
 
       class SamprHandle < Ndr::NdrContextHandle; end
+
+      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/ru-ru/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
+      class UserProperty < BinData::Record
+        endian   :little
+
+        uint16   :name_length, initial_value: -> { property_name.num_bytes }
+        uint16   :value_length, initial_value: -> { property_value.num_bytes }
+        uint16   :reserved
+        string16 :property_name, read_length: :name_length
+        string   :property_value, read_length: :value_length
+      end
+
+      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/ru-ru/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
+      class UserProperties < BinData::Record
+        endian :little
+
+        uint32 :reserved1
+        uint32 :struct_length, initial_value: -> { num_bytes - 12 }
+        uint16 :reserved2
+        uint16 :reserved3
+        string :reserved4, length: 96
+        uint16 :property_signature, initial_value: 0x50
+        uint16 :property_count, initial_value: -> { user_properties.size }
+        array  :user_properties, type: :user_property, initial_length: :property_count
+        uint8  :reserved5
+      end
+
+      class KerbKeyDataNew < BinData::Record
+        endian :little
+
+        uint16 :reserved1
+        uint16 :reserved2
+        uint32 :reserved3
+        uint32 :iteration_count
+        uint32 :key_type
+        uint32 :key_length
+        uint32 :key_offset
+      end
+
+      # [2.2.10.6 Primary:Kerberos-Newer-Keys - KERB_STORED_CREDENTIAL_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/08cb3ca7-954b-45e3-902e-77512fe3ba8e)
+      class KerbStoredCredentialNew < BinData::Record
+        endian :little
+
+        uint16 :revision
+        uint16 :flags
+        uint16 :credential_count
+        uint16 :service_credential_count
+        uint16 :old_credential_count
+        uint16 :older_credential_count
+        uint16 :default_salt_length
+        uint16 :default_salt_maximum_length
+        uint32 :default_salt_offset
+        uint32 :default_iteration_count
+        array  :credentials, type: :kerb_key_data_new, initial_length: :credential_count
+        array  :service_credentials, type: :kerb_key_data_new, initial_length: :service_credential_count
+        array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
+        array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
+        string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
+        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
+
+        def get_key_values
+          credentials.map do |credential|
+            offset = credential.key_offset - key_values.abs_offset
+            key_values[offset, credential.key_length]
+          end
+        end
+      end
 
 
       #################################
@@ -221,6 +291,14 @@ module RubySMB
       DOMAIN_ALIAS_RID_ADMINS               = 0x00000220
       DOMAIN_GROUP_RID_READONLY_CONTROLLERS = 0x00000209
 
+      # [2.2.10.8 Kerberos Encryption Algorithm Identifiers](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/1355fa6b-d097-4ecc-8d5e-75b3a6533e04)
+      KERBEROS_TYPE = {
+        1          => 'dec-cbc-crc',
+        3          => 'des-cbc-md5',
+        17         => 'aes128-cts-hmac-sha1-96',
+        18         => 'aes256-cts-hmac-sha1-96',
+        0xffffff74 => 'rc4_hmac'
+      }
 
       require 'ruby_smb/dcerpc/samr/rpc_sid'
 
@@ -236,19 +314,25 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_response'
       require 'ruby_smb/dcerpc/samr/samr_close_handle_request'
       require 'ruby_smb/dcerpc/samr/samr_close_handle_response'
+      require 'ruby_smb/dcerpc/samr/samr_get_alias_membership_request'
+      require 'ruby_smb/dcerpc/samr/samr_get_alias_membership_response'
+      require 'ruby_smb/dcerpc/samr/samr_open_user_request'
+      require 'ruby_smb/dcerpc/samr/samr_open_user_response'
+      require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_request'
+      require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_response'
 
       # Returns a handle to a server object.
       #
       # @param server_name [Char] the first character of the NETBIOS name of
-      #  the server (optional)
+      #   the server (optional)
       # @param access [Numeric] access requested for ServerHandle upon output:
-      #  bitwise OR of common and server ACCESS_MASK values (defined in
-      #  lib/ruby_smb/dcerpc/samr.rb).
+      #   bitwise OR of common and server ACCESS_MASK values (defined in
+      #   lib/ruby_smb/dcerpc/samr.rb).
       # @return [RubySMB::Dcerpc::Samr::SamprHandle] handle to the server object.
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrConnectResponse packet
+      #   SamrConnectResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def samr_connect(server_name: '', access: MAXIMUM_ALLOWED)
         samr_connect_request = SamrConnectRequest.new(
           server_name: server_name,
@@ -271,14 +355,14 @@ module RubySMB
       # Obtains the SID of a domain object
       #
       # @param server_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
-      #  handle representing the server object
+      #   handle representing the server object
       # @param name [String] The domain name
       # @return [RubySMB::Dcerpc::RpcSid] SID value of a domain that
-      #  corresponds to the Name passed in
+      #   corresponds to the Name passed in
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrLookupDomainInSamServerResponse packet
+      #   SamrLookupDomainInSamServerResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def samr_lookup_domain(server_handle:, name:)
         samr_lookup_domain_in_sam_server_request = SamrLookupDomainInSamServerRequest.new(
           server_handle: server_handle,
@@ -301,16 +385,16 @@ module RubySMB
       # Returns a handle to a domain object.
       #
       # @param server_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
-      #  handle representing the server object
+      #   handle representing the server object
       # @param access [Numeric] access requested for ServerHandle upon output:
-      #  bitwise OR of common and server ACCESS_MASK values (defined in
-      #  lib/ruby_smb/dcerpc/samr.rb).
+      #   bitwise OR of common and server ACCESS_MASK values (defined in
+      #   lib/ruby_smb/dcerpc/samr.rb).
       # @param domain_id [RubySMB::Dcerpc::RpcSid] SID value of a domain
       # @return [RubySMB::Dcerpc::Samr::SamprHandle] handle to the domain object.
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrOpenDomainResponse packet
+      #   SamrOpenDomainResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def samr_open_domain(server_handle:, access: MAXIMUM_ALLOWED, domain_id:)
         samr_open_domain_request = SamrOpenDomainRequest.new(
           server_handle: server_handle,
@@ -334,12 +418,12 @@ module RubySMB
       # Enumerates all users in the specified domain.
       #
       # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
-      #  handle representing the domain object
+      #   handle representing the domain object
       # @return [Hash] hash mapping RID and username
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrEnumerateUsersInDomainResponse packet
+      #   SamrEnumerateUsersInDomainResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def samr_enumerate_users_in_domain(domain_handle:,
                                          enumeration_context: 0,
                                          user_account_control: USER_NORMAL_ACCOUNT |
@@ -373,9 +457,9 @@ module RubySMB
       # @param rid [Numeric] the RID
       # @return [String] The SID of the account referenced by RID
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrRidToSidResponse packet
+      #   SamrRidToSidResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def samr_rid_to_sid(object_handle:, rid:)
         samr_rid_to_sid_request = SamrRidToSidRequest.new(
           object_handle: object_handle,
@@ -399,12 +483,12 @@ module RubySMB
       # handle obtained from this RPC interface
       #
       # @param sam_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
-      #  handle to close
+      #   handle to close
       # @return [RubySMB::Dcerpc::Samr::SamprHandle] A zero handle on success
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
-      #  SamrCloseHandle packet
+      #   SamrCloseHandle packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
-      #  is not STATUS_SUCCESS
+      #   is not STATUS_SUCCESS
       def close_handle(sam_handle)
         samr_close_handle_request = SamrCloseHandleRequest.new(sam_handle: sam_handle)
         response = dcerpc_request(samr_close_handle_request)
@@ -420,6 +504,102 @@ module RubySMB
         end
         samr_close_handle_response.sam_handle
       end
+
+      # Returns the union of all aliases that a given set of SIDs is a member of.
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a domain object.
+      # @param sids [Array<RubySMB::Dcerpc::Samr::RpcSid>, RubySMB::Dcerpc::Samr::RpcSid] List of SID's
+      # @return [Array<RubySMB::Dcerpc::Ndr::NdrUint32>] The union of all aliases represented by RID's
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrGetAliasMembership packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_get_alias_membership(domain_handle:, sids:)
+        sids = [sids] unless sids.is_a?(::Array)
+        samr_get_alias_membership_request = SamrGetAliasMembershipRequest.new(
+          domain_handle: domain_handle
+        )
+        sids.each do |sid|
+          samr_get_alias_membership_request.sid_array.sids << {sid_pointer: sid}
+        end
+        response = dcerpc_request(samr_get_alias_membership_request)
+        begin
+          samr_get_alias_membership_reponse= SamrGetAliasMembershipResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrGetAliasMembershipResponse'
+        end
+        unless samr_get_alias_membership_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while getting alias membership: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_get_alias_membership_reponse.error_status.value).join(',')}"
+        end
+        return [] if samr_get_alias_membership_reponse.membership.elem_count == 0
+        samr_get_alias_membership_reponse.membership.elements.to_ary
+      end
+
+      # Returns a handle to a user, given a RID
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a domain object
+      # @param access [Integer] An access control that indicates the requested
+      #   access for the returned handle. It is a bitwise OR of common
+      #   ACCESS_MASK and user ACCESS_MASK values (see
+      #   lib/ruby_smb/dcerpc/samr.rb)
+      # @param user_id [Integer] RID of a user account
+      # @return [RubySMB::Dcerpc::Samr::SamprHandle] The user handle
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrOpenUser packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_open_user(domain_handle:, access: MAXIMUM_ALLOWED, user_id:)
+        samr_open_user_request = SamrOpenUserRequest.new(
+          domain_handle: domain_handle,
+          desired_access: access,
+          user_id: user_id
+        )
+        response = dcerpc_request(samr_open_user_request)
+        begin
+          samr_open_user_response = SamrOpenUserResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrOpenUserResponse'
+        end
+        unless samr_open_user_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned when getting a handle to user #{user_id}: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_open_user_response.error_status.value).join(',')}"
+        end
+        samr_open_user_response.user_handle
+      end
+
+      # Returns a listing of groups that a user is a member of
+      #
+      # @param user_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a user object.
+      # @return [Array<RubySMB::Dcerpc::Samr::GroupMembership>] Array of
+      #   GroupMembership containing RID and Attributes
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrGetGroupsForUser packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_get_group_for_user(user_handle:)
+        samr_get_groups_for_user_request = SamrGetGroupsForUserRequest.new(
+          user_handle: user_handle
+        )
+        response = dcerpc_request(samr_get_groups_for_user_request)
+        begin
+          samr_get_groups_for_user_reponse= SamrGetGroupsForUserResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrGetGroupsForUserResponse'
+        end
+        unless samr_get_groups_for_user_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while getting user groups: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_get_groups_for_user_reponse.error_status.value).join(',')}"
+        end
+        samr_get_groups_for_user_reponse.groups.groups.to_ary
+      end
+
     end
   end
 end

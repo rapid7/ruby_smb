@@ -31,18 +31,45 @@ puts('Bound to \\samr')
 
 puts('[+] SAMR Connect')
 server_handle = samr.samr_connect
-sid = samr.samr_lookup_domain(server_handle: server_handle, name: domain)
-domain_handle = samr.samr_open_domain(server_handle: server_handle, domain_id: sid)
+
+domain_sid = samr.samr_lookup_domain(server_handle: server_handle, name: domain)
+domain_handle = samr.samr_open_domain(server_handle: server_handle, domain_id: domain_sid)
+
+builtin_domain_sid = samr.samr_lookup_domain(server_handle: server_handle, name: 'Builtin')
+builtin_domain_handle = samr.samr_open_domain(server_handle: server_handle, domain_id: builtin_domain_sid)
+
 users = samr.samr_enumerate_users_in_domain(domain_handle: domain_handle)
-puts 'RID   | SID                                         | Name'
-puts '----------------------------------------------------------'
+
+puts 'RID   | SID                                         | Name          | Domain Groups | Domain Alias Groups | Builtin Alias Groups'
+puts '--------------------------------------------------------------------------------------------------------------------------------'
 users.each do |rid, name|
   sid = samr.samr_rid_to_sid(object_handle: domain_handle, rid: rid)
-  puts "#{"%-5s" % rid} | #{"%-43s" % sid} | #{name.encode('UTF-8')}"
+  domain_sid = sid.to_s.split('-')[0..-2].join('-')
+
+  user_handle = samr.samr_open_user(domain_handle: domain_handle, user_id: rid)
+  groups = samr.samr_get_group_for_user(user_handle: user_handle)
+  groups = groups.map { |group| RubySMB::Dcerpc::Samr::RpcSid.new("#{domain_sid}-#{group.relative_id.to_i}") }
+
+  alias_groups = samr.samr_get_alias_membership(domain_handle: domain_handle, sids: groups + [sid])
+  alias_groups = alias_groups.map { |group| RubySMB::Dcerpc::Samr::RpcSid.new("#{domain_sid}-#{group}") }
+
+  builtin_alias_groups = samr.samr_get_alias_membership(domain_handle: builtin_domain_handle, sids: groups + [sid])
+  builtin_alias_groups = builtin_alias_groups.map { |group| RubySMB::Dcerpc::Samr::RpcSid.new("#{domain_sid}-#{group}") }
+
+  #TODO: implement [LSAT] LsarLookupSids2 call to get the name of the "Unknown SID"'s
+
+  output = "#{"%-5s" % rid} | #{"%-43s" % sid} | #{name.encode('UTF-8')}"
+  output << " | #{groups.empty? ? 'N/A' : groups.map(&:name).join(', ')}"
+  output << " | #{alias_groups.empty? ? 'N/A' : alias_groups.map(&:name).join(', ')}"
+  output << " | #{builtin_alias_groups.empty? ? 'N/A' : builtin_alias_groups.map(&:name).join(', ')}"
+  puts output
+
+  samr.close_handle(user_handle)
 end
 
-samr.close_handle(server_handle)
 samr.close_handle(domain_handle)
+samr.close_handle(builtin_domain_handle)
+samr.close_handle(server_handle)
 
 client.disconnect!
 
