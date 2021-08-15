@@ -180,7 +180,7 @@ module RubySMB
               matches = my_nt_proof_str == their_nt_proof_str
               if matches
                 user_session_key = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, my_nt_proof_str)
-                if type3_msg.flag & NEGOTIATE_FLAGS[:KEY_EXCHANGE] == NEGOTIATE_FLAGS[:KEY_EXCHANGE]
+                if type3_msg.flag & NEGOTIATE_FLAGS[:KEY_EXCHANGE] == NEGOTIATE_FLAGS[:KEY_EXCHANGE] && type3_msg.session_key.length == 16
                   rc4 = OpenSSL::Cipher.new('rc4')
                   rc4.decrypt
                   rc4.key = user_session_key
