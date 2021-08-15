@@ -15,12 +15,11 @@ module RubySMB
 
         class OSVersion < BinData::Record
           endian :big
-          default_parameter :ntlm_revision => 15
 
           uint8  :major
           uint8  :minor
           uint16 :build
-          uint32 :ntlm_revision
+          uint32 :ntlm_revision, initial_value: 15
 
           def to_s
             "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"
