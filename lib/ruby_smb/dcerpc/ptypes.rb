@@ -17,6 +17,7 @@ module RubySMB
       BIND_NAK           = 13
       ALTER_CONTEXT      = 14
       ALTER_CONTEXT_RESP = 15
+      RPC_AUTH3          = 16
       SHUTDOWN           = 17
       CO_CANCEL          = 18
       ORPHANED           = 19

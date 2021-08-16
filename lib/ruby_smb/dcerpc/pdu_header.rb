@@ -10,14 +10,14 @@ module RubySMB
       uint8 :ptype,          label: 'PDU type'
 
       struct :pfc_flags do
-        bit1  :object_uuid,     label: 'Object UUID'
-        bit1  :maybe,           label: 'Maybe call semantics'
+        bit1  :object_uuid, label: 'Object UUID'
+        bit1  :maybe, label: 'Maybe call semantics'
         bit1  :did_not_execute, label: 'Did not execute'
-        bit1  :conc_mpx,        label: 'Concurrent multiplexing'
-        bit1  :reserved_1,      label: 'Reserved'
-        bit1  :pending_cancel,  label: 'Pending cancel'
-        bit1  :last_frag,       label: 'Last fragment',  initial_value: 1
-        bit1  :first_frag,      label: 'First fragment', initial_value: 1
+        bit1  :conc_mpx, label: 'Concurrent multiplexing'
+        bit1  :reserved_1, label: 'Reserved'
+        bit1  :support_header_sign, label: 'Support Header Signing'
+        bit1  :last_frag, label: 'Last fragment',  initial_value: 1
+        bit1  :first_frag, label: 'First fragment', initial_value: 1
       end
 
       uint32 :packed_drep, label: 'NDR data representation format label', initial_value: 0x10

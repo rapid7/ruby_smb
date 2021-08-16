@@ -5,13 +5,16 @@ module RubySMB
     class Request < BinData::Record
       endian :little
 
-      pdu_header :pdu_header, label: 'PDU header'
+      # PDU Header
+      pdu_header :pdu_header, label: 'PDU header common fields'
       uint32     :alloc_hint, label: 'Allocation hint', initial_value: -> { stub.num_bytes }
       uint16     :p_cont_id,  label: 'Presentation context identification'
       uint16     :opnum,      label: 'Operation Number'
       uuid       :object,     label: 'Object UID', onlyif: -> { pdu_header.pfc_flags.object_uuid == 1 }
 
+      # PDU Body
       choice :stub, label: 'Stub', selection: -> { @obj.parent.get_parameter(:endpoint) || '' } do
+        string 'Encrypted'
         choice 'Winreg', selection: -> { opnum } do
           open_root_key_request  RubySMB::Dcerpc::Winreg::OPEN_HKCR, opnum: RubySMB::Dcerpc::Winreg::OPEN_HKCR
           open_root_key_request  RubySMB::Dcerpc::Winreg::OPEN_HKCU, opnum: RubySMB::Dcerpc::Winreg::OPEN_HKCU
@@ -59,22 +62,46 @@ module RubySMB
           samr_enumerate_users_in_domain_request   RubySMB::Dcerpc::Samr::SAMR_ENUMERATE_USERS_IN_DOMAIN
           samr_rid_to_sid_request                  RubySMB::Dcerpc::Samr::SAMR_RID_TO_SID
           samr_close_handle_request                RubySMB::Dcerpc::Samr::SAMR_CLOSE_HANDLE
+          samr_get_alias_membership_request        RubySMB::Dcerpc::Samr::SAMR_GET_ALIAS_MEMBERSHIP
+          samr_open_user_request                   RubySMB::Dcerpc::Samr::SAMR_OPEN_USER
+          samr_get_groups_for_user_request         RubySMB::Dcerpc::Samr::SAMR_GET_GROUPS_FOR_USER
           string                                   :default
         end
         choice 'Wkssvc', selection: -> { opnum } do
           netr_wksta_get_info_request RubySMB::Dcerpc::Wkssvc::NETR_WKSTA_GET_INFO
           string                      :default
         end
+        choice 'Epm', selection: -> { opnum } do
+          epm_ept_map_request RubySMB::Dcerpc::Epm::EPT_MAP
+          string                      :default
+        end
+        choice 'Drsr', selection: -> { opnum } do
+          drs_bind_request                   RubySMB::Dcerpc::Drsr::DRS_BIND
+          drs_unbind_request                 RubySMB::Dcerpc::Drsr::DRS_UNBIND
+          drs_domain_controller_info_request RubySMB::Dcerpc::Drsr::DRS_DOMAIN_CONTROLLER_INFO
+          drs_crack_names_request            RubySMB::Dcerpc::Drsr::DRS_CRACK_NAMES
+          drs_get_nc_changes_request         RubySMB::Dcerpc::Drsr::DRS_GET_NC_CHANGES
+          string                      :default
+        end
         string :default
       end
+      string      :auth_pad,
+        onlyif: -> { pdu_header.auth_length > 0 },
+        length: -> { (16 - (stub.num_bytes % 16)) % 16 }
 
-      string :auth_verifier, label: 'Authentication verifier',
+      # Auth Verifier
+      sec_trailer :sec_trailer, onlyif: -> { pdu_header.auth_length > 0 }
+      string      :auth_value, label: 'Authentication verifier',
         onlyif:      -> { pdu_header.auth_length > 0 },
         read_length: -> { pdu_header.auth_length }
 
       def initialize_instance
         super
         pdu_header.ptype = RubySMB::Dcerpc::PTypes::REQUEST
+      end
+
+      def enable_encrypted_stub
+        @params[:endpoint] = 'Encrypted'
       end
     end
   end
