@@ -1,3 +1,5 @@
+require 'ruby_smb/field'
+
 module RubySMB::Dcerpc::Ndr
 
   # NDR Syntax
@@ -123,6 +125,10 @@ module RubySMB::Dcerpc::Ndr
       end
       @deferred_ptrs.clear
     end
+
+    def is_deferring(obj)
+      @deferred_ptrs.any? { |e| e.equal?(obj) }
+    end
   end
 
   #
@@ -165,6 +171,7 @@ module RubySMB::Dcerpc::Ndr
       target.include ExtendArrayPlugin
     end
   end
+
   module ArrayPlugin
     include ConstructedTypePlugin
 
@@ -216,14 +223,14 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_write(io)
-      unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
+      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
         io.writebytes([@max_count].pack('L'))
       end
       super(io) if is_a?(VarPlugin) || @max_count > 0
     end
 
     def do_read(io)
-      unless parent.is_a?(NdrStruct) && !self.is_a?(PointerPlugin)
+      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
         set_max_count(io.readbytes(4).unpack('L').first)
       end
       super(io) if is_a?(VarPlugin) || @max_count > 0
@@ -551,6 +558,19 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
+    def parent_constructed_type(obj = self.parent)
+      return nil if obj.nil?
+      if obj.is_a?(PointerPlugin)
+        return obj if obj.is_a?(ConstructedTypePlugin)
+        return nil
+      end
+      if obj.is_a?(ConstructedTypePlugin)
+        res = parent_constructed_type(obj.parent)
+        return res || obj
+      end
+      return nil
+    end
+
     def do_write(io)
       if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
         io.writebytes("\x00" * bytes_to_align(self, io.offset))
@@ -561,7 +581,8 @@ module RubySMB::Dcerpc::Ndr
       # 2. if ok, max_count is moved to the beginning
       klass = self.class
       klass = self.class.superclass if is_a?(PointerPlugin)
-      if klass.has_conformant_array && !parent.is_a?(NdrStruct)
+      parent_obj = parent_constructed_type
+      if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
         max_count = get_max_count
         io.writebytes([max_count].pack('L')) if max_count
       end
@@ -574,14 +595,24 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_read(io)
-      if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
-        io.seekbytes(bytes_to_align(self, io.offset))
+      klass = self.class
+      parent_obj = nil
+      klass = self.class.superclass if is_a?(PointerPlugin)
+      parent_obj = parent_constructed_type
+      if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
+        # max_count needs to be aligned according to the alignment rules for
+        # primitive data types, which is 4 bytes for an uint32
+        # TODO: check if it is needed, since it should have been aligned already:
+        align = (4 - (io.offset % 4)) % 4
+        io.seekbytes(align)
+        set_max_count(io.readbytes(4).unpack('L').first)
       end
 
-      klass = self.class
-      klass = self.class.superclass if is_a?(PointerPlugin)
-      if klass.has_conformant_array && !parent.is_a?(NdrStruct)
-        set_max_count(io.readbytes(4).unpack('L').first)
+      # Then, align the structure according to the alignment rules for the structure
+      if respond_to?(:referent_bytes_align)
+        io.seekbytes(referent_bytes_align(io.offset))
+      elsif has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
+        io.seekbytes(bytes_to_align(self, io.offset))
       end
 
       super
@@ -624,9 +655,16 @@ module RubySMB::Dcerpc::Ndr
           "with Conformant array must be the last member of the structure"
         )
       end
-      obj_class = field.last.prototype.instance_variable_get(:@obj_class)
-      @has_conformant_array = true if obj_class.is_a?(ConfClassPlugin) && !obj_class.is_a?(PointerClassPlugin)
+      obj_proto = field.last.prototype
+      obj_class = obj_proto.instance_variable_get(:@obj_class)
       @has_conformant_array = true if obj_class < NdrStruct && obj_class.has_conformant_array
+      if obj_class.is_a?(ConfClassPlugin) && !obj_class.is_a?(PointerClassPlugin)
+        @has_conformant_array = true
+        # Set array byte_align to the element byte_align value
+        element_type = obj_proto.instance_variable_get(:@obj_params)[:type]
+        element_byte_align = element_type.instance_variable_get(:@obj_params)[:byte_align]
+        obj_proto.instance_variable_get(:@obj_params)[:byte_align] = element_byte_align
+      end
     end
 
     def self.method_missing(symbol, *args, &block)
@@ -675,13 +713,34 @@ module RubySMB::Dcerpc::Ndr
 
 
   module TopLevelPlugin
+    module TopLevelClassMethods
+      def pos
+        @@pos
+      end
+      def increment_pos
+        @@pos += 1
+      end
+      def reset_pos
+        @@pos = 0
+      end
+    end
+
+    def self.extended(target)
+      target.class.extend(TopLevelClassMethods)
+      target.class.reset_pos
+    end
+
+    def initialize_instance
+      super
+    end
+
     def snapshot
-      update_ref_ids
+      #update_ref_ids
       super
     end
 
     def do_write(io, is_deferred: false)
-      update_ref_ids if is_top_level_ptr
+      self.class.reset_pos if is_top_level_ptr
       if is_deferred
         super(io, is_deferred: is_deferred)
       else
@@ -690,46 +749,12 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_num_bytes
-      update_ref_ids if is_top_level_ptr
       super
-    end
-
-    def update_ref_ids(obj = self, pos = 0)
-      return pos unless obj
-
-      case obj
-      when PointerPlugin
-        if obj.is_alias?
-          ref_field = obj.fetch_alias_referent
-          if ref_field
-            if ref_field.class != obj.class
-              raise ArgumentError, "Pointer points to a different referent type: #{ref_field.class} (set to #{obj.class})"
-            end
-            obj.ref_id = ref_field.ref_id
-          end
-        else
-          if obj.ref_id != 0 || (obj.ref_id == 0 && obj.eval_parameter(:initial_value))
-            obj.ref_id = RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + (pos * 4)
-            pos += 1
-          end
-        end
-      when ArrayPlugin
-        obj.each do |element|
-          pos = update_ref_ids(element, pos)
-        end
-      when BinData::Record, BinData::Struct
-        obj.each_pair do |_name, field|
-          pos = update_ref_ids(field, pos)
-        end
-      when BinData::Choice
-        pos = update_ref_ids(obj.send(:current_choice), pos)
-      end
-      return pos
     end
 
     def set_top_level_ptr
       @top_level_ptr = true
-      update_ref_ids
+      #update_ref_ids
     end
     def unset_top_level_ptr
       @top_level_ptr = false
@@ -748,7 +773,7 @@ module RubySMB::Dcerpc::Ndr
     def initialize_instance
       if @ref_id.nil?
         if eval_parameter(:initial_value)
-          @ref_id = INITIAL_REF_ID
+          instantiate_referent 
         else
           @ref_id = 0
         end
@@ -790,16 +815,33 @@ module RubySMB::Dcerpc::Ndr
     def referent_bytes_align(offset)
       align = self.class.superclass.default_parameters[:byte_align]
       align = eval_parameter(:referent_byte_align) unless align
-      (align - (offset % align)) % align
+      bytes = (align - (offset % align)) % align
+      bytes
+    end
+
+    def write_ref_id(io)
+      if is_alias?
+        ref_field = fetch_alias_referent
+        if ref_field
+          if ref_field.class != self.class
+            raise ArgumentError, "Pointer points to a different referent type: #{ref_field.class} (set to #{obj.class})"
+          end
+          @ref_id = ref_field.ref_id
+        end
+      elsif @ref_id != 0 || (@ref_id == 0 && eval_parameter(:initial_value))
+        @ref_id = INITIAL_REF_ID + (self.class.pos * 4)
+        self.class.increment_pos
+      end
+      io.writebytes([@ref_id].pack('L'))
     end
 
     def do_write(io, is_deferred: false)
       if is_deferred
         io.writebytes("\x00" * referent_bytes_align(io.offset))
       else
-        io.writebytes([@ref_id].pack('L'))
+        write_ref_id(io)
         parent_obj = parent_constructed_type
-        if parent_obj
+        if parent_obj && @ref_id != 0
           parent_obj.defer_ptr(self)
           return
         end
@@ -822,11 +864,18 @@ module RubySMB::Dcerpc::Ndr
 
     def do_read(io, is_deferred: false)
       if is_deferred
-        io.readbytes(referent_bytes_align(io.offset))
+        if is_a?(NdrStruct) && self.class.superclass.has_conformant_array
+          # align max_count since it will be placed in front of the structure.
+          # The structure itself will be properly aligned later.
+          align = (4 - (io.offset % 4)) % 4
+          io.seekbytes(align)
+        else
+          io.seekbytes(referent_bytes_align(io.offset))
+        end
       else
         @ref_id = io.readbytes(4).unpack('L').first
         parent_obj = parent_constructed_type
-        if parent_obj
+        if parent_obj && @ref_id != 0
           parent_obj.defer_ptr(self)
           return
         end
@@ -842,7 +891,7 @@ module RubySMB::Dcerpc::Ndr
         raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
         ref_field.assign(val)
       else
-        @ref_id = INITIAL_REF_ID if @ref_id == 0
+        instantiate_referent if @ref_id == 0
         super
       end
     end
@@ -879,6 +928,22 @@ module RubySMB::Dcerpc::Ndr
     def do_num_bytes
       return 4 if @ref_id == 0 || is_alias?
       4 + super
+    end
+
+    def instantiate_referent
+      @ref_id = INITIAL_REF_ID
+    end
+
+    def is_null_ptr?
+      @ref_id == 0
+    end
+
+    def insert(index, *objs)
+      obj = super
+      if is_a?(BinData::Array) && !empty?
+        instantiate_referent
+      end
+      obj
     end
   end
 
@@ -955,6 +1020,10 @@ module RubySMB::Dcerpc::Ndr
     extend PointerClassPlugin
   end
 
+  class UuidPtr < RubySMB::Dcerpc::Uuid
+    default_parameter referent_byte_align: 4
+    extend PointerClassPlugin
+  end
 
   # An NDR Context Handle representation as defined in
   # [IDL Data Type Declarations - Basic Type Declarations](http://pubs.opengroup.org/onlinepubs/9629399/apdxn.htm#tagcjh_34_01)
