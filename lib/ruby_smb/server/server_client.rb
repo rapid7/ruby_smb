@@ -59,10 +59,10 @@ module RubySMB
       def handle_authenticated(raw_request)
         response = nil
 
-        case raw_request[0...4]
-        when "\xff\x53\x4d\x42".b
+        case raw_request[0...4].unpack1('L>')
+        when RubySMB::SMB1::SMB_PROTOCOL_ID
           raise NotImplementedError
-        when "\xfe\x53\x4d\x42".b
+        when RubySMB::SMB2::SMB2_PROTOCOL_ID
           raise NotImplementedError
         end
 

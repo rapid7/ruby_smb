@@ -46,8 +46,6 @@ module RubySMB
     end
 
     # Create a GSS Security Blob of an NTLM Type 1 Message.
-    # This code has been cargo culted and needs to be researched
-    # and refactored into something better later.
     def self.gss_type1(type1)
       OpenSSL::ASN1::ASN1Data.new([
         OID_SPNEGO,
@@ -67,8 +65,6 @@ module RubySMB
     end
 
     # Create a GSS Security Blob of an NTLM Type 2 Message.
-    # This code has been cargo culted and needs to be researched
-    # and refactored into something better later.
     def self.gss_type2(type2)
       OpenSSL::ASN1::ASN1Data.new([
        OpenSSL::ASN1::Sequence.new([
@@ -86,8 +82,6 @@ module RubySMB
     end
 
     # Create a GSS Security Blob of an NTLM Type 3 Message.
-    # This code has been cargo culted and needs to be researched
-    # and refactored into something better later.
     def self.gss_type3(type3)
       OpenSSL::ASN1::ASN1Data.new([
         OpenSSL::ASN1::Sequence.new([

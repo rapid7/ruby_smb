@@ -11,11 +11,11 @@ module RubySMB
         # @param [String] raw_request the negotiation request to process
         def handle_negotiate(raw_request)
           response = nil
-          case raw_request[0...4]
-          when "\xff\x53\x4d\x42".b
+          case raw_request[0...4].unpack1('L>')
+          when RubySMB::SMB1::SMB_PROTOCOL_ID
             request = SMB1::Packet::NegotiateRequest.read(raw_request)
             response = do_negotiate_smb1(request)
-          when "\xfe\x53\x4d\x42".b
+          when RubySMB::SMB2::SMB2_PROTOCOL_ID
             request = SMB2::Packet::NegotiateRequest.read(raw_request)
             response = do_negotiate_smb2(request)
           end
@@ -64,7 +64,6 @@ module RubySMB
           response.parameter_block.max_number_vcs = 1
           response.parameter_block.max_buffer_size = 16644
           response.parameter_block.max_raw_size = 65536
-          server_time = Time.now
           response.parameter_block.system_time.set(Time.now)
           response.parameter_block.server_time_zone = server_time.utc_offset
           response.data_block.server_guid = @server.server_guid
@@ -107,9 +106,10 @@ module RubySMB
 
             contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES,
-              data: SMB2::PreauthIntegrityCapabilities.new(
+              data: {
                 hash_algorithms: [ SMB2::PreauthIntegrityCapabilities::SHA_512 ],
-                salt: SecureRandom.random_bytes(32))
+                salt: SecureRandom.random_bytes(32)
+              }
             )
 
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
@@ -117,9 +117,9 @@ module RubySMB
             cipher = 0 unless SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
             contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
-              data: SMB2::EncryptionCapabilities.new(
+              data: {
                 ciphers: [ cipher ]
-              )
+              }
             )
           end
 

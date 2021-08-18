@@ -31,8 +31,9 @@ class HaxorNTLMProvider < RubySMB::Gss::Provider::NTLM
       when :ntlmv2
         hash_type = 'NTLMv2-SSP'
         hash << ":#{bin_to_hex(@server_challenge)}"
-        hash << ":#{bin_to_hex(type3_msg.ntlm_response[0...16])}"
-        hash << ":#{bin_to_hex(type3_msg.ntlm_response[16.. -1])}"
+        # NTLMv2 responses consist of the proof string whose calculation also includes the additional response fields
+        hash << ":#{bin_to_hex(type3_msg.ntlm_response[0...16])}"  # proof string
+        hash << ":#{bin_to_hex(type3_msg.ntlm_response[16.. -1])}" # additional response fields
       end
 
       unless hash_type.nil?

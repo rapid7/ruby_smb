@@ -114,7 +114,7 @@ module RubySMB
               end
 
               @server_challenge = @provider.generate_server_challenge
-              msg.challenge = @server_challenge.unpack1('Q')
+              msg.challenge = @server_challenge.unpack1('Q<') # 64-bit unsigned, little endian (uint64_t)
               target_info = Net::NTLM::TargetInfo.new('')
               target_info.av_pairs.merge!({
                 Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => @provider.netbios_domain.encode('UTF-16LE').b,
@@ -270,9 +270,11 @@ module RubySMB
         # @param [Boolean] allow_anonymous whether or not to allow anonymous authentication attempts
         # @param [String] default_domain the default domain to use for authentication, unless specified 'WORKGROUP' will
         #   be used
-        def initialize(allow_anonymous: false, default_domain: nil)
+        def initialize(allow_anonymous: false, default_domain: 'WORKGROUP')
+          raise ArgumentError, 'Must specify a default domain' unless default_domain
+
           @allow_anonymous = allow_anonymous
-          @default_domain = default_domain || 'WORKGROUP'
+          @default_domain = default_domain
           @accounts = []
           @generate_server_challenge = -> { SecureRandom.bytes(8) }
 
@@ -322,7 +324,7 @@ module RubySMB
         # @param [String] password either the plaintext password or the NTLM hash of the account to add
         # @param [String] domain the domain of the account to add, if not specified, the @default_domain will be used
         def put_account(username, password, domain: nil)
-          domain = @default_domain if domain == '.' || domain.nil?
+          domain = @default_domain if domain.nil? || domain == '.'.encode(domain.encoding)
           @accounts << Account.new(username, password, domain)
         end
 

@@ -11,7 +11,7 @@ module RubySMB
         uint16              :structure_size, label: 'Structure Size', initial_value: 9
         session_flags       :session_flags
         uint16              :security_buffer_offset,  label: 'Security Buffer Offset', initial_value: 0x48
-        uint16              :security_buffer_length,  label: 'Security Buffer Length', value: -> { buffer.length }
+        uint16              :security_buffer_length,  label: 'Security Buffer Length', initial_value: -> { buffer.length }
         string              :buffer,                  label: 'Security Buffer', read_length: -> { security_buffer_length }
 
         def initialize_instance

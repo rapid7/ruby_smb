@@ -9,7 +9,7 @@ module RubySMB
         #
         class Base
           # @param [Provider::Base] provider the GSS provider that this instance is an authenticator for
-          # @param server_client the client instance that this the authenticator will be for
+          # @param server_client the client instance that this will be an authenticator for
           def initialize(provider, server_client)
             @provider = provider
             @server_client = server_client

@@ -69,7 +69,7 @@ module RubySMB
             @state = :authenticated
             @identity = gss_result.identity
             @session_key = @gss_authenticator.session_key
-          elsif @dialect == '0x0311'
+          elsif gss_result.nt_status == WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED && @dialect == '0x0311'
             update_preauth_hash(response)
           end
 
