@@ -14,10 +14,10 @@ module RubySMB
           case raw_request[0...4].unpack1('L>')
           when RubySMB::SMB1::SMB_PROTOCOL_ID
             request = SMB1::Packet::NegotiateRequest.read(raw_request)
-            response = do_negotiate_smb1(request)
+            response = do_negotiate_smb1(request) if request.is_a?(SMB1::Packet::NegotiateRequest)
           when RubySMB::SMB2::SMB2_PROTOCOL_ID
             request = SMB2::Packet::NegotiateRequest.read(raw_request)
-            response = do_negotiate_smb2(request)
+            response = do_negotiate_smb2(request) if request.is_a?(SMB2::Packet::NegotiateRequest)
           end
 
           if response.nil?
@@ -35,7 +35,7 @@ module RubySMB
             response.smb2_header.credits = 1
             response.security_mode.signing_enabled = 1
             response.dialect_revision = SMB2::SMB2_WILDCARD_REVISION
-            response.server_guid = @server.server_guid
+            response.server_guid = @server.guid
 
             response.max_transact_size = 0x800000
             response.max_read_size = 0x800000
@@ -46,8 +46,9 @@ module RubySMB
             return response
           end
 
-          dialect_strings = request.dialects.map(&:dialect_string).map(&:value)
-          dialect = (['NT LM 0.12'] & dialect_strings).first
+          client_dialects = request.dialects.map(&:dialect_string).map(&:value)
+          server_dialects = @server.dialects.select { |dialect| Dialect[dialect].order == Dialect::ORDER_SMB1 }
+          dialect = (server_dialects & client_dialects).first
           if dialect.nil?
             # 'NT LM 0.12' is currently the only supported dialect
             # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/80850595-e301-4464-9745-58e4945eb99b
@@ -59,14 +60,15 @@ module RubySMB
           end
 
           response = SMB1::Packet::NegotiateResponseExtended.new
-          response.parameter_block.dialect_index = dialect_strings.index(dialect)
+          response.parameter_block.dialect_index = client_dialects.index(dialect)
           response.parameter_block.max_mpx_count = 50
           response.parameter_block.max_number_vcs = 1
           response.parameter_block.max_buffer_size = 16644
           response.parameter_block.max_raw_size = 65536
-          response.parameter_block.system_time.set(Time.now)
+          server_time = Time.now
+          response.parameter_block.system_time.set(server_time)
           response.parameter_block.server_time_zone = server_time.utc_offset
-          response.data_block.server_guid = @server.server_guid
+          response.data_block.server_guid = @server.guid
           response.data_block.security_blob = process_gss.buffer
 
           @state = :session_setup
@@ -75,12 +77,14 @@ module RubySMB
         end
 
         def do_negotiate_smb2(request)
-          dialect = ([0x311, 0x302, 0x300, 0x210, 0x202] & request.dialects.map(&:to_i)).first
+          client_dialects = request.dialects.map { |d| "0x%04x" % d }
+          server_dialects = @server.dialects.select { |dialect| Dialect[dialect].order == Dialect::ORDER_SMB2 }
+          dialect = (server_dialects & client_dialects).first
 
           response = SMB2::Packet::NegotiateResponse.new
           response.smb2_header.credits = 1
           response.security_mode.signing_enabled = 1
-          response.server_guid = @server.server_guid
+          response.server_guid = @server.guid
           response.max_transact_size = 0x800000
           response.max_read_size = 0x800000
           response.max_write_size = 0x800000
@@ -94,7 +98,7 @@ module RubySMB
 
           contexts = []
           hash_algorithm = hash_value = nil
-          if dialect == 0x311
+          if dialect == '0x0311'
             # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b39f253e-4963-40df-8dff-2f9040ebbeb1
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_PREAUTH_INTEGRITY_CAPABILITIES)
             hash_algorithm = SMB2::PreauthIntegrityCapabilities::HASH_ALGORITM_MAP[nc&.data&.hash_algorithms&.first]
@@ -124,23 +128,23 @@ module RubySMB
           end
 
           # the order in which the response is built is important to ensure it is valid
-          response.dialect_revision = dialect
+          response.dialect_revision = dialect.to_i(16)
           response.security_buffer_offset = response.security_buffer.abs_offset
           response.security_buffer = process_gss.buffer
-          if dialect == 0x311
+          if dialect == '0x0311'
             response.negotiate_context_offset = response.negotiate_context_list.abs_offset
             contexts.each { |nc| response.add_negotiate_context(nc) }
           end
           @preauth_integrity_hash_algorithm = hash_algorithm
           @preauth_integrity_hash_value = hash_value
 
-          if dialect == 0x311
+          if dialect == '0x0311'
             update_preauth_hash(request)
             update_preauth_hash(response)
           end
 
           @state = :session_setup
-          @dialect = "0x%04x" % dialect
+          @dialect = dialect
           response
         end
       end
