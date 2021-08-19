@@ -2,6 +2,7 @@ module RubySMB
   # Represents an SMB client capable of talking to SMB1 or SMB2 servers and handling
   # all end-user client functionality.
   class Client
+    require 'ruby_smb/ntlm'
     require 'ruby_smb/signing'
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
@@ -652,9 +653,9 @@ module RubySMB
     def default_flags
       negotiate_version_flag = 0x02000000
       flags = Net::NTLM::Client::DEFAULT_FLAGS |
-        Net::NTLM::FLAGS[:TARGET_INFO] |
+        RubySMB::NTLM::NEGOTIATE_FLAGS[:TARGET_INFO] |
         negotiate_version_flag ^
-        Net::NTLM::FLAGS[:OEM]
+        RubySMB::NTLM::NEGOTIATE_FLAGS[:OEM]
 
       flags
     end

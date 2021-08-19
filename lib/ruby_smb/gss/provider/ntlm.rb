@@ -1,3 +1,5 @@
+require 'ruby_smb/ntlm'
+
 module RubySMB
   module Gss
     module Provider
@@ -6,6 +8,8 @@ module RubySMB
       # protocol.
       #
       class NTLM < Base
+        include RubySMB::NTLM
+
         # An account representing an identity for which this provider will accept authentication attempts.
         Account = Struct.new(:username, :password, :domain) do
           def to_s
@@ -13,47 +17,7 @@ module RubySMB
           end
         end
 
-        class OSVersion < BinData::Record
-          endian :big
-
-          uint8  :major
-          uint8  :minor
-          uint16 :build
-          uint32 :ntlm_revision, initial_value: 15
-
-          def to_s
-            "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"
-          end
-        end
-
         class Authenticator < Authenticator::Base
-          NEGOTIATE_FLAGS = {
-            :UNICODE                  => 1 << 0,
-            :OEM                      => 1 << 1,
-            :REQUEST_TARGET           => 1 << 2,
-            :SIGN                     => 1 << 4,
-            :SEAL                     => 1 << 5,
-            :DATAGRAM                 => 1 << 6,
-            :LAN_MANAGER_KEY          => 1 << 7,
-            :NTLM                     => 1 << 9,
-            :NT_ONLY                  => 1 << 10,
-            :ANONYMOUS                => 1 << 11,
-            :OEM_DOMAIN_SUPPLIED      => 1 << 12,
-            :OEM_WORKSTATION_SUPPLIED => 1 << 13,
-            :ALWAYS_SIGN              => 1 << 15,
-            :TARGET_TYPE_DOMAIN       => 1 << 16,
-            :TARGET_TYPE_SERVER       => 1 << 17,
-            :TARGET_TYPE_SHARE        => 1 << 18,
-            :EXTENDED_SECURITY        => 1 << 19,
-            :IDENTIFY                 => 1 << 20,
-            :NON_NT_SESSION           => 1 << 22,
-            :TARGET_INFO              => 1 << 23,
-            :VERSION_INFO             => 1 << 25,
-            :KEY128                   => 1 << 29,
-            :KEY_EXCHANGE             => 1 << 30,
-            :KEY56                    => 1 << 31
-          }.freeze
-
           def reset!
             super
             @server_challenge = nil
@@ -110,7 +74,7 @@ module RubySMB
               msg.target_name = 'LOCALHOST'.encode('UTF-16LE').b
               msg.flag = 0
               %i{ KEY56 KEY128 KEY_EXCHANGE UNICODE TARGET_INFO VERSION_INFO }.each do |flag|
-                msg.flag |= NEGOTIATE_FLAGS.fetch(flag)
+                msg.flag |= NTLM::NEGOTIATE_FLAGS.fetch(flag)
               end
 
               @server_challenge = @provider.generate_server_challenge
@@ -127,7 +91,7 @@ module RubySMB
               msg.enable(:target_info)
               msg.context = 0
               msg.enable(:context)
-              msg.os_version = OSVersion.new(major: 6, minor: 3).to_binary_s
+              msg.os_version = NTLM::OSVersion.new(major: 6, minor: 3).to_binary_s
               msg.enable(:os_version)
             end
 
@@ -180,7 +144,7 @@ module RubySMB
               matches = my_nt_proof_str == their_nt_proof_str
               if matches
                 user_session_key = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, my_nt_proof_str)
-                if type3_msg.flag & NEGOTIATE_FLAGS[:KEY_EXCHANGE] == NEGOTIATE_FLAGS[:KEY_EXCHANGE] && type3_msg.session_key.length == 16
+                if type3_msg.flag & NTLM::NEGOTIATE_FLAGS[:KEY_EXCHANGE] == NTLM::NEGOTIATE_FLAGS[:KEY_EXCHANGE] && type3_msg.session_key.length == 16
                   rc4 = OpenSSL::Cipher.new('rc4')
                   rc4.decrypt
                   rc4.key = user_session_key
@@ -215,7 +179,7 @@ module RubySMB
             return unless raw_type1_msg
 
             type1_msg = Net::NTLM::Message.parse(raw_type1_msg)
-            if type1_msg.flag & NEGOTIATE_FLAGS[:UNICODE] == NEGOTIATE_FLAGS[:UNICODE]
+            if type1_msg.flag & NTLM::NEGOTIATE_FLAGS[:UNICODE] == NTLM::NEGOTIATE_FLAGS[:UNICODE]
               type1_msg.domain.force_encoding('UTF-16LE')
               type1_msg.workstation.force_encoding('UTF-16LE')
             end
@@ -231,7 +195,7 @@ module RubySMB
             raw_type3_msg = neg_token_init[2]
 
             type3_msg = Net::NTLM::Message.parse(raw_type3_msg)
-            if type3_msg.flag & NEGOTIATE_FLAGS[:UNICODE] == NEGOTIATE_FLAGS[:UNICODE]
+            if type3_msg.flag & NTLM::NEGOTIATE_FLAGS[:UNICODE] == NTLM::NEGOTIATE_FLAGS[:UNICODE]
               type3_msg.domain.force_encoding('UTF-16LE')
               type3_msg.user.force_encoding('UTF-16LE')
               type3_msg.workstation.force_encoding('UTF-16LE')
