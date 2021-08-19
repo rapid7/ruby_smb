@@ -5,6 +5,8 @@ module RubySMB
   module SMB2
     # Protocol ID value. Translates to \xFESMB
     SMB2_PROTOCOL_ID = 0xFE534D42
+    # Wildcard revision, see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5
+    SMB2_WILDCARD_REVISION = 0x02ff
 
     require 'ruby_smb/smb2/info_type'
     require 'ruby_smb/smb2/commands'

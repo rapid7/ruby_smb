@@ -26,6 +26,7 @@ module RubySMB
       Definition.new('NT LM 0.12', ORDER_SMB1, FAMILY_SMB1, VERSION_SMB1, 'SMB v1 (NT LM 0.12)'.freeze),
       Definition.new('0x0202',     ORDER_SMB2, FAMILY_SMB2, VERSION_SMB2, 'SMB v2.0.2'.freeze),
       Definition.new('0x0210',     ORDER_SMB2, FAMILY_SMB2, VERSION_SMB2, 'SMB v2.1'.freeze),
+      Definition.new('0x02ff',     ORDER_SMB2, FAMILY_SMB2, VERSION_SMB2, 'SMB 2.???'.freeze), # wildcard revision
       Definition.new('0x0300',     ORDER_SMB2, FAMILY_SMB3, VERSION_SMB3, 'SMB v3.0'.freeze),
       Definition.new('0x0302',     ORDER_SMB2, FAMILY_SMB3, VERSION_SMB3, 'SMB v3.0.2'.freeze),
       Definition.new('0x0311',     ORDER_SMB2, FAMILY_SMB3, VERSION_SMB3, 'SMB v3.1.1'.freeze)

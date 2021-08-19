@@ -34,7 +34,7 @@ module RubySMB
             response = SMB2::Packet::NegotiateResponse.new
             response.smb2_header.credits = 1
             response.security_mode.signing_enabled = 1
-            response.dialect_revision = 0x02ff
+            response.dialect_revision = SMB2::SMB2_WILDCARD_REVISION
             response.server_guid = @server.server_guid
 
             response.max_transact_size = 0x800000
