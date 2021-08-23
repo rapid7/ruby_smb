@@ -69,7 +69,11 @@ module RubySMB
     class NetnameNegotiateContextId < BinData::Record
       endian  :little
 
-      stringz16 :net_name, label: 'Net Name'
+      count_bytes_remaining :bytes_remaining
+      default_parameter data_length: nil
+      hide :bytes_remaining
+
+      string16 :net_name, label: 'Net Name', read_length: -> { data_length.nil? ? bytes_remaining : data_length }
     end
 
     # An SMB2 TRANSPORT_CAPABILITIES context struct as defined in
@@ -106,7 +110,7 @@ module RubySMB
         preauth_integrity_capabilities SMB2_PREAUTH_INTEGRITY_CAPABILITIES, label: 'Preauthentication Integrity Capabilities'
         encryption_capabilities        SMB2_ENCRYPTION_CAPABILITIES,        label: 'Encryption Capabilities'
         compression_capabilities       SMB2_COMPRESSION_CAPABILITIES,       label: 'Compression Capabilities'
-        netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID'
+        netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID', data_length: :data_length
         transport_capabilities         SMB2_TRANSPORT_CAPABILITIES,         label: 'Transport Capabilities'
       end
 

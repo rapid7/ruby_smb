@@ -162,7 +162,7 @@ RSpec.describe RubySMB::SMB2::CompressionCapabilities do
   end
 end
 
-RSpec.describe RubySMB::SMB2::NetnameNegotiateContextId  do
+RSpec.describe RubySMB::SMB2::NetnameNegotiateContextId do
   subject(:capability) { described_class.new }
 
   it { is_expected.to respond_to :net_name }
@@ -173,7 +173,7 @@ RSpec.describe RubySMB::SMB2::NetnameNegotiateContextId  do
 
   describe '#net_name' do
     it 'is a unicode string' do
-      expect(capability.net_name).to be_a RubySMB::Field::Stringz16
+      expect(capability.net_name).to be_a RubySMB::Field::String16
     end
   end
 
