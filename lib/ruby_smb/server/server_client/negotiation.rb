@@ -30,7 +30,10 @@ module RubySMB
         end
 
         def do_negotiate_smb1(request)
-          if request.dialects.map(&:dialect_string).include?(Client::SMB1_DIALECT_SMB2_WILDCARD)
+          client_dialects = request.dialects.map(&:dialect_string).map(&:value)
+
+          if client_dialects.include?(Client::SMB1_DIALECT_SMB2_WILDCARD) && \
+              @server.dialects.any? { |dialect| Dialect[dialect].order == Dialect::ORDER_SMB2 }
             response = SMB2::Packet::NegotiateResponse.new
             response.smb2_header.credits = 1
             response.security_mode.signing_enabled = 1
@@ -46,7 +49,6 @@ module RubySMB
             return response
           end
 
-          client_dialects = request.dialects.map(&:dialect_string).map(&:value)
           server_dialects = @server.dialects.select { |dialect| Dialect[dialect].order == Dialect::ORDER_SMB1 }
           dialect = (server_dialects & client_dialects).first
           if dialect.nil?
