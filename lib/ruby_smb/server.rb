@@ -38,7 +38,7 @@ module RubySMB
     # The dialects that this server will negotiate with clients, in ascending order of preference.
     # @!attribute [r] dialects
     #   @return [Array<String>]
-    attr_reader :dialects
+    attr_accessor :dialects
 
     # The GSS Provider instance that this server will use to authenticate
     # incoming client connections.
@@ -47,7 +47,7 @@ module RubySMB
     attr_reader :gss_provider
 
     # The 16 byte GUID that uniquely identifies this server instance.
-    # @!attribute [r] server_guid
+    # @!attribute [r] guid
     attr_reader :guid
   end
 end
