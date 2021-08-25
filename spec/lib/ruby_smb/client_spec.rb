@@ -209,6 +209,8 @@ RSpec.describe RubySMB::Client do
 
     context 'when signing' do
       it 'calls #smb1_sign if it is an SMB1 packet' do
+        allow(client).to receive(:signing_required).and_return(true)
+        allow(client).to receive(:session_key).and_return(Random.new.bytes(16))
         expect(client).to receive(:smb1_sign).with(smb1_request).and_call_original
         client.send_recv(smb1_request)
       end
@@ -223,14 +225,10 @@ RSpec.describe RubySMB::Client do
 
         it 'calls #smb2_sign if it is an SMB2 client' do
           allow(smb2_client).to receive(:is_status_pending?).and_return(false)
+          allow(smb2_client).to receive(:signing_required).and_return(true)
+          allow(smb2_client).to receive(:session_key).and_return(Random.new.bytes(16))
           expect(smb2_client).to receive(:smb2_sign).with(smb2_request).and_call_original
           smb2_client.send_recv(smb2_request)
-        end
-
-        it 'calls #smb3_sign if it is an SMB3 client' do
-          allow(smb3_client).to receive(:is_status_pending?).and_return(false)
-          expect(smb3_client).to receive(:smb3_sign).with(smb2_request).and_call_original
-          smb3_client.send_recv(smb2_request)
         end
       end
     end
@@ -2087,7 +2085,7 @@ RSpec.describe RubySMB::Client do
         it 'generates the HMAC based on the packet and the NTLM session key and signs the packet with it' do
           smb2_client.session_key = 'foo'
           smb2_client.signing_required = true
-          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest::SHA256), smb2_client.session_key, request1.to_binary_s).and_return(fake_hmac)
+          expect(OpenSSL::HMAC).to receive(:digest).with(instance_of(OpenSSL::Digest), smb2_client.session_key, request1.to_binary_s).and_return(fake_hmac)
           expect(smb2_client.smb2_sign(request1).smb2_header.signature).to eq fake_hmac
         end
       end
@@ -2187,7 +2185,7 @@ RSpec.describe RubySMB::Client do
             smb3_client.dialect = '0x0202'
             expect { smb3_client.smb3_sign(request) }.to raise_error(
               RubySMB::Error::SigningError,
-              'Dialect is incompatible with SMBv3 signing'
+              'Dialect "0x0202" is incompatible with SMBv3 signing'
             )
           end
         end
@@ -2237,7 +2235,7 @@ RSpec.describe RubySMB::Client do
             smb3_client.dialect = '0x0202'
             expect { smb3_client.smb3_sign(request) }.to raise_error(
               RubySMB::Error::SigningError,
-              'Dialect is incompatible with SMBv3 signing'
+              'Dialect "0x0202" is incompatible with SMBv3 signing'
             )
           end
         end

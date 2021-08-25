@@ -121,7 +121,7 @@ module RubySMB
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
-          unless packet.dialect_revision.to_i == 0x02ff
+          unless packet.dialect_revision.to_i == RubySMB::SMB2::SMB2_WILDCARD_REVISION
             self.smb2 = packet.dialect_revision.to_i >= 0x0200 && packet.dialect_revision.to_i < 0x0300
             self.smb3 = packet.dialect_revision.to_i >= 0x0300 && packet.dialect_revision.to_i < 0x0400
           end

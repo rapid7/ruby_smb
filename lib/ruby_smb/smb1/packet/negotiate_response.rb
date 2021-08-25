@@ -8,17 +8,17 @@ module RubySMB
 
         # An SMB_Parameters Block as defined by the {NegotiateResponse}.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
-          uint16          :dialect_index, label: 'Dialect Index'
-          security_mode   :security_mode
-          uint16          :max_mpx_count,     label: 'Max Multiplex Count'
-          uint16          :max_number_vcs,    label: 'Max Virtual Circuits'
-          uint32          :max_buffer_size,   label: 'Max Buffer Size'
-          uint32          :max_raw_size,      label: 'Max Raw Size'
-          uint32          :session_key,       label: 'Session Key'
-          capabilities    :capabilities
-          file_time       :system_time,       label: 'Server System Time'
-          int16           :server_time_zone,  label: 'Server TimeZone'
-          uint8           :challenge_length,  label: 'Challenge Length', initial_value: 0x08
+          uint16          :dialect_index,     label: 'Dialect Index'
+          security_mode   :security_mode,     onlyif: -> { dialect_index != 0xffff }
+          uint16          :max_mpx_count,     label: 'Max Multiplex Count', onlyif: -> { dialect_index != 0xffff }
+          uint16          :max_number_vcs,    label: 'Max Virtual Circuits', onlyif: -> { dialect_index != 0xffff }
+          uint32          :max_buffer_size,   label: 'Max Buffer Size', onlyif: -> { dialect_index != 0xffff }
+          uint32          :max_raw_size,      label: 'Max Raw Size', onlyif: -> { dialect_index != 0xffff }
+          uint32          :session_key,       label: 'Session Key', onlyif: -> { dialect_index != 0xffff }
+          capabilities    :capabilities,      onlyif: -> { dialect_index != 0xffff }
+          file_time       :system_time,       label: 'Server System Time', onlyif: -> { dialect_index != 0xffff }
+          int16           :server_time_zone,  label: 'Server TimeZone', onlyif: -> { dialect_index != 0xffff }
+          uint8           :challenge_length,  label: 'Challenge Length', initial_value: 0x08, onlyif: -> { dialect_index != 0xffff }
         end
 
         # An SMB_Data Block as defined by the {NegotiateResponse}

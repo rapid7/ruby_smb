@@ -21,10 +21,11 @@ module RubySMB
   require 'ruby_smb/generic_packet'
   require 'ruby_smb/dispatcher'
   require 'ruby_smb/version'
-  require 'ruby_smb/version'
   require 'ruby_smb/smb2'
   require 'ruby_smb/smb1'
   require 'ruby_smb/client'
   require 'ruby_smb/crypto'
   require 'ruby_smb/compression'
+  require 'ruby_smb/server'
+  require 'ruby_smb/dialect'
 end

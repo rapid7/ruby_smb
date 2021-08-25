@@ -47,7 +47,7 @@ module RubySMB
 
         # Takes an NTLM Type 3 Message and creates the GSS Security Blob
         # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
-        # field. It also automaticaly sets the length in
+        # field. It also automatically sets the length in
         # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
         #
         # @param type3_message [String] the serialized Type 3 NTLM message

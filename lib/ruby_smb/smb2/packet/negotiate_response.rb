@@ -59,7 +59,6 @@ module RubySMB
           self.negotiate_context_list
         end
 
-
         private
 
         # Determines the correct length for the padding, so that the next

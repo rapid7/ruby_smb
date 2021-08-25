@@ -69,9 +69,22 @@ module RubySMB
     class NetnameNegotiateContextId < BinData::Record
       endian  :little
 
-      stringz16 :net_name, label: 'Net Name'
+      count_bytes_remaining :bytes_remaining
+      default_parameter data_length: nil
+      hide :bytes_remaining
+
+      string16 :net_name, label: 'Net Name', read_length: -> { data_length.nil? ? bytes_remaining : data_length }
     end
 
+    # An SMB2 TRANSPORT_CAPABILITIES context struct as defined in
+    # [2.2.3.1.5 SMB2_TRANSPORT_CAPABILITIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/450a1888-a645-4988-8638-5a11f4617545)
+    class TransportCapabilities < BinData::Record
+      SMB2_ACCEPT_TRANSPORT_LEVEL_SECURITY = 1 # Transport security is offered to skip SMB2 encryption on this connection.
+
+      endian :little
+
+      uint32 :flags, label: 'Flags'
+    end
 
     # An SMB2 NEGOTIATE_CONTEXT struct as defined in
     # [2.2.3.1 SMB2 NEGOTIATE_CONTEXT Request Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/15332256-522e-4a53-8cd7-0bd17678a2f7)
@@ -84,6 +97,8 @@ module RubySMB
       SMB2_COMPRESSION_CAPABILITIES        = 0x0003
       # The NegotiateContext Data field contains the server name to which the client connects.
       SMB2_NETNAME_NEGOTIATE_CONTEXT_ID    = 0x0005
+      # The NegotiateContext Data field contains the transport capabilities, as specified in section 2.2.3.1.5.
+      SMB2_TRANSPORT_CAPABILITIES          = 0x0006
 
       endian  :little
 
@@ -95,7 +110,8 @@ module RubySMB
         preauth_integrity_capabilities SMB2_PREAUTH_INTEGRITY_CAPABILITIES, label: 'Preauthentication Integrity Capabilities'
         encryption_capabilities        SMB2_ENCRYPTION_CAPABILITIES,        label: 'Encryption Capabilities'
         compression_capabilities       SMB2_COMPRESSION_CAPABILITIES,       label: 'Compression Capabilities'
-        netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID'
+        netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID', data_length: :data_length
+        transport_capabilities         SMB2_TRANSPORT_CAPABILITIES,         label: 'Transport Capabilities'
       end
 
       def pad_length
