@@ -35,12 +35,14 @@ module RubySMB
     end
 
     class Bind < BinData::Record
+      PTYPE = PTypes::BIND
+
       endian :little
 
       # PDU Header
       pdu_header    :pdu_header, label: 'PDU header'
-      ndr_uint16    :max_xmit_frag, label: 'max transmit frag size',    initial_value: RubySMB::Dcerpc::MAX_XMIT_FRAG
-      ndr_uint16    :max_recv_frag, label: 'max receive frag size',    initial_value: RubySMB::Dcerpc::MAX_RECV_FRAG
+      ndr_uint16    :max_xmit_frag, label: 'max transmit frag size', initial_value: RubySMB::Dcerpc::MAX_XMIT_FRAG
+      ndr_uint16    :max_recv_frag, label: 'max receive frag size', initial_value: RubySMB::Dcerpc::MAX_RECV_FRAG
       ndr_uint32    :assoc_group_id, label: 'incarnation of client-server assoc group'
       p_cont_list_t :p_context_list, label: 'Presentation context list', endpoint: -> { endpoint }
 
@@ -52,7 +54,7 @@ module RubySMB
 
       def initialize_instance
         super
-        pdu_header.ptype = RubySMB::Dcerpc::PTypes::BIND
+        pdu_header.ptype = PTYPE
       end
     end
   end

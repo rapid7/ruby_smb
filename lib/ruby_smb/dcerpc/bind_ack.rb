@@ -9,8 +9,8 @@ module RubySMB
 
       ndr_uint16        :result,          label: 'Presentation context negotiation results'
       ndr_uint16        :reason,          label: 'Rejection reason'
-      p_syntax_id_t :transfer_syntax, label: 'Presentation syntax ID',
-        uuid: ->      { Ndr::UUID },
+      p_syntax_id_t     :transfer_syntax, label: 'Presentation syntax ID',
+        uuid:      -> { Ndr::UUID },
         ver_major: -> { Ndr::VER_MAJOR },
         ver_minor: -> { Ndr::VER_MINOR }
     end
@@ -19,10 +19,10 @@ module RubySMB
       default_parameter byte_align: 4
       endian :little
 
-      ndr_uint8  :n_results, label: 'Number of results'
+      ndr_uint8  :n_results, label: 'Number of results', initial_value: -> { p_results.size }
       ndr_uint8  :reserved
       ndr_uint16 :reserved2
-      array  :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }, byte_align: 4
+      array      :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }, byte_align: 4
     end
 
     class PortAnyT < Ndr::NdrStruct
@@ -34,6 +34,8 @@ module RubySMB
     end
 
     class BindAck < BinData::Record
+      PTYPE = PTypes::BIND_ACK
+
       # Presentation context negotiation results
       ACCEPTANCE         = 0
       USER_REJECTION     = 1
@@ -63,7 +65,7 @@ module RubySMB
 
       def initialize_instance
         super
-        pdu_header.ptype = RubySMB::Dcerpc::PTypes::BIND_ACK
+        pdu_header.ptype = PTYPE
       end
     end
   end

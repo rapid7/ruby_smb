@@ -3,6 +3,8 @@ module RubySMB
     # The Response PDU as defined in
     # [The response PDU](http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06_04_10)
     class Response < BinData::Record
+      PTYPE = PTypes::RESPONSE
+
       endian :little
 
       # PDU Header
@@ -26,7 +28,7 @@ module RubySMB
 
       def initialize_instance
         super
-        pdu_header.ptype = RubySMB::Dcerpc::PTypes::RESPONSE
+        pdu_header.ptype = PTYPE
       end
 
       def has_auth_verifier?
