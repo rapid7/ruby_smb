@@ -279,7 +279,7 @@ module RubySMB
     # @param smb2 [Boolean] whether or not to enable SMB2 support
     # @param smb3 [Boolean] whether or not to enable SMB3 support
     def initialize(dispatcher, smb1: true, smb2: true, smb3: true, username:, password:, domain: '.',
-                   local_workstation: 'WORKSTATION', always_encrypt: true, ntlm_flags: default_flags)
+                   local_workstation: 'WORKSTATION', always_encrypt: true, ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
       raise ArgumentError, 'No Dispatcher provided' unless dispatcher.is_a? RubySMB::Dispatcher::Base
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
@@ -366,7 +366,7 @@ module RubySMB
     # the credentials supplied during initialization, but can take a new set of credentials if needed.
     def login(username: self.username, password: self.password,
               domain: self.domain, local_workstation: self.local_workstation,
-              ntlm_flags: default_flags)
+              ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
       negotiate
       session_setup(username, password, domain,
                     local_workstation: local_workstation,
@@ -374,7 +374,7 @@ module RubySMB
     end
 
     def session_setup(user, pass, domain, do_recv=true,
-                      local_workstation: self.local_workstation, ntlm_flags: default_flags)
+                      local_workstation: self.local_workstation, ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
       @domain            = domain
       @local_workstation = local_workstation
       @password          = pass.encode('utf-8') || ''.encode('utf-8')
@@ -648,16 +648,5 @@ module RubySMB
       )
     end
 
-    private
-
-    def default_flags
-      negotiate_version_flag = 0x02000000
-      flags = Net::NTLM::Client::DEFAULT_FLAGS |
-        RubySMB::NTLM::NEGOTIATE_FLAGS[:TARGET_INFO] |
-        negotiate_version_flag ^
-        RubySMB::NTLM::NEGOTIATE_FLAGS[:OEM]
-
-      flags
-    end
   end
 end
