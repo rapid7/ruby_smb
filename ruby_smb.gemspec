@@ -38,5 +38,5 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'bindata'
   spec.add_runtime_dependency 'openssl-ccm'
   spec.add_runtime_dependency 'openssl-cmac'
-  spec.add_runtime_dependency 'openssl'
+  spec.add_runtime_dependency 'openssl', '2.1.2'
 end
