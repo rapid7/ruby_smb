@@ -56,27 +56,27 @@ module RubySMB
     # Bind to the remote server interface endpoint.
     #
     # @param options [Hash] the options to pass to the Bind request packet. At least, :endpoint must but provided with an existing Dcerpc class
-    # @return [RubySMB::Dcerpc::BindAck] the BindAck response packet
-    # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if an invalid packet is received
-    # @raise [RubySMB::Dcerpc::Error::BindError] if the response is not a BindAck packet or if the Bind result code is not ACCEPTANCE
+    # @return [BindAck] the BindAck response packet
+    # @raise [Error::InvalidPacket] if an invalid packet is received
+    # @raise [Error::BindError] if the response is not a BindAck packet or if the Bind result code is not ACCEPTANCE
     def bind(options={})
-      bind_req = RubySMB::Dcerpc::Bind.new(options)
+      bind_req = Bind.new(options)
       write(data: bind_req.to_binary_s)
       @size = 1024
       dcerpc_raw_response = read()
       begin
-        dcerpc_response = RubySMB::Dcerpc::BindAck.read(dcerpc_raw_response)
+        dcerpc_response = BindAck.read(dcerpc_raw_response)
       rescue IOError
-        raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the DCERPC response"
+        raise Error::InvalidPacket, "Error reading the DCERPC response"
       end
-      unless dcerpc_response.pdu_header.ptype == RubySMB::Dcerpc::PTypes::BIND_ACK
-        raise RubySMB::Dcerpc::Error::BindError, "Not a BindAck packet"
+      unless dcerpc_response.pdu_header.ptype == PTypes::BIND_ACK
+        raise Error::BindError, "Not a BindAck packet"
       end
 
       res_list = dcerpc_response.p_result_list
       if res_list.n_results == 0 ||
-         res_list.p_results[0].result != RubySMB::Dcerpc::BindAck::ACCEPTANCE
-        raise RubySMB::Dcerpc::Error::BindError,
+         res_list.p_results[0].result != BindAck::ACCEPTANCE
+        raise Error::BindError,
           "Bind Failed (Result: #{res_list.p_results[0].result}, Reason: #{res_list.p_results[0].reason})"
       end
       @tree.client.max_buffer_size = dcerpc_response.max_xmit_frag

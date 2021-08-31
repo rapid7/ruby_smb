@@ -9,6 +9,10 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
   describe '#buffer_length' do
     it 'should be a NdrUint16' do
       expect(packet.buffer_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
@@ -41,18 +45,24 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
       before :example do
         packet.assign('spec_test')
       end
-      it 'sets #buffer to the expected value' do
-        expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
-      end
 
-      it 'sets #buffer_length to the expected value' do
-        expect(packet.buffer_length).to eq(('spec_test'.size + 1) * 2)
-      end
+      [BinData::Stringz, BinData::String, String].each do |klass|
+        context "with a #{klass}" do
+          it 'sets #buffer to the expected value' do
+            expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new(klass.new('spec_test')))
+          end
 
-      it 'sets #maximum_length to the expected value' do
-        expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
+          it 'sets #buffer_length to the expected value' do
+            expect(packet.buffer_length).to eq(('spec_test'.size + 1) * 2)
+          end
+
+          it 'sets #maximum_length to the expected value' do
+            expect(packet.maximum_length).to eq(('spec_test'.size + 1) * 2)
+          end
+        end
       end
     end
+
     context 'with a :null pointer' do
       before :example do
         packet.assign(:null)
@@ -152,6 +162,10 @@ RSpec.describe RubySMB::Dcerpc::RpcUnicodeString do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
   describe '#buffer_length' do
     it 'should be a NdrUint16' do
       expect(packet.buffer_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
@@ -184,16 +198,21 @@ RSpec.describe RubySMB::Dcerpc::RpcUnicodeString do
       before :example do
         packet.assign('spec_test')
       end
-      it 'sets #buffer to the expected value' do
-        expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
-      end
 
-      it 'sets #buffer_length to the expected value' do
-      expect(packet.buffer_length).to eq(('spec_test'.size) * 2)
-      end
+      [BinData::Stringz, BinData::String, String].each do |klass|
+        context "with a #{klass}" do
+          it 'sets #buffer to the expected value' do
+            expect(packet.buffer).to eq(RubySMB::Dcerpc::Ndr::NdrWideStringPtr.new('spec_test'))
+          end
 
-      it 'sets #maximum_length to the expected value' do
-      expect(packet.maximum_length).to eq(('spec_test'.size) * 2)
+          it 'sets #buffer_length to the expected value' do
+            expect(packet.buffer_length).to eq(('spec_test'.size) * 2)
+          end
+
+          it 'sets #maximum_length to the expected value' do
+            expect(packet.maximum_length).to eq(('spec_test'.size) * 2)
+          end
+        end
       end
     end
     context 'with a :null pointer' do

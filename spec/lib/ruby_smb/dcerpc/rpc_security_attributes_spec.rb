@@ -9,6 +9,10 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
   describe '#lp_security_descriptor' do
     it 'should be a NdrByteArrayPtr structure' do
       expect(packet.lp_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrByteArrayPtr
@@ -58,6 +62,10 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
+  end
+
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
   end
 
   describe '#n_length' do

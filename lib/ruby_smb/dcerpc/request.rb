@@ -88,13 +88,13 @@ module RubySMB
         string :default
       end
       string      :auth_pad,
-        onlyif: -> { pdu_header.auth_length > 0 },
+        onlyif: -> { has_auth_verifier? },
         length: -> { (16 - (stub.num_bytes % 16)) % 16 }
 
       # Auth Verifier
-      sec_trailer :sec_trailer, onlyif: -> { pdu_header.auth_length > 0 }
+      sec_trailer :sec_trailer, onlyif: -> { has_auth_verifier? }
       string      :auth_value, label: 'Authentication verifier',
-        onlyif:      -> { pdu_header.auth_length > 0 },
+        onlyif:      -> { has_auth_verifier? },
         read_length: -> { pdu_header.auth_length }
 
       def initialize_instance
@@ -105,6 +105,11 @@ module RubySMB
       def enable_encrypted_stub
         @params[:endpoint] = 'Encrypted'
       end
+
+      def has_auth_verifier?
+        self.pdu_header.auth_length > 0
+      end
+
     end
   end
 end
