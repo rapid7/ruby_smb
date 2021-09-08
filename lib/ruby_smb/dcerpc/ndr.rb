@@ -1,6 +1,6 @@
-require 'ruby_smb/field'
-
 module RubySMB::Dcerpc::Ndr
+
+  require 'ruby_smb/field'
 
   # NDR Syntax
   UUID = '8a885d04-1ceb-11c9-9fe8-08002b104860'
@@ -54,6 +54,7 @@ module RubySMB::Dcerpc::Ndr
   class NdrChar < BinData::String
     default_parameter(length: 1, byte_align: 1)
   end
+
   class NdrWideChar < RubySMB::Field::String16
     default_parameter(length: 2, byte_align: 2)
   end
@@ -96,12 +97,9 @@ module RubySMB::Dcerpc::Ndr
   #####################################
 
   module ConstructedTypePlugin
-    def set_top_level
+    def initialize_instance
       @deferred_ptrs = []
-    end
-
-    def is_top_level?
-      !@deferred_ptrs.nil?
+      super
     end
 
     def defer_ptr(ref)
@@ -128,6 +126,17 @@ module RubySMB::Dcerpc::Ndr
 
     def is_deferring(obj)
       @deferred_ptrs.any? { |e| e.equal?(obj) }
+    end
+
+    def get_top_level_constructed_type
+      if is_a?(PointerPlugin)
+        return self
+      end
+      res = nil
+      if parent&.is_a?(ConstructedTypePlugin)
+        res = parent.get_top_level_constructed_type
+      end
+      return res || self
     end
   end
 
@@ -175,21 +184,16 @@ module RubySMB::Dcerpc::Ndr
   module ArrayPlugin
     include ConstructedTypePlugin
 
-    def initialize_instance
-      set_top_level unless is_top_level?
-      super
-    end
-
     def do_write(io)
       super
-      if is_top_level? && has_deferred_ptrs?
+      if has_deferred_ptrs?
         write_ptr(io)
       end
     end
 
     def do_read(io)
       super
-      if is_top_level? && has_deferred_ptrs?
+      if has_deferred_ptrs?
         read_ptr(io)
       end
     end
@@ -224,16 +228,16 @@ module RubySMB::Dcerpc::Ndr
 
     def do_write(io)
       if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
-        io.writebytes([@max_count].pack('L'))
+        io.writebytes([@max_count].pack('L<'))
       end
-      super(io) if is_a?(VarPlugin) || @max_count > 0
+      super if is_a?(VarPlugin) || @max_count > 0
     end
 
     def do_read(io)
       if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
-        set_max_count(io.readbytes(4).unpack('L').first)
+        set_max_count(io.readbytes(4).unpack('L<').first)
       end
-      super(io) if is_a?(VarPlugin) || @max_count > 0
+      super if is_a?(VarPlugin) || @max_count > 0
     end
 
     def insert(index, *objs)
@@ -259,7 +263,7 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def set_max_count(val)
-        @max_count = @read_until_index = val
+      @max_count = @read_until_index = val
     end
   end
 
@@ -274,14 +278,14 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_write(io)
-      io.writebytes([@offset].pack('L'))
-      io.writebytes([@actual_count].pack('L'))
+      io.writebytes([@offset].pack('L<'))
+      io.writebytes([@actual_count].pack('L<'))
       super(io) if @actual_count > 0
     end
 
     def do_read(io)
-      @offset = io.readbytes(4).unpack('L').first
-      @actual_count = @read_until_index = io.readbytes(4).unpack('L').first
+      @offset = io.readbytes(4).unpack('L<').first
+      @actual_count = @read_until_index = io.readbytes(4).unpack('L<').first
       super(io) if @actual_count > 0
     end
 
@@ -335,7 +339,6 @@ module RubySMB::Dcerpc::Ndr
 
   # [Uni-dimensional Fixed Arrays](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_03_01)
   class NdrFixArray < BinData::Array
-    mandatory_parameters :initial_length
     arg_processor :ndr_array
 
     def initialize_shared_instance
@@ -415,7 +418,10 @@ module RubySMB::Dcerpc::Ndr
       end
       target.include ExtendVarStringPlugin
       class_name = target.to_s.split('::').last
-      target.include ExtendConfStringPlugin if class_name.include?('NdrConfVar')
+      if class_name.include?('NdrConfVar')
+        target.include ExtendConfStringPlugin
+        target.extend ConfClassPlugin
+      end
     end
   end
 
@@ -425,18 +431,24 @@ module RubySMB::Dcerpc::Ndr
     def initialize_instance
       @max_count = 0
       if has_parameter?(:initial_value)
-        update_max_count(eval_parameter(:initial_value))
+        set_max_count(get_max_count(eval_parameter(:initial_value)))
       end
       super
     end
 
     def do_write(io)
-      io.writebytes([@max_count].pack('L'))
+      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+        io.writebytes([@max_count].pack('L<'))
+      end
+      #super if is_a?(VarStringPlugin) || @max_count > 0
       super
     end
 
     def do_read(io)
-      @max_count = io.readbytes(4).unpack('L').first
+      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+        set_max_count(io.readbytes(4).unpack('L<').first)
+      end
+      #super if is_a?(VarStringPlugin) || @max_count > 0
       super
     end
 
@@ -444,7 +456,7 @@ module RubySMB::Dcerpc::Ndr
       if val.is_a?(ConfStringPlugin)
         @max_count = val.max_count
       else
-        update_max_count(val)
+        set_max_count(get_max_count(val))
       end
       super
     end
@@ -453,14 +465,19 @@ module RubySMB::Dcerpc::Ndr
       4 + super
     end
 
-    def update_max_count(val)
+    def get_max_count(val)
       if is_a?(BinData::Stringz)
-        @max_count = val.to_s.strip.length
+        max_count = val.to_s.strip.length
         # Only count the terminating NULL byte if the string is not empty
-        @max_count += 1 if @max_count > 0
+        max_count += 1 if max_count > 0
+        return max_count
       else
-        @max_count = val.to_s.length
+        return val.to_s.length
       end
+    end
+
+    def set_max_count(val)
+      @max_count = val
     end
   end
 
@@ -477,14 +494,14 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_write(io)
-      io.writebytes([@offset].pack('L'))
-      io.writebytes([@actual_count].pack('L'))
+      io.writebytes([@offset].pack('L<'))
+      io.writebytes([@actual_count].pack('L<'))
       super if @actual_count > 0
     end
 
     def do_read(io)
-      @offset = io.readbytes(4).unpack('L').first
-      @actual_count = io.readbytes(4).unpack('L').first
+      @offset = io.readbytes(4).unpack('L<').first
+      @actual_count = io.readbytes(4).unpack('L<').first
       super if @actual_count > 0
     end
 
@@ -553,24 +570,6 @@ module RubySMB::Dcerpc::Ndr
   module StructPlugin
     include ConstructedTypePlugin
 
-    def initialize_instance
-      set_top_level unless is_top_level?
-      super
-    end
-
-    def parent_constructed_type(obj = self.parent)
-      return nil if obj.nil?
-      if obj.is_a?(PointerPlugin)
-        return obj if obj.is_a?(ConstructedTypePlugin)
-        return nil
-      end
-      if obj.is_a?(ConstructedTypePlugin)
-        res = parent_constructed_type(obj.parent)
-        return res || obj
-      end
-      return nil
-    end
-
     def do_write(io)
       if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
         io.writebytes("\x00" * bytes_to_align(self, io.offset))
@@ -579,36 +578,41 @@ module RubySMB::Dcerpc::Ndr
       # 1. if there is an array with conformant info in the structure, check if it is the last member
       #   --> if the structure contains a structure with an array, it has to be the last member too
       # 2. if ok, max_count is moved to the beginning
-      klass = self.class
-      klass = self.class.superclass if is_a?(PointerPlugin)
-      parent_obj = parent_constructed_type
+      klass = is_a?(PointerPlugin) ? self.class.superclass : self.class
+      parent_obj = nil
+      if parent&.is_a?(ConstructedTypePlugin)
+        parent_obj = parent.get_top_level_constructed_type
+      end
       if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
-        max_count = get_max_count
-        io.writebytes([max_count].pack('L')) if max_count
+        max_count = retrieve_max_count
+        io.writebytes([max_count].pack('L<')) if max_count
+      end
+
+      # Align the structure according to the alignment rules for the structure
+      if respond_to?(:referent_bytes_align)
+        io.writebytes("\x00" * referent_bytes_align(io.offset))
+      elsif has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
+        io.writebytes("\x00" * bytes_to_align(self, io.offset))
       end
 
       super
 
-      if is_top_level? && has_deferred_ptrs?
+      if has_deferred_ptrs?
         write_ptr(io)
       end
     end
 
     def do_read(io)
-      klass = self.class
+      klass = is_a?(PointerPlugin) ? self.class.superclass : self.class
       parent_obj = nil
-      klass = self.class.superclass if is_a?(PointerPlugin)
-      parent_obj = parent_constructed_type
+      if parent&.is_a?(ConstructedTypePlugin)
+        parent_obj = parent.get_top_level_constructed_type
+      end
       if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
-        # max_count needs to be aligned according to the alignment rules for
-        # primitive data types, which is 4 bytes for an uint32
-        # TODO: check if it is needed, since it should have been aligned already:
-        align = (4 - (io.offset % 4)) % 4
-        io.seekbytes(align)
-        set_max_count(io.readbytes(4).unpack('L').first)
+        set_max_count(io.readbytes(4).unpack('L<').first)
       end
 
-      # Then, align the structure according to the alignment rules for the structure
+      # Align the structure according to the alignment rules for the structure
       if respond_to?(:referent_bytes_align)
         io.seekbytes(referent_bytes_align(io.offset))
       elsif has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
@@ -617,16 +621,17 @@ module RubySMB::Dcerpc::Ndr
 
       super
 
-      if is_top_level? && has_deferred_ptrs?
+      if has_deferred_ptrs?
         read_ptr(io)
       end
     end
 
-    def get_max_count
+    def retrieve_max_count
       obj = self[field_names.last]
       return obj.length if obj.is_a?(ConfPlugin)
+      return obj.get_max_count(obj) if obj.is_a?(ConfStringPlugin)
       if obj.is_a?(NdrStruct)
-        return obj.get_max_count
+        return obj.retrieve_max_count
       end
     end
 
@@ -637,7 +642,7 @@ module RubySMB::Dcerpc::Ndr
   end
 
   class NdrStruct < BinData::Record
-    # Caller must specify #byte_align according to the type of the largest element in the structure.
+    # Caller must specify :byte_align according to the type of the largest element in the structure.
     # See https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_02
     #
     # "The alignment of a structure in the octet stream is the largest of the
@@ -660,10 +665,12 @@ module RubySMB::Dcerpc::Ndr
       @has_conformant_array = true if obj_class < NdrStruct && obj_class.has_conformant_array
       if obj_class.is_a?(ConfClassPlugin) && !obj_class.is_a?(PointerClassPlugin)
         @has_conformant_array = true
-        # Set array byte_align to the element byte_align value
-        element_type = obj_proto.instance_variable_get(:@obj_params)[:type]
-        element_byte_align = element_type.instance_variable_get(:@obj_params)[:byte_align]
-        obj_proto.instance_variable_get(:@obj_params)[:byte_align] = element_byte_align
+        if obj_class < BinData::Array
+          # Set array :byte_align to the element :byte_align value
+          element_type = obj_proto.instance_variable_get(:@obj_params)[:type]
+          element_byte_align = element_type.instance_variable_get(:@obj_params)[:byte_align]
+          obj_proto.instance_variable_get(:@obj_params)[:byte_align] = element_byte_align
+        end
       end
     end
 
@@ -732,24 +739,36 @@ module RubySMB::Dcerpc::Ndr
 
     def initialize_instance
       super
+      @standalone_ptr = false
     end
 
     def snapshot
-      #update_ref_ids
       super
     end
 
     def do_write(io, is_deferred: false)
+      # If for whatever reasons, the #pos value has been modified, reset it to
+      # make sure the pointer ref_id will start from INITIAL_REF_ID
       self.class.reset_pos if is_top_level_ptr
       if is_deferred
         super(io, is_deferred: is_deferred)
       else
         super(io)
       end
+      # Since #pos has been incremented for each embedded pointer, let's reset
+      # it to go back to its initial state
+      self.class.reset_pos if is_top_level_ptr
     end
 
     def do_num_bytes
       super
+    end
+
+    def to_binary_s
+      @standalone_ptr = true
+      res = super
+      @standalone_ptr = false
+      res
     end
 
     def set_top_level_ptr
@@ -773,16 +792,12 @@ module RubySMB::Dcerpc::Ndr
     def initialize_instance
       if @ref_id.nil?
         if eval_parameter(:initial_value)
-          instantiate_referent 
+          instantiate_referent
         else
           @ref_id = 0
         end
       end
       extend_top_level_class
-      # TODO: validate ref_to parameter, if any:
-      #  - should point to an existing pointer in the main structure
-      #  - cannot be positioned before the pointer it is refering to
-      #  - should be the same type than the referent pointer
       super
     end
 
@@ -802,10 +817,8 @@ module RubySMB::Dcerpc::Ndr
 
     def snapshot
       if is_alias?
-        ref_field = fetch_alias_referent
-        raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
-        ref_field
-      elsif @ref_id == 0 && !eval_parameter(:initial_value)
+        fetch_alias_referent
+      elsif is_null_ptr? && !eval_parameter(:initial_value)
         :null
       else
         super
@@ -828,44 +841,41 @@ module RubySMB::Dcerpc::Ndr
           end
           @ref_id = ref_field.ref_id
         end
-      elsif @ref_id != 0 || (@ref_id == 0 && eval_parameter(:initial_value))
+      elsif @ref_id != 0 || (is_null_ptr? && eval_parameter(:initial_value))
         @ref_id = INITIAL_REF_ID + (self.class.pos * 4)
-        self.class.increment_pos
+        self.class.increment_pos unless @standalone_ptr
       end
-      io.writebytes([@ref_id].pack('L'))
+      io.writebytes([@ref_id].pack('L<'))
     end
 
     def do_write(io, is_deferred: false)
       if is_deferred
-        io.writebytes("\x00" * referent_bytes_align(io.offset))
+        if is_a?(NdrStruct) && self.class.superclass.has_conformant_array
+          # align :max_count since it will be placed in front of the structure.
+          # The structure itself will be properly aligned later.
+          align = (4 - (io.offset % 4)) % 4
+          io.writebytes("\x00" * align)
+        else
+          io.writebytes("\x00" * referent_bytes_align(io.offset))
+        end
       else
         write_ref_id(io)
-        parent_obj = parent_constructed_type
-        if parent_obj && @ref_id != 0
+        parent_obj = nil
+        if parent&.is_a?(ConstructedTypePlugin)
+          parent_obj = parent.get_top_level_constructed_type
+        end
+        if parent_obj && @ref_id != 0 && !@standalone_ptr
           parent_obj.defer_ptr(self)
           return
         end
       end
-      super(io) unless (@ref_id == 0 && !eval_parameter(:initial_value)) || is_alias?
-    end
-
-    def parent_constructed_type(obj = self.parent)
-      return nil if obj.nil?
-      if obj.is_a?(PointerPlugin)
-        return obj if obj.is_a?(ConstructedTypePlugin)
-        return nil
-      end
-      if obj.is_a?(ConstructedTypePlugin)
-        res = parent_constructed_type(obj.parent)
-        return res || obj
-      end
-      return nil
+      super(io) unless (is_null_ptr? && !eval_parameter(:initial_value)) || is_alias?
     end
 
     def do_read(io, is_deferred: false)
       if is_deferred
         if is_a?(NdrStruct) && self.class.superclass.has_conformant_array
-          # align max_count since it will be placed in front of the structure.
+          # align :max_count since it will be placed in front of the structure.
           # The structure itself will be properly aligned later.
           align = (4 - (io.offset % 4)) % 4
           io.seekbytes(align)
@@ -873,14 +883,17 @@ module RubySMB::Dcerpc::Ndr
           io.seekbytes(referent_bytes_align(io.offset))
         end
       else
-        @ref_id = io.readbytes(4).unpack('L').first
-        parent_obj = parent_constructed_type
+        @ref_id = io.readbytes(4).unpack('L<').first
+        parent_obj = nil
+        if parent&.is_a?(ConstructedTypePlugin)
+          parent_obj = parent.get_top_level_constructed_type
+        end
         if parent_obj && @ref_id != 0
           parent_obj.defer_ptr(self)
           return
         end
       end
-      super(io) unless @ref_id == 0 || is_alias?
+      super(io) unless is_null_ptr? || is_alias?
     end
 
     def assign(val)
@@ -891,7 +904,7 @@ module RubySMB::Dcerpc::Ndr
         raise ArgumentError, "Referent of alias pointer does not exist: #{get_parameter(:ref_to)}" unless ref_field
         ref_field.assign(val)
       else
-        instantiate_referent if @ref_id == 0
+        instantiate_referent if is_null_ptr?
         super
       end
     end
@@ -926,7 +939,7 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_num_bytes
-      return 4 if @ref_id == 0 || is_alias?
+      return 4 if is_null_ptr? || is_alias?
       4 + super
     end
 
@@ -940,7 +953,10 @@ module RubySMB::Dcerpc::Ndr
 
     def insert(index, *objs)
       obj = super
-      if is_a?(BinData::Array) && !empty?
+      # If we just pushed a new element and it was a null pointer (ref_id==0),
+      # we will initialize the ref_id to make sure it is not considered a null
+      # pointer anymore
+      if is_null_ptr? && is_a?(BinData::Array) && !empty?
         instantiate_referent
       end
       obj
@@ -978,7 +994,7 @@ module RubySMB::Dcerpc::Ndr
   {NdrUint8: 1, NdrUint16: 2, NdrUint32: 4, NdrUint64: 8}.each do |klass, align|
     new_klass_name = "#{klass.to_s}Ptr"
     unless self.const_defined?(new_klass_name)
-      new_klass = Class.new(RubySMB::Dcerpc::Ndr.const_get(klass)) do
+      new_klass = Class.new(const_get(klass)) do
         extend PointerClassPlugin
       end
       self.const_set(new_klass_name, new_klass)

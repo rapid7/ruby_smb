@@ -295,23 +295,19 @@ RSpec.shared_examples "a BinData::Array" do
       end
     end
 
-    context 'when reading a value at index greater than the current number of elements' do
-      let(:new_element) {BinData::Uint16le.new(1)}
-      before :example do
-        new_element.assign(subject[4])
-      end
+    context 'when getting a value at index greater than the current number of elements' do
       it 'adds elements until it reaches the new index' do
+        subject[4]
         expect(subject.size).to eq(5)
       end
-      it 'adds elements a default element' do
-        expect(new_element).to eq(0)
-      end
       it 'sets the new elements to the element type default value' do
+        new_element = subject[4]
         expect(subject[0]).to eq(5)
         expect(subject[1]).to eq(7)
         expect(subject[2]).to eq(0)
         expect(subject[3]).to eq(0)
-        expect(subject[4]).to eq(new_element)
+        expect(subject[4]).to eq(0)
+        expect(new_element).to eq(0)
       end
     end
 
@@ -334,15 +330,17 @@ end
 
 RSpec.shared_examples "a NDR Array" do |counter|
   counter.each do |name, position|
-    it "has #{name} set to 0 (uint32) by default" do
+    it "has #{name} set to 0 (little endian uint32) by default" do
       expect(subject.to_binary_s[position*4, 4]).to eq("\x00\x00\x00\x00")
     end
   end
   it 'reads itself' do
-    subject << 5
-    subject << 7
-    subject << 45
-    expect(subject.read(subject.to_binary_s)).to eq([5, 7, 45])
+    values = 3.times.map do
+      value = rand(0xFF)
+      subject << value
+      value
+    end
+    expect(subject.read(subject.to_binary_s)).to eq(values)
   end
   it 'has :byte_align parameter set to the expected value' do
     expect(subject.eval_parameter(:byte_align)).to eq(4)
@@ -476,7 +474,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
     end
   end
 
-  context 'when outputing a binary stream' do
+  context 'when getting a binary stream' do
     before :example do
       subject.assign(values)
     end
@@ -535,6 +533,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
         ndr_uint32 :a
       end
     end
+
     context 'directly as an array' do
       before :example do
         embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: :ndr_uint16)
@@ -554,22 +553,18 @@ RSpec.shared_examples "a NDR Array" do |counter|
           expect(test_instance.to_binary_s).to eq(binary_str)
         end
       end
+
       context 'when reading a stream of bytes' do
         it 'reads #max_count from any conformant array at the beginning of the structure' do
           expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary: values })
         end
       end
     end
+
     context 'as a pointer to an array' do
       before :example do
         array_ptr = Class.new(described_class) do
-          default_parameters byte_align: 4
-          arg_processor :ndr_pointer
           extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
-          def initialize_shared_instance
-            super
-            extend RubySMB::Dcerpc::Ndr::PointerPlugin
-          end
         end
         BinData::RegisteredClasses.register('test_array_ptr', array_ptr)
         embedded_struct.send(:test_array_ptr, :ary_ptr, type: :ndr_uint16)
@@ -609,7 +604,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixArray do
 
   subject { described_class.new(type: :ndr_uint16, byte_align: 2, initial_length: 4) }
 
-  it 'is an array of initial_length default elements by default' do
+  it 'is an array of initial_length default elements' do
     expect(subject).to eq([0, 0, 0, 0])
   end
 
@@ -1212,6 +1207,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
           end
         }.to raise_error(ArgumentError)
       end
+      it 'does not raise error if the array is not the last member of a non NdrStruct' do
+        expect {
+          Class.new(BinData::Record) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_conf_array :b, type: :ndr_uint16
+            ndr_uint32     :a
+          end
+        }.to_not raise_error
+      end
     end
 
     context 'with a conformant varying array' do
@@ -1234,6 +1240,31 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
 
             ndr_conf_var_array :b, type: :ndr_uint16
             ndr_uint32         :a
+          end
+        }.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with a conformant varying string' do
+      it 'does not raise error if the string is the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_uint32          :a
+            ndr_conf_var_string :b
+          end
+        }.to_not raise_error
+      end
+      it 'raises error if the string is not the last member' do
+        expect {
+          Class.new(described_class) do
+            default_parameters byte_align: 4
+            endian :little
+
+            ndr_conf_var_string :b
+            ndr_uint32          :a
           end
         }.to raise_error(ArgumentError)
       end
@@ -1321,18 +1352,60 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 1, b: 2, c: 3, d: "A", e: true)
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 1, b: 2, c: 3, d: "A", e: true)
+        expect(subject).to eq(a: 1, b: 2, c: 3, d: "A", e: true)
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x01"\
-          "\x00"\
-          "\x02\x00"\
-          "\x03\x00\x00\x00"\
-          "\x41"\
-          "\x00\x00\x00"\
-          "\x01\x00\x00\x00".b
-        )
+        binary =  "\x01"             # a
+        binary << "\x00"             # pad
+        binary << "\x02\x00"         # b.ref_id
+        binary << "\x03\x00\x00\x00" # c
+        binary << "\x41"             # d
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x01\x00\x00\x00" # e
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with pointers' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8      :a
+        ndr_uint16_ptr :b
+        ndr_uint32     :c
+        ndr_char_ptr   :d
+        ndr_boolean    :e
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: :null, c: 0, d: :null, e: false)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 444, c: 4444, d: "T", e: true}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 2, c: 3, d: "A", e: true)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 2, c: 3, d: "A", e: true)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x01"             # a
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x00\x00\x02\x00" # b.ref_id
+        binary << "\x03\x00\x00\x00" # c
+        binary << "\x04\x00\x02\x00" # d.ref_id
+        binary << "\x01\x00\x00\x00" # e
+        binary << "\x02\x00"         # deferred b
+        binary << "\x41"             # deferred d
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1362,16 +1435,56 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 4, b: [1,2,3], c: 5)
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        expect(subject).to eq(a: 4, b: [1,2,3], c: 5)
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x04\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x05\x00\x00\x00"
-        )
+        binary =  "\x04\x00\x00\x00" # a
+        binary << "\x01\x00\x00\x00" # b[0]
+        binary << "\x02\x00\x00\x00" # b[1]
+        binary << "\x03\x00\x00\x00" # b[2]
+        binary << "\x05\x00\x00\x00" # c
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with fixed arrays containing pointers' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint32    :a
+        ndr_fix_array :b, type: :ndr_uint32_ptr, initial_length: 3, byte_align: 4
+        ndr_uint32    :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: [:null, :null, :null], c: 0)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: [1,2,3], c: 4444}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 4, b: [1,2,3], c: 5)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 4, b: [1,2,3], c: 5)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x04\x00\x00\x00" # a
+        binary << "\x00\x00\x02\x00" # b[0].ref_id
+        binary << "\x04\x00\x02\x00" # b[1].ref_id
+        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x05\x00\x00\x00" # c
+        binary << "\x01\x00\x00\x00" # b[0]
+        binary << "\x02\x00\x00\x00" # b[1]
+        binary << "\x03\x00\x00\x00" # b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1401,18 +1514,60 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 4, b: [1,2,3], c: 5)
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 4, b: [1,2,3], c: 5)
+        expect(subject).to eq(a: 4, b: [1,2,3], c: 5)
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x04\x00\x00\x00"\
-          "\x00\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x05\x00\x00\x00"
-        )
+        binary =  "\x04\x00\x00\x00" # a
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x01\x00\x00\x00" # b[0]
+        binary << "\x02\x00\x00\x00" # b[1]
+        binary << "\x03\x00\x00\x00" # b[2]
+        binary << "\x05\x00\x00\x00" # c
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with varying arrays containing pointers' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint32    :a
+        ndr_var_array :b, type: :ndr_uint32_ptr
+        ndr_uint32    :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: [], c: 0)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: [1,2,3], c: 4444}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 4, b: [1,2,3], c: 5)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 4, b: [1,2,3], c: 5)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x04\x00\x00\x00" # a
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x00\x00\x02\x00" # b[0].ref_id
+        binary << "\x04\x00\x02\x00" # b[1].ref_id
+        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x05\x00\x00\x00" # c
+        binary << "\x01\x00\x00\x00" # deferred b[0]
+        binary << "\x02\x00\x00\x00" # deferred b[1]
+        binary << "\x03\x00\x00\x00" # deferred b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1442,17 +1597,58 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 4, b: 5, c: [1,2,3])
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        expect(subject).to eq(a: 4, b: 5, c: [1,2,3])
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x03\x00\x00\x00"\
-          "\x04\x00\x00\x00"\
-          "\x05\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"
-        )
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x04\x00\x00\x00" # a
+        binary << "\x05\x00\x00\x00" # b
+        binary << "\x01\x00\x00\x00" # c[0]
+        binary << "\x02\x00\x00\x00" # c[1]
+        binary << "\x03\x00\x00\x00" # c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with conformant arrays containing pointers' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint32     :a
+        ndr_uint32     :b
+        ndr_conf_array :c, type: :ndr_uint32_ptr
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: [])
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: [1,2,3]}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 4, b: 5, c: [1,2,3])
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 4, b: 5, c: [1,2,3])
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x04\x00\x00\x00" # a
+        binary << "\x05\x00\x00\x00" # b
+        binary << "\x00\x00\x02\x00" # c[0].ref_id
+        binary << "\x04\x00\x02\x00" # c[1].ref_id
+        binary << "\x08\x00\x02\x00" # c[2].ref_id
+        binary << "\x01\x00\x00\x00" # c[0]
+        binary << "\x02\x00\x00\x00" # c[1]
+        binary << "\x03\x00\x00\x00" # c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1482,24 +1678,67 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 4, b: 5, c: [1,2,3])
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        expect(subject).to eq(a: 4, b: 5, c: [1,2,3])
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x03\x00\x00\x00"\
-          "\x04\x00\x00\x00"\
-          "\x05\x00\x00\x00"\
-          "\x00\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"
-        )
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x04\x00\x00\x00" # a
+        binary << "\x05\x00\x00\x00" # b
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x01\x00\x00\x00" # c[0]
+        binary << "\x02\x00\x00\x00" # c[1]
+        binary << "\x03\x00\x00\x00" # c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
 
-  context 'with an embedded structure containing a conformant arrays' do
+  context 'with a conformant varying array containing pointers' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint32         :a
+        ndr_uint32         :b
+        ndr_conf_var_array :c, type: :ndr_uint32_ptr
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: [])
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: [1,2,3]}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 4, b: 5, c: [1,2,3])
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 4, b: 5, c: [1,2,3])
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x04\x00\x00\x00" # a
+        binary << "\x05\x00\x00\x00" # c
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x00\x00\x02\x00" # b[0].ref_id
+        binary << "\x04\x00\x02\x00" # b[1].ref_id
+        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x01\x00\x00\x00" # deferred b[0]
+        binary << "\x02\x00\x00\x00" # deferred b[1]
+        binary << "\x03\x00\x00\x00" # deferred b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a fixed array' do
     after :example do
       BinData::RegisteredClasses.unregister('test_struct')
     end
@@ -1509,48 +1748,446 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         default_parameters byte_align: 4
         endian :little
 
-        ndr_uint32         :a
-        ndr_conf_var_array :b, type: :ndr_uint32
+        ndr_uint16    :a
+        ndr_fix_array :b, type: :ndr_uint32, initial_length: 3, byte_align: 4
+        ndr_uint16    :c
       end
       BinData::RegisteredClasses.register('test_struct', struct_with_array)
       Class.new(described_class) do
         default_parameters byte_align: 4
         endian  :little
 
-        ndr_uint32  :a
-        ndr_uint32  :b
+        ndr_uint16  :a
+        ndr_uint16  :b
         test_struct :c
       end
     end
 
     it 'initializes the members to their default value' do
-      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: []})
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: [0, 0 ,0], c: 0})
     end
     it 'reads itself' do
-      values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3, 4]}}
+      values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3], c: 77}}
       struct_instance = struct.new(values)
       expect(struct.read(struct_instance.to_binary_s)).to eq(values)
     end
     context 'with values' do
       subject do
-        struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x04\x00\x00\x00"\
-          "\x05\x00\x00\x00"\
-          "\x06\x00\x00\x00"\
-          "\x07\x00\x00\x00"\
-          "\x00\x00\x00\x00"\
-          "\x04\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x04\x00\x00\x00"
-        )
+        binary =  "\x05\x00" # a
+        binary << "\x06\x00" # b
+        binary << "\x07\x00" # c.a
+        binary << "\x00\x00" # pad
+        binary << "\x01\x00\x00\x00" # c.b[0]
+        binary << "\x02\x00\x00\x00" # c.b[1]
+        binary << "\x03\x00\x00\x00" # c.b[2]
+        binary << "\x08\x00" # c.c
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a fixed array of pointers' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16    :a
+        ndr_fix_array :b, type: :ndr_uint32_ptr, initial_length: 3, byte_align: 4
+        ndr_uint16    :c
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: [:null, :null ,:null], c: 0})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3], c: 77}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x00\x00"         # pad
+        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
+        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
+        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x08\x00"         # c.c
+        binary << "\x00\x00"         # pad
+        binary << "\x01\x00\x00\x00" # deferred c.b[0]
+        binary << "\x02\x00\x00\x00" # deferred c.b[1]
+        binary << "\x03\x00\x00\x00" # deferred c.b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a varying array' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16    :a
+        ndr_var_array :b, type: :ndr_uint32
+        ndr_uint16    :c
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: [], c: 0})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3], c: 77}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x00\x00"         # pad
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x01\x00\x00\x00" # c.b[0]
+        binary << "\x02\x00\x00\x00" # c.b[1]
+        binary << "\x03\x00\x00\x00" # c.b[2]
+        binary << "\x08\x00"         # c.c
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a varying array of pointers' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16    :a
+        ndr_var_array :b, type: :ndr_uint32_ptr
+        ndr_uint16    :c
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: [], c: 0})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: [1, 2, 3], c: 77}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3], c: 8})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x00\x00"         # pad
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
+        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
+        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x08\x00"         # c.c
+        binary << "\x00\x00"         # pad
+        binary << "\x01\x00\x00\x00" # deferred c.b[0]
+        binary << "\x02\x00\x00\x00" # deferred c.b[1]
+        binary << "\x03\x00\x00\x00" # deferred c.b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a conformant array' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16     :a
+        ndr_uint16     :b
+        ndr_conf_array :c, type: :ndr_uint32
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: 0, c: []})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: 77, c: [1, 2, 3]}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: 8, c: [1, 2, 3]})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b:8, c: [1, 2, 3]})
+      end
+      it 'outputs the expected binary representation' do
+        binary = "\x03\x00\x00\x00"  # array max_count
+        binary << "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x08\x00"         # c.b
+        binary << "\x01\x00\x00\x00" # c.c[0]
+        binary << "\x02\x00\x00\x00" # c.c[1]
+        binary << "\x03\x00\x00\x00" # c.c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a conformant array of pointers' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16     :a
+        ndr_uint16     :b
+        ndr_conf_array :c, type: :ndr_uint32_ptr
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: 0, c: []})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: 77, c: [1, 2, 3]}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: 8, c: [1, 2, 3]})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b:8, c: [1, 2, 3]})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x08\x00"         # c.b
+        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
+        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
+        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # deferred c.b[0]
+        binary << "\x02\x00\x00\x00" # deferred c.b[1]
+        binary << "\x03\x00\x00\x00" # deferred c.b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a conformant varying array' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16         :a
+        ndr_uint16         :b
+        ndr_conf_var_array :c, type: :ndr_uint32
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: 0, c: []})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: 77, c: [1, 2, 3]}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: 8, c: [1, 2, 3]})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b:8, c: [1, 2, 3]})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x08\x00"         # c.b
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x01\x00\x00\x00" # c.c[0]
+        binary << "\x02\x00\x00\x00" # c.c[1]
+        binary << "\x03\x00\x00\x00" # c.c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with an embedded structure containing a conformant varying array of pointers' do
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    let(:struct) do
+      struct_with_array = Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16         :a
+        ndr_uint16         :b
+        ndr_conf_var_array :c, type: :ndr_uint32_ptr
+      end
+      BinData::RegisteredClasses.register('test_struct', struct_with_array)
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint16  :a
+        ndr_uint16  :b
+        test_struct :c
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: {a: 0, b: 0, c: []})
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: {a: 5555, b: 77, c: [1, 2, 3]}}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 5, b: 6, c: {a: 7, b: 8, c: [1, 2, 3]})
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b:8, c: [1, 2, 3]})
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x03\x00\x00\x00" # array max_count
+        binary << "\x05\x00"         # a
+        binary << "\x06\x00"         # b
+        binary << "\x07\x00"         # c.a
+        binary << "\x08\x00"         # c.b
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x03\x00\x00\x00" # array actual_count
+        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
+        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
+        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # deferred c.b[0]
+        binary << "\x02\x00\x00\x00" # deferred c.b[1]
+        binary << "\x03\x00\x00\x00" # deferred c.b[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1558,13 +2195,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
   context 'with a pointer to a conformant arrays' do
     let(:struct) do
       struct_ptr = Class.new(RubySMB::Dcerpc::Ndr::NdrConfArray) do
-        default_parameters(type: :ndr_uint32, :byte_align => 4)
-        arg_processor :ndr_pointer
+        default_parameters(type: :ndr_uint32)
         extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
-        def initialize_shared_instance
-          super
-          extend RubySMB::Dcerpc::Ndr::PointerPlugin
-        end
       end
       BinData::RegisteredClasses.register('test_conf_array_ptr', struct_ptr)
       Class.new(described_class) do
@@ -1590,18 +2222,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 4, b: 5, c: [1,2,3])
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 4, b: 5, c: [1,2,3])
+        expect(subject).to eq(a: 4, b: 5, c: [1,2,3])
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x04\x00\x00\x00"\
-          "\x05\x00\x00\x00"\
-          "\x00\x00\x02\x00"\
-          "\x03\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"
-        )
+        binary =  "\x04\x00\x00\x00" # a
+        binary << "\x05\x00\x00\x00" # b
+        binary << "\x00\x00\x02\x00" # c.ref_id
+        binary << "\x03\x00\x00\x00" # array max_count
+        binary << "\x01\x00\x00\x00" # c[0]
+        binary << "\x02\x00\x00\x00" # c[1]
+        binary << "\x03\x00\x00\x00" # c[2]
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1620,13 +2251,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         ndr_conf_var_array :b, type: :ndr_uint32
       end
       struct_ptr = Class.new(struct_with_array) do
-        default_parameters byte_align: 4
-        arg_processor :ndr_pointer
         extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
-        def initialize_shared_instance
-          super
-          extend RubySMB::Dcerpc::Ndr::PointerPlugin
-        end
       end
       BinData::RegisteredClasses.register('test_struct_ptr', struct_ptr)
       Class.new(BinData::Record) do
@@ -1652,22 +2277,375 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         struct.new(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
       end
       it 'returns the expected member values' do
-        expect(subject). to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
+        expect(subject).to eq(a: 5, b: 6, c: {a: 7, b: [1, 2, 3, 4]})
       end
       it 'outputs the expected binary representation' do
-        expect(subject.to_binary_s). to eq(
-          "\x05\x00\x00\x00"\
-          "\x06\x00\x00\x00"\
-          "\x00\x00\x02\x00"\
-          "\x04\x00\x00\x00"\
-          "\x07\x00\x00\x00"\
-          "\x00\x00\x00\x00"\
-          "\x04\x00\x00\x00"\
-          "\x01\x00\x00\x00"\
-          "\x02\x00\x00\x00"\
-          "\x03\x00\x00\x00"\
-          "\x04\x00\x00\x00"
-        )
+        binary =  "\x05\x00\x00\x00" # a
+        binary << "\x06\x00\x00\x00" # b
+        binary << "\x00\x00\x02\x00" # c.ref_id
+        binary << "\x04\x00\x00\x00" # array max_count
+        binary << "\x07\x00\x00\x00" # c.a
+        binary << "\x00\x00\x00\x00" # array offset
+        binary << "\x04\x00\x00\x00" # array actual_count
+        binary << "\x01\x00\x00\x00" # c.b[0]
+        binary << "\x02\x00\x00\x00" # c.b[1]
+        binary << "\x03\x00\x00\x00" # c.b[2]
+        binary << "\x04\x00\x00\x00" # c.b[3]
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with varying strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8      :a
+        ndr_var_string :b
+        ndr_uint32     :c
+        ndr_var_string :d
+        ndr_boolean    :e
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: '', c: 0, d: '', e: false)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 'Test1', c: 4444, d: 'Test22', e: true}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x01"             # a
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x05\x00\x00\x00" # b actual_count
+        binary << 'Test1'            # b
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x03\x00\x00\x00" # c
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x06\x00\x00\x00" # b actual_count
+        binary << 'Test22'           # d
+        binary << "\x00\x00"         # pad
+        binary << "\x01\x00\x00\x00" # e
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with varying null terminated strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8       :a
+        ndr_var_stringz :b
+        ndr_uint32      :c
+        ndr_var_stringz :d
+        ndr_boolean     :e
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: '', c: 0, d: '', e: false)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 'Test1', c: 4444, d: 'Test22', e: true}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x01"             # a
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x06\x00\x00\x00" # b actual_count
+        binary << "Test1\x00"        # b
+        binary << "\x00\x00"         # pad
+        binary << "\x03\x00\x00\x00" # c
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x07\x00\x00\x00" # b actual_count
+        binary << "Test22\x00"       # d
+        binary << "\x00"             # pad
+        binary << "\x01\x00\x00\x00" # e
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with varying wide strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8           :a
+        ndr_var_wide_string :b
+        ndr_uint32          :c
+        ndr_var_wide_string :d
+        ndr_boolean         :e
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: '', c: 0, d: '', e: false)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 'Test1'.encode('utf-16le'), c: 4444, d: 'Test22'.encode('utf-16le'), e: true}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 'Test1'.encode('utf-16le'), c: 3, d: 'Test22'.encode('utf-16le'), e: true)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x01"                        # a
+        binary << "\x00\x00\x00"                # pad
+        binary << "\x00\x00\x00\x00"            # b offset
+        binary << "\x05\x00\x00\x00"            # b actual_count
+        binary << 'Test1'.encode('utf-16le').b  # b
+        binary << "\x00\x00"                    # pad
+        binary << "\x03\x00\x00\x00"            # c
+        binary << "\x00\x00\x00\x00"            # b offset
+        binary << "\x06\x00\x00\x00"            # b actual_count
+        binary << 'Test22'.encode('utf-16le').b # d
+        binary << "\x01\x00\x00\x00"            # e
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with varying null terminated wide strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8            :a
+        ndr_var_wide_stringz :b
+        ndr_uint32           :c
+        ndr_var_wide_stringz :d
+        ndr_boolean          :e
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: '', c: 0, d: '', e: false)
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 'Test1'.encode('utf-16le'), c: 4444, d: 'Test22'.encode('utf-16le'), e: true}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 'Test1', c: 3, d: 'Test22', e: true)
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 'Test1'.encode('utf-16le'), c: 3, d: 'Test22'.encode('utf-16le'), e: true)
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x01"                            # a
+        binary << "\x00\x00\x00"                    # pad
+        binary << "\x00\x00\x00\x00"                # b offset
+        binary << "\x06\x00\x00\x00"                # b actual_count
+        binary << "Test1\x00".encode('utf-16le').b  # b
+        binary << "\x03\x00\x00\x00"                # c
+        binary << "\x00\x00\x00\x00"                # b offset
+        binary << "\x07\x00\x00\x00"                # b actual_count
+        binary << "Test22\x00".encode('utf-16le').b # d
+        binary << "\x00\x00"                        # pad
+        binary << "\x01\x00\x00\x00"                # e
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with conformant varying strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8           :a
+        ndr_uint32          :b
+        ndr_boolean         :c
+        ndr_conf_var_string :d
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: false, d: '')
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: true, d: 'Test22'}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x06\x00\x00\x00" # b max_count
+        binary << "\x01"             # a
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x03\x00\x00\x00" # b
+        binary << "\x01\x00\x00\x00" # c
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x06\x00\x00\x00" # b actual_count
+        binary << 'Test22'           # d
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with conformant varying null-terminated strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8            :a
+        ndr_uint32           :b
+        ndr_boolean          :c
+        ndr_conf_var_stringz :d
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: false, d: '')
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: true, d: 'Test22'}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x07\x00\x00\x00" # b max_count
+        binary << "\x01"             # a
+        binary << "\x00\x00\x00"     # pad
+        binary << "\x03\x00\x00\x00" # b
+        binary << "\x01\x00\x00\x00" # c
+        binary << "\x00\x00\x00\x00" # b offset
+        binary << "\x07\x00\x00\x00" # b actual_count
+        binary << "Test22\x00"       # d
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with conformant varying wide strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8                :a
+        ndr_uint32               :b
+        ndr_boolean              :c
+        ndr_conf_var_wide_string :d
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: false, d: '')
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: true, d: 'Test22'.encode('utf-16le')}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 3, c: true, d: 'Test22'.encode('utf-16le'))
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x06\x00\x00\x00"            # b max_count
+        binary << "\x01"                        # a
+        binary << "\x00\x00\x00"                # pad
+        binary << "\x03\x00\x00\x00"            # b
+        binary << "\x01\x00\x00\x00"            # c
+        binary << "\x00\x00\x00\x00"            # b offset
+        binary << "\x06\x00\x00\x00"            # b actual_count
+        binary << 'Test22'.encode('utf-16le').b # d
+        expect(subject.to_binary_s).to eq(binary.b)
+      end
+    end
+  end
+
+  context 'with conformant varying null-terminated wide strings' do
+    let(:struct) do
+      Class.new(described_class) do
+        default_parameters byte_align: 4
+        endian  :little
+
+        ndr_uint8                 :a
+        ndr_uint32                :b
+        ndr_boolean               :c
+        ndr_conf_var_wide_stringz :d
+      end
+    end
+
+    it 'initializes the members to their default value' do
+      expect(struct.new).to eq(a: 0, b: 0, c: false, d: '')
+    end
+    it 'reads itself' do
+      values = {a: 44, b: 4444, c: true, d: 'Test22'.encode('utf-16le')}
+      struct_instance = struct.new(values)
+      expect(struct.read(struct_instance.to_binary_s)).to eq(values)
+    end
+    context 'with values' do
+      subject do
+        struct.new(a: 1, b: 3, c: true, d: 'Test22')
+      end
+      it 'returns the expected member values' do
+        expect(subject).to eq(a: 1, b: 3, c: true, d: 'Test22'.encode('utf-16le'))
+      end
+      it 'outputs the expected binary representation' do
+        binary =  "\x07\x00\x00\x00"                # b max_count
+        binary << "\x01"                            # a
+        binary << "\x00\x00\x00"                    # pad
+        binary << "\x03\x00\x00\x00"                # b
+        binary << "\x01\x00\x00\x00"                # c
+        binary << "\x00\x00\x00\x00"                # b offset
+        binary << "\x07\x00\x00\x00"                # b actual_count
+        binary << "Test22\x00".encode('utf-16le').b # d
+        expect(subject.to_binary_s).to eq(binary.b)
       end
     end
   end
@@ -1750,7 +2728,7 @@ end
       it 'sets #ref_id to 0 by default' do
         expect(subject.ref_id).to eq(0)
       end
-      it 'does not reset #ref_id to 0 when it has already be set to a value' do
+      it 'does not reset #ref_id to 0 when it has already been set to a value' do
         subject.ref_id = 5
         subject.initialize_instance
         expect(subject.ref_id).to eq(5)
@@ -1762,23 +2740,43 @@ end
     end
 
     describe '#extend_top_level_class' do
-      it 'does not extend to Top Level class if there is no parent in the structure' do
-        subject.extend_top_level_class
-        expect(described_class).not_to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
+      it 'extends to TopLevelPlugin' do
+        expect(subject).to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
       end
-      it 'extends the top level structure to Top Level class' do
-        struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
-          default_parameters byte_align: 4
-          endian  :little
+      it 'sets the pointer to top level pointer' do
+        expect(subject.is_top_level_ptr).to be true
+      end
+      context 'when embedded in another structure' do
+        let(:struct_class) do
+          struct_class = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+            default_parameters byte_align: 4
+            endian  :little
+          end
+          struct_class.send(described_class.bindata_name.to_sym, :c)
+          struct_class
         end
-        struct_class.send(described_class.bindata_name.to_sym, :c)
-        BinData::RegisteredClasses.register('test_struct', struct_class)
-        test_class = Class.new(BinData::Record) do
-          endian  :little
-          ndr_uint32  :a
-          test_struct :b
+        let(:top_level_class) do
+          Class.new(BinData::Record) do
+            endian  :little
+            ndr_uint32  :a
+            test_struct :b
+          end
         end
-        expect(ref_to_instance.is_a?(RubySMB::Dcerpc::Ndr::TopLevelPlugin)).to eq(true)
+        before :example do
+          BinData::RegisteredClasses.register('test_struct', struct_class)
+        end
+
+        it 'extends the parents to TopLevelPlugin' do
+          struct = top_level_class.new(a: 2, b: {c: info[:data]})
+          expect(struct).to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
+          expect(struct.b).to be_a(RubySMB::Dcerpc::Ndr::TopLevelPlugin)
+        end
+        it 'only sets the top level structure as a top level pointer' do
+          struct = top_level_class.new(a: 2, b: {c: info[:data]})
+          expect(struct.is_top_level_ptr).to be true
+          expect(struct.b.is_top_level_ptr).to be false
+          expect(struct.b.c.is_top_level_ptr).to be false
+        end
       end
     end
 
@@ -1814,7 +2812,6 @@ end
         expect(ref_to_instance.c.to_binary_s).to eq(ref_id)
       end
       it 'outputs the initial referent ID and the referent representaiton if it is not embedded in another constructed structure' do
-        allow(subject).to receive(:parent_constructed_type).and_return(nil)
         expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
       end
       # BinData does not support initial_value parameter for arrays
@@ -1826,23 +2823,9 @@ end
       end
       context 'when embedded in another constructed structure'do
         let(:embedding_struct) do
-          subject.assign(info[:data])
-          subject2 = described_class.new(info[:data].dup)
-          RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, subject2], type: described_class)
+          RubySMB::Dcerpc::Ndr::NdrConfArray.new([info[:data], info[:data]], type: described_class)
         end
-        before :example do
-          allow(subject).to receive(:parent_constructed_type).and_return(embedding_struct)
-        end
-
-        it 'outputs the initial referent ID only' do
-          expect(subject.new(info[:data]).to_binary_s).to eq("#{ref_id}".b)
-        end
-        it 'defers the referent representation' do
-          test_instance = subject.new(info[:data])
-          test_instance.to_binary_s
-          expect(embedding_struct.instance_variable_get(:@deferred_ptrs)).to eq([test_instance])
-        end
-        it 'correctly defers the referent after the embedding structure in the stream' do
+        let(:output_str) do
           ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
           output_str = "#{[2].pack('L')}#{ref_id}#{ref_id2}".b
           align = (info[:size] - (output_str.size % info[:size])) % info[:size]
@@ -1851,7 +2834,23 @@ end
           align = (info[:size] - (output_str.size % info[:size])) % info[:size]
           output_str << "\x00".b * align
           output_str << info[:binary]
+        end
+
+        it 'does not change the embedded structure binary representation' do
+          expect(embedding_struct[0].to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+          expect(embedding_struct[1].to_binary_s).to eq("#{ref_id}#{info[:binary]}".b)
+        end
+        it 'returns the correct aligned binary stream' do
           expect(embedding_struct.to_binary_s).to eq(output_str)
+        end
+        context 'when calling #to_binary_s on embedded structures' do
+          # There was a bug where calling to_binary_s updated the ref_id
+          # persistently, which resulted in wrong output
+          it 'returns the correct aligned binary stream' do
+            embedding_struct[0].to_binary_s
+            embedding_struct[1].to_binary_s
+            expect(embedding_struct.to_binary_s).to eq(output_str)
+          end
         end
       end
     end
@@ -1877,7 +2876,6 @@ end
         expect(test_instance.c.ref_id).to eq(test_instance.b.ref_id)
       end
       it 'reads the initial referent ID and the referent representaiton if it is not embedded in another constructed structure' do
-        allow(subject).to receive(:parent_constructed_type).and_return(nil)
         expect(subject.read("#{ref_id}#{info[:binary]}".b)).to eq(info[:data])
         expect(subject.ref_id).to eq(RubySMB::Dcerpc::Ndr::INITIAL_REF_ID)
       end
@@ -1974,11 +2972,11 @@ end
 RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
   let(:ref_id) { RubySMB::Dcerpc::Ndr::INITIAL_REF_ID }
   let(:struct_with_ptr) do
-    Class.new(BinData::Record) do
+    Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
       default_parameters byte_align: 4
       endian :little
 
-      uint32         :b
+      ndr_uint32     :b
       ndr_char_ptr   :ptr2
       ndr_uint32_ptr :ptr3
     end
@@ -1988,8 +2986,8 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       default_parameters byte_align: 4
       endian              :little
 
-      ndr_uint32          :rand1
-      ndr_conf_var_string :rand2
+      ndr_uint32 :rand1
+      ndr_uint32 :rand2
     end
   end
 
@@ -2017,31 +3015,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
       "#{[ref_id + 4].pack('L')}"\
+      "#{[ref_id + 8].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
-      "#{[ref_id + 8].pack('L')}"\
       "#{[33].pack('L')}"\
       "#{[ref_id + 12].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
-    before :example do
-      allow(subject).to receive(:update_ref_ids).and_call_original
-    end
 
-    it 'Increments the reference IDs by 4 for each pointer when writing' do
+    it 'outputs the correct binary stream' do
       expect(subject.to_binary_s).to eq(binary)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when reading' do
-      expect(subject.read(binary)).to eq(snapshot)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
-      expect(subject.do_num_bytes).to eq(binary.size)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
     end
   end
 
@@ -2064,34 +3048,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
       "#{[ref_id + 4].pack('L')}"\
+      "#{[ref_id + 8].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
-      "#{[ref_id + 8].pack('L')}"\
       "#{[33].pack('L')}"\
       "#{[ref_id + 12].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
-    before :example do
-      allow(subject).to receive(:update_ref_ids).and_call_original
-    end
 
-    it 'Increments the reference IDs by 4 for each pointer when writing' do
+    it 'outputs the correct binary stream' do
       expect(subject.to_binary_s).to eq(binary)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when reading' do
-      # Add pointer values from :initial_value to snapshot
-      snapshot[:ptr1] = 'M'
-      snapshot[:ptr4] = 44
-      expect(subject.read(binary)).to eq(snapshot)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
-      expect(subject.do_num_bytes).to eq(binary.size)
-      expect(subject).to have_received(:update_ref_ids).exactly(8).times
     end
   end
 
@@ -2116,31 +3083,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
       "#{[ref_id + 4].pack('L')}"\
+      "#{[ref_id + 8].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
-      "#{[ref_id + 8].pack('L')}"\
       "#{[33].pack('L')}"\
       "#{[ref_id + 12].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
-    before :example do
-      allow(subject).to receive(:update_ref_ids).and_call_original
-    end
 
-    it 'Increments the reference IDs by 4 for each pointer when writing' do
+    it 'outputs the correct binary stream' do
       expect(subject.to_binary_s).to eq(binary)
-      expect(subject).to have_received(:update_ref_ids).exactly(9).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when reading' do
-      expect(subject.read(binary)).to eq(snapshot)
-      expect(subject).to have_received(:update_ref_ids).exactly(9).times
-    end
-
-    it 'Increments the reference IDs by 4 for each pointer when counting the total number of bytes' do
-      expect(subject.do_num_bytes).to eq(binary.size)
-      expect(subject).to have_received(:update_ref_ids).exactly(9).times
     end
   end
 
@@ -2158,61 +3111,37 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
     end
     let(:snapshot) do
       {
-        a: 55,
-        ptr1: 'M',
+        a: 0xF1,
+        ptr1: 'A',
         array1: [
-          { rand1: 2, rand2: 'Test1' },
-          { rand1: 6, rand2: 'Test2' }
+          { rand1: 0xF2, rand2: 0xF3 },
+          { rand1: 0xF4, rand2: 0xF5 }
         ],
-        d: { b: 66, ptr2: 'A', ptr3: 33 }
+        d: { b: 0xF6, ptr2: 'B', ptr3: 0xF7 }
       }
     end
     let(:binary) do
-      "#{[55].pack('L')}"\
-      "#{[ref_id].pack('L')}"\
-      "M"\
-      "\x00\x00\x00"\
-      "#{[2].pack('L')}"\
-      "#{[2].pack('L')}"\
-      "#{[5].pack('L')}"\
-      "#{[0].pack('L')}"\
-      "#{[5].pack('L')}"\
-      "Test1"\
-      "\x00\x00\x00"\
-      "#{[6].pack('L')}"\
-      "#{[5].pack('L')}"\
-      "#{[0].pack('L')}"\
-      "#{[5].pack('L')}"\
-      "Test2"\
-      "\x00\x00\x00"\
-      "#{[66].pack('L')}"\
-      "#{[ref_id + 4].pack('L')}"\
+      "#{[0xF1].pack('L<')}"\
+      "#{[ref_id].pack('L<')}"\
       "A"\
       "\x00\x00\x00"\
-      "#{[ref_id + 8].pack('L')}"\
-      "#{[33].pack('L')}"\
-      "#{[ref_id + 8].pack('L')}"
+      "#{[2].pack('L<')}"\
+      "#{[0xF2].pack('L<')}"\
+      "#{[0xF3].pack('L<')}"\
+      "#{[0xF4].pack('L<')}"\
+      "#{[0xF5].pack('L<')}"\
+      "#{[0xF6].pack('L<')}"\
+      "#{[ref_id + 4].pack('L<')}"\
+      "#{[ref_id + 8].pack('L<')}"\
+      "B"\
+      "\x00\x00\x00"\
+      "#{[0xF7].pack('L<')}"\
+      "#{[ref_id + 8].pack('L<')}"
     end
     subject { test_struct.new(snapshot) }
-    before :example do
-      allow(subject).to receive(:update_ref_ids).and_call_original
-    end
 
-    it 'Increments the reference IDs by 4 for each non-alias pointer when writing' do
+    it 'outputs the correct binary stream' do
       expect(subject.to_binary_s).to eq(binary)
-      expect(subject).to have_received(:update_ref_ids).exactly(15).times
-    end
-
-    it 'Increments the reference IDs by 4 for each non-alias pointer when reading' do
-      # Adding the alias pointer to the snapshot
-      snapshot[:ptr4] = snapshot[:d][:ptr3].dup
-      expect(subject.read(binary)).to eq(snapshot)
-      expect(subject).to have_received(:update_ref_ids).exactly(15).times
-    end
-
-    it 'Increments the reference IDs by 4 for each non-alias pointer when counting the total number of bytes' do
-      expect(subject.do_num_bytes).to eq(binary.size)
-      expect(subject).to have_received(:update_ref_ids).exactly(15).times
     end
 
     context 'when the alias pointer is positioned after the referent pointer' do
@@ -2229,8 +3158,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
         end
       end
 
-      it 'raises an exception' do
-        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
+      context 'with #snapshot' do
+        it 'raises an exception' do
+          expect { test_struct2.new(snapshot).snapshot }.to raise_error(ArgumentError)
+        end
+      end
+
+      context 'with #to_binary_s' do
+        it 'raises an exception' do
+          expect { test_struct2.new(snapshot).to_binary_s }.to raise_error(ArgumentError)
+        end
       end
     end
 
@@ -2248,7 +3185,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       end
 
       it 'raises an exception' do
-        expect { test_struct2.new(snapshot) }.to raise_error(ArgumentError)
+        expect { test_struct2.new(snapshot).snapshot }.to raise_error(ArgumentError)
       end
     end
   end
@@ -2602,7 +3539,7 @@ RSpec.describe 'Alignment' do
         field_value: { int_value1: 5, int_value2: 3 },
         field_binary: [5].pack('L') + "\x03"
       ) do
-        # #byte_align is set according to the type of the largest element in
+        # :byte_align is set according to the type of the largest element in
         # the structure (uint32):
         let(:params) { {byte_align: 4 } }
       end
