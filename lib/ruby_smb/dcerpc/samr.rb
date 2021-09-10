@@ -19,7 +19,7 @@ module RubySMB
 
       class SamprHandle < Ndr::NdrContextHandle; end
 
-      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/ru-ru/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
+      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
       class UserProperty < BinData::Record
         endian   :little
 
@@ -30,7 +30,7 @@ module RubySMB
         string   :property_value, read_length: :value_length
       end
 
-      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/ru-ru/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
+      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
       class UserProperties < BinData::Record
         endian :little
 

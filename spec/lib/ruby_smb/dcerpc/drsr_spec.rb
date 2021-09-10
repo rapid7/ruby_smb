@@ -1743,7 +1743,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
   end
 
   describe '#drs_bind' do
-    let(:method) { [:drs_bind] }
+    let(:args) { [:drs_bind] }
     let(:request_struct) { described_class::DrsBindRequest }
     let(:response_struct) { described_class::DrsBindResponse }
     let(:values) do
@@ -1765,7 +1765,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     end
 
     it 'sends the correct request packet with authentication parameters' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(drsr).to have_received(:dcerpc_request).with(
         request,
         auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -1773,25 +1773,25 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       )
     end
     it 'receives the expected response' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(response_struct).to have_received(:read).with(response.to_binary_s)
     end
     context 'with an invalid response' do
       it 'raise an InvalidPacket exception' do
         allow(response_struct).to receive(:read).and_raise(IOError)
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
     context 'when the response status is not STATUS_SUCCESS' do
       it 'raise an DrsrError exception' do
         response.error_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
       end
     end
     it 'returns the correct handle' do
       handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'}
       response.ph_drs = handle
-      expect(drsr.send(*method)).to eq(handle)
+      expect(drsr.send(*args)).to eq(handle)
     end
     context 'with a different epoch in the response' do
       before :example do
@@ -1823,7 +1823,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
           auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
         ).ordered
 
-        drsr.send(*method)
+        drsr.send(*args)
       end
       it 'returns the correct handle' do
         handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'}
@@ -1833,14 +1833,14 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
           second = true
           response
         end
-        expect(drsr.send(*method)).to eq(handle)
+        expect(drsr.send(*args)).to eq(handle)
       end
     end
   end
 
   describe '#drs_unbind' do
     let(:ph_drs) { handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'} }
-    let(:method) { [:drs_unbind, ph_drs] }
+    let(:args) { [:drs_unbind, ph_drs] }
     let(:request_struct) { described_class::DrsUnbindRequest }
     let(:response_struct) { described_class::DrsUnbindResponse }
     let(:values) { { ph_drs: ph_drs } }
@@ -1852,7 +1852,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     end
 
     it 'sends the correct request packet with authentication parameters' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(drsr).to have_received(:dcerpc_request).with(
         request,
         auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -1860,19 +1860,19 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       )
     end
     it 'receives the expected response' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(response_struct).to have_received(:read).with(response.to_binary_s)
     end
     context 'with an invalid response' do
       it 'raise an InvalidPacket exception' do
         allow(response_struct).to receive(:read).and_raise(IOError)
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
     context 'when the response status is not STATUS_SUCCESS' do
       it 'raise an DrsrError exception' do
         response.error_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
       end
     end
   end
@@ -1880,7 +1880,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
   describe '#drs_domain_controller_info' do
     let(:h_drs) { handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'} }
     let(:domain) { 'rubysmb.local' }
-    let(:method) { [:drs_domain_controller_info, h_drs, domain] }
+    let(:args) { [:drs_domain_controller_info, h_drs, domain] }
     let(:request_struct) { described_class::DrsDomainControllerInfoRequest }
     let(:response_struct) { described_class::DrsDomainControllerInfoResponse }
     let(:values) do
@@ -1903,7 +1903,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     end
 
     it 'sends the correct request packet with authentication parameters' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(drsr).to have_received(:dcerpc_request).with(
         request,
         auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -1911,19 +1911,19 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       )
     end
     it 'receives the expected response' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(response_struct).to have_received(:read).with(response.to_binary_s)
     end
     context 'with an invalid response' do
       it 'raise an InvalidPacket exception' do
         allow(response_struct).to receive(:read).and_raise(IOError)
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
     context 'when the response status is not STATUS_SUCCESS' do
       it 'raise an DrsrError exception' do
         response.error_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
       end
     end
     it 'returns the correct array of domain controller infos' do
@@ -1933,15 +1933,15 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
         described_class::DsDomainControllerInfo2w.new(computer_object_name: random_str)
       ]
       response.pmsg_out.msg_dcinfo.r_items = info_array
-      expect(drsr.send(*method)).to be_a ::Array
-      expect(drsr.send(*method)).to eq(info_array)
+      expect(drsr.send(*args)).to be_a ::Array
+      expect(drsr.send(*args)).to eq(info_array)
     end
   end
 
   describe '#drs_crack_names' do
     let(:h_drs) { handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'} }
     let(:domain) { 'rubysmb.local' }
-    let(:method) { [ :drs_crack_names, h_drs ] }
+    let(:args) { [ :drs_crack_names, h_drs ] }
     let(:request_struct) { described_class::DrsCrackNamesRequest }
     let(:response_struct) { described_class::DrsCrackNamesResponse }
     let(:flags) { 0 }
@@ -1970,7 +1970,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     end
 
     it 'sends the correct request packet with authentication parameters' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(drsr).to have_received(:dcerpc_request).with(
         request,
         auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -1983,7 +1983,8 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       let(:format_desired) { described_class::DS_USER_PRINCIPAL_NAME }
       let(:rp_names) { ['Test1', 'Test2'] }
       it 'sends the correct request packet with authentication parameters' do
-        drsr.send(*method, {flags: flags, format_offered: format_offered, format_desired: format_desired, rp_names: rp_names})
+        kwargs = {flags: flags, format_offered: format_offered, format_desired: format_desired, rp_names: rp_names}
+        drsr.send(*args, **kwargs)
         expect(drsr).to have_received(:dcerpc_request).with(
           request,
           auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -1992,19 +1993,19 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       end
     end
     it 'receives the expected response' do
-      drsr.send(*method)
+      drsr.send(*args)
       expect(response_struct).to have_received(:read).with(response.to_binary_s)
     end
     context 'with an invalid response' do
       it 'raise an InvalidPacket exception' do
         allow(response_struct).to receive(:read).and_raise(IOError)
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
     context 'when the response status is not STATUS_SUCCESS' do
       it 'raise an DrsrError exception' do
         response.error_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
+        expect { drsr.send(*args) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
       end
     end
     it 'returns the correct array of translated names' do
@@ -2014,8 +2015,8 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
         described_class::DsNameResultItemw.new(p_domain: random_str)
       ]
       response.pmsg_out.msg_crack.p_result.r_items = name_array
-      expect(drsr.send(*method)).to be_a ::Array
-      expect(drsr.send(*method)).to eq(name_array)
+      expect(drsr.send(*args)).to be_a ::Array
+      expect(drsr.send(*args)).to eq(name_array)
     end
   end
 
@@ -2102,7 +2103,8 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     let(:h_drs) { handle = {context_handle_attributes: rand(0xFF), context_handle_uuid: '57800405-0301-3330-5566-040023007000'} }
     let(:nc_guid) { 'ee1ecfe6-109d-11ec-82a8-0242ac130003' }
     let(:dsa_object_guid) { '8609c6ea-8268-4c4f-a08a-001bca9bd1d7' }
-    let(:method) { [ :drs_get_nc_changes, h_drs, { nc_guid: nc_guid, dsa_object_guid: dsa_object_guid } ] }
+    let(:args) { [ :drs_get_nc_changes, h_drs ] }
+    let(:kwargs) { { nc_guid: nc_guid, dsa_object_guid: dsa_object_guid } }
     let(:request_struct) { described_class::DrsGetNcChangesRequest }
     let(:response_struct) { described_class::DrsGetNcChangesResponse }
     let(:values) do
@@ -2135,7 +2137,7 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
     end
 
     it 'sends the correct request packet with authentication parameters' do
-      drsr.send(*method)
+      drsr.send(*args, **kwargs)
       expect(drsr).to have_received(:dcerpc_request).with(
         request,
         auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
@@ -2143,23 +2145,23 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
       )
     end
     it 'receives the expected response' do
-      drsr.send(*method)
+      drsr.send(*args, **kwargs)
       expect(response_struct).to have_received(:read).with(response.to_binary_s)
     end
     context 'with an invalid response' do
       it 'raise an InvalidPacket exception' do
         allow(response_struct).to receive(:read).and_raise(IOError)
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { drsr.send(*args, **kwargs) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
     context 'when the response status is not STATUS_SUCCESS' do
       it 'raise an DrsrError exception' do
         response.error_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
-        expect { drsr.send(*method) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
+        expect { drsr.send(*args, **kwargs) }.to raise_error(RubySMB::Dcerpc::Error::DrsrError)
       end
     end
     it 'returns the correct DrsGetNcChanges response' do
-      expect(drsr.send(*method)).to eq(response)
+      expect(drsr.send(*args, **kwargs)).to eq(response)
     end
   end
 
