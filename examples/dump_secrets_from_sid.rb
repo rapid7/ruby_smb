@@ -119,7 +119,6 @@ dc_infos.each do |dc_info|
         expires = Time.at(0)
         time_value = attribute_value.unpack('Q<')[0]
         if time_value > 0 && time_value != 0x7FFFFFFFFFFFFFFF
-          require 'pry';binding.pry
           expires = RubySMB::Field::FileTime.new(time_value).to_time.utc
         end
       when lookup_table['lastLogonTimestamp']
