@@ -26,7 +26,6 @@ client = RubySMB::Dcerpc::Client.new(
 client.connect
 puts('Binding to DRSR...')
 client.bind(
-  endpoint: RubySMB::Dcerpc::Drsr,
   auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
   auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
 )
