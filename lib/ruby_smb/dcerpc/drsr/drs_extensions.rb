@@ -33,6 +33,13 @@ module RubySMB
             self.rgb.assign(val.to_ary)
           when DrsExtensionsInt
             self.rgb.assign(val.to_binary_s[4..-1].bytes)
+          when Hash
+            if (field_names & val.keys).empty?
+              # Cannot assign this hash to the structrue, it is likely
+              # DrsExtensionsInt hash values we need to transform in byte array.
+              drs_ext = DrsExtensionsInt.new(val).to_binary_s
+              self.rgb.assign(drs_ext[4..-1].bytes)
+            end
           else
             super
           end

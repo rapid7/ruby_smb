@@ -371,16 +371,16 @@ module RubySMB
         prefix_table_entry_array_ptr :p_prefix_entry
       end
 
-      class DrsConfStringz < BinData::Stringz
-        default_parameters byte_align: 4, max_length: -> { @obj.max_count * 2 }
-        extend Ndr::ConfStringPlugin
+      class DrsConfStringz < Ndr::NdrConfArray
+        extend Ndr::ArrayClassPlugin
+        default_parameters type: :ndr_char
       end
 
       # [5.132 MTX_ADDR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-drsr/107b7c0e-0f0d-4fe2-8232-14ec3b78f40d)
       class MtxAddr < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32       :mtx_name_len, initial_length: -> { mtx_name.num_bytes - 4 }
+        ndr_uint32       :mtx_name_len, initial_value: -> { mtx_name.length }
         drs_conf_stringz :mtx_name
       end
 
@@ -408,7 +408,7 @@ module RubySMB
       class Attrval < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32         :val_len
+        ndr_uint32         :val_len, initial_value: -> { p_val.length }
         drs_byte_array_ptr :p_val
       end
 
@@ -421,8 +421,8 @@ module RubySMB
       class Attrvalblock < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32        :val_count
-        attrval_array_ptr :p_aval, type: :attrval
+        ndr_uint32        :val_count, initial_value: -> { p_aval.length }
+        attrval_array_ptr :p_aval
       end
 
       # [5.9 ATTR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-drsr/a2db41e2-7803-4d3c-a499-0fee92b1c149)
@@ -442,7 +442,7 @@ module RubySMB
       class Attrblock < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32     :attr_count
+        ndr_uint32     :attr_count, initial_value: -> { p_attr.length }
         attr_array_ptr :p_attr
       end
 
@@ -474,12 +474,12 @@ module RubySMB
       class PropertyMetaDataExtVector < Ndr::NdrStruct
         default_parameter byte_align: 8
 
-        ndr_uint32     :c_num_props
+        ndr_uint32     :c_num_props, initial_value: -> { rg_meta_data.size }
         ndr_conf_array :rg_meta_data, type: :property_meta_data_ext
       end
 
       class PropertyMetaDataExtVectorPtr < PropertyMetaDataExtVector
-        default_parameters referent_byte_align: 4
+        default_parameters referent_byte_align: 8
         extend Ndr::PointerClassPlugin
       end
 
@@ -508,7 +508,7 @@ module RubySMB
       class ValueMetaDataExtV1 < Ndr::NdrStruct
         default_parameter byte_align: 8
 
-        dstime :time_created
+        dstime                 :time_created
         property_meta_data_ext :meta_data
       end
 
@@ -679,7 +679,7 @@ module RubySMB
         unless drs_unbind_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Dcerpc::Error::DrsrError,
             "Error returned with drs_unbind: "\
-            "#{WindowsError::NTStatus.find_by_retval(drs_bind_response.error_status.value).join(',')}"
+            "#{WindowsError::NTStatus.find_by_retval(drs_unbind_response.error_status.value).join(',')}"
         end
 
         nil
