@@ -42,13 +42,15 @@ module RubySMB
       NEGOTIATE_FLAGS[:TARGET_INFO] |
       NEGOTIATE_FLAGS[:VERSION_INFO]
 
+    # [[MS-NLMP] 2.2.2.10 VERSION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b1a6ceb2-f8ad-462b-b5af-f18527c48175)
     class OSVersion < BinData::Record
-      endian :big
+      endian :little
 
       uint8  :major
       uint8  :minor
       uint16 :build
-      uint32 :ntlm_revision, initial_value: 15
+      uint24 :reserved
+      uint8  :ntlm_revision, initial_value: 15
 
       def to_s
         "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"

@@ -10,11 +10,11 @@ module RubySMB
       NETR_WKSTA_GET_INFO = 0x0000
 
       PLATFORM_ID = {
-		0x0000012C => "DOS",
-		0x00000190 => "OS2",
-		0x000001F4 => "Win",
-		0x00000258 => "OSF",
-		0x000002BC => "VMS"
+        0x0000012C => "DOS",
+        0x00000190 => "OS2",
+        0x000001F4 => "Win",
+        0x00000258 => "OSF",
+        0x000002BC => "VMS"
       }
 
       # Information Level

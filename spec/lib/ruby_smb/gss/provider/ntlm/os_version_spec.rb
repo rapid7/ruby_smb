@@ -15,7 +15,7 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::OSVersion do
   describe '#read' do
     it 'reads a packed version correctly' do
       # Version 6.1 (Build 7601); NTLM Current Revision 15
-      os_version = RubySMB::Gss::Provider::NTLM::OSVersion.read("\x06\x01\x1d\xb1\x00\x00\x00\x0f")
+      os_version = RubySMB::Gss::Provider::NTLM::OSVersion.read("\x06\x01\xb1\x1d\x00\x00\x00\x0f")
       expect(os_version.major).to eq 6
       expect(os_version.minor).to eq 1
       expect(os_version.build).to eq 7601

@@ -312,12 +312,15 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
+  # This ArgProcessor needs to inherit from BinData::ArrayArgProcessor to make
+  # sure the ArrayArgProcessor `sanitize_parameters!` is called. This will
+  # perform proper Array-related sanity checks on the given parameters.
   class ::BinData::NdrArrayArgProcessor < BinData::ArrayArgProcessor
     def sanitize_parameters!(obj_class, params)
       res = super
 
       type_class = params[:type]
-      # Let's BinData::Array sanitization routine deal with "no type provided"
+      # Let the BinData::Array sanitization routine deal with "no type provided"
       return res unless type_class
 
       type_class, type_params  = params[:type] if type_class.is_a?(Array)

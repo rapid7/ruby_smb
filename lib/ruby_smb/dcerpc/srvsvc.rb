@@ -19,6 +19,8 @@ module RubySMB
         0x04000000 => 'CLUSTER_SOFS',
         0x08000000 => 'CLUSTER_DFS'
       }
+      STYPE_SPECIAL = 0x80000000
+      STYPE_TEMPORARY = 0x40000000
 
       require 'ruby_smb/dcerpc/srvsvc/net_share_enum_all'
 
@@ -32,8 +34,8 @@ module RubySMB
         response = RubySMB::Dcerpc::Srvsvc::NetShareEnumAllResponse.read(raw_response)
         response.info_struct.share_info.buffer.map do |share|
           type = [SHARE_TYPES[share.shi1_type & 0x0FFFFFFF]]
-          type << 'SPECIAL' unless share.shi1_type & 0x80000000 == 0
-          type << 'TEMPORARY' unless share.shi1_type & 0x40000000 == 0
+          type << 'SPECIAL' unless share.shi1_type & STYPE_SPECIAL == 0
+          type << 'TEMPORARY' unless share.shi1_type & STYPE_TEMPORARY == 0
           {
             name: share.shi1_netname.encode('UTF-8'),
             type: type.join('|'),

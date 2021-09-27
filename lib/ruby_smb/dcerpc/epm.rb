@@ -25,7 +25,7 @@ module RubySMB
       # @return [Hash] A hash with the host and port
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
       #   EpmEptMap packet
-      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      # @raise [RubySMB::Dcerpc::Error::EpmError] if the response error status
       #   is not STATUS_SUCCESS
       def get_host_port_from_ept_mapper(uuid:, maj_ver:, min_ver:, max_towers: 1)
         decoded_tower = EpmDecodedTowerOctetString.new(
@@ -54,7 +54,7 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading EptMapResponse'
         end
         unless ept_map_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Dcerpc::Error::SamrError,
+          raise RubySMB::Dcerpc::Error::EpmError,
             "Error returned with ept_map: "\
             "#{WindowsError::NTStatus.find_by_retval(ept_map_response.error_status.value).join(',')}"
         end

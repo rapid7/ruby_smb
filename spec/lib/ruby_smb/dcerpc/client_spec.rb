@@ -245,7 +245,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
     before :example do
       allow(RubySMB::Dcerpc::Bind).to receive(:new).and_return(bind_req)
       allow(client).to receive(:send_packet)
-      allow(client).to receive(:recv_packet).and_return(bindack_response)
+      allow(client).to receive(:recv_struct).and_return(bindack_response)
     end
 
     it 'sets the expected call_id value on the Bind request' do
@@ -467,7 +467,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
     before :example do
       allow(RubySMB::Dcerpc::Request).to receive(:new).and_return(dcerpc_req)
       allow(client).to receive(:send_packet)
-      allow(client).to receive(:recv_packet).and_return(dcerpc_res)
+      allow(client).to receive(:recv_struct).and_return(dcerpc_res)
     end
 
     it 'returns the correct response stub' do
@@ -481,7 +481,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
     it 'receives the correct packet' do
       client.dcerpc_request(request_stub)
-      expect(client).to have_received(:recv_packet).with(RubySMB::Dcerpc::Response)
+      expect(client).to have_received(:recv_struct).with(RubySMB::Dcerpc::Response)
     end
 
     context 'when the first packet is not the first fragment' do
@@ -515,7 +515,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
       before :example do
         dcerpc_res.pdu_header.pfc_flags.last_frag = 0
         count = 0
-        allow(client).to receive(:recv_packet) do
+        allow(client).to receive(:recv_struct) do
           count += 1
           dcerpc_res.pdu_header.pfc_flags.last_frag = 1 if count == nb_of_fragments
           dcerpc_res
@@ -524,7 +524,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
       it 'receives the correct number of fragments' do
         client.dcerpc_request(request_stub)
-        expect(client).to have_received(:recv_packet).exactly(nb_of_fragments).times.with(RubySMB::Dcerpc::Response)
+        expect(client).to have_received(:recv_struct).exactly(nb_of_fragments).times.with(RubySMB::Dcerpc::Response)
       end
 
       it 'returns the correct stub' do
@@ -541,7 +541,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
         it 'processes the integrity and privacy information for each fragment' do
           client.dcerpc_request(request_stub, auth_level: auth_level, auth_type: auth_type)
-          expect(client).to have_received(:recv_packet).exactly(nb_of_fragments).times.with(RubySMB::Dcerpc::Response)
+          expect(client).to have_received(:recv_struct).exactly(nb_of_fragments).times.with(RubySMB::Dcerpc::Response)
           expect(client).to have_received(:handle_integrity_privacy).exactly(nb_of_fragments).times.with(dcerpc_res, auth_level: auth_level, auth_type: auth_type)
         end
       end
@@ -585,7 +585,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
     end
   end
 
-  describe '#recv_packet' do
+  describe '#recv_struct' do
     let(:socket) { double('Socket') }
     let(:struct) { RubySMB::Dcerpc::Request }
     let(:response) { RubySMB::Dcerpc::Response.new(pdu_header: { ptype: struct::PTYPE}) }
@@ -597,42 +597,42 @@ RSpec.describe RubySMB::Dcerpc::Client do
     end
 
     it 'reads the socket' do
-      client.recv_packet(struct)
+      client.recv_struct(struct)
       expect(struct).to have_received(:read).with(socket)
     end
 
     context 'when the socket is already closed' do
       it 'raises a CommunicationError' do
         allow(socket).to receive(:closed?).and_return true
-        expect { client.recv_packet(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
+        expect { client.recv_struct(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
       end
     end
 
     context 'when the read timeout expires' do
       it 'raises a CommunicationError' do
         allow(IO).to receive(:select).and_return nil
-        expect { client.recv_packet(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
+        expect { client.recv_struct(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
       end
     end
 
     context 'when an error occurs when reading the socket' do
       it 'raises an InvalidPacket' do
         allow(struct).to receive(:read).and_raise(IOError)
-        expect { client.recv_packet(struct) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { client.recv_struct(struct) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
 
     context 'when response has a wrong ptype' do
       it 'raises an InvalidPacket' do
         response.pdu_header.ptype = struct::PTYPE + 1
-        expect { client.recv_packet(struct) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+        expect { client.recv_struct(struct) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
 
     context 'when the read timeout expires' do
       it 'raises a CommunicationError' do
         allow(struct).to receive(:read).and_raise (Errno::EPIPE)
-        expect { client.recv_packet(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
+        expect { client.recv_struct(struct) }.to raise_error(RubySMB::Dcerpc::Error::CommunicationError)
       end
     end
   end

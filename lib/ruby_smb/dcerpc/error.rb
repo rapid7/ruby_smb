@@ -30,6 +30,9 @@ module RubySMB
 
       # Raised when an error occurs with the underlying socket.
       class CommunicationError < DcerpcError; end
+
+      # Raised when an error is returned during a Epm operation
+      class EpmError < DcerpcError; end
     end
   end
 end

@@ -8,7 +8,7 @@ module RubySMB
       endian :little
 
       # PDU Header
-      pdu_header  :pdu_header, label: 'PDU header'
+      pdu_header  :pdu_header, label: 'PDU header common fields'
       uint32      :alloc_hint, label: 'Allocation hint',  initial_value: -> { stub.do_num_bytes }
       uint16      :p_cont_id, label: 'Presentation context identification'
       uint8       :cancel_count, label: 'Cancel count'

@@ -22,8 +22,8 @@ module RubySMB
       end
 
       def set(uuid_string)
-        uuid_string = uuid_string[0..-2] if uuid_string.end_with?('}')
-        uuid_string = uuid_string[1..-1] if uuid_string.start_with?('{')
+        uuid_string.delete_suffix!('}')
+        uuid_string.delete_prefix!('{')
         components = uuid_string.split('-')
         self.time_low.read(to_binary_le(components[0]))
         self.time_mid.read(to_binary_le(components[1]))

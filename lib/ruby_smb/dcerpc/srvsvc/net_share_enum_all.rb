@@ -77,9 +77,6 @@ module RubySMB
           super
           @opnum = NET_SHARE_ENUM_ALL
         end
-
-        def list_shares
-        end
       end
     end
   end

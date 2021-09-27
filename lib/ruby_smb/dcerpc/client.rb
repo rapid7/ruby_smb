@@ -13,7 +13,7 @@ module RubySMB
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
       MAX_BUFFER_SIZE = 64512
-      # The read timeout when sending and receiving packets.
+      # The read timeout when receiving packets.
       READ_TIMEOUT = 30
 
       # The domain you're trying to authenticate to
@@ -144,11 +144,20 @@ module RubySMB
         unless port
           @tcp_socket = TCPSocket.new(@host, 135)
           bind(endpoint: Epm)
-          host_port = get_host_port_from_ept_mapper(
-            uuid: @endpoint::UUID,
-            maj_ver: @endpoint::VER_MAJOR,
-            min_ver: @endpoint::VER_MINOR
-          )
+          begin
+            host_port = get_host_port_from_ept_mapper(
+              uuid: @endpoint::UUID,
+              maj_ver: @endpoint::VER_MAJOR,
+              min_ver: @endpoint::VER_MINOR
+            )
+          rescue RubySMB::Dcerpc::Error::DcerpcError => e
+            e.message.prepend(
+              "Cannot resolve the remote port number for endpoint #{@endpoint::UUID}. "\
+              "Set @tcp_socket parameter to specify the service port number and bypass "\
+              "EPM port resolution. Error: "
+            )
+            raise e
+          end
           port = host_port[:port]
           @tcp_socket.close
           @tcp_socket = nil
@@ -203,9 +212,10 @@ module RubySMB
       # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
       def send_auth3(response, auth_type, auth_level)
         case auth_type
-        when RPC_C_AUTHN_WINNT
+        when RPC_C_AUTHN_NONE
+        when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
           auth3 = process_ntlm_type2(response.auth_value)
-        when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
+        when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
           # TODO
           raise NotImplementedError
         else
@@ -243,11 +253,12 @@ module RubySMB
 
         if auth_level && auth_level != RPC_C_AUTHN_LEVEL_NONE
           case auth_type
-          when RPC_C_AUTHN_WINNT
+          when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
             raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
             type1_message = @ntlm_client.init_context
             auth = type1_message.serialize
           when RPC_C_AUTHN_GSS_KERBEROS, RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
+          when RPC_C_AUTHN_GSS_KERBEROS, RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL
             # TODO
             raise NotImplementedError
           else
@@ -257,7 +268,7 @@ module RubySMB
         end
 
         send_packet(bind_req)
-        bindack_response = recv_packet(BindAck)
+        bindack_response = recv_struct(BindAck)
         # TODO: see if BindNack response should be handled too
 
         res_list = bindack_response.p_result_list
@@ -313,7 +324,13 @@ module RubySMB
       # @param version [String] the version number as a binary string
       # @return [String] the formated version number (<major>.<minor>.<build>)
       def extract_os_version(version)
-        version.unpack('CCS').join('.')
+        #version.unpack('CCS').join('.')
+        begin
+          os_version = NTLM::OSVersion.read(version)
+        rescue IOError
+          return ''
+        end
+        return "#{os_version.major}.#{os_version.minor}.#{os_version.build}"
       end
 
       # Add the authentication verifier to a Request packet. This includes a
@@ -342,9 +359,10 @@ module RubySMB
         encrypted_stub = ''
         if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
           case auth_type
-          when RPC_C_AUTHN_WINNT
+          when RPC_C_AUTHN_NONE
+          when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
             encrypted_stub = @ntlm_client.session.seal_message(plain_stub)
-          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
+          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
             # TODO
             raise NotImplementedError
           else
@@ -392,7 +410,7 @@ module RubySMB
 
         send_packet(dcerpc_req)
 
-        dcerpc_res = recv_packet(Response)
+        dcerpc_res = recv_struct(Response)
         unless dcerpc_res.pdu_header.pfc_flags.first_frag == 1
           raise Error::InvalidPacket, "Not the first fragment"
         end
@@ -405,7 +423,7 @@ module RubySMB
         raw_stub = dcerpc_res.stub.to_binary_s
         loop do
           break if dcerpc_res.pdu_header.pfc_flags.last_frag == 1
-          dcerpc_res = recv_packet(Response)
+          dcerpc_res = recv_struct(Response)
 
           if auth_level &&
              [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(auth_level)
@@ -438,11 +456,11 @@ module RubySMB
         nil
       end
 
-      # Receive a packet from the remote host
+      # Receive a packet from the remote host and parse it according to `struct`
       #
       # @param struct [Class] the structure class to parse the response with
       # @raise [Error::CommunicationError] if socket-related error occurs
-      def recv_packet(struct)
+      def recv_struct(struct)
         raise Error::CommunicationError, 'Connection has already been closed' if @tcp_socket.closed?
         if IO.select([@tcp_socket], nil, nil, @read_timeout).nil?
           raise Error::CommunicationError, "Read timeout expired when reading from the Socket (timeout=#{@read_timeout})"
@@ -481,9 +499,10 @@ module RubySMB
         if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
           encrypted_stub = dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
           case auth_type
-          when RPC_C_AUTHN_WINNT
+          when RPC_C_AUTHN_NONE
+          when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
             decrypted_stub = @ntlm_client.session.unseal_message(encrypted_stub)
-          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
+          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
             # TODO
             raise NotImplementedError
           else
