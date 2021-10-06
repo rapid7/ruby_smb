@@ -21,7 +21,8 @@ module RubySMB
       end
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/76c93227-942a-4687-ab9d-9d972ffabdab
-      class NetlogonAuthenticator < BinData::Record
+      class NetlogonAuthenticator < Ndr::NdrStruct
+        default_parameter byte_align: 4
         endian :little
 
         netlogon_credential :credential
