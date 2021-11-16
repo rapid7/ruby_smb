@@ -8,10 +8,12 @@ module RubySMB
       require 'ruby_smb/signing'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
+      require 'ruby_smb/server/server_client/shares'
 
       include RubySMB::Signing
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
+      include RubySMB::Server::ServerClient::Shares
 
       attr_reader :dialect, :identity, :state, :session_key
 
@@ -29,6 +31,15 @@ module RubySMB
         @tree_connections = {}
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
+
+        # TODO: move the shares into the server
+        # share name => provider instance
+        @shares = {
+          'IPC$' => Share::IpcPipeProvider.new,
+          'home' => Share::DiskProvider.new(Dir.pwd)
+        }
+        # tree id => provider processor instance
+        @share_connections = {}
       end
 
       #
@@ -62,7 +73,21 @@ module RubySMB
         when RubySMB::SMB1::SMB_PROTOCOL_ID
           raise NotImplementedError
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
-          raise NotImplementedError
+          header = RubySMB::SMB2::SMB2Header.read(raw_request)
+          case header.command
+          when RubySMB::SMB2::Commands::IOCTL
+            response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
+          when RubySMB::SMB2::Commands::TREE_CONNECT
+            response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
+          else
+            raise NotImplementedError
+          end
+
+          unless response.nil?
+            # set these header fields if they were not initialized
+            response.smb2_header.message_id = @message_id += 1 if response.smb2_header.message_id == 0
+            response.smb2_header.session_id = @session_id if response.smb2_header.session_id == 0
+          end
         end
 
         if response.nil?
