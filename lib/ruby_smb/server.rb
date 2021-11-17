@@ -1,3 +1,4 @@
+require 'logger'
 require 'socket'
 
 module RubySMB
@@ -12,7 +13,7 @@ module RubySMB
 
     # @param server_sock the socket on which the server should listen
     # @param [Gss::Provider] the authentication provider
-    def initialize(server_sock: nil, gss_provider: nil)
+    def initialize(server_sock: nil, gss_provider: nil, logger: nil)
       server_sock = ::TCPServer.new(445) if server_sock.nil?
 
       @guid = Random.new.bytes(16)
@@ -21,6 +22,17 @@ module RubySMB
       @gss_provider = gss_provider || Gss::Provider::NTLM.new
       # reject the wildcard dialect because it's not a real dialect we can use for this purpose
       @dialects = RubySMB::Dialect::ALL.keys.reject { |dialect| dialect == "0x%04x" % RubySMB::SMB2::SMB2_WILDCARD_REVISION }.reverse
+
+      case logger
+      when nil
+        @logger = Logger.new(File.open(File::NULL, 'w'))
+      when :stdout
+        @logger = Logger.new(STDOUT)
+      when :stderr
+        @logger = Logger.new(STDERR)
+      else
+        @logger = logger
+      end
     end
 
     # Run the server and accept any connections. For each connection, the block will be executed if specified. When the
@@ -49,6 +61,10 @@ module RubySMB
     # The 16 byte GUID that uniquely identifies this server instance.
     # @!attribute [r] guid
     attr_reader :guid
+
+    # The logger instance to use for diagnostic messages.
+    # @!attribute [r] logger
+    attr_reader :logger
   end
 end
 

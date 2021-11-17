@@ -84,9 +84,11 @@ module RubySMB
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1
           if share_provider.nil?
+            logger.warning("Received Tree Connect request for non-existent share: #{path}")
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME.value
             return response
           end
+          logger.debug("Received Tree Connect request for share: #{path}")
 
           response.share_type = case share_provider.type
           when :disk
@@ -97,6 +99,7 @@ module RubySMB
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
           end
 
+          # TODO: set the tree id more intelligently to avoid collisions (maybe reuse too?)
           response.smb2_header.tree_id = tree_id = rand(0xffffffff)
           @share_connections[tree_id] = share_processor = share_provider.new_processor(self)
           response.maximal_access = share_processor.maximal_access

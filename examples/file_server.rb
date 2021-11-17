@@ -8,7 +8,8 @@ ntlm_provider = RubySMB::Gss::Provider::NTLM.new(allow_anonymous: true)
 ntlm_provider.put_account('RubySMB', 'password')  # password can also be an NTLM hash
 
 server = RubySMB::Server.new(
-  gss_provider: ntlm_provider
+  gss_provider: ntlm_provider,
+  logger: :stdout
 )
 puts "server is running"
 server.run do

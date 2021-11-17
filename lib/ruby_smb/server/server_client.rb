@@ -141,6 +141,10 @@ module RubySMB
         @dispatcher.tcp_socket.close
       end
 
+      def logger
+        @server.logger
+      end
+
       #
       # Receive a single SMB packet from the dispatcher.
       #
