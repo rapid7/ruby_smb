@@ -11,6 +11,7 @@ server = RubySMB::Server.new(
   gss_provider: ntlm_provider,
   logger: :stdout
 )
+server.add_share(RubySMB::Server::Share::Provider::Disk.new('home', Dir.pwd))
 puts "server is running"
 server.run do
   puts "received connection"

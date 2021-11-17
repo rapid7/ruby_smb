@@ -7,6 +7,7 @@ module RubySMB
   # available at this time. The negotiating and authentication is supported for SMB versions 1 through 3.1.1.
   class Server
     require 'ruby_smb/server/server_client'
+    require 'ruby_smb/server/share'
     require 'ruby_smb/gss/provider/ntlm'
 
     Connection = Struct.new(:client, :thread)
@@ -33,6 +34,16 @@ module RubySMB
       else
         @logger = logger
       end
+
+      # share name => provider instance
+      @shares = {
+        'IPC$' => Share::Provider::IpcPipe.new
+      }
+    end
+
+    def add_share(share_provider)
+      logger.debug("Adding #{share_provider.type} share: #{share_provider.name}")
+      @shares[share_provider.name] = share_provider
     end
 
     # Run the server and accept any connections. For each connection, the block will be executed if specified. When the
@@ -65,6 +76,10 @@ module RubySMB
     # The logger instance to use for diagnostic messages.
     # @!attribute [r] logger
     attr_reader :logger
+
+    # The shares that are provided by this server
+    # @!attribute [r] shares
+    attr_reader :shares
   end
 end
 

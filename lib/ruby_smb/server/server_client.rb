@@ -6,14 +6,16 @@ module RubySMB
 
       require 'ruby_smb/dialect'
       require 'ruby_smb/signing'
+      require 'ruby_smb/server/server_client/ioctl'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
-      require 'ruby_smb/server/server_client/shares'
+      require 'ruby_smb/server/server_client/tree_connect'
 
       include RubySMB::Signing
+      include RubySMB::Server::ServerClient::IOCTL
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
-      include RubySMB::Server::ServerClient::Shares
+      include RubySMB::Server::ServerClient::TreeConnect
 
       attr_reader :dialect, :identity, :state, :session_key
 
@@ -32,12 +34,6 @@ module RubySMB
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
 
-        # TODO: move the shares into the server
-        # share name => provider instance
-        @shares = {
-          'IPC$' => Share::IpcPipeProvider.new,
-          'home' => Share::DiskProvider.new('home', Dir.pwd)
-        }
         # tree id => provider processor instance
         @share_connections = {}
       end
