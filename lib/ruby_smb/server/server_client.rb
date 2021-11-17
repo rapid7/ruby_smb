@@ -36,7 +36,7 @@ module RubySMB
         # share name => provider instance
         @shares = {
           'IPC$' => Share::IpcPipeProvider.new,
-          'home' => Share::DiskProvider.new(Dir.pwd)
+          'home' => Share::DiskProvider.new('home', Dir.pwd)
         }
         # tree id => provider processor instance
         @share_connections = {}
@@ -79,6 +79,8 @@ module RubySMB
             response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
           when RubySMB::SMB2::Commands::TREE_CONNECT
             response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
+          when RubySMB::SMB2::Commands::TREE_DISCONNECT
+            response = do_tree_disconnect_smb2(RubySMB::SMB2::Packet::TreeDisconnectRequest.read(raw_request))
           else
             raise NotImplementedError
           end
@@ -87,6 +89,7 @@ module RubySMB
             # set these header fields if they were not initialized
             response.smb2_header.message_id = @message_id += 1 if response.smb2_header.message_id == 0
             response.smb2_header.session_id = @session_id if response.smb2_header.session_id == 0
+            response.smb2_header.tree_id = header.tree_id if response.smb2_header.tree_id == 0
           end
         end
 
