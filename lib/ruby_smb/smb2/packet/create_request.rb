@@ -7,6 +7,7 @@ module RubySMB
         COMMAND = RubySMB::SMB2::Commands::CREATE
 
         require 'ruby_smb/smb1/bit_field/create_options'
+        include BinData::Base::AutoCallDelayedIO
 
         endian :little
         smb2_header           :smb2_header
@@ -41,11 +42,16 @@ module RubySMB
         uint16          :name_length,         label: 'Name Length',            initial_value: -> { name.do_num_bytes }
         uint32          :context_offset,      label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
         uint32          :context_length,      label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
-        string16        :name,                label: 'File Name'
-        uint32          :reserved5,           label: 'Reserved Space'
 
-        array :context, label: 'Contexts', type: :create_context, read_until: :eof
+        delayed_io :name, label: 'File Name', read_abs_offset: :name_offset do
+          string16 read_length: :name_length
+        end
 
+        delayed_io :context, label: 'Context Array', read_abs_offset: :context_offset do
+          buffer length: :context_length do
+            create_context_array
+          end
+        end
       end
     end
   end

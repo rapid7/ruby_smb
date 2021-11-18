@@ -6,6 +6,8 @@ module RubySMB
       class CreateResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB2::Commands::CREATE
 
+        include BinData::Base::AutoCallDelayedIO
+
         endian :little
         smb2_header           :smb2_header
         uint16                :structure_size,       label: 'Structure Size', initial_value: 89
@@ -24,7 +26,11 @@ module RubySMB
         uint32                :context_offset,       label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
         uint32                :context_length,       label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
 
-        array :context, label: 'Contexts', type: :create_context, read_until: :eof
+        delayed_io :context, label: 'Context Array', read_abs_offset: :context_offset do
+          buffer length: :context_length do
+            create_context_array
+          end
+        end
 
         def initialize_instance
           super
