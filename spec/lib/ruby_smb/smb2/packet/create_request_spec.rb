@@ -80,22 +80,22 @@ RSpec.describe RubySMB::SMB2::Packet::CreateRequest do
     expect(packet.name_offset).to eq packet.name.abs_offset
   end
 
-  it 'tracks the offset to #context in #context_offset' do
-    expect(packet.context_offset).to eq packet.context.abs_offset
+  it 'tracks the offset to #context in #contexts_offset' do
+    expect(packet.contexts_offset).to eq packet.contexts.abs_offset
   end
 
   it 'tracks the length of #name in #name_length' do
     expect(packet.name_length).to eq packet.name.length
   end
 
-  it 'tracks the length of #context in #context_length' do
-    expect(packet.context_length).to eq packet.context.do_num_bytes
+  it 'tracks the length of #context in #contexts_length' do
+    expect(packet.contexts_length).to eq packet.contexts.do_num_bytes
   end
 
   describe '#name' do
     it 'encodes any input into UTF-16LE' do
       packet.name = 'Hello'
-      expect(packet.name.to_binary_s).to eq "H\x00e\x00l\x00l\x00o\x00"
+      expect(packet.name.to_binary_s { |name| name.abs_offset = 0; name.write_now! }).to eq "H\x00e\x00l\x00l\x00o\x00"
     end
   end
 end

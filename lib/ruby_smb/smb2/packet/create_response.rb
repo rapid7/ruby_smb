@@ -5,8 +5,7 @@ module RubySMB
       # [2.2.14 SMB2 CREATE Response](https://msdn.microsoft.com/en-us/library/cc246512.aspx)
       class CreateResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB2::Commands::CREATE
-
-        include BinData::Base::AutoCallDelayedIO
+        auto_call_delayed_io
 
         endian :little
         smb2_header           :smb2_header
@@ -23,12 +22,14 @@ module RubySMB
         file_attributes       :file_attributes,      label: 'File Attributes'
         uint32                :reserved,             label: 'Reserved Space'
         smb2_fileid           :file_id,              label: 'File ID'
-        uint32                :context_offset,       label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
-        uint32                :context_length,       label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
+        uint32                :contexts_offset,      label: 'Create Contexts Offset'
+        uint32                :contexts_length,      label: 'Create Contexts Length'
+        count_bytes_remaining :bytes_remaining
+        string                :buffer,               label: 'Buffer', read_length: :bytes_remaining
 
-        delayed_io :context, label: 'Context Array', read_abs_offset: :context_offset do
-          buffer length: :context_length do
-            create_context_array
+        delayed_io :contexts, label: 'Context Array', read_abs_offset: -> { contexts_offset }, onlyif: -> { contexts_offset != 0 } do
+          buffer length: :contexts_length do
+            create_context_array_response :contexts
           end
         end
 

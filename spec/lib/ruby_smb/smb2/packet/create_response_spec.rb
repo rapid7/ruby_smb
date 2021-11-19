@@ -54,11 +54,15 @@ RSpec.describe RubySMB::SMB2::Packet::CreateResponse do
     expect(packet.file_id).to be_a RubySMB::Field::Smb2Fileid
   end
 
-  it 'tracks the offset to #context in #context_offset' do
-    expect(packet.context_offset).to eq packet.context.abs_offset
-  end
+  describe '#contexts' do
+    # with no context, the offset and length should be 0
+    # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/d166aa9e-0b53-410e-b35e-3933d8131927
+    it 'should have the contexts_offset set to 0' do
+      expect(packet.contexts_offset).to eq 0
+    end
 
-  it 'tracks the length of #context in #context_length' do
-    expect(packet.context_length).to eq packet.context.do_num_bytes
+    it 'should have the contexts_length set to ' do
+      expect(packet.contexts_length).to eq 0
+    end
   end
 end

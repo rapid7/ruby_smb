@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::SMB2::CreateContext do
+RSpec.describe RubySMB::SMB2::CreateContext::CreateContextRequest do
   subject(:struct) { described_class.new }
 
   it { is_expected.to respond_to :next_offset }

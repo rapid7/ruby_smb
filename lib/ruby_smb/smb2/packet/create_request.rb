@@ -4,10 +4,9 @@ module RubySMB
       # An SMB2 Create Request Packet as defined in
       # [2.2.13 SMB2 CREATE Request](https://msdn.microsoft.com/en-us/library/cc246502.aspx)
       class CreateRequest < RubySMB::GenericPacket
-        COMMAND = RubySMB::SMB2::Commands::CREATE
-
         require 'ruby_smb/smb1/bit_field/create_options'
-        include BinData::Base::AutoCallDelayedIO
+        COMMAND = RubySMB::SMB2::Commands::CREATE
+        auto_call_delayed_io
 
         endian :little
         smb2_header           :smb2_header
@@ -36,20 +35,22 @@ module RubySMB
           bit8  :reserved4, label: 'Reserved Space'
         end
 
-        uint32          :create_disposition, label: 'Create Disposition'
-        create_options  :create_options
-        uint16          :name_offset,         label: 'Name Offset',            initial_value: -> { name.abs_offset }
-        uint16          :name_length,         label: 'Name Length',            initial_value: -> { name.do_num_bytes }
-        uint32          :context_offset,      label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
-        uint32          :context_length,      label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
+        uint32                :create_disposition, label: 'Create Disposition'
+        create_options        :create_options
+        uint16                :name_offset,         label: 'Name Offset'
+        uint16                :name_length,         label: 'Name Length'
+        uint32                :contexts_offset,     label: 'Create Contexts Offset'
+        uint32                :contexts_length,     label: 'Create Contexts Length'
+        count_bytes_remaining :bytes_remaining
+        string                :buffer,              label: 'Buffer', read_length: :bytes_remaining
 
         delayed_io :name, label: 'File Name', read_abs_offset: :name_offset do
           string16 read_length: :name_length
         end
 
-        delayed_io :context, label: 'Context Array', read_abs_offset: :context_offset do
-          buffer length: :context_length do
-            create_context_array
+        delayed_io :contexts, label: 'Context Array', read_abs_offset: :contexts_offset, onlyif: -> { contexts_offset != 0 } do
+          buffer length: :contexts_length do
+            create_context_array_request :contexts
           end
         end
       end
