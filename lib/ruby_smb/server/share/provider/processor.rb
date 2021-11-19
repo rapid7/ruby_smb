@@ -14,9 +14,16 @@ module RubySMB
               RubySMB::SMB2::BitField::DirectoryAccessMask.new
             end
 
-            def do_ioctl(request)
+            def disconnect!
+            end
+
+            def do_create_smb2(request)
+              raise NotImplementedError
+            end
+
+            def do_ioctl_smb2(request)
               response = RubySMB::SMB2::Packet::IoctlResponse.new
-              response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_FOUND.value
+              response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_FOUND
               response.smb2_header.credits = 1
               response
             end

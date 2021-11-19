@@ -7,6 +7,9 @@ module RubySMB
         class Disk < Base
           TYPE = TYPE_DISK
           class Processor < Processor::Base
+            def maximal_access
+              RubySMB::SMB2::BitField::DirectoryAccessMask.read([0x001f01ff].pack('V'))
+            end
           end
 
           def initialize(name, path)

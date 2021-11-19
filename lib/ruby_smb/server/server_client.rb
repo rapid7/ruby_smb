@@ -6,15 +6,15 @@ module RubySMB
 
       require 'ruby_smb/dialect'
       require 'ruby_smb/signing'
-      require 'ruby_smb/server/server_client/ioctl'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
+      require 'ruby_smb/server/server_client/share_io'
       require 'ruby_smb/server/server_client/tree_connect'
 
       include RubySMB::Signing
-      include RubySMB::Server::ServerClient::IOCTL
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
+      include RubySMB::Server::ServerClient::ShareIO
       include RubySMB::Server::ServerClient::TreeConnect
 
       attr_reader :dialect, :identity, :state, :session_key
@@ -71,6 +71,8 @@ module RubySMB
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
           header = RubySMB::SMB2::SMB2Header.read(raw_request)
           case header.command
+          when RubySMB::SMB2::Commands::CREATE
+            response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
           when RubySMB::SMB2::Commands::IOCTL
             response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
           when RubySMB::SMB2::Commands::TREE_CONNECT

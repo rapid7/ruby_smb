@@ -11,7 +11,7 @@ module RubySMB
           response.smb2_header.credits = 1
           if share_provider.nil?
             logger.warning("Received Tree Connect request for non-existent share: #{share_name}")
-            response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME.value
+            response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME
             return response
           end
           logger.debug("Received Tree Connect request for share: #{share_name}")
@@ -36,6 +36,7 @@ module RubySMB
         def do_tree_disconnect_smb2(request)
           share_processor = @share_connections.delete(request.smb2_header.tree_id)
           logger.debug("Received Tree Disconnect request for share: #{share_processor.provider.name}")
+          share_processor.disconnect!
           # TODO: need to do something if the tree id is invalid
           response = RubySMB::SMB2::Packet::TreeDisconnectResponse.new
           response
