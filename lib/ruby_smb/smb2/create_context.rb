@@ -24,30 +24,41 @@ module RubySMB
       # [2.2.13.2 SMB2_CREATE_CONTEXT Request Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/75364667-3a93-4e2c-b771-592d8d5e876d?redirectedfrom=MSDN)
       class CreateContext < BinData::Record
         unregister_self
-        hide :padding
 
         endian  :little
         uint32  :next_offset, label: 'Offset to next Context'
-        uint16  :name_offset, label: 'Offset to Name/Tag',      initial_value:  -> { padding.rel_offset }
-        uint16  :name_length, label: 'Length of Name/Tag',      initial_value:  -> { name.length }
+        uint16  :name_offset, label: 'Offset to Name/Tag',      initial_value: -> { buffer.rel_offset }
+        uint16  :name_length, label: 'Length of Name/Tag',      initial_value: -> { name.num_bytes }
         uint16  :reserved,    label: 'Reserved Space'
-        uint16  :data_offset, label: 'Offset to data',          initial_value:  -> { calc_data_offset }
-        uint32  :data_length, label: 'Length of data',          initial_value:  -> { data.length }
+        uint16  :data_offset, label: 'Offset to data',          initial_value: -> { calc_data_offset }
+        uint32  :data_length, label: 'Length of data',          initial_value: -> { data.num_bytes }
+        string  :buffer,      label: 'Buffer',                  initial_value: -> { build_buffer }, read_length: -> { calc_buffer_size }
 
         delayed_io :name, read_abs_offset: -> { abs_offset + name_offset } do
           string   :name, label: 'Name', read_length: :name_length
         end
 
-        # use skip to ensure the stream position is correct, next_offset is 0 for the last entry
-        skip :padding, length: -> { next_offset == 0 ? 0 : next_offset - padding.rel_offset }
-
         private
 
+        def build_buffer
+          buf = name.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
+          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+          buf << data.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
+          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+        end
+
+        def calc_buffer_size
+          size = 0
+          size += name_length + (7 - (name_length + 7) % 8)
+          size += data_length + (7 - (data_length + 7) % 8)
+          size
+        end
+
         def calc_data_offset
-          if data.empty?
+          if data.num_bytes == 0
             0
           else
-            padding.rel_offset + (name_length + 7 - (name_length + 7) % 8)
+            buffer.rel_offset + (name_length + 7 - (name_length + 7) % 8)
           end
         end
       end

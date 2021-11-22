@@ -25,7 +25,7 @@ module RubySMB
         uint32                :contexts_offset,      label: 'Create Contexts Offset'
         uint32                :contexts_length,      label: 'Create Contexts Length'
         count_bytes_remaining :bytes_remaining
-        string                :buffer,               label: 'Buffer', read_length: :bytes_remaining
+        string                :buffer,               label: 'Buffer', initial_value: -> { build_buffer }, read_length: :bytes_remaining
 
         delayed_io :contexts, label: 'Context Array', read_abs_offset: -> { contexts_offset }, onlyif: -> { contexts_offset != 0 } do
           buffer length: :contexts_length do
@@ -36,6 +36,13 @@ module RubySMB
         def initialize_instance
           super
           smb2_header.flags.reply = 1
+        end
+
+        private
+
+        def build_buffer
+          buf = contexts.map(&:to_binary_s).join
+          buf << "\x00".b * (7 - (buf.length + 7) % 8)
         end
       end
     end

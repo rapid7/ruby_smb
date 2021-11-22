@@ -38,11 +38,11 @@ module RubySMB
         uint32                :create_disposition, label: 'Create Disposition'
         create_options        :create_options
         uint16                :name_offset,         label: 'Name Offset'
-        uint16                :name_length,         label: 'Name Length'
+        uint16                :name_length,         label: 'Name Length', initial_value: -> { name.num_bytes }
         uint32                :contexts_offset,     label: 'Create Contexts Offset'
         uint32                :contexts_length,     label: 'Create Contexts Length'
         count_bytes_remaining :bytes_remaining
-        string                :buffer,              label: 'Buffer', read_length: :bytes_remaining
+        string                :buffer,              label: 'Buffer', initial_value: -> { build_buffer }, read_length: :bytes_remaining
 
         delayed_io :name, label: 'File Name', read_abs_offset: :name_offset do
           string16 read_length: :name_length
@@ -52,6 +52,15 @@ module RubySMB
           buffer length: :contexts_length do
             create_context_array_request :contexts
           end
+        end
+
+        private
+
+        def build_buffer
+          buf = name.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
+          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+          buf << contexts.map(&:to_binary_s).join
+          buf << "\x00".b * (7 - (buf.length + 7) % 8)
         end
       end
     end

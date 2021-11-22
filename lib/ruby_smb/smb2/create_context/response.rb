@@ -5,11 +5,9 @@ module RubySMB
       class CreateQueryMaximalAccessResponse < BinData::Record
         NAME = CREATE_QUERY_MAXIMAL_ACCESS
 
-        default_parameter length: 0
-
         endian :little
-        nt_status             :query_status, label: 'Query Status'
-        directory_access_mask :maximal_access, label: 'Maximal Access'
+        nt_status         :query_status,   label: 'Query Status'
+        file_access_mask  :maximal_access, label: 'Maximal Access'
       end
 
       # [2.2.14.2.9 SMB2_CREATE_QUERY_ON_DISK_ID](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/5c977939-1d8f-4774-9111-21e9195f3aca)
