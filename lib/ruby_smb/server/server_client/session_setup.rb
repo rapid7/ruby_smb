@@ -60,7 +60,7 @@ module RubySMB
           response = SMB2::Packet::SessionSetupResponse.new
           response.smb2_header.nt_status = gss_result.nt_status.value
           response.smb2_header.credits = 1
-          response.smb2_header.message_id = @message_id += 1
+          response.smb2_header.message_id = request.smb2_header.message_id
           response.smb2_header.session_id = @session_id = @session_id || SecureRandom.random_bytes(4).unpack1('V')
           response.buffer = gss_result.buffer
 
