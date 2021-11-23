@@ -10,10 +10,14 @@ options = {
   domain: nil,
   username: 'RubySMB',
   password: 'password',
-  share_name: 'home'
+  share_name: 'home',
+  share_path: Dir.pwd
 }
 OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
+  opts.on("--path PATH", "The path to share") do |path|
+    options[:share_path] = path
+  end
   opts.on("--share SHARE", "The share name (default: #{options[:share_name]})") do |share|
     options[:share_name] = share
   end
@@ -39,7 +43,7 @@ server = RubySMB::Server.new(
   gss_provider: ntlm_provider,
   logger: :stdout
 )
-server.add_share(RubySMB::Server::Share::Provider::Disk.new(options[:share_name], Dir.pwd))
+server.add_share(RubySMB::Server::Share::Provider::Disk.new(options[:share_name], options[:share_path]))
 puts "server is running"
 server.run do
   puts "received connection"
