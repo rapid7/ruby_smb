@@ -10,8 +10,8 @@ module RubySMB
               @server_client = server_client
             end
 
-            def maximal_access
-              RubySMB::SMB2::BitField::DirectoryAccessMask.new
+            def maximal_access(path=nil)
+              RubySMB::SMB2::BitField::FileAccessMask.new
             end
 
             def disconnect!
@@ -26,6 +26,10 @@ module RubySMB
               response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_FOUND
               response.smb2_header.credits = 1
               response
+            end
+
+            def logger
+              @server_client.logger
             end
 
             def server

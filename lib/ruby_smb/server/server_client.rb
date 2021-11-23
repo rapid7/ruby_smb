@@ -85,7 +85,8 @@ module RubySMB
 
           unless response.nil?
             # set these header fields if they were not initialized
-            response.smb2_header.message_id = @message_id += 1 if response.smb2_header.message_id == 0
+            response.smb2_header.credits = 1 if response.smb2_header.credits == 0
+            response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0
             response.smb2_header.session_id = @session_id if response.smb2_header.session_id == 0
             response.smb2_header.tree_id = header.tree_id if response.smb2_header.tree_id == 0
           end

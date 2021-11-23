@@ -44,8 +44,14 @@ RSpec.describe RubySMB::SMB2::BitField::Smb2HeaderFlags do
   end
 
   describe '#reserved3' do
-    it 'should be a 4-bit field per the SMB spec' do
-      expect(flags.reserved3).to be_a BinData::Bit4
+    it 'should be a 1-bit field per the SMB spec' do
+      expect(flags.reserved3).to be_a BinData::Bit1
+    end
+  end
+
+  describe '#priority' do
+    it 'should be a 3-bit field per the SMB spec' do
+      expect(flags.priority).to be_a BinData::Bit3
     end
   end
 

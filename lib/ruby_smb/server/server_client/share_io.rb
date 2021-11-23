@@ -12,7 +12,8 @@ module RubySMB
         def do_create_smb2(request)
           share_processor = @share_connections[request.smb2_header.tree_id]
           # TODO: need to do something if the tree id is invalid
-          logger.debug("Received Create request for share: #{share_processor.provider.name}")
+          name = request.name.read_now!
+          logger.debug("Received Create request for: #{share_processor.provider.name}\\#{name}")
           share_processor.do_create_smb2(request)
         end
       end

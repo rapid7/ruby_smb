@@ -15,7 +15,7 @@ module RubySMB
         NAME = CREATE_QUERY_ON_DISK_ID
 
         endian :little
-        uint64   :disk_file_id, label: 'Disk File Id'
+        uint64   :disk_file_id, label: 'Disk File Id', initial_value: 0xffffffffffffffff
         uint64   :volume_id,    label: 'Volume Id'
         string   :reserved,     label: 'Reserved', length: 16
       end
