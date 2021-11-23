@@ -28,6 +28,10 @@ module RubySMB
               response
             end
 
+            def do_query_directory_smb2(request)
+              raise NotImplementedError
+            end
+
             def logger
               @server_client.logger
             end

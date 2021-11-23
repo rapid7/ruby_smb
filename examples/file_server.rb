@@ -11,11 +11,11 @@ options = {
   username: 'RubySMB',
   password: 'password',
   share_name: 'home',
-  share_path: Dir.pwd
+  share_path: '.'
 }
 OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
-  opts.on("--path PATH", "The path to share") do |path|
+  opts.on("--path PATH", "The path to share (default: #{options[:share_path]})") do |path|
     options[:share_path] = path
   end
   opts.on("--share SHARE", "The share name (default: #{options[:share_name]})") do |share|
