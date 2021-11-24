@@ -118,6 +118,25 @@ module RubySMB
               response
             end
 
+            def do_read_smb2(request)
+              raise NotImplementedError unless request.channel == SMB2::SMB2_CHANNEL_NONE
+
+              local_path = get_local_path(request.file_id)
+              buffer = ''
+              local_path.open do |file|
+                file.seek(request.offset.snapshot)
+                buffer = file.read(request.read_length)
+              end
+
+              # TODO: check that the buffer is at least request.min_bytes long
+              # TODO: send STATUS_END_OF_FILE if 0 bytes are to be returned
+
+              response = SMB2::Packet::ReadResponse.new
+              response.data_length = buffer.length
+              response.buffer = buffer
+              response
+            end
+
             private
 
             def build_file_attributes(path)
