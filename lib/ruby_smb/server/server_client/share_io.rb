@@ -30,6 +30,20 @@ module RubySMB
           logger.debug("Received Query Directory request for share: #{share_processor.provider.name}")
           share_processor.do_query_directory_smb2(request)
         end
+
+        def do_query_info_smb2(request)
+          share_processor = @share_connections[request.smb2_header.tree_id]
+          # TODO: need to do something if the tree id is invalid
+          logger.debug("Received Query Info request for share: #{share_processor.provider.name}")
+          share_processor.do_query_info_smb2(request)
+        end
+
+        def do_read_smb2(request)
+          share_processor = @share_connections[request.smb2_header.tree_id]
+          # TODO: need to do something if the tree id is invalid
+          logger.debug("Received Read request for share: #{share_processor.provider.name}")
+          share_processor.do_read_smb2(request)
+        end
       end
     end
   end

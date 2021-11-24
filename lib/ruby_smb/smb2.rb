@@ -8,6 +8,11 @@ module RubySMB
     # Wildcard revision, see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/63abf97c-0d09-47e2-88d6-6bfa552949a5
     SMB2_WILDCARD_REVISION = 0x02ff
 
+    # Channel types, see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/320f04f3-1b28-45cd-aaa1-9e5aed810dca
+    SMB2_CHANNEL_NONE = 0
+    SMB2_CHANNEL_RDMA_V1 = 1
+    SMB2_CHANNEL_RDMA_V1_INVALIDATE = 2
+
     require 'ruby_smb/smb2/info_type'
     require 'ruby_smb/smb2/commands'
     require 'ruby_smb/smb2/create_context'

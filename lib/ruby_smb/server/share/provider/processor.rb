@@ -36,6 +36,14 @@ module RubySMB
               raise NotImplementedError
             end
 
+            def do_query_info_smb2(request)
+              raise NotImplementedError
+            end
+
+            def do_read_smb2(request)
+              raise NotImplementedError
+            end
+
             def logger
               @server_client.logger
             end

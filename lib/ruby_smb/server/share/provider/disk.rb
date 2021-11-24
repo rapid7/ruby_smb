@@ -10,7 +10,7 @@ module RubySMB
           class Processor < Processor::Base
             def initialize(provider, server_client)
               super
-              @handle_guids = {}
+              @handle_guids = {}  # TODO: update this to a more robust object
             end
 
             def maximal_access(path=nil)
@@ -82,7 +82,7 @@ module RubySMB
               response = SMB2::Packet::QueryDirectoryResponse.new
               local_path.children.each do |child|
                 next unless child.file? || child.directory? # filter out everything but files and directories
-                next if child.basename.to_s.start_with?('.')
+                next if child.basename.to_s.start_with?('.') # TODO: remove stop filtering out hidden entries
                 infos << build_info(child)
               end
 
@@ -94,6 +94,7 @@ module RubySMB
               end
               response.buffer = buffer
 
+              # TODO: figure out the proper way to buffer and send multiple responses as necessary
               response.smb2_header.credits = request.smb2_header.credits
               response.smb2_header.message_id = request.smb2_header.message_id
               response.smb2_header.session_id = request.smb2_header.session_id
@@ -106,10 +107,55 @@ module RubySMB
               chained_response
             end
 
+            def do_query_info_smb2(request)
+              raise NotImplementedError unless request.info_type == 1 && request.file_information_class == 34
+
+              local_path = get_local_path(request.file_id)
+              response = SMB2::Packet::QueryInfoResponse.new
+              info = Fscc::FileInformation::FileNetworkOpenInformation.new
+              set_common_info(info, local_path)
+              response.buffer = info.to_binary_s
+              response
+            end
+
             private
+
+            def build_file_attributes(path)
+              file_attributes = Fscc::FileAttributes.new
+              if path.file?
+                file_attributes.normal = 1
+              elsif path.directory?
+                file_attributes.directory = 1
+              end
+              file_attributes
+            end
 
             def build_info(path, rename: nil)
               info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
+              set_common_info(info, path)
+              info.file_name = rename || path.basename.to_s
+              info.next_offset = (info.num_bytes + (7 - (info.num_bytes + 7) % 8))
+              info
+            end
+
+            def get_local_path(path)
+              case path
+              when Field::Smb2Fileid
+                path = @handle_guids[path.to_binary_s]
+              when ::String
+                path = path.encode
+              else
+                raise NotImplementedError, "Can not get the local path for: #{path.inspect}"
+              end
+
+              local_path = Pathname.new(provider.path + '/' + path).cleanpath
+              # TODO: report / handle directory traversal issues more robustly
+              raise RuntimeError unless local_path.to_s == provider.path || local_path.to_s.start_with?(provider.path + '/')
+              local_path
+            end
+
+            # A bunch of structures have these common fields with the same meaning, so set them all here
+            def set_common_info(info, path)
               info.create_time = path.birthtime  # TODO: #birthtime will raise NotImplementedError on some file systems
               info.last_access = path.atime
               info.last_write = path.mtime
@@ -117,21 +163,8 @@ module RubySMB
               if path.file?
                 info.end_of_file = path.size
                 info.allocation_size = (path.size + (4095 - (path.size + 4095) % 4096))
-                info.file_attributes.normal = 1
-              elsif path.directory?
-                info.file_attributes.directory = 1
               end
-              info.file_name = rename || path.basename.to_s
-              info.next_offset = (info.num_bytes + (7 - (info.num_bytes + 7) % 8))
-              info
-            end
-
-            def get_local_path(file_id)
-              path = @handle_guids[file_id.to_binary_s]
-              local_path = Pathname.new(provider.path + '/' + path).cleanpath
-              # TODO: report / handle directory traversal issues more robustly
-              raise RuntimeError unless local_path.to_s == provider.path || local_path.to_s.start_with(provider.path + '/')
-              local_path
+              info.file_attributes = build_file_attributes(path)
             end
           end
 

@@ -79,6 +79,10 @@ module RubySMB
             response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
           when RubySMB::SMB2::Commands::QUERY_DIRECTORY
             response = do_query_directory_smb2(RubySMB::SMB2::Packet::QueryDirectoryRequest.read(raw_request))
+          when RubySMB::SMB2::Commands::QUERY_INFO
+            response = do_query_info_smb2(RubySMB::SMB2::Packet::QueryInfoRequest.read(raw_request))
+          when RubySMB::SMB2::Commands::READ
+            response = do_read_smb2(RubySMB::SMB2::Packet::ReadRequest.read(raw_request))
           when RubySMB::SMB2::Commands::TREE_CONNECT
             response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
           when RubySMB::SMB2::Commands::TREE_DISCONNECT
