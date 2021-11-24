@@ -24,7 +24,6 @@ module RubySMB
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
           end
 
-          # TODO: set the tree id more intelligently to avoid collisions (maybe reuse too?)
           response.smb2_header.tree_id = tree_id = rand(0xffffffff)
           @tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self)
           response.maximal_access = share_processor.maximal_access

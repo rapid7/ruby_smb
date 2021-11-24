@@ -28,9 +28,20 @@ module RubySMB
             end
 
             def do_create_smb2(request)
+              unless request.create_disposition == 1
+                logger.warn("Can not handle CREATE request for disposition: #{request.create_disposition}")
+                raise NotImplementedError
+              end
+
               path = request.name.snapshot.dup
               path = path.encode.gsub('\\', File::SEPARATOR)
               local_path = get_local_path(path)
+              unless local_path.file? || local_path.directory?
+                logger.warn("Requested path does not exist: #{local_path}")
+                response = RubySMB::SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND
+                return response
+              end
 
               response = RubySMB::SMB2::Packet::CreateResponse.new
               response.create_action = 1
@@ -72,9 +83,14 @@ module RubySMB
             end
 
             def do_query_directory_smb2(request)
+              unless request.file_information_class == Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
+                logger.warn("Can not handle QUERY_DIRECTORY request for class: #{request.file_information_class}")
+                raise NotImplementedError
+              end
+
               local_path = get_local_path(request.file_id)
-              search_pattern = request.name.snapshot
-              # TODO: need to assert that the info level is 37 SMB2_FIND_ID_BOTH_DIRECTORY_INFO
+              search_pattern = request.name.snapshot.dup.encode  # TODO: need to do something with the search pattern
+
               infos = [
                 build_info(local_path, rename: '.'),
                 build_info(local_path, rename: '..') # don't leak parent directory info
@@ -82,7 +98,7 @@ module RubySMB
               response = SMB2::Packet::QueryDirectoryResponse.new
               local_path.children.each do |child|
                 next unless child.file? || child.directory? # filter out everything but files and directories
-                next if child.basename.to_s.start_with?('.') # TODO: remove stop filtering out hidden entries
+
                 infos << build_info(child)
               end
 
@@ -108,7 +124,10 @@ module RubySMB
             end
 
             def do_query_info_smb2(request)
-              raise NotImplementedError unless request.info_type == 1 && request.file_information_class == 34
+              unless request.info_type == 1 && request.file_information_class == Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
+                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
+                raise NotImplementedError
+              end
 
               local_path = get_local_path(request.file_id)
               response = SMB2::Packet::QueryInfoResponse.new
@@ -122,14 +141,18 @@ module RubySMB
               raise NotImplementedError unless request.channel == SMB2::SMB2_CHANNEL_NONE
 
               local_path = get_local_path(request.file_id)
-              buffer = ''
+              buffer = nil
               local_path.open do |file|
                 file.seek(request.offset.snapshot)
                 buffer = file.read(request.read_length)
               end
 
-              # TODO: check that the buffer is at least request.min_bytes long
-              # TODO: send STATUS_END_OF_FILE if 0 bytes are to be returned
+              # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/21e8b343-34e9-4fca-8d93-03dd2d3e961e
+              if buffer.nil? || buffer.length == 0 || buffer.length < request.min_bytes
+                response = SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_END_OF_FILE
+                return response
+              end
 
               response = SMB2::Packet::ReadResponse.new
               response.data_length = buffer.length

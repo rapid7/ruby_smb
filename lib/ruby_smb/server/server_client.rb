@@ -70,33 +70,21 @@ module RubySMB
           raise NotImplementedError
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
           header = RubySMB::SMB2::SMB2Header.read(raw_request)
-          case header.command
-          when RubySMB::SMB2::Commands::CLOSE
-            response = do_close_smb2(RubySMB::SMB2::Packet::CloseRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::CREATE
-            response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::IOCTL
-            response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::QUERY_DIRECTORY
-            response = do_query_directory_smb2(RubySMB::SMB2::Packet::QueryDirectoryRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::QUERY_INFO
-            response = do_query_info_smb2(RubySMB::SMB2::Packet::QueryInfoRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::READ
-            response = do_read_smb2(RubySMB::SMB2::Packet::ReadRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::TREE_CONNECT
-            response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
-          when RubySMB::SMB2::Commands::TREE_DISCONNECT
-            response = do_tree_disconnect_smb2(RubySMB::SMB2::Packet::TreeDisconnectRequest.read(raw_request))
-          else
-            raise NotImplementedError, "Received unsupported command: #{SMB2::Commands.name(header.command)}"
+          begin
+            response = handle_authenticated_smb2(raw_request, header)
+          rescue NotImplementedError
+            logger.error("Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request")
+            response = SMB2::Packet::ErrorPacket.new
+            response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
           end
 
           unless response.nil?
+            # set these header fields if they were not initialized
             if response.is_a?(SMB2::Packet::ErrorPacket)
               response.smb2_header.command = header.command if response.smb2_header.command == 0
               response.smb2_header.flags.reply = 1
             end
-            # set these header fields if they were not initialized
+
             response.smb2_header.credits = 1 if response.smb2_header.credits == 0
             response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0
             response.smb2_header.session_id = @session_id if response.smb2_header.session_id == 0
@@ -199,6 +187,34 @@ module RubySMB
           @preauth_integrity_hash_algorithm,
           @preauth_integrity_hash_value + data.to_binary_s
         )
+      end
+
+      private
+
+      def handle_authenticated_smb2(raw_request, header)
+        case header.command
+        when RubySMB::SMB2::Commands::CLOSE
+          response = do_close_smb2(RubySMB::SMB2::Packet::CloseRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::CREATE
+          response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::IOCTL
+          response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::QUERY_DIRECTORY
+          response = do_query_directory_smb2(RubySMB::SMB2::Packet::QueryDirectoryRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::QUERY_INFO
+          response = do_query_info_smb2(RubySMB::SMB2::Packet::QueryInfoRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::READ
+          response = do_read_smb2(RubySMB::SMB2::Packet::ReadRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::TREE_CONNECT
+          response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::TREE_DISCONNECT
+          response = do_tree_disconnect_smb2(RubySMB::SMB2::Packet::TreeDisconnectRequest.read(raw_request))
+        else
+          logger.warn("The #{SMB2::Commands.name(header.command)} command is not supported")
+          raise NotImplementedError
+        end
+
+        response
       end
     end
   end
