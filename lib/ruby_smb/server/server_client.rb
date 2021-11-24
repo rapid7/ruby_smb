@@ -35,7 +35,7 @@ module RubySMB
         @preauth_integrity_hash_value = nil
 
         # tree id => provider processor instance
-        @share_connections = {}
+        @tree_connect_table = {}
       end
 
       #
@@ -88,10 +88,14 @@ module RubySMB
           when RubySMB::SMB2::Commands::TREE_DISCONNECT
             response = do_tree_disconnect_smb2(RubySMB::SMB2::Packet::TreeDisconnectRequest.read(raw_request))
           else
-            raise NotImplementedError
+            raise NotImplementedError, "Received unsupported command: #{SMB2::Commands.name(header.command)}"
           end
 
           unless response.nil?
+            if response.is_a?(SMB2::Packet::ErrorPacket)
+              response.smb2_header.command = header.command if response.smb2_header.command == 0
+              response.smb2_header.flags.reply = 1
+            end
             # set these header fields if they were not initialized
             response.smb2_header.credits = 1 if response.smb2_header.credits == 0
             response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0

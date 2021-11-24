@@ -20,6 +20,10 @@ module RubySMB
       CHANGE_NOTIFY   = 0x0f
       QUERY_INFO      = 0x10
       SET_INFO        = 0x11
+
+      def self.name(value)
+        constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+      end
     end
   end
 end
