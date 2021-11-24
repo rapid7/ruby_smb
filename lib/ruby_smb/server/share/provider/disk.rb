@@ -14,16 +14,27 @@ module RubySMB
             end
 
             def maximal_access(path=nil)
-              RubySMB::SMB2::BitField::FileAccessMask.read([0x001f01ff].pack('V'))
+              RubySMB::SMB2::BitField::FileAccessMask.read([0x00000081].pack('V'))
+            end
+
+            def do_close_smb2(request)
+              local_path = get_local_path(request.file_id)
+              @handle_guids.delete(request.file_id.to_binary_s)
+              response = RubySMB::SMB2::Packet::CloseResponse.new
+              set_common_info(response, local_path)
+              response.flags = 1
+              response.structure_size = 0x3c
+              response
             end
 
             def do_create_smb2(request)
               path = request.name.snapshot.dup
               path = path.encode.gsub('\\', File::SEPARATOR)
+              local_path = get_local_path(path)
+
               response = RubySMB::SMB2::Packet::CreateResponse.new
               response.create_action = 1
-              response.create_time = response.last_access = response.last_write = response.last_change = DateTime.now
-              response.file_attributes.directory = 1
+              set_common_info(response, local_path)
               response.file_id.persistent = Zlib::crc32(path)
               response.file_id.volatile = rand(0xffffffff)
               @handle_guids[response.file_id.to_binary_s] = path

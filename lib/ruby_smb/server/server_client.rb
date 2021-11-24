@@ -71,6 +71,8 @@ module RubySMB
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
           header = RubySMB::SMB2::SMB2Header.read(raw_request)
           case header.command
+          when RubySMB::SMB2::Commands::CLOSE
+            response = do_close_smb2(RubySMB::SMB2::Packet::CloseRequest.read(raw_request))
           when RubySMB::SMB2::Commands::CREATE
             response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
           when RubySMB::SMB2::Commands::IOCTL

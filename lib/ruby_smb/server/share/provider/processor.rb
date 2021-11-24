@@ -17,6 +17,10 @@ module RubySMB
             def disconnect!
             end
 
+            def do_close_smb2(request)
+              raise NotImplementedError
+            end
+
             def do_create_smb2(request)
               raise NotImplementedError
             end
