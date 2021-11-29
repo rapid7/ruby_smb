@@ -9,7 +9,7 @@ module RubySMB
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1
           if share_provider.nil?
-            logger.warning("Received TREE_CONNECT request for non-existent share: #{share_name}")
+            logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME
             return response
           end

@@ -198,7 +198,12 @@ module RubySMB
 
             # A bunch of structures have these common fields with the same meaning, so set them all here
             def set_common_info(info, path)
-              info.create_time = path.birthtime  # TODO: #birthtime will raise NotImplementedError on some file systems
+              begin
+                info.create_time = path.birthtime
+              rescue NotImplementedError
+                logger.warn("The file system does not support #birthtime for #{path}")
+              end
+
               info.last_access = path.atime
               info.last_write = path.mtime
               info.last_change = path.ctime

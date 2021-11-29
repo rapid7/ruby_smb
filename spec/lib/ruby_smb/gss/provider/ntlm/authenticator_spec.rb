@@ -13,6 +13,10 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
     Net::NTLM::Message::Type2.new.response(user: username, password: '', domain: domain)
   end
 
+  before(:each) do
+    allow(authenticator).to receive(:logger).and_return(Logger.new(IO::NULL))
+  end
+
   describe '#initialize' do
     it 'defaults to a null session key' do
       expect(authenticator.session_key).to be_nil

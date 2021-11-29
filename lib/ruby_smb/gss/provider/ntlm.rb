@@ -114,11 +114,16 @@ module RubySMB
               return WindowsError::NTStatus::STATUS_LOGON_FAILURE
             end
 
+            dbg_string = "#{type3_msg.domain.encode(''.encoding)}\\#{type3_msg.user.encode(''.encoding)}"
+            logger.debug("NTLM authentication request received for #{dbg_string}")
             account = @provider.get_account(
               type3_msg.user,
               domain: type3_msg.domain
             )
-            return WindowsError::NTStatus::STATUS_LOGON_FAILURE if account.nil?
+            if account.nil?
+              logger.info("NTLM authentication request failed for #{dbg_string} (no account)")
+              return WindowsError::NTStatus::STATUS_LOGON_FAILURE
+            end
 
             matches = false
             case type3_msg.ntlm_version
@@ -159,8 +164,12 @@ module RubySMB
               raise NotImplementedError, "authentication via ntlm version #{type3_msg.ntlm_version} is not supported"
             end
 
-            return WindowsError::NTStatus::STATUS_LOGON_FAILURE unless matches
+            unless matches
+              logger.info("NTLM authentication request failed for #{dbg_string} (bad password)")
+              return WindowsError::NTStatus::STATUS_LOGON_FAILURE
+            end
 
+            logger.info("NTLM authentication request succeeded for #{dbg_string}")
             WindowsError::NTStatus::STATUS_SUCCESS
           end
 

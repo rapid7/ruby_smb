@@ -20,6 +20,8 @@ module RubySMB
             response = do_negotiate_smb2(request) if request.is_a?(SMB2::Packet::NegotiateRequest)
           end
 
+          logger.info("Negotiated dialect: #{RubySMB::Dialect[@dialect].full_name}") if @state == :session_setup
+
           if response.nil?
             disconnect!
           else
