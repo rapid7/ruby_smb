@@ -76,6 +76,16 @@ module RubySMB
 
           response
         end
+
+        def do_logoff_smb2(request)
+          @state = :session_setup
+          @session_id = nil
+          @session_key = nil
+          @identity = nil
+
+          response = SMB2::Packet::LogoffResponse.new
+          response
+        end
       end
     end
   end

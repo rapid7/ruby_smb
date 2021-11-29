@@ -87,7 +87,7 @@ module RubySMB
 
             response.smb2_header.credits = 1 if response.smb2_header.credits == 0
             response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0
-            response.smb2_header.session_id = @session_id if response.smb2_header.session_id == 0
+            response.smb2_header.session_id = header.session_id if response.smb2_header.session_id == 0
             response.smb2_header.tree_id = header.tree_id if response.smb2_header.tree_id == 0
           end
         end
@@ -199,6 +199,8 @@ module RubySMB
           response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
         when RubySMB::SMB2::Commands::IOCTL
           response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
+        when RubySMB::SMB2::Commands::LOGOFF
+          response = do_logoff_smb2(RubySMB::SMB2::Packet::LogoffRequest.read(raw_request))
         when RubySMB::SMB2::Commands::QUERY_DIRECTORY
           response = do_query_directory_smb2(RubySMB::SMB2::Packet::QueryDirectoryRequest.read(raw_request))
         when RubySMB::SMB2::Commands::QUERY_INFO
