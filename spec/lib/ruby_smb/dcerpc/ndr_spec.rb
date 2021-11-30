@@ -1,5 +1,74 @@
 require 'ruby_smb/dcerpc/ndr'
 
+RSpec.shared_examples 'a properly aligned field in a NdrStruct' do |field, alignment|
+  let(:test_struct_class) do
+    klass = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+      default_parameters byte_align: alignment
+      ndr_char :a
+    end
+    klass.send(field.to_sym, :test)
+    klass
+  end
+  let(:test_struct) do
+    test_struct_class.new(a: 'A', test: test_value)
+  end
+  let(:struct_bin) { "A#{"\x00" * (alignment - 1)}#{test_bin}".b }
+
+  it "is always #{alignment}-bytes aligned" do
+    (1..8).each do |i|
+      test_struct = test_struct_class.new(a: 'A' * i, test: test_value)
+      expect(test_struct.test.abs_offset % alignment).to eq(0)
+    end
+  end
+  it 'writes the expected binary stream with the correct padding bytes' do
+    expect(test_struct.to_binary_s).to eq(struct_bin)
+  end
+  it 'reads a padded binary stream' do
+    test_struct2 = test_struct_class.read(struct_bin)
+    expect(test_struct2).to eq(test_struct)
+  end
+  it 'reports the expected structure size' do
+    expect(test_struct.num_bytes).to eq(struct_bin.size)
+  end
+end
+
+RSpec.shared_examples 'a properly aligned conformant structure in a NdrStruct' do |field, alignment|
+  let(:test_struct_class) do
+    klass = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+      default_parameters byte_align: alignment
+      ndr_char :a
+    end
+    klass.send(field.to_sym, :test)
+    klass
+  end
+  let(:test_struct) do
+    test_struct_class.new(a: 'A', test: test_value)
+  end
+  let(:struct_bin) do
+    max_count = test_bin.slice!(0, 4)
+    offset = max_count.size + 1
+    align = (alignment - (offset % alignment)) % alignment
+    "#{max_count}A#{"\x00" * align}#{test_bin}".b
+  end
+
+  it "is always #{alignment}-bytes aligned" do
+    (1..8).each do |i|
+      test_struct = test_struct_class.new(a: 'A' * i, test: test_value)
+      expect(test_struct.test.abs_offset % alignment).to eq(0)
+    end
+  end
+  it 'writes the expected binary stream with the correct padding bytes' do
+    expect(test_struct.to_binary_s).to eq(struct_bin)
+  end
+  it 'reads a padded binary stream' do
+    test_struct2 = test_struct_class.read(struct_bin)
+    expect(test_struct2).to eq(test_struct)
+  end
+  it 'reports the expected structure size' do
+    expect(test_struct.num_bytes).to eq(struct_bin.size)
+  end
+end
+
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrBoolean do
   it 'is a BinData::Uint32le class' do
     expect(described_class).to be < BinData::Uint32le
@@ -88,6 +157,13 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrBoolean do
       expect(boolean.to_binary_s).to eq("\x00\x00\x00\x00")
     end
   end
+
+  context 'when testing alignment in a NdrStruct' do
+    it_behaves_like 'a properly aligned field in a NdrStruct', described_class.bindata_name.to_sym, 4 do
+      let(:test_value) { 1 }
+      let(:test_bin) { "\x01\x00\x00\x00".b }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrChar do
@@ -149,6 +225,13 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrChar do
     it 'returns the expected character binary representation' do
       char.assign('A')
       expect(char.to_binary_s).to eq("\x41")
+    end
+  end
+
+  context 'when testing alignment in a NdrStruct' do
+    it_behaves_like 'a properly aligned field in a NdrStruct', described_class.bindata_name.to_sym, 1 do
+      let(:test_value) { 'B' }
+      let(:test_bin) { 'B'.b }
     end
   end
 end
@@ -214,6 +297,13 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrWideChar do
       expect(char.to_binary_s).to eq("\x41\x00")
     end
   end
+
+  context 'when testing alignment in a NdrStruct' do
+    it_behaves_like 'a properly aligned field in a NdrStruct', described_class.bindata_name.to_sym, 2 do
+      let(:test_value) { 'B' }
+      let(:test_bin) { "B\x00".b }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrEnum do
@@ -223,6 +313,13 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrEnum do
   it 'has :byte_align parameter set to the expected value' do
     expect(described_class.default_parameters[:byte_align]).to eq(2)
   end
+
+  context 'when testing alignment in a NdrStruct' do
+    it_behaves_like 'a properly aligned field in a NdrStruct', described_class.bindata_name.to_sym, 2 do
+      let(:test_value) { 1 }
+      let(:test_bin) { "\x01\x00".b }
+    end
+  end
 end
 
 {
@@ -231,12 +328,20 @@ end
   NdrUint32: { parent_class: :Uint32le, nb_bytes: 4},
   NdrUint64: { parent_class: :Uint64le, nb_bytes: 8},
 }.each do |klass, info|
-  RSpec.describe(RubySMB::Dcerpc::Ndr.const_get(klass)) do
+  full_klass = RubySMB::Dcerpc::Ndr.const_get(klass)
+  RSpec.describe(full_klass) do
     it "is a BinData::#{info[:parent_class]} class" do
       expect(described_class).to be < BinData.const_get(info[:parent_class])
     end
     it 'has :byte_align parameter set to the expected value' do
       expect(described_class.default_parameters[:byte_align]).to eq(info[:nb_bytes])
+    end
+
+    context 'when testing alignment in a NdrStruct' do
+      it_behaves_like 'a properly aligned field in a NdrStruct', full_klass.bindata_name.to_sym, info[:nb_bytes] do
+        let(:test_value) { 1 }
+        let(:test_bin) { "\x01#{"\x00" * (info[:nb_bytes] - 1)}".b }
+      end
     end
   end
 end
@@ -247,6 +352,13 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrFileTime do
   end
   it 'has :byte_align parameter set to the expected value' do
     expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
+  context 'when testing alignment in a NdrStruct' do
+    it_behaves_like 'a properly aligned field in a NdrStruct', described_class.bindata_name.to_sym, 4 do
+      let(:test_value) { 132820620350000000 }
+      let(:test_bin) { "\x80\v\xCF\x86\xA6\xDF\xD7\x01" }
+    end
   end
 end
 
@@ -264,55 +376,49 @@ RSpec.shared_examples "a BinData::Array" do
     expect(described_class).to be < BinData::Array
   end
   it 'is an empty array by default' do
-    expect(subject).to eq([])
+    expect(described_class.new(type: element_class)).to eq([])
   end
 
   context 'with elements' do
-    before :example do
-      subject << 5
-      subject << 7
-    end
     it 'contains the expected element types' do
-      expect(subject.all? {|e| e.is_a?(RubySMB::Dcerpc::Ndr::NdrUint16)}).to be true
+      expect(subject.all? {|e| e.is_a?(element_class)}).to be true
     end
     it 'has the expected size' do
-      expect(subject.size).to eq(2)
+      expect(subject.size).to eq(values.size)
     end
 
     context 'when setting a value at index greater than the current number of elements' do
+      let(:index_offset) { 3 }
+      let(:new_element) { element_class.new(values[0]) }
       before :example do
-        subject[4] = 14
+        subject[values.size + index_offset] = new_element
       end
       it 'adds elements until it reaches the new index' do
-        expect(subject.size).to eq(5)
+        expect(subject.size).to eq(values.size + index_offset + 1)
       end
       it 'sets the new elements to the element type default value' do
-        expect(subject[0]).to eq(5)
-        expect(subject[1]).to eq(7)
-        expect(subject[2]).to eq(0)
-        expect(subject[3]).to eq(0)
-        expect(subject[4]).to eq(14)
+        (values.size..(index_offset - 1)).each do |i|
+          expect(subject[i]).to eq(0)
+        end
+        expect(subject[values.size + index_offset]).to eq(new_element)
       end
     end
 
     context 'when getting a value at index greater than the current number of elements' do
+      let(:index_offset) { 3 }
       it 'adds elements until it reaches the new index' do
-        subject[4]
-        expect(subject.size).to eq(5)
+        subject[values.size + index_offset]
+        expect(subject.size).to eq(values.size + index_offset + 1)
       end
       it 'sets the new elements to the element type default value' do
-        new_element = subject[4]
-        expect(subject[0]).to eq(5)
-        expect(subject[1]).to eq(7)
-        expect(subject[2]).to eq(0)
-        expect(subject[3]).to eq(0)
-        expect(subject[4]).to eq(0)
-        expect(new_element).to eq(0)
+        (values.size..index_offset).each do |i|
+          expect(subject[i]).to eq(element_class.new)
+        end
       end
     end
 
     context 'when assigning another array' do
-      let(:new_array) { [1,2,3] }
+      let(:new_array) { [values[0], values[1], values[2]] }
       before :example do
         subject.assign(new_array)
       end
@@ -328,25 +434,43 @@ RSpec.shared_examples "a BinData::Array" do
   end
 end
 
-RSpec.shared_examples "a NDR Array" do |counter|
-  counter.each do |name, position|
-    it "has #{name} set to 0 (little endian uint32) by default" do
-      expect(subject.to_binary_s[position*4, 4]).to eq("\x00\x00\x00\x00")
+RSpec.shared_examples "a NDR Array" do |conformant:, varying:|
+  let(:max_count) { subject.to_binary_s.slice(0, 4).unpack('L' * 4)[0] }
+  let(:actual_count) do
+    index = conformant ? 8 : 4
+    subject.to_binary_s.slice(index, 4).unpack('L' * 4)[0]
+  end
+  let(:offset) do
+    index = conformant ? 4 : 0
+    subject.to_binary_s.slice(index, 4).unpack('L' * 4)[0]
+  end
+
+  if conformant
+    it "has :max_count set to 0 (little endian uint32) by default" do
+      empty_array = described_class.new(type: element_class)
+      expect(empty_array.to_binary_s[0, 4]).to eq("\x00\x00\x00\x00")
+    end
+  end
+  if varying
+    it "has :offset and :actual_count set to 0 (little endian uint32) by default" do
+      empty_array = described_class.new(type: element_class)
+      # offset
+      expect(empty_array.to_binary_s[0, 4]).to eq("\x00\x00\x00\x00")
+      # actual_count
+      expect(empty_array.to_binary_s[4, 4]).to eq("\x00\x00\x00\x00")
     end
   end
   it 'reads itself' do
-    values = 3.times.map do
-      value = rand(0xFF)
-      subject << value
-      value
-    end
-    expect(subject.read(subject.to_binary_s)).to eq(values)
+    expect(described_class.new(type: element_class).read(subject.to_binary_s)).to eq(values)
   end
-  it 'has :byte_align parameter set to the expected value' do
-    expect(subject.eval_parameter(:byte_align)).to eq(4)
+  it 'has :byte_align parameter set to the largest alignment of the array element type and the size information type, if any' do
+    # minimum alignment is 4 bytes since arrays are prefixed with an uint32 size element for 32-bit NDR
+    align = [4, element_size].max
+    expect(subject.eval_parameter(:byte_align)).to eq(align)
   end
 
   context 'when checking if its elements have :byte_align parameter set' do
+    # element independent
     it 'does not raise error when the :byte_align parameter is set in the element class' do
       test_element = Class.new(BinData::Record) do
         default_parameters byte_align: 4
@@ -356,6 +480,7 @@ RSpec.shared_examples "a NDR Array" do |counter|
       BinData::RegisteredClasses.register('test_element', test_element)
       expect { described_class.new(type: :test_element, byte_align: 4) }.to_not raise_error
     end
+    # element independent
     it 'does not raise error when the :byte_align parameter is set during instantiation' do
       test_element = Class.new(BinData::Record) do
         endian :little
@@ -365,14 +490,17 @@ RSpec.shared_examples "a NDR Array" do |counter|
       expect { described_class.new(type: [:test_element, {byte_align: 4}], byte_align: 4) }.to_not raise_error
     end
     context 'with a NDR element' do
+      # element independent
       it 'does not raise error when the type element is a symbol' do
         expect { described_class.new(type: :ndr_uint32, byte_align: 4) }.to_not raise_error
       end
+      # element independent
       it 'does not raise error when the type element is a class' do
         expect { described_class.new(type: RubySMB::Dcerpc::Ndr::NdrUint32, byte_align: 4) }.to_not raise_error
       end
     end
-    it 'raises an ArgumentError when no :byte_align is provided' do
+    # element independent
+    it 'raises an ArgumentError when the element has no :byte_align' do
       test_element = Class.new(BinData::Record) do
         endian :little
         uint32 :a
@@ -380,7 +508,8 @@ RSpec.shared_examples "a NDR Array" do |counter|
       BinData::RegisteredClasses.register('test_element', test_element)
       expect { described_class.new(type: :test_element, byte_align: 4) }.to raise_error(ArgumentError)
     end
-    it 'raises an ArgumentError when other parameters than :byte_align are provided' do
+    # element independent
+    it 'raises an ArgumentError when the element has a parameter different than :byte_align' do
       test_element = Class.new(BinData::Array) do
         default_parameters type: :uint8
       end
@@ -390,50 +519,78 @@ RSpec.shared_examples "a NDR Array" do |counter|
   end
 
   context 'with size information' do
-    before :example do
-      subject << 5
-      subject << 7
-    end
-    counter.each do |name, position|
-      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
-
-      it "sets #{name} to a little endian uint32 value representing the number of elements" do
-        expect(counter_value).to eq(subject.size)
+    if conformant
+      it "sets :max_count to a little endian uint32 value representing the number of elements" do
+        expect(max_count).to eq(subject.size)
       end
-      it "updates #{name} when adding one element" do
-        subject << 10
-        expect(counter_value).to eq(subject.size)
+      it "updates :max_count when adding one element" do
+        subject << values[0]
+        expect(max_count).to eq(subject.size)
       end
-
       context 'when setting a value at index greater than the current number of elements' do
-        it "sets #{name} to the new number of elements" do
-          subject[4] = 14
-          expect(counter_value).to eq(5)
+        it "sets :max_count to the new number of elements" do
+          index_offset = rand(10)
+          subject[values.size + index_offset] = values[0]
+          expect(max_count).to eq(values.size + index_offset + 1)
         end
       end
-
       context 'when reading a value at index greater than the current number of elements' do
-        it "sets #{name} to the new number of elements" do
-          new_element = BinData::Uint16le.new(1)
-          new_element.assign(subject[4])
-          expect(counter_value).to eq(5)
+        it "sets :max_count to the new number of elements" do
+          index_offset = rand(10)
+          subject[values.size + index_offset]
+          expect(max_count).to eq(values.size + index_offset + 1)
         end
       end
-
       context 'when assigning another array' do
-        it "sets #{name} to the new number of elements" do
-          new_array = [1,2,3]
+        it "sets :max_count to the new number of elements" do
+          new_size = rand(10)
+          new_array = new_size.times.map { values[0] }
           subject.assign(new_array)
-          expect(counter_value).to eq(3)
+          expect(max_count).to eq(new_size)
+        end
+      end
+    end
+
+    if varying
+      it "sets :actual_count to a little endian uint32 value representing the number of elements" do
+        expect(actual_count).to eq(subject.size)
+      end
+      it "updates :actual_count when adding one element" do
+        subject << values[0]
+        expect(actual_count).to eq(subject.size)
+      end
+      it 'has offset always set to 0' do
+        expect(offset).to eq(0)
+        subject << values[0]
+        expect(offset).to eq(0)
+      end
+      context 'when setting a value at index greater than the current number of elements' do
+        it "sets :actual_count to the new number of elements" do
+          index_offset = rand(10)
+          subject[values.size + index_offset] = values[0]
+          expect(actual_count).to eq(values.size + index_offset + 1)
+        end
+      end
+      context 'when reading a value at index greater than the current number of elements' do
+        it "sets :actual_count to the new number of elements" do
+          index_offset = rand(10)
+          subject[values.size + index_offset]
+          expect(actual_count).to eq(values.size + index_offset + 1)
+        end
+      end
+      context 'when assigning another array' do
+        it "sets :actual_count to the new number of elements" do
+          new_size = rand(10)
+          new_array = new_size.times.map { values[0] }
+          subject.assign(new_array)
+          expect(actual_count).to eq(new_size)
         end
       end
     end
   end
 
   context 'when reading a binary stream' do
-    before :example do
-      subject.read(binary_stream)
-    end
+    subject { described_class.new(type: element_class).read(binary_stream) }
 
     it 'has the expected size' do
       expect(subject.size).to eq(values.size)
@@ -446,47 +603,60 @@ RSpec.shared_examples "a NDR Array" do |counter|
     it 'has the same binary representation than the original binary stream' do
       expect(subject.to_binary_s).to eq(binary_stream)
     end
-    counter.each do |name, position|
-      let(:counter_value) { subject.to_binary_s.unpack('L'*(position+1))[position] }
-      it "sets #{name} to the new number of elements" do
-        expect(counter_value).to eq(values.size)
+    if conformant
+      it "sets :max_count to the new number of elements" do
+        expect(max_count).to eq(values.size)
+      end
+    end
+    if varying
+      it "sets :actual_count to the new number of elements" do
+        expect(actual_count).to eq(values.size)
       end
     end
     it 'sets @read_until_index to the number of elements' do
       expect(subject.read_until_index).to eq(values.size)
     end
     context 'with an empty array' do
-      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
-      before :example do
-        subject.read(empty_binary_str)
+      let(:empty_binary_str) do
+        str = ''
+        str << "\x00\x00\x00\x00" if conformant
+        str << "\x00\x00\x00\x00\x00\x00\x00\x00" if varying
+        str
       end
+      subject { described_class.new(type: element_class).read(empty_binary_str) }
+
       it 'is an empty array' do
         expect(subject).to eq([])
       end
       it 'sets @read_until_index to 0' do
         expect(subject.read_until_index).to eq(0)
       end
-      counter.each do |name, _position|
-        it "sets #{name} to 0" do
-          expect(subject.send(name.to_sym)).to eq(0)
+      if conformant
+        it "sets :max_count to 0" do
+          expect(max_count).to eq(0)
+        end
+      end
+      if varying
+        it "sets :actual_count to 0" do
+          expect(actual_count).to eq(0)
         end
       end
     end
   end
 
   context 'when getting a binary stream' do
-    before :example do
-      subject.assign(values)
-    end
-
     it 'outputs the expected binary' do
       expect(subject.to_binary_s).to eq(binary_stream)
     end
     context 'with an empty array' do
-      let(:empty_binary_str) { "\x00\x00\x00\x00".b * (counter.values.max + 1) }
-      before :example do
-        subject.assign([])
+      let(:empty_binary_str) do
+        str = ''
+        str << "\x00\x00\x00\x00" if conformant
+        str << "\x00\x00\x00\x00\x00\x00\x00\x00" if varying
+        str
       end
+      subject { described_class.new(type: element_class).assign([]) }
+
       it 'outputs the expected binary' do
         expect(subject.to_binary_s).to eq(empty_binary_str)
       end
@@ -494,9 +664,6 @@ RSpec.shared_examples "a NDR Array" do |counter|
   end
 
   context 'when calling #do_num_bytes' do
-    before :example do
-      subject.assign(values)
-    end
     it 'returns the expected number of bytes' do
       expect(subject.do_num_bytes).to eq(binary_stream.size)
     end
@@ -519,75 +686,261 @@ RSpec.shared_examples "a NDR Array" do |counter|
         pad_size = 3
         expected_nb = (uint32_size + char_size) * 2
         expected_nb += pad_size
-        expected_nb += 4 if counter['max_count']
-        expected_nb += 8 if counter['actual_count']
+        expected_nb += 4 if conformant
+        expected_nb += 8 if varying
         expect(array_with_struct.do_num_bytes).to eq(expected_nb)
       end
     end
   end
 
-  context 'when it is embedded in a NDR structure' do
-    let(:embedded_struct) do
-      Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
-        default_parameters byte_align: 4
-        ndr_uint32 :a
+  {
+    NdrUint8: { align: 1, data: rand(0xFF), pack: 'C' },
+    NdrUint16: { align: 2, data: rand(0xFFFF), pack: 'S<' },
+    NdrUint32: { align: 4, data: rand(0xFFFFFFFF), pack: 'L<' },
+    NdrUint64: { align: 8, data: rand(0xFFFFFFFFFFFFFFFF), pack: 'Q<'},
+    NdrChar: { align: 1, data: 'A', binary: 'A'.b },
+    NdrVarString: { align: 4, data: 'AAAAA'.encode('ASCII-8BIT'), binary: "#{[0].pack('L')}#{[5].pack('L')}AAAAA".b},
+    NdrVarStringz: { align: 4, data: 'AAAAA'.encode('ASCII-8BIT'), binary: "#{[0].pack('L')}#{[6].pack('L')}AAAAA\x00".b},
+    NdrVarWideString: { align: 4, data: 'AAAAA'.encode('UTF-16LE'), binary: "#{[0].pack('L')}#{[5].pack('L')}A\x00A\x00A\x00A\x00A\x00".b},
+    NdrVarWideStringz: { align: 4, data: 'AAAAA'.encode('UTF-16LE'), binary: "#{[0].pack('L')}#{[6].pack('L')}A\x00A\x00A\x00A\x00A\x00\x00\x00".b},
+  }.each do |klass, info|
+    context "when it is embedded in a NDR structure and preceeded by a #{klass}" do
+      let(:field_class) { RubySMB::Dcerpc::Ndr.const_get(klass) }
+      let(:field_obj) { field_class.new(info[:data]) }
+      let(:embedded_struct) do
+        byte_align = struct_max_align
+        embedded_struct = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+          default_parameters(byte_align: byte_align)
+        end
+        embedded_struct.send(field_class.bindata_name.to_sym, :a)
+        embedded_struct
       end
-    end
 
-    context 'directly as an array' do
-      before :example do
-        embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: :ndr_uint16)
-      end
-      let(:test_instance) { embedded_struct.new(a: 3, ary: values) }
-      let(:binary_str) do
-        binary_str = "".b
-        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
-        binary_str << "#{[3].pack('L')}"
-        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
-        binary_str << "#{values.pack("S#{values.size}")}"
-        binary_str
-      end
+      context 'directly as an array' do
+        before :example do
+          embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: element_class)
+        end
+        let(:array_max_align) { (varying && element_size < 4) ? 4 : element_size }
+        let(:struct_max_align) { [array_max_align, info[:align]].max }
+        let(:test_instance) { embedded_struct.new(a: field_obj, ary: values) }
+        let(:binary_str) do
+          binary_str = "".b
+          if conformant
+            binary_str << binary_stream.slice!(0, 4)
+          end
+          pad_length = (struct_max_align - (binary_str.size % struct_max_align)) % struct_max_align
+          binary_str << "\x00" * pad_length
+          if info[:data].is_a?(String)
+            binary_str << info[:binary]
+          else
+            binary_str << "#{[info[:data]].pack(info[:pack])}"
+          end
+          if varying
+            pad_length = (array_max_align - (binary_str.size % array_max_align)) % array_max_align
+            binary_str << "\x00" * pad_length
+            binary_str << binary_stream.slice!(0, 8)
+          end
+          pad_length = (element_size - (binary_str.size % element_size)) % element_size
+          binary_str << "\x00" * pad_length
+          binary_str << bin_values
+          binary_str
+        end
 
-      context 'when writing the stream of bytes' do
-        it 'moves #max_count from any conformant array to the beginning of the structure' do
-          expect(test_instance.to_binary_s).to eq(binary_str)
+        context 'when writing the stream of bytes' do
+          it 'outputs the expect binary' do
+            expect(test_instance.to_binary_s).to eq(binary_str)
+          end
+        end
+
+        context 'when reading a stream of bytes' do
+          it 'outputs the expected structure' do
+            expect(embedded_struct.read(binary_str)).to eq({ a: info[:data], ary: values })
+          end
+        end
+
+        context 'when calling #num_bytes' do
+          it 'outputs the expected number of bytes' do
+            expect(test_instance.num_bytes).to eq(binary_str.size)
+          end
         end
       end
 
-      context 'when reading a stream of bytes' do
-        it 'reads #max_count from any conformant array at the beginning of the structure' do
-          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary: values })
+      context 'as a pointer to an array' do
+        before :example do
+          array_ptr = Class.new(described_class) do
+            extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
+          end
+          BinData::RegisteredClasses.register('test_array_ptr', array_ptr)
+          embedded_struct.send(:test_array_ptr, :ary_ptr, type: element_class)
         end
-      end
-    end
+        let(:struct_max_align) { [4, info[:align]].max }
+        let(:test_instance) { embedded_struct.new(a: field_obj, ary_ptr: values) }
+        let(:binary_str) do
+          binary_str = "".b
+          if info[:data].is_a?(String)
+            binary_str << info[:binary]
+          else
+            binary_str << "#{[info[:data]].pack(info[:pack])}"
+          end
+          pad_length = (4 - (binary_str.size % 4)) % 4
+          binary_str << "\x00" * pad_length
+          ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L<')
+          binary_str << ref_id
+          if conformant
+            binary_str << binary_stream.slice!(0, 4)
+          end
+          if varying
+            binary_str << binary_stream.slice!(0, 8)
+          end
+          pad_length = (element_size - (binary_str.size % element_size)) % element_size
+          binary_str << "\x00" * pad_length
+          binary_str << bin_values
+          binary_str
+        end
 
-    context 'as a pointer to an array' do
-      before :example do
-        array_ptr = Class.new(described_class) do
-          extend RubySMB::Dcerpc::Ndr::PointerClassPlugin
+        context 'when writing the stream of bytes' do
+          it 'outputs the expect binary' do
+            expect(test_instance.to_binary_s).to eq(binary_str)
+          end
         end
-        BinData::RegisteredClasses.register('test_array_ptr', array_ptr)
-        embedded_struct.send(:test_array_ptr, :ary_ptr, type: :ndr_uint16)
-      end
-      let(:test_instance) { test_instance = embedded_struct.new(a: 3, ary_ptr: values) }
-      let(:binary_str) do
-        ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
-        binary_str = "#{[3].pack('L')}"
-        binary_str << "#{ref_id}"
-        binary_str << "#{[values.size].pack('L')}" if counter['max_count']
-        binary_str << "#{[0].pack('L')}#{[values.size].pack('L')}" if counter['actual_count']
-        binary_str << "#{values.pack("S#{values.size}")}"
-        binary_str
+
+        context 'when reading a stream of bytes' do
+          it 'outputs the expected structure' do
+            expect(embedded_struct.read(binary_str)).to eq({ a: info[:data], ary_ptr: values })
+          end
+        end
+
+        context 'when calling #num_bytes' do
+          it 'outputs the expected number of bytes' do
+            expect(test_instance.num_bytes).to eq(binary_str.size)
+          end
+        end
       end
 
-      context 'when writing the stream of bytes' do
-        it 'does not move #max_count from any conformant array to the beginning of the structure' do
-          expect(test_instance.to_binary_s).to eq(binary_str)
+      context 'embedded in another structure' do
+        before :example do
+          byte_align = struct_max_align
+          embedded_struct2 = Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+            default_parameters(byte_align: byte_align)
+          end
+          embedded_struct2.send(field_class.bindata_name.to_sym, :a)
+          embedded_struct2.send(described_class.bindata_name.to_sym, :ary, type: element_class)
+          BinData::RegisteredClasses.register('embedded_struct_2nd_lvl', embedded_struct2)
+          embedded_struct.send(:embedded_struct_2nd_lvl, :struct2)
+        end
+        let(:array_max_align) { (varying && element_size < 4) ? 4 : element_size }
+        let(:struct2_max_align) { [array_max_align, info[:align]].max }
+        let(:struct_max_align) { [struct2_max_align, info[:align]].max }
+        let(:test_instance) { embedded_struct.new(a: field_obj, struct2: { a: field_obj, ary: values }) }
+        let(:binary_str) do
+          binary_str = "".b
+          if conformant
+            binary_str << binary_stream.slice!(0, 4)
+          end
+          # a
+          pad_length = (struct_max_align - (binary_str.size % struct_max_align)) % struct_max_align
+          binary_str << "\x00" * pad_length
+          if info[:data].is_a?(String)
+            binary_str << info[:binary]
+          else
+            binary_str << "#{[info[:data]].pack(info[:pack])}"
+          end
+          # struct2.a
+          pad_length = (struct2_max_align - (binary_str.size % struct2_max_align)) % struct2_max_align
+          binary_str << "\x00" * pad_length
+          if info[:data].is_a?(String)
+            binary_str << info[:binary]
+          else
+            binary_str << "#{[info[:data]].pack(info[:pack])}"
+          end
+          # struct2.ary
+          if varying
+            pad_length = (array_max_align - (binary_str.size % array_max_align)) % array_max_align
+            binary_str << "\x00" * pad_length
+            binary_str << binary_stream.slice!(0, 8)
+          end
+          pad_length = (element_size - (binary_str.size % element_size)) % element_size
+          binary_str << "\x00" * pad_length
+          binary_str << bin_values
+          binary_str
+        end
+
+        context 'when writing the stream of bytes' do
+          it 'outputs the expect binary' do
+            expect(test_instance.to_binary_s).to eq(binary_str)
+          end
+        end
+
+        context 'when reading a stream of bytes' do
+          it 'outputs the expected structure' do
+            expect(embedded_struct.read(binary_str)).to eq({ a: field_obj, struct2: { a: field_obj, ary: values } })
+          end
+        end
+
+        context 'when calling #num_bytes' do
+          it 'outputs the expected number of bytes' do
+            expect(test_instance.num_bytes).to eq(binary_str.size)
+          end
         end
       end
-      context 'when reading a stream of bytes' do
-        it 'reads #max_count from any conformant array at the beginning of the structure' do
-          expect(embedded_struct.read(binary_str)).to eq({ a: 3, ary_ptr: values })
+
+      unless conformant
+        {
+          NdrUint8:  { size: 1 },
+          NdrUint16: { size: 2 },
+          NdrUint32: { size: 4 },
+          NdrUint64: { size: 8 }
+        }.each do |klass2, info2|
+          context "directly as an array and followed by a #{klass2}" do
+            before :example do
+              embedded_struct.send(described_class.bindata_name.to_sym, :ary, type: element_class)
+              embedded_struct.send(field_class2.bindata_name.to_sym, :b)
+            end
+            let(:field_class2) { RubySMB::Dcerpc::Ndr.const_get(klass2) }
+            let(:field_obj2) { field_class2.new(rand(0xFF)) }
+            let(:array_max_align) { element_size < 4 ? 4 : element_size }
+            let(:struct_max_align) { [array_max_align, info[:align], info2[:size]].max }
+            let(:test_instance) { embedded_struct.new(a: field_obj, ary: values, b: field_obj2) }
+            let(:binary_str) do
+              binary_str = "".b
+              # a
+              if info[:data].is_a?(String)
+                binary_str << info[:binary]
+              else
+                binary_str << "#{[info[:data]].pack(info[:pack])}"
+              end
+              # ary
+              pad_length = (array_max_align - (binary_str.size % array_max_align)) % array_max_align
+              binary_str << "\x00" * pad_length
+              binary_str << binary_stream.slice!(0, 8)
+              pad_length = (element_size - (binary_str.size % element_size)) % element_size
+              binary_str << "\x00" * pad_length
+              binary_str << bin_values
+              # b
+              pad_length = (info2[:size] - (binary_str.size % info2[:size])) % info2[:size]
+              binary_str << "\x00" * pad_length
+              binary_str << field_obj2.to_binary_s
+              binary_str
+            end
+
+            context 'when writing the stream of bytes' do
+              it 'outputs the expect binary' do
+                expect(test_instance.to_binary_s).to eq(binary_str)
+              end
+            end
+
+            context 'when reading a stream of bytes' do
+              it 'outputs the expected structure' do
+                expect(embedded_struct.read(binary_str)).to eq({ a: info[:data], ary: values, b: field_obj2.to_i })
+              end
+            end
+
+            context 'when calling #num_bytes' do
+              it 'outputs the expected number of bytes' do
+                expect(test_instance.num_bytes).to eq(binary_str.size)
+              end
+            end
+          end
         end
       end
     end
@@ -766,58 +1119,52 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrFixedByteArray do
   end
 end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfArray do
-  subject { described_class.new(type: :ndr_uint16) }
-  it_behaves_like 'a BinData::Array'
-  it_behaves_like 'a NDR Array', { 'max_count' => 0 } do
-    let(:binary_stream) {
-      "\x03\x00\x00\x00"\
-      "\x09\x00"\
-      "\x03\x00"\
-      "\x06\x00".b
-    }
-    let(:values) { [9, 3, 6] }
-  end
-end
+{
+  NdrUint8: { size: 1, data: rand(0xFF), pack: 'C' },
+  NdrUint16: { size: 2, data: rand(0xFFFF), pack: 'S<' },
+  NdrUint32: { size: 4, data: rand(0xFFFFFFFF), pack: 'L<' },
+  NdrUint64: { size: 8, data: rand(0xFFFFFFFFFFFFFFFF), pack: 'Q<'},
+  NdrChar: {  size: 1, data: 'A', binary: 'A'.b },
+  NdrVarString: { size: 4, data: 'AAAAA'.encode('ASCII-8BIT'), binary: "#{[0].pack('L')}#{[5].pack('L')}AAAAA".b},
+  NdrVarStringz: { size: 4, data: 'AAAAA'.encode('ASCII-8BIT'), binary: "#{[0].pack('L')}#{[6].pack('L')}AAAAA\x00".b},
+  NdrVarWideString: { size: 4, data: 'AAAAA'.encode('UTF-16LE'), binary: "#{[0].pack('L')}#{[5].pack('L')}A\x00A\x00A\x00A\x00A\x00".b},
+  NdrVarWideStringz: { size: 4, data: 'AAAAA'.encode('UTF-16LE'), binary: "#{[0].pack('L')}#{[6].pack('L')}A\x00A\x00A\x00A\x00A\x00\x00\x00".b},
+}.each do |klass, info|
+  RSpec.describe "NDR Array with #{klass}" do
+    let(:element_size) { info[:size] }
+    let(:element_class) { RubySMB::Dcerpc::Ndr.const_get(klass) }
+    let(:values) { rand(3..16).times.map { info[:data] } }
+    #let(:values) { [0xFF, 0xFF, 0xFF, 0xFF] }
+    let(:bin_values) do
+      if info[:data].is_a?(String)
+        info[:binary] * values.size
+      else
+        values.map { |e| [e].pack(info[:pack]) }.join
+      end
+    end
+    let(:binary_stream) do
+      pad_length = (element_size - (size_info.size % element_size)) % element_size
+      "#{size_info}#{"\x00" * pad_length}#{bin_values}".b
+    end
+    subject { described_class.new(values, type: element_class) }
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarArray do
-  subject { described_class.new(type: :ndr_uint16) }
-  it_behaves_like 'a BinData::Array'
-  it_behaves_like 'a NDR Array', { 'actual_count' => 1 } do
-    let(:binary_stream) {
-      "\x00\x00\x00\x00"\
-      "\x04\x00\x00\x00"\
-      "\x03\x00"\
-      "\x01\x00"\
-      "\x07\x00"\
-      "\x02\x00".b
-    }
-    let(:values) { [3, 1, 7, 2] }
-  end
-  it 'has offset always set to 0' do
-    expect(subject.to_binary_s[0,4]).to eq("\x00\x00\x00\x00")
-  end
-end
+    describe RubySMB::Dcerpc::Ndr::NdrConfArray do
+      let(:size_info) { [values.size].pack('L<') }
+      it_behaves_like 'a BinData::Array'
+      it_behaves_like 'a NDR Array', conformant: true, varying: false
+    end
 
-RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
-  subject { described_class.new(type: :ndr_uint16) }
-  it_behaves_like 'a BinData::Array'
-  it_behaves_like 'a NDR Array', { 'max_count' => 0, 'actual_count' => 2 } do
-    let(:binary_stream) {
-      "\x04\x00\x00\x00"\
-      "\x00\x00\x00\x00"\
-      "\x04\x00\x00\x00"\
-      "\x02\x00"\
-      "\x09\x00"\
-      "\x08\x00"\
-      "\x05\x00".b
-    }
-    let(:values) { [2, 9, 8, 5] }
-  end
-  it 'has offset always set to 0' do
-    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
-    subject.assign([1,2])
-    expect(subject.to_binary_s[4,4]).to eq("\x00\x00\x00\x00")
+    describe RubySMB::Dcerpc::Ndr::NdrVarArray do
+      let(:size_info) { "\x00\x00\x00\x00#{[values.size].pack('L<')}" }
+      it_behaves_like 'a BinData::Array'
+      it_behaves_like 'a NDR Array', conformant: false, varying: true
+    end
+
+    describe RubySMB::Dcerpc::Ndr::NdrConfVarArray do
+      let(:size_info) { "#{[values.size].pack('L<')}\x00\x00\x00\x00#{[values.size].pack('L<')}" }
+      it_behaves_like 'a BinData::Array'
+      it_behaves_like 'a NDR Array', conformant: true, varying: true
+    end
   end
 end
 
@@ -3373,8 +3720,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [1, 2],
-          field_binary: [2].pack('L') + [1, 2].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [1, 2].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64 } }
         end
@@ -3394,6 +3742,7 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [1, 2],
           field_binary: [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ')
         ) do
@@ -3415,8 +3764,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [1, 2],
-          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [0].pack('L') + [1, 2].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64 } }
         end
@@ -3589,8 +3939,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [ [1, 2], [3, 4] ],
-          field_binary: [2].pack('L') + [1, 2].pack('QQ') + [3, 4].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [1, 2].pack('QQ') + [3, 4].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64, initial_length: 2, byte_align: 8} }
         end
@@ -3610,8 +3961,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [ [1, 2], [3, 4] ],
-          field_binary: [2].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [3, 4].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [0].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [0].pack('L') + [3, 4].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64} }
         end
@@ -3631,8 +3983,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [ [1, 2], [3, 4] ],
-          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [0].pack('L') + [2].pack('L') + [3, 4].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [0].pack('L') + [2].pack('L') + [3, 4].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64} }
         end
@@ -3652,8 +4005,9 @@ RSpec.describe 'Alignment' do
       context 'with an array of NdrUint64' do
         it_behaves_like(
           'an aligned structure',
+          align: 8,
           field_value: [ [1, 2], [3, 4] ],
-          field_binary: [2].pack('L') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [3, 4].pack('QQ')
+          field_binary: [2].pack('L') + [0].pack('L') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [0].pack('L') + [1, 2].pack('QQ') + [2].pack('L') + [0].pack('L') + [2].pack('L') + [0].pack('L') + [3, 4].pack('QQ')
         ) do
           let(:params) { {type: :ndr_uint64} }
         end

@@ -129,16 +129,25 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def get_top_level_constructed_type
-      if is_a?(PointerPlugin)
-        return self
-      end
+      return self if is_a?(PointerPlugin)
+
       res = nil
       if parent&.is_a?(ConstructedTypePlugin)
         res = parent.get_top_level_constructed_type
       end
       return res || self
     end
+
+    def do_num_bytes_ptr(struct_offset)
+      sum = 0
+      @deferred_ptrs.each do |ptr_ref|
+        sum += ptr_ref.do_num_bytes(struct_offset + sum, is_deferred: true)
+      end
+      @deferred_ptrs.clear
+      sum
+    end
   end
+
 
   #
   # Arrays
@@ -166,6 +175,10 @@ module RubySMB::Dcerpc::Ndr
     def self.extended(target)
       target.default_parameters(
         :read_until => lambda { index == (@obj.read_until_index - 1) },
+        # Set :byte_align to 4 bytes by default, which is the size of the `size
+        # information` field (:max_count or :offset/:actual_count). If the
+        # elements set with :type are greater, this parameter will be
+        # updated later in NdrArrayArgProcessor::sanitize_parameters!
         :byte_align => 4
       )
       target.arg_processor :ndr_array
@@ -184,18 +197,94 @@ module RubySMB::Dcerpc::Ndr
   module ArrayPlugin
     include ConstructedTypePlugin
 
+    def align_element_size(offset)
+      align = eval_parameter(:type).instance_variable_get(:@obj_params)[:byte_align]
+      align ? (align - (offset % align)) % align : 0
+    end
+
+    def should_process_max_count?
+      # :max_count has already been processed if the parent structure is an
+      # NdrStruct, but this is not the case if we are dealing with a pointer
+      !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+    end
+
     def do_write(io)
-      super
+      if is_a?(ConfPlugin) && should_process_max_count?
+        io.writebytes([@max_count].pack('L<'))
+      end
+
+      if is_a?(VarPlugin)
+        io.writebytes([@offset].pack('L<'))
+        io.writebytes([@actual_count].pack('L<'))
+      end
+
+      unless empty?
+        io.writebytes("\x00" * align_element_size(io.offset))
+        super
+      end
+
       if has_deferred_ptrs?
         write_ptr(io)
       end
     end
 
+    def has_elements_to_read?
+      # When reading a binary stream, the only elements that indicate the array
+      # has elements to read are :actual_count, :max_count or :initial_length
+      # parameter, depending on the type of NDR Array:
+      # 1. When :actual_count is present (NdrVarArray and NdrConfVarArray), it
+      #    indicates the actual number of elements passed
+      # 2. When only :max_count is present (NdrConfArray), we're assuming the
+      #    maximum number of elements is the actual number of elements in this
+      #    array
+      # 3. None of them are present, but :initial_length parameter has been
+      #    set, meaning we are delaing with a fixed array without any embedded
+      #    size information (NdrFixArray)
+      (@actual_count&.> 0) ||
+      @actual_count.nil? && (@max_count&.> 0) ||
+      @actual_count.nil? && @max_count.nil? && (eval_parameter(:initial_length)&.> 0)
+    end
+
     def do_read(io)
-      super
+      if is_a?(ConfPlugin) && should_process_max_count?
+        set_max_count(io.readbytes(4).unpack('L<').first)
+      end
+
+      if is_a?(VarPlugin)
+        @offset = io.readbytes(4).unpack('L<').first
+        @actual_count = @read_until_index = io.readbytes(4).unpack('L<').first
+      end
+
+      if has_elements_to_read?
+        io.seekbytes(align_element_size(io.offset))
+        super
+      end
+
       if has_deferred_ptrs?
         read_ptr(io)
       end
+    end
+
+    def do_num_bytes(struct_offset = 0)
+      sum = 0
+
+      if is_a?(ConfPlugin) && should_process_max_count?
+        sum += 4
+      end
+
+      if is_a?(VarPlugin)
+        sum += 8
+      end
+
+      unless empty?
+        sum += align_element_size(struct_offset + sum)
+        sum += super()
+      end
+
+      if has_deferred_ptrs?
+        sum += do_num_bytes_ptr(struct_offset + sum)
+      end
+      sum
     end
 
     def sum_num_bytes_below_index(index)
@@ -226,20 +315,6 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
-    def do_write(io)
-      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
-        io.writebytes([@max_count].pack('L<'))
-      end
-      super if is_a?(VarPlugin) || @max_count > 0
-    end
-
-    def do_read(io)
-      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
-        set_max_count(io.readbytes(4).unpack('L<').first)
-      end
-      super if is_a?(VarPlugin) || @max_count > 0
-    end
-
     def insert(index, *objs)
       obj = super
       @max_count = length
@@ -256,10 +331,6 @@ module RubySMB::Dcerpc::Ndr
       obj = super
       @max_count = length
       obj
-    end
-
-    def do_num_bytes
-      4 + super
     end
 
     def set_max_count(val)
@@ -277,18 +348,6 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
-    def do_write(io)
-      io.writebytes([@offset].pack('L<'))
-      io.writebytes([@actual_count].pack('L<'))
-      super(io) if @actual_count > 0
-    end
-
-    def do_read(io)
-      @offset = io.readbytes(4).unpack('L<').first
-      @actual_count = @read_until_index = io.readbytes(4).unpack('L<').first
-      super(io) if @actual_count > 0
-    end
-
     def insert(index, *objs)
       obj = super
       @actual_count = length
@@ -306,10 +365,6 @@ module RubySMB::Dcerpc::Ndr
       @actual_count = length
       obj
     end
-
-    def do_num_bytes
-      8 + super
-    end
   end
 
   # This ArgProcessor needs to inherit from BinData::ArrayArgProcessor to make
@@ -324,19 +379,31 @@ module RubySMB::Dcerpc::Ndr
       return res unless type_class
 
       type_class, type_params  = params[:type] if type_class.is_a?(Array)
-      subject = BinData::RegisteredClasses.lookup(type_class) if type_class.is_a?(Symbol)
-      byte_align = type_class.has_parameter?(:byte_align)
-      byte_align = type_params.key?(:byte_align) unless byte_align || type_params.nil?
-
-      unless byte_align
-        raise ArgumentError.new(
-          "NDR Arrays must only include elements with the `:byte_align` "\
-          "parameter set. This makes sure the whole structure is correctly "\
-          "aligned. Use a predefined NDR element instead, or provide the "\
-          "`:byte_align` parameter in `:type` (Faulty element type: #{params[:type]})"
-        )
+      if type_class.has_parameter?(:byte_align)
+        # According to NDR alignemnt rules for arrays: Array alignment is the
+        # largest alignment of the array element type and the size information
+        # type, if any.
+        # So, here, we pick the greatest value between the size of the `size
+        # information` field (:max_count or :offset/:actual_count), which is 4
+        # bytes for 32-bit NDR, and the element type size
+        byte_align = type_class.instance_variable_get(:@obj_params)[:byte_align]
+        if obj_class < NdrFixArray
+          # Fixed size arrays doesn't have size information
+          params[:byte_align] = byte_align
+        else
+          params[:byte_align] = [4, byte_align].max
+        end
+        return res
+      elsif type_params&.key?(:byte_align)
+        return res
       end
-      res
+
+      raise ArgumentError.new(
+        "NDR Arrays must only include elements with the `:byte_align` "\
+        "parameter set. This makes sure the whole structure is correctly "\
+        "aligned. Use a predefined NDR element instead, or provide the "\
+        "`:byte_align` parameter in `:type` (Faulty element type: #{params[:type]})"
+      )
     end
   end
 
@@ -439,19 +506,23 @@ module RubySMB::Dcerpc::Ndr
       super
     end
 
+    def should_process_max_count?
+      # :max_count has already been processed if the parent structure is an
+      # NdrStruct, but this is not the case if we are dealing with a pointer
+      !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+    end
+
     def do_write(io)
-      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+      if should_process_max_count?
         io.writebytes([@max_count].pack('L<'))
       end
-      #super if is_a?(VarStringPlugin) || @max_count > 0
       super
     end
 
     def do_read(io)
-      if !parent.is_a?(NdrStruct) || self.is_a?(PointerPlugin)
+      if should_process_max_count?
         set_max_count(io.readbytes(4).unpack('L<').first)
       end
-      #super if is_a?(VarStringPlugin) || @max_count > 0
       super
     end
 
@@ -465,7 +536,12 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_num_bytes
-      4 + super
+      sum = 0
+      if should_process_max_count?
+        # add max_count size
+        sum += 4
+      end
+      sum + super
     end
 
     def get_max_count(val)
@@ -573,29 +649,46 @@ module RubySMB::Dcerpc::Ndr
   module StructPlugin
     include ConstructedTypePlugin
 
-    def do_write(io)
-      if has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
-        io.writebytes("\x00" * bytes_to_align(self, io.offset))
-      end
-
-      # 1. if there is an array with conformant info in the structure, check if it is the last member
-      #   --> if the structure contains a structure with an array, it has to be the last member too
-      # 2. if ok, max_count is moved to the beginning
+    def should_process_max_count?
+      # According to the NDR defintion for Structures Containing a Conformant
+      # Array:
+      #
+      # "In the NDR representation of a structure that contains a
+      # conformant array, the unsigned long integers that give maximum element
+      # counts for dimensions of the array are moved to the beginning of the
+      # structure, and the array elements appear in place at the end of the
+      # structure. If a structure that contains a conformant array itself a
+      # member of another structure, the maximum element counts are further
+      # moved to the beginning of the containing structure. This construction
+      # iterates through all enclosing structures."
+      #
+      # This only applies if the current object is the top level structure (no
+      # parent). Note that if it is a pointer to a structure and the current
+      # object is being deferred, :max_count still need to be processed since
+      # it had not been moved to the beginning of the parent structure.
       klass = is_a?(PointerPlugin) ? self.class.superclass : self.class
       parent_obj = nil
+      # TODO: possible issue: parent can be a BinData::Choice, and won't be
+      # detected as a ConstructedTypePlugin, even if the embeding structure is.
+      # Check this with a BinData::Choice that points to a structure embedding
+      # a conformant structure
       if parent&.is_a?(ConstructedTypePlugin)
         parent_obj = parent.get_top_level_constructed_type
       end
-      if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
+      klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
+    end
+
+    def do_write(io)
+      if should_process_max_count?
         max_count = retrieve_max_count
         io.writebytes([max_count].pack('L<')) if max_count
-      end
 
-      # Align the structure according to the alignment rules for the structure
-      if respond_to?(:referent_bytes_align)
-        io.writebytes("\x00" * referent_bytes_align(io.offset))
-      elsif has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
-        io.writebytes("\x00" * bytes_to_align(self, io.offset))
+        # Align the structure according to the alignment rules for the structure
+        if respond_to?(:referent_bytes_align)
+          io.writebytes("\x00" * referent_bytes_align(io.offset))
+        elsif has_parameter?(:byte_align)
+          io.writebytes("\x00" * bytes_to_align(self, io.offset))
+        end
       end
 
       super
@@ -606,20 +699,15 @@ module RubySMB::Dcerpc::Ndr
     end
 
     def do_read(io)
-      klass = is_a?(PointerPlugin) ? self.class.superclass : self.class
-      parent_obj = nil
-      if parent&.is_a?(ConstructedTypePlugin)
-        parent_obj = parent.get_top_level_constructed_type
-      end
-      if klass.has_conformant_array && (parent_obj.nil? || parent_obj.is_deferring(self))
+      if should_process_max_count?
         set_max_count(io.readbytes(4).unpack('L<').first)
-      end
 
-      # Align the structure according to the alignment rules for the structure
-      if respond_to?(:referent_bytes_align)
-        io.seekbytes(referent_bytes_align(io.offset))
-      elsif has_parameter?(:byte_align) && respond_to?(:bytes_to_align)
-        io.seekbytes(bytes_to_align(self, io.offset))
+        # Align the structure according to the alignment rules for the structure
+        if respond_to?(:referent_bytes_align)
+          io.seekbytes(referent_bytes_align(io.offset))
+        elsif has_parameter?(:byte_align)
+          io.seekbytes(bytes_to_align(self, io.offset))
+        end
       end
 
       super
@@ -641,6 +729,62 @@ module RubySMB::Dcerpc::Ndr
     def set_max_count(val)
       obj = self[field_names.last]
       obj.set_max_count(val)
+    end
+
+    def do_num_bytes
+      sum = 0
+
+      if should_process_max_count?
+        # count max_count (4 bytes)
+        max_count = retrieve_max_count
+        sum += 4 if max_count
+
+        if respond_to?(:referent_bytes_align)
+          sum += referent_bytes_align(sum)
+        elsif has_parameter?(:byte_align)
+          sum += bytes_to_align(self, sum)
+        end
+      end
+
+      sum += super
+
+      if has_deferred_ptrs?
+        sum += do_num_bytes_ptr(sum)
+      end
+
+      sum
+    end
+
+    def bytes_to_align(obj, rel_offset)
+      if obj.is_a?(PointerPlugin)
+        # Pointers are always 4-bytes aligned
+        return (4 - (rel_offset % 4)) % 4
+      end
+      if obj.is_a?(ConfPlugin)
+        # `max_count` should have been handled at the begining of the structure
+        # already. We need to fix `rel_offset` since it includes the
+        # `max_count` 4 bytes, plus the possible padding bytes needed to align
+        # the structure. This is required because BinData Struct is not
+        # aware of `max_count` and considere the first field to be the begining
+        # of the structure instead. We have to make sure the alignment is
+        # calculated from the begining of the structure.
+        align = eval_parameter(:byte_align)
+        pad_length = (align - (4 % align)) % align
+        rel_offset += (4 + pad_length)
+
+        # We need to handle another corner case, which is a Conformant array
+        # (not Varying). The size information (max_count) has been place in
+        # from of the structure and no other size information is present before
+        # the actual elements of the array. Therefore, the alignment must be
+        # done accroding to th rules of the elements. Since a NdrArray has its
+        # default :byte_align value set to 4 (:max_count size), we have to make
+        # sure the element size is used instead.
+        unless obj.is_a?(VarPlugin)
+          return obj.align_element_size(rel_offset)
+        end
+      end
+      is_a?(BinData::ByteAlignPlugin) ? super : 0
+
     end
   end
 
@@ -668,12 +812,6 @@ module RubySMB::Dcerpc::Ndr
       @has_conformant_array = true if obj_class < NdrStruct && obj_class.has_conformant_array
       if obj_class.is_a?(ConfClassPlugin) && !obj_class.is_a?(PointerClassPlugin)
         @has_conformant_array = true
-        if obj_class < BinData::Array
-          # Set array :byte_align to the element :byte_align value
-          element_type = obj_proto.instance_variable_get(:@obj_params)[:type]
-          element_byte_align = element_type.instance_variable_get(:@obj_params)[:byte_align]
-          obj_proto.instance_variable_get(:@obj_params)[:byte_align] = element_byte_align
-        end
       end
     end
 
@@ -745,14 +883,10 @@ module RubySMB::Dcerpc::Ndr
       @standalone_ptr = false
     end
 
-    def snapshot
-      super
-    end
-
     def do_write(io, is_deferred: false)
       # If for whatever reasons, the #pos value has been modified, reset it to
       # make sure the pointer ref_id will start from INITIAL_REF_ID
-      self.class.reset_pos if is_top_level_ptr
+      self.class.reset_pos if is_top_level_ptr || @standalone_ptr
       if is_deferred
         super(io, is_deferred: is_deferred)
       else
@@ -760,11 +894,7 @@ module RubySMB::Dcerpc::Ndr
       end
       # Since #pos has been incremented for each embedded pointer, let's reset
       # it to go back to its initial state
-      self.class.reset_pos if is_top_level_ptr
-    end
-
-    def do_num_bytes
-      super
+      self.class.reset_pos if is_top_level_ptr || @standalone_ptr
     end
 
     def to_binary_s
@@ -778,11 +908,20 @@ module RubySMB::Dcerpc::Ndr
       @top_level_ptr = true
       #update_ref_ids
     end
+
     def unset_top_level_ptr
       @top_level_ptr = false
     end
+
     def is_top_level_ptr
       !!@top_level_ptr
+    end
+
+    def num_bytes
+      @standalone_ptr = true
+      res = super
+      @standalone_ptr = false
+      res
     end
   end
 
@@ -831,8 +970,7 @@ module RubySMB::Dcerpc::Ndr
     def referent_bytes_align(offset)
       align = self.class.superclass.default_parameters[:byte_align]
       align = eval_parameter(:referent_byte_align) unless align
-      bytes = (align - (offset % align)) % align
-      bytes
+      (align - (offset % align)) % align
     end
 
     def write_ref_id(io)
@@ -941,9 +1079,40 @@ module RubySMB::Dcerpc::Ndr
       return res
     end
 
-    def do_num_bytes
-      return 4 if is_null_ptr? || is_alias?
-      4 + super
+    def do_num_bytes(struct_offset = 0, is_deferred: false)
+      sum = 0
+      if is_deferred
+        if is_a?(NdrStruct) && self.class.superclass.has_conformant_array
+          # align :max_count since it will be placed in front of the structure.
+          # The structure itself will be properly aligned later.
+          align = (4 - (struct_offset % 4)) % 4
+          sum += align
+        else
+          sum += referent_bytes_align(struct_offset)
+        end
+      else
+        # add ref_id size
+        sum += 4
+
+        parent_obj = nil
+        if parent&.is_a?(ConstructedTypePlugin)
+          parent_obj = parent.get_top_level_constructed_type
+        end
+        if parent_obj && @ref_id != 0 && !@standalone_ptr
+          parent_obj.defer_ptr(self)
+          # only return ref_id size, the actual referent size will be added later
+          return sum
+        end
+      end
+      unless (is_null_ptr? && !eval_parameter(:initial_value)) || is_alias?
+        if is_a?(ArrayPlugin)
+          sum += super(struct_offset + sum)
+        else
+          sum += super()
+        end
+      end
+
+      sum
     end
 
     def instantiate_referent

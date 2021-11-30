@@ -183,7 +183,7 @@ module RubySMB
         default_parameters byte_align: 4
         endian :little
 
-        ndr_uint32             :tower_length, initial_value: -> {self.tower_octet_string.num_bytes - 4}
+        ndr_uint32             :tower_length, initial_value: -> { self.tower_octet_string.num_bytes }
         epm_tower_octet_string :tower_octet_string
 
         def assign(val)
