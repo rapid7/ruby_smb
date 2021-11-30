@@ -56,11 +56,19 @@ module RubySMB
                 when SMB2::CreateContext::CREATE_DURABLE_HANDLE
                   res_ctx = SMB2::CreateContext::CreateDurableHandleResponse.new
                 when SMB2::CreateContext::CREATE_DURABLE_HANDLE_V2
-                  res_ctx = SMB2::CreateContext::CreateDurableHandleV2Response.new(timeout: 1000, flags: req_ctx.data.flags)
+                  res_ctx = SMB2::CreateContext::CreateDurableHandleV2Response.new(
+                    timeout: 1000,
+                    flags: req_ctx.data.flags
+                  )
                 when SMB2::CreateContext::CREATE_QUERY_MAXIMAL_ACCESS
-                  res_ctx = SMB2::CreateContext::CreateQueryMaximalAccessResponse.new(maximal_access: maximal_access(path))
+                  res_ctx = SMB2::CreateContext::CreateQueryMaximalAccessResponse.new(
+                    maximal_access: maximal_access(path)
+                  )
                 when SMB2::CreateContext::CREATE_QUERY_ON_DISK_ID
-                  res_ctx = SMB2::CreateContext::CreateQueryOnDiskIdResponse.new
+                  res_ctx = SMB2::CreateContext::CreateQueryOnDiskIdResponse.new(
+                    disk_file_id: local_path.stat.ino,
+                    volume_id: local_path.stat.dev
+                  )
                 else
                   logger.warn("Can not handle CREATE context: #{req_ctx.name}")
                   next
