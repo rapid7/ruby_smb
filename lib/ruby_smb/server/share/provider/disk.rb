@@ -8,9 +8,10 @@ module RubySMB
         class Disk < Base
           TYPE = TYPE_DISK
           class Processor < Processor::Base
+            Handle = Struct.new(:remote_path, :local_path)
             def initialize(provider, server_client)
               super
-              @handle_guids = {}  # TODO: update this to a more robust object
+              @handles = {}
             end
 
             def maximal_access(path=nil)
@@ -19,7 +20,7 @@ module RubySMB
 
             def do_close_smb2(request)
               local_path = get_local_path(request.file_id)
-              @handle_guids.delete(request.file_id.to_binary_s)
+              @handles.delete(request.file_id.to_binary_s)
               response = RubySMB::SMB2::Packet::CloseResponse.new
               set_common_info(response, local_path)
               response.flags = 1
@@ -48,18 +49,16 @@ module RubySMB
               set_common_info(response, local_path)
               response.file_id.persistent = Zlib::crc32(path)
               response.file_id.volatile = rand(0xffffffff)
-              @handle_guids[response.file_id.to_binary_s] = path
+              @handles[response.file_id.to_binary_s] = Handle.new(path, local_path)
 
               request.contexts.each do |req_ctx|
                 case req_ctx.name
                 when SMB2::CreateContext::CREATE_QUERY_MAXIMAL_ACCESS
-                  res_ctx = SMB2::CreateContext::CreateQueryMaximalAccessResponse.new(
-                    maximal_access: maximal_access(path)
-                  )
+                  res_ctx = SMB2::CreateContext::CreateQueryMaximalAccessResponse.new(maximal_access: maximal_access(path))
                 when SMB2::CreateContext::CREATE_QUERY_ON_DISK_ID
                   res_ctx = SMB2::CreateContext::CreateQueryOnDiskIdResponse.new
                 else
-                  logger.warn("No handler for context message: #{req_ctx.name}")
+                  logger.warn("Can not handle CREATE context: #{req_ctx.name}")
                   next
                 end
 
@@ -124,15 +123,23 @@ module RubySMB
             end
 
             def do_query_info_smb2(request)
-              unless request.info_type == 1 && request.file_information_class == Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
+              unless request.info_type == 1
                 logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
                 raise NotImplementedError
               end
 
               local_path = get_local_path(request.file_id)
+              case request.file_information_class
+              when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
+                info = Fscc::FileInformation::FileNetworkOpenInformation.new
+                set_common_info(info, local_path)
+              when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
+                info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
+              else
+                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
+                raise NotImplementedError
+              end
               response = SMB2::Packet::QueryInfoResponse.new
-              info = Fscc::FileInformation::FileNetworkOpenInformation.new
-              set_common_info(info, local_path)
               response.buffer = info.to_binary_s
               response
             end
@@ -183,16 +190,15 @@ module RubySMB
             def get_local_path(path)
               case path
               when Field::Smb2Fileid
-                path = @handle_guids[path.to_binary_s]
+                local_path = @handles[path.to_binary_s]&.local_path
               when ::String
-                path = path.encode
+                local_path = Pathname.new(provider.path + '/' + path.encode).cleanpath
+                # TODO: report / handle directory traversal issues more robustly
+                raise RuntimeError unless local_path.to_s == provider.path || local_path.to_s.start_with?(provider.path + '/')
               else
                 raise NotImplementedError, "Can not get the local path for: #{path.inspect}"
               end
 
-              local_path = Pathname.new(provider.path + '/' + path).cleanpath
-              # TODO: report / handle directory traversal issues more robustly
-              raise RuntimeError unless local_path.to_s == provider.path || local_path.to_s.start_with?(provider.path + '/')
               local_path
             end
 
