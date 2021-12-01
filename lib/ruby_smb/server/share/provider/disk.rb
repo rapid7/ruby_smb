@@ -12,6 +12,7 @@ module RubySMB
             def initialize(provider, server_client)
               super
               @handles = {}
+              @query_directory_context = {}
             end
 
             def maximal_access(path=nil)
@@ -144,18 +145,50 @@ module RubySMB
               return_single = request.flags.return_single == 1
 
               infos = []
-              infos << build_info(local_path, info_class, rename: '.') if search_regex.match?('.')
-              infos << build_info(local_path, info_class, rename: '..') if search_regex.match?('..')
+              total_size = 0
 
-              response = SMB2::Packet::QueryDirectoryResponse.new
-              local_path.children.each do |child|
-                next unless child.file? || child.directory? # filter out everything but files and directories
-                next unless search_regex.match?(child.basename.to_s)
+              if @query_directory_context[request.file_id.to_binary_s].nil? || request.flags.reopen == 1 || request.flags.restart_scans == 1
+                dirents = local_path.children.sort.to_a
+                dirents.unshift(local_path.parent) unless local_path.parent == local_path
+                dirents.unshift(local_path)
+                @query_directory_context[request.file_id.to_binary_s] = dirents
+              else
+                dirents = @query_directory_context[request.file_id.to_binary_s]
+              end
 
-                infos << build_info(child, info_class)
+              while dirents.length > 0
+                dirent = dirents.shift
+                next unless dirent.file? || dirent.directory? # filter out everything but files and directories
+
+                case dirent
+                when local_path
+                  dirent_name = '.'
+                when local_path.parent
+                  dirent_name = '..'
+                else
+                  dirent_name = dirent.basename.to_s
+                end
+                next unless search_regex.match?(dirent_name)
+
+                info = build_info(dirent, info_class, rename: dirent_name)
+                info_size = info.num_bytes + (7 - (info.num_bytes + 7) % 8)
+                if total_size + info_size > request.output_length
+                  dirents.unshift(dirent) # no space left for this one so put it back
+                  break
+                end
+
+                infos << info
+                total_size += info_size
                 break if return_single
               end
 
+              if infos.length == 0
+                response = SMB2::Packet::QueryDirectoryResponse.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES
+                return response
+              end
+
+              response = SMB2::Packet::QueryDirectoryResponse.new
               infos.last.next_offset = 0 if infos.last
               buffer = ""
               infos.each do |info|
@@ -163,20 +196,6 @@ module RubySMB
                 buffer << info + ("\x00".b * (7 - (info.length + 7) % 8))
               end
               response.buffer = buffer
-
-              unless return_single
-                # TODO: figure out the proper way to buffer and send multiple responses as necessary
-                response.smb2_header.credits = request.smb2_header.credits
-                response.smb2_header.message_id = request.smb2_header.message_id
-                response.smb2_header.session_id = request.smb2_header.session_id
-                response.smb2_header.tree_id = request.smb2_header.tree_id
-                @server_client.send_packet(response)
-
-                response = SMB2::Packet::QueryDirectoryResponse.new
-                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES
-                response.smb2_header.message_id = request.smb2_header.message_id + 1
-              end
-
               response
             end
 
