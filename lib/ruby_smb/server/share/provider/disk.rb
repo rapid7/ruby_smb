@@ -116,23 +116,44 @@ module RubySMB
             end
 
             def do_query_directory_smb2(request)
-              unless request.file_information_class == Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
-                logger.warn("Can not handle QUERY_DIRECTORY request for class: #{request.file_information_class}")
-                raise NotImplementedError
+              # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/29dfcc9b-3aec-406b-abb5-0b4fe96712e2
+              info_class = request.file_information_class.snapshot
+              begin
+                # probe #build_info to see if it supports the requested info class
+                build_info(Pathname.new(__FILE__), info_class)
+              rescue NotImplementedError
+                logger.warn("Can not handle QUERY_DIRECTORY request for class: #{info_class}")
+                raise
               end
 
               local_path = get_local_path(request.file_id)
-              search_pattern = request.name.snapshot.dup.encode  # TODO: need to do something with the search pattern
+              unless local_path.directory?
+                response = SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER
+                return response
+              end
 
-              infos = [
-                build_info(local_path, rename: '.'),
-                build_info(local_path, rename: '..') # don't leak parent directory info
-              ]
+              search_pattern = request.name.snapshot.dup.encode
+              begin
+                search_regex = wildcard_to_regex(search_pattern)
+              rescue NotImplementedError
+                logger.warn("Can not handle QUERY_DIRECTORY wildcard pattern: #{search_pattern}")
+                raise
+              end
+
+              return_single = request.flags.return_single == 1
+
+              infos = []
+              infos << build_info(local_path, info_class, rename: '.') if search_regex.match?('.')
+              infos << build_info(local_path, info_class, rename: '..') if search_regex.match?('..')
+
               response = SMB2::Packet::QueryDirectoryResponse.new
               local_path.children.each do |child|
                 next unless child.file? || child.directory? # filter out everything but files and directories
+                next unless search_regex.match?(child.basename.to_s)
 
-                infos << build_info(child)
+                infos << build_info(child, info_class)
+                break if return_single
               end
 
               infos.last.next_offset = 0 if infos.last
@@ -143,17 +164,20 @@ module RubySMB
               end
               response.buffer = buffer
 
-              # TODO: figure out the proper way to buffer and send multiple responses as necessary
-              response.smb2_header.credits = request.smb2_header.credits
-              response.smb2_header.message_id = request.smb2_header.message_id
-              response.smb2_header.session_id = request.smb2_header.session_id
-              response.smb2_header.tree_id = request.smb2_header.tree_id
-              @server_client.send_packet(response)
+              unless return_single
+                # TODO: figure out the proper way to buffer and send multiple responses as necessary
+                response.smb2_header.credits = request.smb2_header.credits
+                response.smb2_header.message_id = request.smb2_header.message_id
+                response.smb2_header.session_id = request.smb2_header.session_id
+                response.smb2_header.tree_id = request.smb2_header.tree_id
+                @server_client.send_packet(response)
 
-              chained_response = SMB2::Packet::QueryDirectoryResponse.new
-              chained_response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES
-              chained_response.smb2_header.message_id = request.smb2_header.message_id + 1
-              chained_response
+                response = SMB2::Packet::QueryDirectoryResponse.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NO_MORE_FILES
+                response.smb2_header.message_id = request.smb2_header.message_id + 1
+              end
+
+              response
             end
 
             def do_query_info_smb2(request)
@@ -215,10 +239,20 @@ module RubySMB
               file_attributes
             end
 
-            def build_info(path, rename: nil)
-              info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
-              set_common_info(info, path)
-              info.file_name = rename || path.basename.to_s
+            def build_info(path, info_class, rename: nil)
+              case info_class
+              when Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
+                info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
+                set_common_info(info, path)
+                info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_FULL_DIRECTORY_INFORMATION
+                info = Fscc::FileInformation::FileFullDirectoryInformation.new
+                set_common_info(info, path)
+                info.file_name = rename || path.basename.to_s
+              else
+                raise NotImplementedError, "unsupported info class: #{info_class}"
+              end
+
               info.next_offset = (info.num_bytes + (7 - (info.num_bytes + 7) % 8))
               info
             end
@@ -254,6 +288,22 @@ module RubySMB
                 info.allocation_size = (path.size + (4095 - (path.size + 4095) % 4096))
               end
               info.file_attributes = build_file_attributes(path)
+            end
+
+            def wildcard_to_regex(wildcard)
+              return Regexp.new('.*') if ['*.*', ''].include?(wildcard)
+
+              if wildcard.each_char.any? { |c| c == '<' || c == '>' }
+                # the < > wildcard operators are not supported
+                raise NotImplementedError
+              end
+
+              wildcard = Regexp.escape(wildcard)
+              wildcard = wildcard.gsub(/(\\\?)+$/) { |match| ".{0,#{match.length / 2}}"}
+              wildcard = wildcard.gsub('\?', '.')
+              wildcard = wildcard.gsub('\*', '.*')
+              wildcard = wildcard.gsub('"', '\.')
+              Regexp.new('^' + wildcard + '$')
             end
           end
 
