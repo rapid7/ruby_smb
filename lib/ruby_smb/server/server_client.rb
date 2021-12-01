@@ -33,6 +33,7 @@ module RubySMB
         @tree_connections = {}
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
+        @in_packet_queue = []
 
         # tree id => provider processor instance
         @tree_connect_table = {}
@@ -152,7 +153,24 @@ module RubySMB
       #
       # @return [String] the raw packet
       def recv_packet
-        @dispatcher.recv_packet
+        return @in_packet_queue.shift if @in_packet_queue.length > 0
+
+        packet = @dispatcher.recv_packet
+        if packet && packet.length >= 4 && packet[0...4].unpack1('L>') == RubySMB::SMB2::SMB2_PROTOCOL_ID
+          header = RubySMB::SMB2::SMB2Header.read(packet)
+          unless header.next_command == 0
+            until header.next_command == 0
+              @in_packet_queue.push(packet[0...header.next_command])
+              packet = packet[header.next_command..]
+              header = RubySMB::SMB2::SMB2Header.read(packet)
+            end
+
+            @in_packet_queue.push(packet)
+            packet = @in_packet_queue.shift
+          end
+        end
+
+        packet
       end
 
       #
