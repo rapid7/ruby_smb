@@ -15,7 +15,10 @@ module RubySMB
             end
 
             def maximal_access(path=nil)
-              RubySMB::SMB2::BitField::FileAccessMask.read([0x00000081].pack('V'))
+              RubySMB::SMB2::BitField::FileAccessMask.new(
+                read_attr: 1,
+                read_data: 1
+              )
             end
 
             def do_close_smb2(request)
@@ -142,6 +145,8 @@ module RubySMB
 
               local_path = get_local_path(request.file_id)
               case request.file_information_class
+              when Fscc::FileInformation::FILE_EA_INFORMATION
+                info = Fscc::FileInformation::FileEaInformation.new
               when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
                 info = Fscc::FileInformation::FileNetworkOpenInformation.new
                 set_common_info(info, local_path)

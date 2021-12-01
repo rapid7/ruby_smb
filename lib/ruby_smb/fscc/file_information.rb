@@ -17,6 +17,10 @@ module RubySMB
       # contents of a directory.
       FILE_BOTH_DIRECTORY_INFORMATION    = 0x03
 
+      # Information class used to query for the size of the extended attributes
+      # (EA) for a file.
+      FILE_EA_INFORMATION                = 0x07
+
       # Information class used to rename a file.
       FILE_RENAME_INFORMATION            = 0x0A
 
@@ -74,6 +78,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_names_information'
       require 'ruby_smb/fscc/file_information/file_rename_information'
       require 'ruby_smb/fscc/file_information/file_network_open_information'
+      require 'ruby_smb/fscc/file_information/file_ea_information'
     end
   end
 end
