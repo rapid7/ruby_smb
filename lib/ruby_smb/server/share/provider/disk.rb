@@ -8,7 +8,7 @@ module RubySMB
         class Disk < Base
           TYPE = TYPE_DISK
           class Processor < Processor::Base
-            Handle = Struct.new(:remote_path, :local_path)
+            Handle = Struct.new(:remote_path, :local_path, :durable?)
             def initialize(provider, server_client)
               super
               @handles = {}
@@ -47,18 +47,36 @@ module RubySMB
                 return response
               end
 
+              durable = false
               response = RubySMB::SMB2::Packet::CreateResponse.new
               response.create_action = 1
               set_common_info(response, local_path)
               response.file_id.persistent = Zlib::crc32(path)
               response.file_id.volatile = rand(0xffffffff)
-              @handles[response.file_id.to_binary_s] = Handle.new(path, local_path)
 
               request.contexts.each do |req_ctx|
                 case req_ctx.name
                 when SMB2::CreateContext::CREATE_DURABLE_HANDLE
+                  # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/9adbc354-5fad-40e7-9a62-4a4b6c1ff8a0
+                  next if request.contexts.any? { |ctx| ctx.name == SMB2::CreateContext::CREATE_DURABLE_HANDLE_RECONNECT }
+
+                  if request.contexts.any? { |ctx| [ SMB2::CreateContext::CREATE_DURABLE_HANDLE_V2, SMB2::CreateContext::CREATE_DURABLE_HANDLE_RECONNECT_v2 ].include?(ctx.name) }
+                    response = RubySMB::SMB2::Packet::ErrorPacket.new
+                    response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER
+                    return response
+                  end
+
+                  durable = true
                   res_ctx = SMB2::CreateContext::CreateDurableHandleResponse.new
                 when SMB2::CreateContext::CREATE_DURABLE_HANDLE_V2
+                  # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/33e6800a-adf5-4221-af27-7e089b9e81d1
+                  if request.contexts.any? { |ctx| [ SMB2::CreateContext::CREATE_DURABLE_HANDLE, SMB2::CreateContext::CREATE_DURABLE_HANDLE_RECONNECT, SMB2::CreateContext::CREATE_DURABLE_HANDLE_RECONNECT_v2 ].include?(ctx.name) }
+                    response = RubySMB::SMB2::Packet::ErrorPacket.new
+                    response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER
+                    return response
+                  end
+
+                  durable = true
                   res_ctx = SMB2::CreateContext::CreateDurableHandleV2Response.new(
                     timeout: 1000,
                     flags: req_ctx.data.flags
@@ -93,6 +111,7 @@ module RubySMB
                 response.contexts_length = 0
               end
 
+              @handles[response.file_id.to_binary_s] = Handle.new(path, local_path, durable)
               response
             end
 
