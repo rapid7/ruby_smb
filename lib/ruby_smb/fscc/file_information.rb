@@ -31,6 +31,10 @@ module RubySMB
       # Information class used to mark a file for deletion.
       FILE_DISPOSITION_INFORMATION       = 0x0D
 
+      # Information class used to enumerate the data streams of a file or a
+      # directory.
+      FILE_STREAM_INFORMATION            = 0x16
+
       # This information class is used to query for information that is commonly
       # needed when a file is opened across a network.
       FILE_NETWORK_OPEN_INFORMATION      = 0x22
@@ -79,6 +83,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_rename_information'
       require 'ruby_smb/fscc/file_information/file_network_open_information'
       require 'ruby_smb/fscc/file_information/file_ea_information'
+      require 'ruby_smb/fscc/file_information/file_stream_information'
     end
   end
 end

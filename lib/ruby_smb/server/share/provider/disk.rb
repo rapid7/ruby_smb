@@ -214,6 +214,14 @@ module RubySMB
                 set_common_info(info, local_path)
               when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
                 info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
+              when Fscc::FileInformation::FILE_STREAM_INFORMATION
+                raise NotImplementedError unless local_path.file?
+
+                info = Fscc::FileInformation::FileStreamInformation.new(
+                  stream_size: local_path.size,
+                  stream_allocation_size: get_allocation_size(local_path),
+                  stream_name: '::$DATA'
+                )
               else
                 logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
                 raise NotImplementedError
@@ -276,6 +284,10 @@ module RubySMB
               info
             end
 
+            def get_allocation_size(path)
+              (path.size + (4095 - (path.size + 4095) % 4096))
+            end
+
             def get_local_path(path)
               case path
               when Field::Smb2Fileid
@@ -304,7 +316,7 @@ module RubySMB
               info.last_change = path.ctime
               if path.file?
                 info.end_of_file = path.size
-                info.allocation_size = (path.size + (4095 - (path.size + 4095) % 4096))
+                info.allocation_size = get_allocation_size(path)
               end
               info.file_attributes = build_file_attributes(path)
             end
