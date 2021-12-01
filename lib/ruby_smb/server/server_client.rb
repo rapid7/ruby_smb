@@ -22,7 +22,6 @@ module RubySMB
         @dispatcher = dispatcher
         @state = :negotiate
         @dialect = nil
-        @message_id = 0
         @session_id = nil
         @session_key = nil
         @gss_authenticator = server.gss_provider.new_authenticator(self)
