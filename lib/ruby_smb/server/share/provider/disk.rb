@@ -24,6 +24,12 @@ module RubySMB
 
             def do_close_smb2(request)
               local_path = get_local_path(request.file_id)
+              if local_path.nil?
+                response = RubySMB::SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
+                return response
+              end
+
               @handles.delete(request.file_id.to_binary_s)
               response = RubySMB::SMB2::Packet::CloseResponse.new
               set_common_info(response, local_path)
@@ -117,6 +123,13 @@ module RubySMB
             end
 
             def do_query_directory_smb2(request)
+              local_path = get_local_path(request.file_id)
+              if local_path.nil?
+                response = RubySMB::SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
+                return response
+              end
+
               # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/29dfcc9b-3aec-406b-abb5-0b4fe96712e2
               info_class = request.file_information_class.snapshot
               begin
@@ -127,7 +140,6 @@ module RubySMB
                 raise
               end
 
-              local_path = get_local_path(request.file_id)
               unless local_path.directory?
                 response = SMB2::Packet::ErrorPacket.new
                 response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER
@@ -201,6 +213,12 @@ module RubySMB
 
             def do_query_info_smb2(request)
               local_path = get_local_path(request.file_id)
+              if local_path.nil?
+                response = RubySMB::SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
+                return response
+              end
+
               case request.info_type
               when SMB2::SMB2_INFO_FILE
                 info = query_info_smb2_file(request, local_path)
@@ -217,9 +235,15 @@ module RubySMB
             end
 
             def do_read_smb2(request)
+              local_path = get_local_path(request.file_id)
+              if local_path.nil?
+                response = RubySMB::SMB2::Packet::ErrorPacket.new
+                response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
+                return response
+              end
+
               raise NotImplementedError unless request.channel == SMB2::SMB2_CHANNEL_NONE
 
-              local_path = get_local_path(request.file_id)
               buffer = nil
               local_path.open do |file|
                 file.seek(request.offset.snapshot)
