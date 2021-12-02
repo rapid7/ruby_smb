@@ -200,32 +200,17 @@ module RubySMB
             end
 
             def do_query_info_smb2(request)
-              unless request.info_type == 1
-                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
-                raise NotImplementedError
-              end
-
               local_path = get_local_path(request.file_id)
-              case request.file_information_class
-              when Fscc::FileInformation::FILE_EA_INFORMATION
-                info = Fscc::FileInformation::FileEaInformation.new
-              when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
-                info = Fscc::FileInformation::FileNetworkOpenInformation.new
-                set_common_info(info, local_path)
-              when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
-                info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
-              when Fscc::FileInformation::FILE_STREAM_INFORMATION
-                raise NotImplementedError unless local_path.file?
-
-                info = Fscc::FileInformation::FileStreamInformation.new(
-                  stream_size: local_path.size,
-                  stream_allocation_size: get_allocation_size(local_path),
-                  stream_name: '::$DATA'
-                )
+              case request.info_type
+              when SMB2::SMB2_INFO_FILE
+                info = query_info_smb2_file(request, local_path)
+              when SMB2::SMB2_INFO_FILESYSTEM
+                info = query_info_smb2_filesystem(request, local_path)
               else
                 logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
                 raise NotImplementedError
               end
+
               response = SMB2::Packet::QueryInfoResponse.new
               response.buffer = info.to_binary_s
               response
@@ -293,14 +278,70 @@ module RubySMB
               when Field::Smb2Fileid
                 local_path = @handles[path.to_binary_s]&.local_path
               when ::String
-                local_path = Pathname.new(provider.path + '/' + path.encode).cleanpath
+                local_path = (provider.path + path.encode).cleanpath
                 # TODO: report / handle directory traversal issues more robustly
-                raise RuntimeError unless local_path.to_s == provider.path || local_path.to_s.start_with?(provider.path + '/')
+                raise RuntimeError unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
               else
                 raise NotImplementedError, "Can not get the local path for: #{path.inspect}"
               end
 
               local_path
+            end
+
+            def query_info_smb2_file(request, local_path)
+              raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILE
+
+              case request.file_information_class
+              when Fscc::FileInformation::FILE_EA_INFORMATION
+                info = Fscc::FileInformation::FileEaInformation.new
+              when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
+                info = Fscc::FileInformation::FileNetworkOpenInformation.new
+                set_common_info(info, local_path)
+              when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
+                info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
+              when Fscc::FileInformation::FILE_STREAM_INFORMATION
+                raise NotImplementedError unless local_path.file?
+
+                info = Fscc::FileInformation::FileStreamInformation.new(
+                  stream_size: local_path.size,
+                  stream_allocation_size: get_allocation_size(local_path),
+                  stream_name: '::$DATA'
+                )
+              else
+                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
+                raise NotImplementedError
+              end
+
+              info
+            end
+
+            def query_info_smb2_filesystem(request, local_path)
+              raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILESYSTEM
+
+              case request.file_information_class
+              when Fscc::FileSystemInformation::FILE_FS_ATTRIBUTE_INFORMATION
+                # emulate NTFS just like Samba does
+                info = Fscc::FileSystemInformation::FileFsAttributeInformation.new(
+                  file_system_attributes: {
+                    file_case_sensitive_search: 1,
+                    file_case_preserved_names: 1,
+                    file_unicode_on_disk: 1,
+                    file_supports_object_ids: 1,
+                  },
+                  maximum_component_name_length: 255,
+                  file_system_name: 'NTFS'
+                )
+              when Fscc::FileSystemInformation::FILE_FS_VOLUME_INFORMATION
+                info = Fscc::FileSystemInformation::FileFsVolumeInformation.new(
+                  volume_serial_number: provider.path.stat.ino,
+                  volume_label: provider.name
+                )
+              else
+                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
+                raise NotImplementedError
+              end
+
+              info
             end
 
             # A bunch of structures have these common fields with the same meaning, so set them all here
@@ -339,7 +380,9 @@ module RubySMB
           end
 
           def initialize(name, path)
-            @path = File.expand_path(path)
+            path = Pathname.new(File.expand_path(path))
+            raise ArgumentError unless path.directory?
+            @path = path
             super(name)
           end
 
