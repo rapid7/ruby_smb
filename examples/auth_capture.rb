@@ -1,11 +1,30 @@
 #!/usr/bin/ruby
 
 require 'bundler/setup'
+require 'optparse'
 require 'ruby_smb'
 require 'ruby_smb/gss/provider/ntlm'
 
 # we just need *a* default encoding to handle the strings from the NTLM messages
 Encoding.default_internal = 'UTF-8' if Encoding.default_internal.nil?
+
+options = {
+  smbv1: true,
+  smbv2: true,
+  smbv3: true
+}
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
+  opts.on("--[no-]smbv1", "Enabled or disable SMBv1 (default: #{options[:smbv1] ? 'Enabled' : 'Disabled'})") do |smbv1|
+    options[:smbv1] = smbv1
+  end
+  opts.on("--[no-]smbv2", "Enabled or disable SMBv2 (default: #{options[:smbv2] ? 'Enabled' : 'Disabled'})") do |smbv2|
+    options[:smbv2] = smbv2
+  end
+  opts.on("--[no-]smbv3", "Enabled or disable SMBv3 (default: #{options[:smbv3] ? 'Enabled' : 'Disabled'})") do |smbv3|
+    options[:smbv3] = smbv3
+  end
+end.parse!
 
 def bin_to_hex(s)
   s.each_byte.map { |b| b.to_s(16).rjust(2, '0') }.join
@@ -63,6 +82,15 @@ end
 server = RubySMB::Server.new(
   gss_provider: HaxorNTLMProvider.new
 )
+server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB1 } unless options[:smbv1]
+server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB2 } unless options[:smbv2]
+server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB3 } unless options[:smbv3]
+
+if server.dialects.empty?
+  puts "at least one version must be enabled"
+  exit false
+end
+
 puts "server is running"
 server.run do
   puts "received connection"
