@@ -7,8 +7,8 @@ module RubySMB
             @name = name
           end
 
-          def new_processor(server_client)
-            self.class::Processor.new(self, server_client)
+          def new_processor(server_client, session)
+            self.class::Processor.new(self, server_client, session)
           end
 
           def type

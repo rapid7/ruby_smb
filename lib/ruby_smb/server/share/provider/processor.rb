@@ -5,9 +5,10 @@ module RubySMB
         module Processor
           # A processor is unique to a particular client connection
           class Base
-            def initialize(provider, server_client)
+            def initialize(provider, server_client, session)
               @provider = provider
               @server_client = server_client
+              @session = session
             end
 
             def maximal_access(path=nil)

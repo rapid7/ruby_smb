@@ -9,7 +9,7 @@ module RubySMB
           TYPE = TYPE_DISK
           class Processor < Processor::Base
             Handle = Struct.new(:remote_path, :local_path, :durable?)
-            def initialize(provider, server_client)
+            def initialize(provider, server_client, session)
               super
               @handles = {}
               @query_directory_context = {}

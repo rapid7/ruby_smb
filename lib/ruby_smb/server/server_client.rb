@@ -17,26 +17,21 @@ module RubySMB
       include RubySMB::Server::ServerClient::ShareIO
       include RubySMB::Server::ServerClient::TreeConnect
 
-      attr_reader :dialect, :identity, :state, :session_key
+      attr_reader :dialect, :identity, :session_table
 
       # @param [Server] server the server that accepted this connection
       # @param [Dispatcher::Socket] dispatcher the connection's socket dispatcher
       def initialize(server, dispatcher)
         @server = server
         @dispatcher = dispatcher
-        @state = :negotiate
         @dialect = nil
-        @session_id = nil
-        @session_key = nil
         @gss_authenticator = server.gss_provider.new_authenticator(self)
-        @identity = nil
-        @tree_connections = {}
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
         @in_packet_queue = []
 
-        # tree id => provider processor instance
-        @tree_connect_table = {}
+        # session id => session instance
+        @session_table = {}
       end
 
       #
@@ -63,16 +58,17 @@ module RubySMB
       # authenticated.
       #
       # @param [String] raw_request the request that should be handled
-      def handle_authenticated(raw_request)
+      def handle_smb(raw_request)
         response = nil
 
         case raw_request[0...4].unpack1('L>')
         when RubySMB::SMB1::SMB_PROTOCOL_ID
-          raise NotImplementedError
+          header = RubySMB::SMB1::SMBHeader.read(raw_request)
+          response = handle_smb1(raw_request, header)
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
           header = RubySMB::SMB2::SMB2Header.read(raw_request)
           begin
-            response = handle_authenticated_smb2(raw_request, header)
+            response = handle_smb2(raw_request, header)
           rescue NotImplementedError
             logger.error("Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request")
             response = SMB2::Packet::ErrorPacket.new
@@ -123,13 +119,11 @@ module RubySMB
             break
           end
 
-          case @state
-          when :negotiate
+          if @dialect.nil?
             handle_negotiate(raw_request)
-          when :session_setup
-            handle_session_setup(raw_request)
-          when :authenticated
-            handle_authenticated(raw_request)
+            logger.info("Negotiated dialect: #{RubySMB::Dialect[@dialect].full_name}") unless @dialect.nil?
+          else
+            handle_smb(raw_request)
           end
 
           break if @dispatcher.tcp_socket.closed?
@@ -140,7 +134,7 @@ module RubySMB
       # Disconnect the remote client.
       #
       def disconnect!
-        @state = nil
+        @dialect = nil
         @dispatcher.tcp_socket.close
       end
 
@@ -178,12 +172,20 @@ module RubySMB
       #
       # @param [GenericPacket] packet the packet to send
       def send_packet(packet)
-        if @state == :authenticated && @identity != Gss::Provider::IDENTITY_ANONYMOUS && !@session_key.nil?
-          case metadialect.family
+        case metadialect&.order
+        when Dialect::ORDER_SMB1
+          session_id = packet.smb_header.uid
+        when Dialect::ORDER_SMB2
+          session_id = packet.smb2_header.session_id
+        end
+        session = @session_table[session_id]
+
+        unless session.nil? || session.is_anonymous || session.key.nil?
+          case metadialect&.family
           when Dialect::FAMILY_SMB2
-            packet = smb2_sign(packet)
+            packet = Signing::smb2_sign(packet, session.key)
           when Dialect::FAMILY_SMB3
-            packet = smb3_sign(packet)
+            packet = Signing::smb3_sign(packet, session.key, @dialect, @preauth_integrity_hash_value)
           end
         end
 
@@ -209,28 +211,52 @@ module RubySMB
 
       private
 
-      def handle_authenticated_smb2(raw_request, header)
+      def handle_smb1(raw_request, header)
+        # session = @session_table[header.uid]
+
         case header.command
-        when RubySMB::SMB2::Commands::CLOSE
-          response = do_close_smb2(RubySMB::SMB2::Packet::CloseRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::CREATE
-          response = do_create_smb2(RubySMB::SMB2::Packet::CreateRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::IOCTL
-          response = do_ioctl_smb2(RubySMB::SMB2::Packet::IoctlRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::LOGOFF
-          response = do_logoff_smb2(RubySMB::SMB2::Packet::LogoffRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::QUERY_DIRECTORY
-          response = do_query_directory_smb2(RubySMB::SMB2::Packet::QueryDirectoryRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::QUERY_INFO
-          response = do_query_info_smb2(RubySMB::SMB2::Packet::QueryInfoRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::READ
-          response = do_read_smb2(RubySMB::SMB2::Packet::ReadRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::TREE_CONNECT
-          response = do_tree_connect_smb2(RubySMB::SMB2::Packet::TreeConnectRequest.read(raw_request))
-        when RubySMB::SMB2::Commands::TREE_DISCONNECT
-          response = do_tree_disconnect_smb2(RubySMB::SMB2::Packet::TreeDisconnectRequest.read(raw_request))
+        when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
+          response = do_session_setup_smb1(SMB1::Packet::SessionSetupRequest.read(raw_request))
         else
-          logger.warn("The #{SMB2::Commands.name(header.command)} command is not supported")
+          logger.warn("The SMB1 #{SMB1::Commands.name(header.command)} command is not supported")
+          raise NotImplementedError
+        end
+
+        response
+      end
+
+      def handle_smb2(raw_request, header)
+        session = @session_table[header.session_id]
+
+        if session.nil? && !(header.command == SMB2::Commands::SESSION_SETUP && header.session_id == 0)
+          response = SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+
+        case header.command
+        when SMB2::Commands::CLOSE
+          response = do_close_smb2(SMB2::Packet::CloseRequest.read(raw_request), session)
+        when SMB2::Commands::CREATE
+          response = do_create_smb2(SMB2::Packet::CreateRequest.read(raw_request), session)
+        when SMB2::Commands::IOCTL
+          response = do_ioctl_smb2(SMB2::Packet::IoctlRequest.read(raw_request), session)
+        when SMB2::Commands::LOGOFF
+          response = do_logoff_smb2(SMB2::Packet::LogoffRequest.read(raw_request), session)
+        when SMB2::Commands::QUERY_DIRECTORY
+          response = do_query_directory_smb2(SMB2::Packet::QueryDirectoryRequest.read(raw_request), session)
+        when SMB2::Commands::QUERY_INFO
+          response = do_query_info_smb2(SMB2::Packet::QueryInfoRequest.read(raw_request), session)
+        when SMB2::Commands::READ
+          response = do_read_smb2(SMB2::Packet::ReadRequest.read(raw_request), session)
+        when SMB2::Commands::SESSION_SETUP
+          response = do_session_setup_smb2(SMB2::Packet::SessionSetupRequest.read(raw_request))
+        when SMB2::Commands::TREE_CONNECT
+          response = do_tree_connect_smb2(SMB2::Packet::TreeConnectRequest.read(raw_request), session)
+        when SMB2::Commands::TREE_DISCONNECT
+          response = do_tree_disconnect_smb2(SMB2::Packet::TreeDisconnectRequest.read(raw_request), session)
+        else
+          logger.warn("The SMB2 #{SMB2::Commands.name(header.command)} command is not supported")
           raise NotImplementedError
         end
 

@@ -17,6 +17,10 @@ module RubySMB
       SMB_COM_NT_TRANSACT_SECONDARY   = 0xA1
       SMB_COM_NT_CREATE_ANDX          = 0xA2
       SMB_COM_NO_ANDX_COMMAND         = 0xFF
+
+      def self.name(value)
+        constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+      end
     end
   end
 end

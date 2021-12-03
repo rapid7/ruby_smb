@@ -2,7 +2,7 @@ module RubySMB
   class Server
     class ServerClient
       module TreeConnect
-        def do_tree_connect_smb2(request)
+        def do_tree_connect_smb2(request, session)
           share_name = request.path.encode('UTF-8').split('\\', 4).last
           share_provider = @server.shares[share_name]
 
@@ -25,14 +25,14 @@ module RubySMB
           end
 
           response.smb2_header.tree_id = tree_id = rand(0xffffffff)
-          @tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self)
+          session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)
           response.maximal_access = share_processor.maximal_access
 
           response
         end
 
-        def do_tree_disconnect_smb2(request)
-          share_processor = @tree_connect_table.delete(request.smb2_header.tree_id)
+        def do_tree_disconnect_smb2(request, session)
+          share_processor = session.tree_connect_table.delete(request.smb2_header.tree_id)
           if share_processor.nil?
             response = SMB2::Packet::ErrorPacket.new
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_NAME_DELETED
