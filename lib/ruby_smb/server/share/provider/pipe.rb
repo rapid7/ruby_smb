@@ -10,7 +10,7 @@ module RubySMB
 
         class IpcPipe < Pipe
           class Processor < Processor::Base
-            def maximal_access
+            def maximal_access(path=nil)
               RubySMB::SMB2::BitField::DirectoryAccessMask.read([0x001f00a9].pack('V'))
             end
           end

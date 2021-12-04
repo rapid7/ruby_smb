@@ -3,7 +3,8 @@ module RubySMB
     module Share
       module Provider
         module Processor
-          # A processor is unique to a particular client connection
+          # A processor is unique to a particular client connection-session
+          # combination and provides the share's functionality.
           class Base
             def initialize(provider, server_client, session)
               @provider = provider
@@ -11,6 +12,12 @@ module RubySMB
               @session = session
             end
 
+            # Get the maximum access that can be obtained for the specified
+            # path. If no path is specified, the maximum access for the share as
+            # a whole is returned.
+            #
+            # @param [Pathname] path
+            # @return [RubySMB::SMB2::BitField::FileAccessMask]
             def maximal_access(path=nil)
               RubySMB::SMB2::BitField::FileAccessMask.new
             end
@@ -45,6 +52,10 @@ module RubySMB
               raise NotImplementedError
             end
 
+            #
+            # The logger object associated with this instance.
+            #
+            # @return [Logger]
             def logger
               @server_client.logger
             end
@@ -53,6 +64,9 @@ module RubySMB
               @server_client.server
             end
 
+            # The underlying share provider that this is a processor for.
+            # @!attribute [r] provider
+            #   @return [RubySMB::Server::Share::Provider::Base]
             attr_accessor :provider
           end
         end

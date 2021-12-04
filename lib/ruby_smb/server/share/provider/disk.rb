@@ -386,6 +386,14 @@ module RubySMB
               info.file_attributes = build_file_attributes(path)
             end
 
+            # Turn a wildcard expression into a regex. Not all wildcard
+            # characters are supported. Wildcards that can not be converted will
+            # raise a NotImplementedError.
+            #
+            # @param [String] wildcard The wildcard expression to convert.
+            # @return [Regexp] The converted expression.
+            # @raise [NotImplementedError] Raised when the wildcard can not be
+            #   converted.
             def wildcard_to_regex(wildcard)
               return Regexp.new('.*') if ['*.*', ''].include?(wildcard)
 

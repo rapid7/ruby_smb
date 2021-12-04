@@ -59,7 +59,7 @@ module RubySMB
     end
 
     # The dialects that this server will negotiate with clients, in ascending order of preference.
-    # @!attribute [r] dialects
+    # @!attribute [rw] dialects
     #   @return [Array<String>]
     attr_accessor :dialects
 

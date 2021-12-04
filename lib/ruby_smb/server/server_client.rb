@@ -17,7 +17,7 @@ module RubySMB
       include RubySMB::Server::ServerClient::ShareIO
       include RubySMB::Server::ServerClient::TreeConnect
 
-      attr_reader :dialect, :identity, :session_table
+      attr_reader :dialect, :session_table
 
       # @param [Server] server the server that accepted this connection
       # @param [Dispatcher::Socket] dispatcher the connection's socket dispatcher
@@ -54,8 +54,10 @@ module RubySMB
       end
 
       #
-      # Handle an authenticated request. This is the main handler for all requests after the connection has been
-      # authenticated.
+      # Handle a request after the dialect has been negotiated. This is the main
+      # handler for all requests after the connection has been established. If a
+      # request handler raises NotImplementedError, the server will respond to
+      # the client with NT Status STATUS_NOT_SUPPORTED.
       #
       # @param [String] raw_request the request that should be handled
       def handle_smb(raw_request)
@@ -138,6 +140,10 @@ module RubySMB
         @dispatcher.tcp_socket.close
       end
 
+      #
+      # The logger object associated with this instance.
+      #
+      # @return [Logger]
       def logger
         @server.logger
       end
@@ -211,6 +217,12 @@ module RubySMB
 
       private
 
+      #
+      # Handle an SMB version 1 message.
+      #
+      # @param [String] raw_request The bytes of the entire SMB request.
+      # @param [RubySMB::SMB1::SMBHeader] header The request header.
+      # @return [RubySMB::GenericPacket]
       def handle_smb1(raw_request, header)
         # session = @session_table[header.uid]
 
@@ -225,6 +237,14 @@ module RubySMB
         response
       end
 
+      #
+      # Handle an SMB version 2 or 3 message.
+      #
+      # @param [String] raw_request The bytes of the entire SMB request.
+      # @param [RubySMB::SMB2::SMB2Header] header The request header.
+      # @return [RubySMB::GenericPacket]
+      # @raise [NotImplementedError] Raised when the requested operation is not
+      #   supported.
       def handle_smb2(raw_request, header)
         session = @session_table[header.session_id]
 

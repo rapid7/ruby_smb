@@ -8,7 +8,7 @@ module RubySMB
 
     # Take an SMB1 packet and sign it.
     #
-    # @param packet [RubySMB::GenericPacket] the packet to sign
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb1_sign(packet)
       # Pack the Sequence counter into a int64le
@@ -21,14 +21,21 @@ module RubySMB
       packet
     end
 
-    # Take an SMB2 packet and sign it.
+    # Take an SMB2 packet and sign it. This version is an instance method that
+    # accesses the necessary values from the object instance.
     #
-    # @param packet [RubySMB::GenericPacket] the packet to sign
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb2_sign(packet)
       Signing::smb2_sign(packet, @session_key)
     end
 
+    # Take an SMB2 packet and sign it. This version is a module function that
+    # requires the necessary values to be explicitly passed to it.
+    #
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
+    # @param [String] session_key The key to use for signing.
+    # @return [RubySMB::GenericPacket] the signed packet
     def self.smb2_sign(packet, session_key)
       packet.smb2_header.flags.signed = 1
       packet.smb2_header.signature = "\x00" * 16
@@ -38,14 +45,24 @@ module RubySMB
       packet
     end
 
-    # Take an SMB3 packet and sign it.
+    # Take an SMB3 packet and sign it. This version is an instance method that
+    # accesses the necessary values from the object instance.
     #
-    # @param packet [RubySMB::GenericPacket] the packet to sign
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb3_sign(packet)
       Signing::smb3_sign(packet, @session_key, @dialect, @preauth_integrity_hash_value)
     end
 
+    # Take an SMB3 packet and sign it. This version is a module function that
+    # requires the necessary values to be explicitly passed to it.
+    #
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
+    # @param [String] session_key The key to use for signing.
+    # @param [String] dialect The SMB3 dialect to sign for.
+    # @param [String] preauth_integrity_hash The preauth integrity hash as
+    #   required by the 3.1.1 dialect.
+    # @return [RubySMB::GenericPacket] the signed packet
     def self.smb3_sign(packet, session_key, dialect, preauth_integrity_hash=nil)
       case dialect
       when '0x0300', '0x0302'
