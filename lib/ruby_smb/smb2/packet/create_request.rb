@@ -6,7 +6,6 @@ module RubySMB
       class CreateRequest < RubySMB::GenericPacket
         require 'ruby_smb/smb1/bit_field/create_options'
         COMMAND = RubySMB::SMB2::Commands::CREATE
-        auto_call_delayed_io
 
         endian :little
         smb2_header           :smb2_header

@@ -5,7 +5,6 @@ module RubySMB
       # [2.2.14 SMB2 CREATE Response](https://msdn.microsoft.com/en-us/library/cc246512.aspx)
       class CreateResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB2::Commands::CREATE
-        auto_call_delayed_io
 
         endian :little
         smb2_header           :smb2_header

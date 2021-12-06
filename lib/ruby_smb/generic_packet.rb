@@ -43,6 +43,8 @@ module RubySMB
       begin
         super(val)
       rescue IOError => e
+        # $stderr.puts "#{e.class}: #{e.message}"
+        # $stderr.puts e.backtrace.join("\n")
         case self.to_s
           when /EmptyPacket|ErrorPacket/
             raise RubySMB::Error::InvalidPacket, 'Not a valid SMB packet'

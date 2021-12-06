@@ -44,6 +44,16 @@ module RubySMB
                 raise NotImplementedError
               end
 
+              # process the delayed io fields
+              request.name.read_now!
+              unless request.contexts_offset == 0
+                request.contexts.read_now!
+                request.contexts.each do |context|
+                  context.name.read_now!
+                  context.data.read_now!
+                end
+              end
+
               path = request.name.snapshot.dup
               path = path.encode.gsub('\\', File::SEPARATOR)
               local_path = get_local_path(path)
