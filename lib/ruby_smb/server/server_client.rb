@@ -161,7 +161,7 @@ module RubySMB
           unless header.next_command == 0
             until header.next_command == 0
               @in_packet_queue.push(packet[0...header.next_command])
-              packet = packet[header.next_command..]
+              packet = packet[header.next_command..-1]
               header = RubySMB::SMB2::SMB2Header.read(packet)
             end
 

@@ -16,11 +16,11 @@ module RubySMB
           logger.debug("Received TREE_CONNECT request for share: #{share_name}")
 
           response.share_type = case share_provider.type
-          when :disk
+          when Share::TYPE_DISK
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_DISK
-          when :pipe
+          when Share::TYPE_PIPE
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PIPE
-          when :print
+          when Share::TYPE_PRINT
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
           end
 
