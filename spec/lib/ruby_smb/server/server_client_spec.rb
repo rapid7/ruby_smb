@@ -78,7 +78,7 @@ RSpec.describe RubySMB::Server::ServerClient do
 
     before(:each) do
       expect(dispatcher).to receive(:send_packet).with(packet).and_return(nil)
-      server_client.session_table[session_id] = RubySMB::Server::ServerClient::SessionSetup::Session.new(session_id)
+      server_client.session_table[session_id] = RubySMB::Server::Session.new(session_id)
     end
 
     it 'sends a packet to the dispatcher' do

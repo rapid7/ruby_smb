@@ -14,7 +14,7 @@ module RubySMB
           # Create a new, session-specific processor instance for this share.
           #
           # @param [RubySMB::Server::ServerClient] server_client The client connection.
-          # @param [RubySMB::Server::ServerClient::SessionSetup::Session] session The session object.
+          # @param [RubySMB::Server::Session] session The session object.
           def new_processor(server_client, session)
             self.class::Processor.new(self, server_client, session)
           end

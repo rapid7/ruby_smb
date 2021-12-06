@@ -6,6 +6,8 @@ module RubySMB
       module Provider
         class Pipe < Base
           TYPE = TYPE_PIPE
+          class Processor < Processor::Base
+          end
         end
 
         class IpcPipe < Pipe
