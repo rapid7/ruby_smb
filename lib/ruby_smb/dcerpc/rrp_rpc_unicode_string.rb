@@ -28,15 +28,24 @@ module RubySMB
         end
       end
 
-      def set_maximum_length(val)
-        if self.buffer
-          self.buffer.max_count = val / 2
-        end
+      # Set `maximum_length` and buffer `max_count` values to `val`. It also
+      # takes care of initializing the buffer pointer `ref_id` if the pointer
+      # is null.
+      #
+      # This helper is typically called in requests where a unicode string
+      # field needs to contain the maximum length information without any
+      # string value. It is usually required by some RPC calls and used by the
+      # server to determine the maximum length for the corresponding output
+      # field in order to allocate space accordingly.
+      def set_max_buffer_size(val)
+        self.buffer.instantiate_referent if self.buffer.is_null_ptr?
+        self.buffer.max_count = val / 2
         self.maximum_length.assign(val)
       end
 
       def to_s
-        self.buffer
+        return ''.encode('utf-16le') if self.buffer.is_null_ptr?
+        self.buffer.to_s
       end
     end
 
@@ -79,15 +88,24 @@ module RubySMB
         end
       end
 
-      def set_maximum_length(val)
-        if self.buffer
-          self.buffer.max_count = val / 2
-        end
+      # Set `maximum_length` and buffer `max_count` values to `val`. It also
+      # takes care of initializing the buffer pointer `ref_id` if the pointer
+      # is null.
+      #
+      # This helper is typically called in requests where a unicode string
+      # field needs to contain the maximum length information without any
+      # string value. It is usually required by some RPC calls and used by the
+      # server to determine the maximum length for the corresponding output
+      # field in order to allocate space accordingly.
+      def set_max_buffer_size(val)
+        self.buffer.instantiate_referent if self.buffer.is_null_ptr?
+        self.buffer.max_count = val / 2
         self.maximum_length.assign(val)
       end
 
       def to_s
-        self.buffer
+        return ''.encode('utf-16le') if self.buffer.is_null_ptr?
+        self.buffer.to_s
       end
     end
 

@@ -100,15 +100,33 @@ RSpec.describe RubySMB::Dcerpc::RrpUnicodeString do
     end
   end
 
-  describe '#set_maximum_length' do
+  describe '#set_max_buffer_size' do
     it 'sets buffer.max_count to the expected value' do
-      packet.set_maximum_length(4)
+      packet.set_max_buffer_size(4)
       expect(packet.buffer.max_count).to eq(4 / 2)
     end
 
     it 'sets #maximum_length to the expected value' do
-      packet.set_maximum_length(4)
+      packet.set_max_buffer_size(4)
       expect(packet.maximum_length).to eq(4)
+    end
+
+    it 'instantiates `buffer` if it is a null pointer' do
+      expect(packet.buffer).to eq(:null)
+      packet.set_max_buffer_size(4)
+      expect(packet.buffer).to eq('')
+    end
+  end
+
+  describe '#to_s' do
+    it 'returns a unicode string' do
+      packet.assign('Test')
+      expect(packet.to_s).to eq('Test'.encode('utf-16le'))
+    end
+
+    it 'returns a unicode encoded empty string if `buffer` is a null pointer' do
+      expect(packet.buffer).to eq(:null)
+      expect(packet.to_s).to eq(''.encode('utf-16le'))
     end
   end
 end
@@ -252,15 +270,33 @@ RSpec.describe RubySMB::Dcerpc::RpcUnicodeString do
     end
   end
 
-  describe '#set_maximum_length' do
+  describe '#set_max_buffer_size' do
     it 'sets buffer.max_count to the expected value' do
-      packet.set_maximum_length(4)
+      packet.set_max_buffer_size(4)
       expect(packet.buffer.max_count).to eq(4 / 2)
     end
 
     it 'sets #maximum_length to the expected value' do
-      packet.set_maximum_length(4)
+      packet.set_max_buffer_size(4)
       expect(packet.maximum_length).to eq(4)
+    end
+
+    it 'instantiates `buffer` if it is a null pointer' do
+      expect(packet.buffer).to eq(:null)
+      packet.set_max_buffer_size(4)
+      expect(packet.buffer).to eq('')
+    end
+  end
+
+  describe '#to_s' do
+    it 'returns a unicode string' do
+      packet.assign('Test')
+      expect(packet.to_s).to eq('Test'.encode('utf-16le'))
+    end
+
+    it 'returns a unicode encoded empty string if `buffer` is a null pointer' do
+      expect(packet.buffer).to eq(:null)
+      expect(packet.to_s).to eq(''.encode('utf-16le'))
     end
   end
 end

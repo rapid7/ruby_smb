@@ -15,6 +15,8 @@ module RubySMB
       MAX_BUFFER_SIZE = 64512
       # The read timeout when receiving packets.
       READ_TIMEOUT = 30
+      # The default Endpoint Mapper port
+      ENDPOINT_MAPPER_PORT = 135
 
       # The domain you're trying to authenticate to
       # @!attribute [rw] domain
@@ -142,7 +144,7 @@ module RubySMB
       def connect(port: nil)
         return if @tcp_socket
         unless port
-          @tcp_socket = TCPSocket.new(@host, 135)
+          @tcp_socket = TCPSocket.new(@host, ENDPOINT_MAPPER_PORT)
           bind(endpoint: Epm)
           begin
             host_port = get_host_port_from_ept_mapper(

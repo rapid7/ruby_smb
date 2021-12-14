@@ -296,7 +296,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
         :lp_class= => nil,
         :lp_class  => lp_class,
       )
-      allow(lp_class).to receive(:set_maximum_length)
+      allow(lp_class).to receive(:set_max_buffer_size)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::QueryInfoKeyResponse).to receive(:read).and_return(query_info_key_response)
       allow(query_info_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -314,8 +314,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'sets the expected fields on the request packet' do
       winreg.query_info_key(handle)
-      expect(query_info_key_request_packet).to have_received(:lp_class=).with('')
-      expect(lp_class).to have_received(:set_maximum_length).with(1024)
+      expect(lp_class).to have_received(:set_max_buffer_size).with(RubySMB::Dcerpc::Winreg::BUFFER_SIZE)
     end
 
     it 'creates a QueryInfoKeyResponse structure from the expected dcerpc response' do
@@ -354,14 +353,11 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     before :example do
       allow(described_class::EnumKeyRequest).to receive(:new).and_return(enum_key_request_packet)
       allow(enum_key_request_packet).to receive_messages(
-        :lpft_last_write_time= => nil,
-        :lp_class=             => nil,
         :lp_name               => lp_name,
         :lp_class              => lp_class
       )
-      allow(lp_class).to receive(:buffer=)
-      allow(lp_name).to receive(:buffer=)
-      allow(lp_name).to receive(:set_maximum_length)
+      allow(lp_class).to receive(:instantiate_referent)
+      allow(lp_name).to receive(:set_max_buffer_size)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumKeyResponse).to receive(:read).and_return(enum_key_response)
       allow(enum_key_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -375,11 +371,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'sets the expected parameters on the request packet' do
       winreg.enum_key(handle, index)
-      expect(enum_key_request_packet).to have_received(:lpft_last_write_time=).with(0)
-      expect(enum_key_request_packet).to have_received(:lp_class=).with('')
-      expect(lp_class).to have_received(:buffer=).with(:null)
-      expect(lp_name).to have_received(:buffer=).with('')
-      expect(lp_name).to have_received(:set_maximum_length).with(512)
+      expect(lp_class).to have_received(:instantiate_referent)
+      expect(lp_name).to have_received(:set_max_buffer_size).with(RubySMB::Dcerpc::Winreg::BUFFER_SIZE)
     end
 
     it 'sends the expected dcerpc request' do
@@ -422,9 +415,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:result_str)                { {buffer: 'reg value'} }
     before :example do
       allow(described_class::EnumValueRequest).to receive(:new).and_return(enum_value_request_packet)
-      allow(enum_value_request_packet).to receive(:lp_value_name=)
       allow(enum_value_request_packet).to receive(:lp_value_name).and_return(lp_value_name)
-      allow(lp_value_name).to receive(:set_maximum_length)
+      allow(lp_value_name).to receive(:set_max_buffer_size)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::EnumValueResponse).to receive(:read).and_return(enum_value_response)
       allow(enum_value_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
@@ -438,8 +430,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'sets the expected buffer on the request packet' do
       winreg.enum_value(handle, index)
-      expect(lp_value_name).to have_received(:set_maximum_length).with(512)
-      expect(enum_value_request_packet).to have_received(:lp_value_name=).with('')
+      expect(lp_value_name).to have_received(:set_max_buffer_size).with(RubySMB::Dcerpc::Winreg::BUFFER_SIZE)
     end
 
     it 'sends the expected dcerpc request' do

@@ -63,6 +63,8 @@ module RubySMB
         "HKPN"                      => OPEN_HKPN
       }
 
+      BUFFER_SIZE = 1024
+
       # Open the registry root key and return a handle for it. The key can be
       # either a long format (e.g. HKEY_LOCAL_MACHINE) or a short format
       # (e.g. HKLM)
@@ -193,8 +195,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_info_key(handle)
         query_info_key_request_packet = RubySMB::Dcerpc::Winreg::QueryInfoKeyRequest.new(hkey: handle)
-        query_info_key_request_packet.lp_class = ''
-        query_info_key_request_packet.lp_class.set_maximum_length(1024)
+        query_info_key_request_packet.lp_class.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(query_info_key_request_packet)
         begin
           query_info_key_response = RubySMB::Dcerpc::Winreg::QueryInfoKeyResponse.read(response)
@@ -218,11 +219,9 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_key(handle, index)
         enum_key_request_packet = RubySMB::Dcerpc::Winreg::EnumKeyRequest.new(hkey: handle, dw_index: index)
-        enum_key_request_packet.lpft_last_write_time = 0
-        enum_key_request_packet.lp_class = ''
-        enum_key_request_packet.lp_class.buffer = :null
-        enum_key_request_packet.lp_name.buffer = ''
-        enum_key_request_packet.lp_name.set_maximum_length(512)
+        # `lp_class` cannot be null, even if it contains no value
+        enum_key_request_packet.lp_class.instantiate_referent
+        enum_key_request_packet.lp_name.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(enum_key_request_packet)
         begin
           enum_key_response = RubySMB::Dcerpc::Winreg::EnumKeyResponse.read(response)
@@ -246,8 +245,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_value(handle, index)
         enum_value_request_packet = RubySMB::Dcerpc::Winreg::EnumValueRequest.new(hkey: handle, dw_index: index)
-        enum_value_request_packet.lp_value_name = ''
-        enum_value_request_packet.lp_value_name.set_maximum_length(512)
+        enum_value_request_packet.lp_value_name.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(enum_value_request_packet)
         begin
           enum_value_response = RubySMB::Dcerpc::Winreg::EnumValueResponse.read(response)

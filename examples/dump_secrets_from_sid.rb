@@ -4,7 +4,7 @@
 # It will attempt to connect to a host and enumerate user secrets.
 # Example usage: ruby dump_secrets_from_sid.rb 192.168.172.138 msfadmin msfadmin MYDOMAIN S-1-5-21-419547006-9448028-4223375872-500
 # This will try to connect to \\192.168.172.138 with the msfadmin:msfadmin
-# credentialas and enumerate decrets of domain user with SID
+# credentials and enumerate secrets of domain user with SID
 # S-1-5-21-419547006-9448028-4223375872-500
 
 require 'bundler/setup'
@@ -97,7 +97,7 @@ dc_infos.each do |dc_info|
         encrypted_nt_hash = client.decrypt_attribute_value(attribute_value)
         nt_hash = client.remove_des_layer(encrypted_nt_hash, rid)
       when lookup_table['userPrincipalName']
-        domain_name = attribute_value.force_encoding('utf-16le').split('@').last
+        domain_name = attribute_value.force_encoding('utf-16le').encode('utf-8').split('@').last
       when lookup_table['sAMAccountName']
         user = attribute_value.force_encoding('utf-16le').encode('utf-8')
       when lookup_table['objectSid']
@@ -186,8 +186,8 @@ dc_infos.each do |dc_info|
       nt_history[1..-1].zip(lm_history[1..-1]).each_with_index do |history, i|
         nt_h, lm_h = history
         empty_lm_h = Net::NTLM.lm_hash('')
-        puts "  #{user}_history#{i}:#{rid}:#{empty_lm_h.unpack('H*')[0]}:#{nt_h.unpack('H*')[0]}::: (if LMHashes are not stored)"
-        puts "  #{user}_history#{i}:#{rid}:#{lm_h.unpack('H*')[0]}:#{nt_h.unpack('H*')[0]}::: (if LMHashes are stored)"
+        puts "  #{user}_history#{i}:#{rid}:#{empty_lm_h.unpack('H*')[0]}:#{nt_h.to_s.unpack('H*')[0]}::: (if LMHashes are not stored)"
+        puts "  #{user}_history#{i}:#{rid}:#{lm_h.to_s.unpack('H*')[0]}:#{nt_h.to_s.unpack('H*')[0]}::: (if LMHashes are stored)"
       end
     end
     puts "Kerberos keys:"
