@@ -432,24 +432,31 @@ module RubySMB
                                                                USER_INTERDOMAIN_TRUST_ACCOUNT)
         samr_enum_users_request = SamrEnumerateUsersInDomainRequest.new(
           domain_handle: domain_handle,
-          enumeration_context: enumeration_context,
           user_account_control: user_account_control,
           prefered_maximum_length: 0xFFFFFFFF
         )
-        response = dcerpc_request(samr_enum_users_request)
-        begin
-          samr_enum_users_reponse= SamrEnumerateUsersInDomainResponse.read(response)
-        rescue IOError
-          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrEnumerateUsersInDomainResponse'
+        res = {}
+        loop do
+          samr_enum_users_request.enumeration_context = enumeration_context
+          response = dcerpc_request(samr_enum_users_request)
+          begin
+            samr_enum_users_reponse= SamrEnumerateUsersInDomainResponse.read(response)
+          rescue IOError
+            raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrEnumerateUsersInDomainResponse'
+          end
+          unless samr_enum_users_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS ||
+                 samr_enum_users_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+            raise RubySMB::Dcerpc::Error::SamrError,
+              "Error returned during users enumeration in SAM server: "\
+              "#{WindowsError::NTStatus.find_by_retval(samr_enum_users_reponse.error_status.value).join(',')}"
+          end
+          samr_enum_users_reponse.buffer.buffer.each_with_object(res) do |entry, hash|
+            hash[entry.relative_id] = entry.name.buffer
+          end
+          break unless samr_enum_users_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+          enumeration_context = samr_enum_users_reponse.enumeration_context
         end
-        unless samr_enum_users_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Dcerpc::Error::SamrError,
-            "Error returned during users enumeration in SAM server: "\
-            "#{WindowsError::NTStatus.find_by_retval(samr_enum_users_reponse.error_status.value).join(',')}"
-        end
-        samr_enum_users_reponse.buffer.buffer.each_with_object({}) do |entry, hash|
-          hash[entry.relative_id] = entry.name.buffer
-        end
+        res
       end
 
       # Returns the SID of an account, given a RID.
