@@ -190,9 +190,11 @@ RSpec.describe RubySMB::Dcerpc::Samr do
     let(:entries) { [entry1, entry2] }
     before :example do
       allow(described_class::SamrEnumerateUsersInDomainRequest).to receive(:new).and_return(samr_enumerate_users_in_domain_request)
+      allow(samr_enumerate_users_in_domain_request).to receive(:enumeration_context=)
+      allow(samr_enumerate_users_in_domain_request).to receive(:enumeration_context).and_return(enumeration_context)
       allow(samr).to receive(:dcerpc_request).and_return(response)
       allow(described_class::SamrEnumerateUsersInDomainResponse).to receive(:read).and_return(samr_enumerate_users_in_domain_response)
-      allow(samr_enumerate_users_in_domain_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
+      allow(samr_enumerate_users_in_domain_response).to receive(:error_status).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
       allow(samr_enumerate_users_in_domain_response).to receive_message_chain(:buffer, :buffer => entries)
       allow(entry1).to receive(:relative_id).and_return(501)
       allow(entry2).to receive(:relative_id).and_return(502)
@@ -208,10 +210,10 @@ RSpec.describe RubySMB::Dcerpc::Samr do
       )
       expect(described_class::SamrEnumerateUsersInDomainRequest).to have_received(:new).with(
         domain_handle: domain_handle,
-        enumeration_context: enumeration_context,
         user_account_control: user_account_control,
         prefered_maximum_length: 0xFFFFFFFF
       )
+      expect(samr_enumerate_users_in_domain_request).to have_received(:enumeration_context=).with(enumeration_context)
     end
     it 'send the expected request structure' do
       samr.samr_enumerate_users_in_domain(domain_handle: domain_handle)
@@ -223,7 +225,7 @@ RSpec.describe RubySMB::Dcerpc::Samr do
         expect { samr.samr_enumerate_users_in_domain(domain_handle: domain_handle) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
       end
     end
-    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+    context 'when the response error status is not ERROR_SUCCESS or STATUS_MORE_ENTRIES' do
       it 'raises a RubySMB::Dcerpc::Error::WinregError' do
         allow(samr_enumerate_users_in_domain_response).to receive(:error_status).and_return(WindowsError::Win32::ERROR_INVALID_DATA)
         expect { samr.samr_enumerate_users_in_domain(domain_handle: domain_handle) }.to raise_error(RubySMB::Dcerpc::Error::SamrError)
@@ -262,6 +264,47 @@ RSpec.describe RubySMB::Dcerpc::Samr do
           1105 => "smbtest2".encode('utf-16le'),
           1001 => "WIN-DP0M1BC768$".encode('utf-16le'),
           1104 => "DESKTOP-5AR4M2S$".encode('utf-16le')
+        })
+      end
+    end
+    context 'with a STATUS_MORE_ENTRIES response' do
+      let(:enumeration_context2) { double('enumeration_context2') }
+      let(:entry3) { double('entry3') }
+      let(:entry4) { double('entry4') }
+      let(:entries2) { [entry3, entry4] }
+      before :example do
+        first_pass = true
+        allow(described_class::SamrEnumerateUsersInDomainResponse).to receive(:read) do
+          if first_pass
+            allow(samr_enumerate_users_in_domain_response).to receive(:error_status).and_return(WindowsError::NTStatus::STATUS_MORE_ENTRIES)
+            allow(samr_enumerate_users_in_domain_response).to receive(:enumeration_context).and_return(enumeration_context2)
+            first_pass = false
+          else
+            allow(samr_enumerate_users_in_domain_response).to receive(:error_status).and_return(WindowsError::NTStatus::STATUS_SUCCESS)
+            allow(samr_enumerate_users_in_domain_response).to receive_message_chain(:buffer, :buffer => entries2)
+          end
+          samr_enumerate_users_in_domain_response
+        end
+        allow(entry3).to receive(:relative_id).and_return(503)
+        allow(entry4).to receive(:relative_id).and_return(504)
+        allow(entry3).to receive_message_chain(:name, :buffer => 'Entry 3')
+        allow(entry4).to receive_message_chain(:name, :buffer => 'Entry 4')
+      end
+      it 'sends multiple requests with the expected enumeration_context value' do
+        samr.samr_enumerate_users_in_domain(
+          domain_handle: domain_handle,
+          enumeration_context: enumeration_context
+        )
+        expect(samr).to have_received(:dcerpc_request).with(samr_enumerate_users_in_domain_request).twice
+        expect(samr_enumerate_users_in_domain_request).to have_received(:enumeration_context=).with(enumeration_context)
+        expect(samr_enumerate_users_in_domain_request).to have_received(:enumeration_context=).with(enumeration_context2)
+      end
+      it 'returns the expected hash' do
+        expect(samr.samr_enumerate_users_in_domain(domain_handle: domain_handle)).to eq({
+          501 => 'Entry 1',
+          502 => 'Entry 2',
+          503 => 'Entry 3',
+          504 => 'Entry 4'
         })
       end
     end

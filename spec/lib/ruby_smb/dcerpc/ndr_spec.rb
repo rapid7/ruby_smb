@@ -1704,7 +1704,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
       it 'outputs the expected binary representation' do
         binary =  "\x01"             # a
         binary << "\x00"             # pad
-        binary << "\x02\x00"         # b.ref_id
+        binary << "\x02\x00"         # b
         binary << "\x03\x00\x00\x00" # c
         binary << "\x41"             # d
         binary << "\x00\x00\x00"     # pad
@@ -1746,9 +1746,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
       it 'outputs the expected binary representation' do
         binary =  "\x01"             # a
         binary << "\x00\x00\x00"     # pad
-        binary << "\x00\x00\x02\x00" # b.ref_id
+        binary << "\x01\x00\x00\x00" # b.ref_id
         binary << "\x03\x00\x00\x00" # c
-        binary << "\x04\x00\x02\x00" # d.ref_id
+        binary << "\x02\x00\x00\x00" # d.ref_id
         binary << "\x01\x00\x00\x00" # e
         binary << "\x02\x00"         # deferred b
         binary << "\x41"             # deferred d
@@ -1824,9 +1824,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
       end
       it 'outputs the expected binary representation' do
         binary =  "\x04\x00\x00\x00" # a
-        binary << "\x00\x00\x02\x00" # b[0].ref_id
-        binary << "\x04\x00\x02\x00" # b[1].ref_id
-        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x01\x00\x00\x00" # b[0].ref_id
+        binary << "\x02\x00\x00\x00" # b[1].ref_id
+        binary << "\x03\x00\x00\x00" # b[2].ref_id
         binary << "\x05\x00\x00\x00" # c
         binary << "\x01\x00\x00\x00" # b[0]
         binary << "\x02\x00\x00\x00" # b[1]
@@ -1907,9 +1907,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary =  "\x04\x00\x00\x00" # a
         binary << "\x00\x00\x00\x00" # array offset
         binary << "\x03\x00\x00\x00" # array actual_count
-        binary << "\x00\x00\x02\x00" # b[0].ref_id
-        binary << "\x04\x00\x02\x00" # b[1].ref_id
-        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x01\x00\x00\x00" # b[0].ref_id
+        binary << "\x02\x00\x00\x00" # b[1].ref_id
+        binary << "\x03\x00\x00\x00" # b[2].ref_id
         binary << "\x05\x00\x00\x00" # c
         binary << "\x01\x00\x00\x00" # deferred b[0]
         binary << "\x02\x00\x00\x00" # deferred b[1]
@@ -1989,9 +1989,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary =  "\x03\x00\x00\x00" # array max_count
         binary << "\x04\x00\x00\x00" # a
         binary << "\x05\x00\x00\x00" # b
-        binary << "\x00\x00\x02\x00" # c[0].ref_id
-        binary << "\x04\x00\x02\x00" # c[1].ref_id
-        binary << "\x08\x00\x02\x00" # c[2].ref_id
+        binary << "\x01\x00\x00\x00" # c[0].ref_id
+        binary << "\x02\x00\x00\x00" # c[1].ref_id
+        binary << "\x03\x00\x00\x00" # c[2].ref_id
         binary << "\x01\x00\x00\x00" # c[0]
         binary << "\x02\x00\x00\x00" # c[1]
         binary << "\x03\x00\x00\x00" # c[2]
@@ -2074,9 +2074,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary << "\x05\x00\x00\x00" # c
         binary << "\x00\x00\x00\x00" # array offset
         binary << "\x03\x00\x00\x00" # array actual_count
-        binary << "\x00\x00\x02\x00" # b[0].ref_id
-        binary << "\x04\x00\x02\x00" # b[1].ref_id
-        binary << "\x08\x00\x02\x00" # b[2].ref_id
+        binary << "\x01\x00\x00\x00" # b[0].ref_id
+        binary << "\x02\x00\x00\x00" # b[1].ref_id
+        binary << "\x03\x00\x00\x00" # b[2].ref_id
         binary << "\x01\x00\x00\x00" # deferred b[0]
         binary << "\x02\x00\x00\x00" # deferred b[1]
         binary << "\x03\x00\x00\x00" # deferred b[2]
@@ -2184,9 +2184,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary << "\x06\x00"         # b
         binary << "\x07\x00"         # c.a
         binary << "\x00\x00"         # pad
-        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
-        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
-        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # c.b[0].ref_id
+        binary << "\x02\x00\x00\x00" # c.b[1].ref_id
+        binary << "\x03\x00\x00\x00" # c.b[2].ref_id
         binary << "\x08\x00"         # c.c
         binary << "\x00\x00"         # pad
         binary << "\x01\x00\x00\x00" # deferred c.b[0]
@@ -2300,9 +2300,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary << "\x00\x00"         # pad
         binary << "\x00\x00\x00\x00" # array offset
         binary << "\x03\x00\x00\x00" # array actual_count
-        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
-        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
-        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # c.b[0].ref_id
+        binary << "\x02\x00\x00\x00" # c.b[1].ref_id
+        binary << "\x03\x00\x00\x00" # c.b[2].ref_id
         binary << "\x08\x00"         # c.c
         binary << "\x00\x00"         # pad
         binary << "\x01\x00\x00\x00" # deferred c.b[0]
@@ -2413,9 +2413,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary << "\x06\x00"         # b
         binary << "\x07\x00"         # c.a
         binary << "\x08\x00"         # c.b
-        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
-        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
-        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # c.b[0].ref_id
+        binary << "\x02\x00\x00\x00" # c.b[1].ref_id
+        binary << "\x03\x00\x00\x00" # c.b[2].ref_id
         binary << "\x01\x00\x00\x00" # deferred c.b[0]
         binary << "\x02\x00\x00\x00" # deferred c.b[1]
         binary << "\x03\x00\x00\x00" # deferred c.b[2]
@@ -2528,9 +2528,9 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
         binary << "\x08\x00"         # c.b
         binary << "\x00\x00\x00\x00" # array offset
         binary << "\x03\x00\x00\x00" # array actual_count
-        binary << "\x00\x00\x02\x00" # c.b[0].ref_id
-        binary << "\x04\x00\x02\x00" # c.b[1].ref_id
-        binary << "\x08\x00\x02\x00" # c.b[2].ref_id
+        binary << "\x01\x00\x00\x00" # c.b[0].ref_id
+        binary << "\x02\x00\x00\x00" # c.b[1].ref_id
+        binary << "\x03\x00\x00\x00" # c.b[2].ref_id
         binary << "\x01\x00\x00\x00" # deferred c.b[0]
         binary << "\x02\x00\x00\x00" # deferred c.b[1]
         binary << "\x03\x00\x00\x00" # deferred c.b[2]
@@ -2574,7 +2574,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
       it 'outputs the expected binary representation' do
         binary =  "\x04\x00\x00\x00" # a
         binary << "\x05\x00\x00\x00" # b
-        binary << "\x00\x00\x02\x00" # c.ref_id
+        binary << "\x01\x00\x00\x00" # c.ref_id
         binary << "\x03\x00\x00\x00" # array max_count
         binary << "\x01\x00\x00\x00" # c[0]
         binary << "\x02\x00\x00\x00" # c[1]
@@ -2629,7 +2629,7 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrStruct do
       it 'outputs the expected binary representation' do
         binary =  "\x05\x00\x00\x00" # a
         binary << "\x06\x00\x00\x00" # b
-        binary << "\x00\x00\x02\x00" # c.ref_id
+        binary << "\x01\x00\x00\x00" # c.ref_id
         binary << "\x04\x00\x00\x00" # array max_count
         binary << "\x07\x00\x00\x00" # c.a
         binary << "\x00\x00\x00\x00" # array offset
@@ -3173,7 +3173,7 @@ end
           RubySMB::Dcerpc::Ndr::NdrConfArray.new([info[:data], info[:data]], type: described_class)
         end
         let(:output_str) do
-          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 1].pack('L')
           output_str = "#{[2].pack('L')}#{ref_id}#{ref_id2}".b
           align = (info[:size] - (output_str.size % info[:size])) % info[:size]
           output_str << "\x00".b * align
@@ -3233,7 +3233,7 @@ end
           RubySMB::Dcerpc::Ndr::NdrConfArray.new([subject, test_struct], type: described_class)
         end
         let(:binary_str) do
-          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+          ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 1].pack('L')
           binary_str = "#{[2].pack('L')}#{ref_id}#{ref_id2}".b
           align = (info[:size] - (binary_str.size % info[:size])) % info[:size]
           binary_str << "\x00".b * align
@@ -3361,12 +3361,12 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "M"\
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
-      "#{[ref_id + 4].pack('L')}"\
-      "#{[ref_id + 8].pack('L')}"\
+      "#{[ref_id + 1].pack('L')}"\
+      "#{[ref_id + 2].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
       "#{[33].pack('L')}"\
-      "#{[ref_id + 12].pack('L')}"\
+      "#{[ref_id + 3].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
@@ -3394,12 +3394,12 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "M"\
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
-      "#{[ref_id + 4].pack('L')}"\
-      "#{[ref_id + 8].pack('L')}"\
+      "#{[ref_id + 1].pack('L')}"\
+      "#{[ref_id + 2].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
       "#{[33].pack('L')}"\
-      "#{[ref_id + 12].pack('L')}"\
+      "#{[ref_id + 3].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
@@ -3429,12 +3429,12 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "M"\
       "\x00\x00\x00"\
       "#{[66].pack('L')}"\
-      "#{[ref_id + 4].pack('L')}"\
-      "#{[ref_id + 8].pack('L')}"\
+      "#{[ref_id + 1].pack('L')}"\
+      "#{[ref_id + 2].pack('L')}"\
       "A"\
       "\x00\x00\x00"\
       "#{[33].pack('L')}"\
-      "#{[ref_id + 12].pack('L')}"\
+      "#{[ref_id + 3].pack('L')}"\
       "#{[44].pack('L')}".b
     end
     subject { test_struct.new(snapshot) }
@@ -3478,12 +3478,12 @@ RSpec.describe RubySMB::Dcerpc::Ndr::TopLevelPlugin do
       "#{[0xF4].pack('L<')}"\
       "#{[0xF5].pack('L<')}"\
       "#{[0xF6].pack('L<')}"\
-      "#{[ref_id + 4].pack('L<')}"\
-      "#{[ref_id + 8].pack('L<')}"\
+      "#{[ref_id + 1].pack('L<')}"\
+      "#{[ref_id + 2].pack('L<')}"\
       "B"\
       "\x00\x00\x00"\
       "#{[0xF7].pack('L<')}"\
-      "#{[ref_id + 8].pack('L<')}"
+      "#{[ref_id + 2].pack('L<')}"
     end
     subject { test_struct.new(snapshot) }
 
@@ -4114,7 +4114,7 @@ RSpec.describe 'Alignment' do
     }.each do |ndr_class, info|
       describe(RubySMB::Dcerpc::Ndr.const_get(ndr_class)) do
         ref_id = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID].pack('L')
-        ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 4].pack('L')
+        ref_id2 = [RubySMB::Dcerpc::Ndr::INITIAL_REF_ID + 1].pack('L')
         binary_str = [2].pack('L') + ref_id + ref_id2
         # Embedding structure starts with 'A' + pad (4 bytes)
         current_size = 4 + binary_str.size
