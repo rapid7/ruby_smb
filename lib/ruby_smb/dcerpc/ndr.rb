@@ -925,8 +925,11 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
-  # The initial reference ID starts at 0x00020000, which is what Windows appears to do.
-  INITIAL_REF_ID = 0x00020000
+  # Windows SMB client uses 0x00020000 as an initial reference ID, but it is
+  # rejected by the server on the Windows Server 2003. On this version, only
+  # 0x00000001 seems to be accepted. So, we need to use this value to maintain
+  # compatibility.
+  INITIAL_REF_ID = 0x00000001
 
   module PointerPlugin
     attr_accessor :ref_id
@@ -983,7 +986,7 @@ module RubySMB::Dcerpc::Ndr
           @ref_id = ref_field.ref_id
         end
       elsif @ref_id != 0 || (is_null_ptr? && eval_parameter(:initial_value))
-        @ref_id = INITIAL_REF_ID + (self.class.pos * 4)
+        @ref_id = INITIAL_REF_ID + self.class.pos
         self.class.increment_pos unless @standalone_ptr
       end
       io.writebytes([@ref_id].pack('L<'))
