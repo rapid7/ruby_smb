@@ -7,7 +7,9 @@ RSpec.describe RubySMB::Dcerpc::Request do
   it { is_expected.to respond_to :opnum }
   it { is_expected.to respond_to :object }
   it { is_expected.to respond_to :stub }
-  it { is_expected.to respond_to :auth_verifier }
+  it { is_expected.to respond_to :auth_pad }
+  it { is_expected.to respond_to :sec_trailer }
+  it { is_expected.to respond_to :auth_value }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -83,7 +85,7 @@ RSpec.describe RubySMB::Dcerpc::Request do
       end
 
       it 'selects the expected packet structure' do
-        expect(packet.stub).to eq(RubySMB::Dcerpc::Srvsvc::NetShareEnumAll.new(host: host))
+        expect(packet.stub).to eq(RubySMB::Dcerpc::Srvsvc::NetShareEnumAllRequest.new)
       end
     end
 
@@ -118,37 +120,100 @@ RSpec.describe RubySMB::Dcerpc::Request do
     end
   end
 
-  describe '#auth_verifier' do
+  describe '#auth_pad' do
     it 'should be a string' do
-      expect(packet.auth_verifier).to be_a BinData::String
+      expect(packet.auth_pad).to be_a BinData::String
     end
 
     it 'should not exist if the #auth_length PDU header field is 0' do
       packet.pdu_header.auth_length = 0
-      expect(packet.auth_verifier?).to be false
+      expect(packet.auth_pad?).to be false
     end
 
     it 'should exist only if the #auth_length PDU header field is greater than 0' do
       packet.pdu_header.auth_length = 10
-      expect(packet.auth_verifier?).to be true
+      expect(packet.auth_pad?).to be true
+    end
+
+    it 'makes sure #sec_trailer is 16-bytes aligned with the begining of the PDU body (stub)' do
+      packet.pdu_header.auth_length = 6
+      packet.stub = 'A' * rand(0xFF)
+      expect((packet.sec_trailer.abs_offset - packet.stub.abs_offset) % 16).to eq(0)
+    end
+  end
+
+  describe '#sec_trailer' do
+    it 'is a SecTrailer structre' do
+      expect(packet.sec_trailer).to be_a RubySMB::Dcerpc::SecTrailer
+    end
+
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.sec_trailer?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.sec_trailer?).to be true
+    end
+  end
+
+  describe '#auth_value' do
+    it 'should be a string' do
+      expect(packet.auth_value).to be_a BinData::String
+    end
+
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.auth_value?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.auth_value?).to be true
     end
 
     it 'reads #auth_length bytes' do
-      auth_verifier = '12345678'
+      auth_value = '12345678'
       packet.pdu_header.auth_length = 6
-      packet.auth_verifier.read(auth_verifier)
-      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+      packet.auth_value.read(auth_value)
+      expect(packet.auth_value).to eq(auth_value[0,6])
+    end
+  end
+
+  describe '#enable_encrypted_stub' do
+    it 'sets the stub type to BinData::String' do
+      # Set a new packet with a Winreg stub
+      packet = described_class.new(
+        { opnum: RubySMB::Dcerpc::Winreg::OPEN_HKPD },
+        { endpoint: 'Winreg' }
+      )
+      # Enabling encryption will switch the stub to a string
+      packet.enable_encrypted_stub
+      expect(packet.stub.send(:current_choice)).to be_a BinData::String
+    end
+  end
+
+  describe '#has_auth_verifier?' do
+    it 'returns true if PDU header #auth_length is greater than 0' do
+      packet.pdu_header.auth_length = 5
+      expect(packet.has_auth_verifier?).to be true
+    end
+
+    it 'returns false if PDU header #auth_length is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.has_auth_verifier?).to be false
     end
   end
 
   it 'reads its own binary representation and output the same packet' do
     packet = described_class.new(
       { :opnum => RubySMB::Dcerpc::Srvsvc::NET_SHARE_ENUM_ALL },
-      { :endpoint => 'Srvsvc', :host => '1.2.3.4' }
+      { :endpoint => 'Srvsvc' }
     )
     packet.pdu_header.pfc_flags.object_uuid = 1
     packet.object = '8a885d04-1ceb-11c9-9fe8-08002b104860'
-    packet.auth_verifier = '123456'
+    packet.auth_value = '123456'
     packet.pdu_header.auth_length = 6
     binary = packet.to_binary_s
     packet2 = described_class.new( { :endpoint => 'Srvsvc' } )

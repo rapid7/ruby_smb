@@ -17,9 +17,9 @@ module RubySMB
 
         endian :little
 
-        prpc_hkey    :hkey
-        ndr_lp_dword :lpdw_disposition
-        uint32       :error_status
+        prpc_hkey      :hkey
+        ndr_uint32_ptr :lpdw_disposition
+        ndr_uint32     :error_status
 
         def initialize_instance
           super

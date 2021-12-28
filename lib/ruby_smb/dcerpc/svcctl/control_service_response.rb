@@ -11,7 +11,7 @@ module RubySMB
         endian :little
 
         service_status :lp_service_status
-        uint32         :error_status
+        ndr_uint32     :error_status
 
         def initialize_instance
           super

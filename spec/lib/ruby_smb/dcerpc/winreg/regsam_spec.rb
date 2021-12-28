@@ -29,4 +29,8 @@ RSpec.describe RubySMB::Dcerpc::Winreg::Regsam do
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
+
+  it 'it is a Ndr::NdrStruct' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
 end

@@ -7,7 +7,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   it { is_expected.to respond_to :assoc_group_id }
   it { is_expected.to respond_to :sec_addr }
   it { is_expected.to respond_to :p_result_list }
-  it { is_expected.to respond_to :auth_verifier }
+  it { is_expected.to respond_to :sec_trailer }
+  it { is_expected.to respond_to :auth_value }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -26,8 +27,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#max_xmit_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_xmit_frag).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.max_xmit_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -36,8 +37,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#max_recv_frag' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.max_recv_frag).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.max_recv_frag).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should have a default value of 0xFFFF' do
@@ -46,15 +47,8 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
   end
 
   describe '#assoc_group_id' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.assoc_group_id).to be_a BinData::Uint32le
-    end
-  end
-
-  describe '#pad' do
-    it 'should keep #p_result_list 4-byte aligned' do
-      packet.sec_addr.port_spec = "test"
-      expect(packet.p_result_list.abs_offset % 4).to eq 0
+    it 'should be a NdrUint32' do
+      expect(packet.assoc_group_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -64,45 +58,49 @@ RSpec.describe RubySMB::Dcerpc::BindAck do
     end
   end
 
-  describe '#auth_verifier' do
-    it 'should be a string' do
-      expect(packet.auth_verifier).to be_a BinData::String
+  describe '#sec_trailer' do
+    it 'should be a SecTrailer structure' do
+      expect(packet.sec_trailer).to be_a RubySMB::Dcerpc::SecTrailer
     end
 
     it 'should not exist if the #auth_length PDU header field is 0' do
       packet.pdu_header.auth_length = 0
-      expect(packet.auth_verifier?).to be false
+      expect(packet.sec_trailer?).to be false
     end
 
     it 'should exist only if the #auth_length PDU header field is greater than 0' do
       packet.pdu_header.auth_length = 10
-      expect(packet.auth_verifier?).to be true
-    end
-
-    it 'reads #auth_length bytes' do
-      auth_verifier = '12345678'
-      packet.pdu_header.auth_length = 6
-      packet.auth_verifier.read(auth_verifier)
-      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+      expect(packet.sec_trailer?).to be true
     end
   end
 
-  describe '#pad_length' do
-    it 'returns 0 when #p_result_list is already 4-byte aligned' do
-      packet.sec_addr.port_spec = 'align'
-      expect(packet.pad_length).to eq 0
+  describe '#auth_value' do
+    it 'should be a string' do
+      expect(packet.auth_value).to be_a BinData::String
     end
 
-    it 'returns 2 when #p_result_list is only 2-byte aligned' do
-      packet.sec_addr.port_spec = 'align' + 'AA'
-      expect(packet.pad_length).to eq 2
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.auth_value?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.auth_value?).to be true
+    end
+
+    it 'reads #auth_length bytes' do
+      auth_value = '12345678'
+      packet.pdu_header.auth_length = 6
+      packet.auth_value.read(auth_value)
+      expect(packet.auth_value).to eq(auth_value[0,6])
     end
   end
 
   it 'reads its own binary representation and output the same packet' do
     packet.sec_addr.port_spec = "port spec"
     packet.p_result_list.n_results = 2
-    packet.auth_verifier = '123456'
+    packet.auth_value = '123456'
     packet.pdu_header.auth_length = 6
     binary = packet.to_binary_s
     expect(described_class.read(binary)).to eq(packet)
@@ -119,9 +117,13 @@ RSpec.describe RubySMB::Dcerpc::PortAnyT do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has a default alignment of 2 bytes' do
+    expect(described_class.default_parameters[:byte_align]).to eq 2
+  end
+
   describe '#str_length' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.str_length).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.str_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
 
     it 'should be the size of #port_spec string, including the NULL terminator' do
@@ -148,15 +150,33 @@ RSpec.describe RubySMB::Dcerpc::PResultListT do
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :n_results }
+  it { is_expected.to respond_to :reserved }
+  it { is_expected.to respond_to :reserved2 }
   it { is_expected.to respond_to :p_results }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has a default alignment of 4 bytes' do
+    expect(described_class.default_parameters[:byte_align]).to eq 4
+  end
+
   describe '#n_results' do
-    it 'should be a 8-bit unsigned integer' do
-      expect(packet.n_results).to be_a BinData::Uint8
+    it 'should be a NdrUint8' do
+      expect(packet.n_results).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
+    end
+  end
+
+  describe '#reserved' do
+    it 'should be a NdrUint8' do
+      expect(packet.reserved).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
+    end
+  end
+
+  describe '#reserved2' do
+    it 'should be a NdrUint16' do
+      expect(packet.reserved2).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 
@@ -171,6 +191,10 @@ RSpec.describe RubySMB::Dcerpc::PResultListT do
       n_elements = 4
       packet.n_results = n_elements
       expect(packet.p_results.size).to eq n_elements
+    end
+
+    it 'has a default alignment of 4 bytes' do
+      expect(packet.p_results.get_parameter(:byte_align)).to eq 4
     end
   end
 
@@ -192,15 +216,19 @@ RSpec.describe RubySMB::Dcerpc::PResultT do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has a default alignment of 4 bytes' do
+    expect(described_class.default_parameters[:byte_align]).to eq 4
+  end
+
   describe '#result' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.result).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.result).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 
   describe '#reason' do
-    it 'should be a 16-bit unsigned integer' do
-      expect(packet.reason).to be_a BinData::Uint16le
+    it 'should be a NdrUint16' do
+      expect(packet.reason).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
     end
   end
 

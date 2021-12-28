@@ -6,7 +6,9 @@ RSpec.describe RubySMB::Dcerpc::Response do
   it { is_expected.to respond_to :p_cont_id }
   it { is_expected.to respond_to :cancel_count }
   it { is_expected.to respond_to :stub }
-  it { is_expected.to respond_to :auth_verifier }
+  it { is_expected.to respond_to :auth_pad }
+  it { is_expected.to respond_to :sec_trailer }
+  it { is_expected.to respond_to :auth_value }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
@@ -61,32 +63,120 @@ RSpec.describe RubySMB::Dcerpc::Response do
     end
   end
 
-  describe '#auth_verifier' do
+  describe '#auth_pad' do
     it 'should be a string' do
-      expect(packet.auth_verifier).to be_a BinData::String
+      expect(packet.auth_pad).to be_a BinData::String
     end
 
     it 'should not exist if the #auth_length PDU header field is 0' do
       packet.pdu_header.auth_length = 0
-      expect(packet.auth_verifier?).to be false
+      expect(packet.auth_pad?).to be false
     end
 
     it 'should exist only if the #auth_length PDU header field is greater than 0' do
       packet.pdu_header.auth_length = 10
-      expect(packet.auth_verifier?).to be true
+      expect(packet.auth_pad?).to be true
+    end
+
+    it 'makes sure #sec_trailer is 16-bytes aligned with the begining of the PDU body (stub)' do
+      packet.pdu_header.auth_length = 6
+      packet.stub = 'A' * rand(0xFF)
+      expect((packet.sec_trailer.abs_offset - packet.stub.abs_offset) % 16).to eq(0)
+    end
+  end
+
+  describe '#sec_trailer' do
+    it 'is a SecTrailer structre' do
+      expect(packet.sec_trailer).to be_a RubySMB::Dcerpc::SecTrailer
+    end
+
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.sec_trailer?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.sec_trailer?).to be true
+    end
+  end
+
+  describe '#auth_value' do
+    it 'should be a string' do
+      expect(packet.auth_value).to be_a BinData::String
+    end
+
+    it 'should not exist if the #auth_length PDU header field is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.auth_value?).to be false
+    end
+
+    it 'should exist only if the #auth_length PDU header field is greater than 0' do
+      packet.pdu_header.auth_length = 10
+      expect(packet.auth_value?).to be true
     end
 
     it 'reads #auth_length bytes' do
-      auth_verifier = '12345678'
+      auth_value = '12345678'
       packet.pdu_header.auth_length = 6
-      packet.auth_verifier.read(auth_verifier)
-      expect(packet.auth_verifier).to eq(auth_verifier[0,6])
+      packet.auth_value.read(auth_value)
+      expect(packet.auth_value).to eq(auth_value[0,6])
+    end
+  end
+
+  describe '#has_auth_verifier?' do
+    it 'returns true if PDU header #auth_length is greater than 0' do
+      packet.pdu_header.auth_length = 5
+      expect(packet.has_auth_verifier?).to be true
+    end
+
+    it 'returns false if PDU header #auth_length is 0' do
+      packet.pdu_header.auth_length = 0
+      expect(packet.has_auth_verifier?).to be false
+    end
+  end
+
+  describe '#stub_length' do
+    let(:stub_length) { rand(0xFF) }
+    before :example do
+      packet.stub = 'A' * stub_length
+    end
+
+    it 'returns the correct stub length' do
+      expect(packet.stub_length).to eq(stub_length)
+    end
+
+    context 'with auth verifier' do
+      it 'returns the correct stub length' do
+        auth_size = rand(0xFF)
+        packet.pdu_header.auth_length = auth_size
+        packet.auth_value = 'B' * auth_size
+        expect(packet.stub_length).to eq(stub_length + packet.auth_pad.num_bytes)
+      end
+    end
+  end
+
+  describe '#read' do
+    let(:response) { described_class.new }
+    let(:auth_size) { rand(0xFF) }
+    let(:stub_size) { rand(0xFF) }
+    before :example do
+      response.pdu_header.auth_length = auth_size
+      response.stub = 'A' * stub_size
+      response.auth_value = 'B' * auth_size
+      response.auth_pad = 'C' * response.auth_pad.size
+    end
+
+    it 'sets #stub and #auth_pad to the correct values' do
+      packet.read(response.to_binary_s)
+      expect(packet.stub).to eq(response.stub)
+      expect(packet.auth_pad).to eq(response.auth_pad)
     end
   end
 
   it 'reads its own binary representation and output the same packet' do
     packet.stub = 'ABCD'
-    packet.auth_verifier = '123456'
+    packet.auth_value = '123456'
     packet.pdu_header.auth_length = 6
     binary = packet.to_binary_s
     expect(described_class.read(binary)).to eq(packet)

@@ -3,6 +3,7 @@ module RubySMB
 
     # [Universal Unique Identifier](http://pubs.opengroup.org/onlinepubs/9629399/apdxa.htm)
     class Uuid < BinData::Primitive
+      default_parameter byte_align: 4
       endian :little
       uint32 :time_low,                  label: 'Low field of the timestamp'
       uint16 :time_mid,                  label: 'Middle field of the timestamp'
@@ -21,6 +22,8 @@ module RubySMB
       end
 
       def set(uuid_string)
+        uuid_string.delete_suffix!('}')
+        uuid_string.delete_prefix!('{')
         components = uuid_string.split('-')
         self.time_low.read(to_binary_le(components[0]))
         self.time_mid.read(to_binary_le(components[1]))

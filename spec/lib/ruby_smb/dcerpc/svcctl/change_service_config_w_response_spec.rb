@@ -9,14 +9,14 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::ChangeServiceConfigWResponse do
   end
 
   describe '#dw_tag_id' do
-    it 'is a NdrLpDword structure' do
-      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::NdrLpDword
+    it 'is a NdrUint32Ptr structure' do
+      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32Ptr
     end
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

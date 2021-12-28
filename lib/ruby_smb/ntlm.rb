@@ -28,13 +28,29 @@ module RubySMB
       :KEY56                    => 1 << 31
     }.freeze
 
+    DEFAULT_CLIENT_FLAGS =
+      NEGOTIATE_FLAGS[:UNICODE] |
+      NEGOTIATE_FLAGS[:SIGN] |
+      NEGOTIATE_FLAGS[:SEAL] |
+      NEGOTIATE_FLAGS[:REQUEST_TARGET] |
+      NEGOTIATE_FLAGS[:NTLM] |
+      NEGOTIATE_FLAGS[:ALWAYS_SIGN] |
+      NEGOTIATE_FLAGS[:EXTENDED_SECURITY] |
+      NEGOTIATE_FLAGS[:KEY128] |
+      NEGOTIATE_FLAGS[:KEY_EXCHANGE] |
+      NEGOTIATE_FLAGS[:KEY56] |
+      NEGOTIATE_FLAGS[:TARGET_INFO] |
+      NEGOTIATE_FLAGS[:VERSION_INFO]
+
+    # [[MS-NLMP] 2.2.2.10 VERSION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b1a6ceb2-f8ad-462b-b5af-f18527c48175)
     class OSVersion < BinData::Record
-      endian :big
+      endian :little
 
       uint8  :major
       uint8  :minor
       uint16 :build
-      uint32 :ntlm_revision, initial_value: 15
+      uint24 :reserved
+      uint8  :ntlm_revision, initial_value: 15
 
       def to_s
         "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"

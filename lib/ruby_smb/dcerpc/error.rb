@@ -1,3 +1,5 @@
+require 'ruby_smb/error'
+
 module RubySMB
   # Contains all the DCERPC specific Error classes.
   module Dcerpc
@@ -16,6 +18,21 @@ module RubySMB
 
       # Raised when an error is returned during a Svcctl operation
       class SvcctlError < DcerpcError; end
+
+      # Raised when an error is returned during a Samr operation
+      class SamrError < DcerpcError; end
+
+      # Raised when an error is returned during a Wkssvc operation
+      class WkssvcError < DcerpcError; end
+
+      # Raised when an error is returned during a Drsr operation
+      class DrsrError < DcerpcError; end
+
+      # Raised when an error occurs with the underlying socket.
+      class CommunicationError < DcerpcError; end
+
+      # Raised when an error is returned during a Epm operation
+      class EpmError < DcerpcError; end
     end
   end
 end

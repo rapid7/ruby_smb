@@ -3,7 +3,7 @@ require 'date'
 module RubySMB
   module Field
     # Represents a Windows FILETIME structure as defined in
-    # [FILETIME structure](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724284(v=vs.85).aspx)
+    # [2.3.3 FILETIME](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/2c57429b-fdd4-488f-b5fc-9e4cf020fcdf).aspx)
     class FileTime < BinData::Primitive
       # Difference between the Windows and Unix epochs, in 100ns intervals
       EPOCH_DIFF_100NS = 116_444_736_000_000_000

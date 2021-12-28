@@ -146,24 +146,26 @@ RSpec.describe RubySMB::SMB2::Pipe do
       expect(pipe.size_on_disk).to eq(create_response.allocation_size)
     end
 
-    context 'with \'srvsvc\' filename' do
-      it 'extends Srvsvc class' do
-        pipe = described_class.new(tree: tree, response: create_response, name: 'srvsvc')
-        expect(pipe.respond_to?(:net_share_enum_all)).to be true
+    {
+      netlogon: RubySMB::Dcerpc::Netlogon,
+      srvsvc: RubySMB::Dcerpc::Srvsvc,
+      svcctl: RubySMB::Dcerpc::Svcctl,
+      winreg: RubySMB::Dcerpc::Winreg,
+      samr: RubySMB::Dcerpc::Samr,
+      wkssvc: RubySMB::Dcerpc::Wkssvc
+    }.each do |endpoint, klass|
+      context "with \'#{endpoint}\' filename" do
+        it "extends #{klass} class" do
+          pipe = described_class.new(tree: tree, response: create_response, name: endpoint.to_s)
+          expect(pipe).to be_a klass
+        end
       end
-    end
 
-    context 'with \'winreg\' filename' do
-      it 'extends Winreg class' do
-        pipe = described_class.new(tree: tree, response: create_response, name: 'winreg')
-        expect(pipe.respond_to?(:has_registry_key?)).to be true
-      end
-    end
-
-    context 'with \'svcctl\' filename' do
-      it 'extends svcctl class' do
-        pipe = described_class.new(tree: tree, response: create_response, name: 'svcctl')
-        expect(pipe.respond_to?(:query_service_config)).to be true
+      context "with \'\\#{endpoint}\' filename" do
+        it "extends #{klass} class" do
+          pipe = described_class.new(tree: tree, response: create_response, name: "\\#{endpoint.to_s}")
+          expect(pipe).to be_a klass
+        end
       end
     end
   end

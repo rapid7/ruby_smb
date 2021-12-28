@@ -19,8 +19,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerAuthenticate3Request do
   end
 
   describe '#account_name' do
-    it 'is a NdrString structure' do
-      expect(packet.account_name).to be_a RubySMB::Dcerpc::Ndr::NdrString
+    it 'is a NdrConfVarWideStringz structure' do
+      expect(packet.account_name).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
     end
   end
 
@@ -31,8 +31,8 @@ RSpec.describe RubySMB::Dcerpc::Netlogon::NetrServerAuthenticate3Request do
   end
 
   describe '#computer_name' do
-    it 'is a NdrString structure' do
-      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::NdrString
+    it 'is a NdrConfVarWideStringz structure' do
+      expect(packet.computer_name).to be_a RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz
     end
   end
 

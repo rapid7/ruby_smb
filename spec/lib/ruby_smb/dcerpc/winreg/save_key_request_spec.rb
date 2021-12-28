@@ -16,7 +16,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::SaveKeyRequest do
 
   it { is_expected.to respond_to :hkey }
   it { is_expected.to respond_to :lp_file }
-  it { is_expected.to respond_to :pad }
   it { is_expected.to respond_to :lp_security_attributes }
 
   describe '#hkey' do
@@ -28,17 +27,6 @@ RSpec.describe RubySMB::Dcerpc::Winreg::SaveKeyRequest do
   describe '#lp_file' do
     it 'is a RrpUnicodeString structure' do
       expect(packet.lp_file).to be_a RubySMB::Dcerpc::RrpUnicodeString
-    end
-  end
-
-  describe '#pad' do
-    it 'is a string' do
-      expect(packet.pad).to be_a BinData::String
-    end
-
-    it 'should keep #lp_security_attributes 4-byte aligned' do
-      packet.lp_file = "test"
-      expect(packet.lp_security_attributes.abs_offset % 4).to eq 0
     end
   end
 

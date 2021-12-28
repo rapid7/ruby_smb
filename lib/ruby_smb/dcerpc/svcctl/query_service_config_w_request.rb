@@ -9,7 +9,7 @@ module RubySMB
         endian :little
 
         sc_rpc_handle :h_service
-        uint32        :cb_buf_size
+        ndr_uint32    :cb_buf_size
 
         def initialize_instance
           super

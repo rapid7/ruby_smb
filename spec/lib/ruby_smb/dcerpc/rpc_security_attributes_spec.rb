@@ -9,21 +9,25 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
   describe '#lp_security_descriptor' do
-    it 'should be a NdrLpByteArray structure' do
-      expect(packet.lp_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrLpByteArray
+    it 'should be a NdrByteArrayPtr structure' do
+      expect(packet.lp_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrByteArrayPtr
     end
   end
 
   describe '#cb_in_security_descriptor' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.cb_in_security_descriptor).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.cb_in_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#cb_out_security_descriptor' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.cb_out_security_descriptor).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.cb_out_security_descriptor).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -38,7 +42,7 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityDescriptor do
 
     context 'with a normal RpcSecurityAttributes structure' do
       it 'reads its own binary representation' do
-        packet.lp_security_descriptor = RubySMB::Dcerpc::Ndr::NdrLpByteArray.new([1, 2, 3])
+        packet.lp_security_descriptor = RubySMB::Dcerpc::Ndr::NdrByteArrayPtr.new([1, 2, 3])
         packet.cb_in_security_descriptor = 90
         packet.cb_out_security_descriptor = 33
         raw = packet.to_binary_s
@@ -60,9 +64,13 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(4)
+  end
+
   describe '#n_length' do
-    it 'should be a 32-bit unsigned integer' do
-      expect(packet.n_length).to be_a BinData::Uint32le
+    it 'should be a NdrUint32' do
+      expect(packet.n_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
@@ -73,8 +81,8 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
   end
 
   describe '#b_inheritHandle' do
-    it 'should be a 8-bit unsigned integer' do
-      expect(packet.b_inheritHandle).to be_a BinData::Uint8
+    it 'should be a NdrUint8' do
+      expect(packet.b_inheritHandle).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
     end
   end
 
@@ -104,32 +112,25 @@ RSpec.describe RubySMB::Dcerpc::RpcSecurityAttributes do
 end
 
 RSpec.describe RubySMB::Dcerpc::PrpcSecurityAttributes do
-  it 'is NdrPointer subclass' do
-    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrPointer
+  it 'is a RpcSecurityAttributes subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::RpcSecurityAttributes
   end
 
   subject(:packet) { described_class.new }
 
-  it { is_expected.to respond_to :referent }
+  it { is_expected.to respond_to :ref_id }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
-  describe '#referent' do
-    it 'should be a RpcSecurityAttributes structure' do
-      expect(packet.referent).to be_a RubySMB::Dcerpc::RpcSecurityAttributes
-    end
+  it 'should be a RpcSecurityAttributes structure' do
+    expect(packet).to be_a RubySMB::Dcerpc::RpcSecurityAttributes
+  end
 
-    it 'exists if superclass #referent_id is not zero' do
-      packet.referent_id = 0xCCCC
-      expect(packet.referent?).to be true
-    end
-
-    it 'does not exist if superclass #referent_id is zero' do
-      packet.referent_id = 0
-      expect(packet.referent?).to be false
-    end
+  it 'is :null if #ref_id is zero' do
+    packet.ref_id = 0
+    expect(packet).to eq(:null)
   end
 
   describe '#read' do
@@ -150,7 +151,7 @@ RSpec.describe RubySMB::Dcerpc::PrpcSecurityAttributes do
         struct.rpc_security_descriptor.cb_in_security_descriptor = 33
         struct.rpc_security_descriptor.cb_out_security_descriptor = 22
         struct.b_inheritHandle = 4
-        packet.set(struct)
+        packet.assign(struct)
         raw = packet.to_binary_s
         expect(described_class.read(raw)).to eq(packet)
         expect(described_class.read(raw).to_binary_s).to eq(raw)

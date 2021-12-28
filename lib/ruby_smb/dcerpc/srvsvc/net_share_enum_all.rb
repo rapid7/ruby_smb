@@ -2,103 +2,80 @@ module RubySMB
   module Dcerpc
     module Srvsvc
 
-      #https://msdn.microsoft.com/en-us/library/cc247293.aspx
+      # [2.2.1.1 SRVSVC_HANDLE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/5f8329ee-1965-4ea1-ad35-3b29fbb63232)
+      class SrvsvcHandle < Ndr::NdrWideStringzPtr; end
 
-      class NetShareEnumAll < BinData::Record
+      # [2.2.4.23 SHARE_INFO_1](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/fc69f110-998d-4c16-9667-514e22fdd80b)
+      class ShareInfo1Element < Ndr::NdrStruct
+        default_parameters byte_align: 4
+
+        ndr_wide_stringz_ptr :shi1_netname
+        ndr_uint32           :shi1_type
+        ndr_wide_stringz_ptr :shi1_remark
+      end
+
+      class ShareInfo1 < Ndr::NdrConfArray
+        default_parameters type: :share_info1_element
+      end
+
+      class LpshareInfo1 < ShareInfo1
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.4.33 SHARE_INFO_1_CONTAINER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/919abd5d-87d9-4ffa-b4b1-632a66053bc6)
+      class ShareInfo1Container < Ndr::NdrStruct
+        default_parameters byte_align: 4
+
+        ndr_uint32    :entries_read
+        lpshare_info1 :buffer
+      end
+
+      class LpshareInfo1Container < ShareInfo1Container
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.4.38 SHARE_ENUM_STRUCT](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/79ee052e-e16b-4ec5-b4b7-e99777c26eca)
+      class LpshareEnumStruct < Ndr::NdrStruct
+        hide :switch_value
+        default_parameters byte_align: 4
+
+        ndr_uint32 :level, initial_value: 1
+        ndr_uint32 :switch_value, initial_value: :level
+        choice :share_info, selection: :level, byte_align: 4 do
+          lpshare_info1_container 1, initial_value: { entries_read: 0, buffer: :null }
+        end
+      end
+
+      # [3.1.4.8 NetrShareEnum (Opnum 15)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-srvs/c4a98e7b-d416-439c-97bd-4d9f52f8ba52)
+      class NetShareEnumAllRequest < BinData::Record
         attr_reader :opnum
-
-        mandatory_parameter :host
 
         endian :little
 
-        uint32    :referent_id,  initial_value: 0x00000001
-        uint32    :max_count,    initial_value: -> { server_unc.do_num_bytes / 2 }
-        uint32    :offset,       initial_value: 0
-        uint32    :actual_count, initial_value: -> {max_count}
-        stringz16 :server_unc,   pad_front: false, read_length: -> { actual_count * 2 },
-                                 initial_value: -> {"\\\\#{host.encode('utf-8')}".encode('utf-16le')}
-
-        string :pad,             length: lambda { pad_length }
-        uint32 :level,           initial_value: 1
-
-        uint32 :ctr,             initial_value: 1
-        uint32 :ctr_referent_id, initial_value: 0x00000001
-        uint32 :ctr_count,       initial_value: 0
-        uint32 :pointer_to_array, initial_value: 0
-
-        uint32 :max_buffer,       initial_value: 4294967295
-
-        uint32 :resume_referent_id, initial_value: 0x00000001
-        uint32 :resume_handle,    initial_value: 0
+        srvsvc_handle       :server_name
+        lpshare_enum_struct :info_struct
+        ndr_uint32          :prefered_maximum_length, initial_value: 0xFFFFFFFF
+        ndr_uint32_ptr      :resume_handle, initial_value: 0
 
         def initialize_instance
           super
           @opnum = NET_SHARE_ENUM_ALL
         end
+      end
 
-        def pad_length
-          offset = (server_unc.abs_offset + server_unc.to_binary_s.length) % 4
-          (4 - offset) % 4
-        end
+      class NetShareEnumAllResponse < BinData::Record
+        attr_reader :opnum
 
-        def self.parse_response(response)
+        endian :little
 
-          shares = []
+        lpshare_enum_struct :info_struct
+        ndr_uint32          :total_entries
+        ndr_uint32_ptr      :resume_handle
+        ndr_uint32          :error_status
 
-          res = response.dup
-          win_error = res.slice!(-4, 4).unpack("V")[0]
-
-          if win_error != 0
-            raise RuntimeError, "Invalid DCERPC response: win_error = #{win_error}"
-          end
-
-          # Remove unused data
-          res.slice!(0, 12) # level, CTR header, Reference ID of CTR
-          share_count = res.slice!(0, 4).unpack("V")[0]
-          res.slice!(0, 4) # Reference ID of CTR1
-          share_max_count = res.slice!(0, 4).unpack("V")[0]
-
-          if share_max_count != share_count
-            raise RuntimeError, "Invalid DCERPC response: count != count max (#{share_count}/#{share_max_count})"
-          end
-
-          # ReferenceID / Type / ReferenceID of Comment
-          types = res.slice!(0, share_count * 12).scan(/.{12}/n).map { |a| a[4, 2].unpack("v")[0] }
-
-          share_count.times do |t|
-            length, offset, max_length = res.slice!(0, 12).unpack("VVV")
-            if offset != 0
-              raise RuntimeError, "Invalid DCERPC response: offset != 0 (#{offset})"
-            end
-
-            if length != max_length
-              raise RuntimeError, "Invalid DCERPC response: length !=max_length (#{length}/#{max_length})"
-            end
-            name = res.slice!(0, 2 * length).gsub('\x00', '')
-            res.slice!(0, 2) if length % 2 == 1 # pad
-
-            comment_length, comment_offset, comment_max_length = res.slice!(0, 12).unpack("VVV")
-
-            if comment_offset != 0
-              raise RuntimeError, "Invalid DCERPC response: comment_offset != 0 (#{comment_offset})"
-            end
-
-            if comment_length != comment_max_length
-              raise RuntimeError, "Invalid DCERPC response: comment_length != comment_max_length (#{comment_length}/#{comment_max_length})"
-            end
-
-            comment = res.slice!(0, 2 * comment_length)
-
-            res.slice!(0, 2) if comment_length % 2 == 1 # pad
-
-            name = name.gsub("\x00", "")
-            s_type = ['DISK', 'PRINTER', 'DEVICE', 'IPC', 'SPECIAL', 'TEMPORARY'][types[t]].gsub("\x00", "")
-            comment = comment.gsub("\x00", "")
-
-            shares << [name, s_type, comment]
-          end
-
-          shares
+        def initialize_instance
+          super
+          @opnum = NET_SHARE_ENUM_ALL
         end
       end
     end

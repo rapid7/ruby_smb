@@ -11,25 +11,15 @@ module RubySMB
         endian :little
 
         logonsrv_handle              :primary_name
-        string                       :pad1, length: -> { pad_length(self.primary_name) }
-        ndr_string                   :account_name
+        ndr_conf_var_wide_stringz    :account_name
         netlogon_secure_channel_type :secure_channel_type
-        string                       :pad2, length: -> { pad_length(self.secure_channel_type) }
-        ndr_string                   :computer_name
-        string                       :pad3, length: -> { pad_length(self.computer_name) }
+        ndr_conf_var_wide_stringz    :computer_name
         netlogon_authenticator       :authenticator
-        ndr_fixed_byte_array         :clear_new_password, length: 516 # this is an encrypted NL_TRUST_PASSWORD
+        ndr_fixed_byte_array         :clear_new_password, initial_length: 516 # this is an encrypted NL_TRUST_PASSWORD
 
         def initialize_instance
           super
           @opnum = Netlogon::NETR_SERVER_PASSWORD_SET2
-        end
-
-        # Determines the correct length for the padding, so that the next
-        # field is 4-byte aligned.
-        def pad_length(prev_element)
-          offset = (prev_element.abs_offset + prev_element.to_binary_s.length) % 4
-          (4 - offset) % 4
         end
       end
     end

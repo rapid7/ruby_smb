@@ -63,6 +63,8 @@ module RubySMB
         "HKPN"                      => OPEN_HKPN
       }
 
+      BUFFER_SIZE = 1024
+
       # Open the registry root key and return a handle for it. The key can be
       # either a long format (e.g. HKEY_LOCAL_MACHINE) or a short format
       # (e.g. HKLM)
@@ -147,7 +149,7 @@ module RubySMB
 
         query_value_request_packet.lpcb_data = query_value_response.lpcb_data
         query_value_request_packet.lp_data = []
-        query_value_request_packet.lp_data.referent.max_count = query_value_response.lpcb_data.referent
+        query_value_request_packet.lp_data.max_count = query_value_response.lpcb_data.to_i
         response = dcerpc_request(query_value_request_packet)
         begin
           query_value_response = RubySMB::Dcerpc::Winreg::QueryValueResponse.read(response)
@@ -193,10 +195,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def query_info_key(handle)
         query_info_key_request_packet = RubySMB::Dcerpc::Winreg::QueryInfoKeyRequest.new(hkey: handle)
-        query_info_key_request_packet.lp_class = ''
-        query_info_key_request_packet.lp_class.referent.actual_count = 0
-        query_info_key_request_packet.lp_class.maximum_length = 1024
-        query_info_key_request_packet.lp_class.buffer.referent.max_count = 1024 / 2
+        query_info_key_request_packet.lp_class.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(query_info_key_request_packet)
         begin
           query_info_key_response = RubySMB::Dcerpc::Winreg::QueryInfoKeyResponse.read(response)
@@ -220,11 +219,9 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_key(handle, index)
         enum_key_request_packet = RubySMB::Dcerpc::Winreg::EnumKeyRequest.new(hkey: handle, dw_index: index)
-        enum_key_request_packet.lpft_last_write_time = 0
-        enum_key_request_packet.lp_class = ''
-        enum_key_request_packet.lp_class.referent.buffer = :null
-        enum_key_request_packet.lp_name.buffer = ''
-        enum_key_request_packet.lp_name.buffer.referent.max_count = 256
+        # `lp_class` cannot be null, even if it contains no value
+        enum_key_request_packet.lp_class.instantiate_referent
+        enum_key_request_packet.lp_name.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(enum_key_request_packet)
         begin
           enum_key_response = RubySMB::Dcerpc::Winreg::EnumKeyResponse.read(response)
@@ -236,7 +233,7 @@ module RubySMB
             "#{WindowsError::Win32.find_by_retval(enum_key_response.error_status.value).join(',')}"
         end
 
-        enum_key_response.lp_name.to_s
+        enum_key_response.lp_name[:buffer]
       end
 
       # Enumerate the value at the specified index for the specified registry key.
@@ -248,8 +245,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def enum_value(handle, index)
         enum_value_request_packet = RubySMB::Dcerpc::Winreg::EnumValueRequest.new(hkey: handle, dw_index: index)
-        enum_value_request_packet.lp_value_name.buffer = ''
-        enum_value_request_packet.lp_value_name.buffer.referent.max_count = 256
+        enum_value_request_packet.lp_value_name.set_max_buffer_size(BUFFER_SIZE)
         response = dcerpc_request(enum_value_request_packet)
         begin
           enum_value_response = RubySMB::Dcerpc::Winreg::EnumValueResponse.read(response)
@@ -261,7 +257,7 @@ module RubySMB
             "#{WindowsError::Win32.find_by_retval(enum_value_response.error_status.value).join(',')}"
         end
 
-        enum_value_response.lp_value_name.to_s
+        enum_value_response.lp_value_name[:buffer]
       end
 
       # Creates the specified registry key and returns a handle to the newly created key

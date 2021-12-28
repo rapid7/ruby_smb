@@ -1,8 +1,8 @@
 RSpec.describe RubySMB::Dcerpc::Svcctl::LpBoundedDword8k do
   subject(:packet) { described_class.new }
 
-  it 'is BinData::Uint32le subclass' do
-    expect(described_class).to be < BinData::Uint32le
+  it 'is NdrUint32 subclass' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrUint32
   end
 end
 
@@ -24,56 +24,56 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigW do
   end
 
   describe '#dw_service_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_service_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_service_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_start_type' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_start_type).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_start_type).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#dw_error_control' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_error_control).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_error_control).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#lp_binary_path_name' do
-    it 'is a NdrLpStr structure' do
-      expect(packet.lp_binary_path_name).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_binary_path_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_load_order_group' do
-    it 'is a NdrLpStr structure' do
-      expect(packet.lp_load_order_group).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_load_order_group).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#dw_tag_id' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.dw_tag_id).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.dw_tag_id).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#lp_dependencies' do
-    it 'is a NdrLpStr structure' do
-      expect(packet.lp_dependencies).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_dependencies).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_service_start_name' do
-    it 'is a NdrLpStr structure' do
-      expect(packet.lp_service_start_name).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_service_start_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
   describe '#lp_display_name' do
-    it 'is a NdrLpStr structure' do
-      expect(packet.lp_display_name).to be_a RubySMB::Dcerpc::Ndr::NdrLpStr
+    it 'is a NdrWideStringPtr structure' do
+      expect(packet.lp_display_name).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 
@@ -118,8 +118,8 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::QueryServiceConfigWResponse do
   end
 
   describe '#error_status' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.error_status).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.error_status).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 

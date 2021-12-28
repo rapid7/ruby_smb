@@ -37,9 +37,20 @@ RSpec.describe RubySMB::Dcerpc::PDUHeader do
   end
 
   describe '#pfc_flags' do
+    subject(:pfc_flags) { packet.pfc_flags }
+
     it 'should be a custom structure' do
-      expect(packet.pfc_flags).to be_a BinData::Struct
+      expect(pfc_flags).to be_a BinData::Struct
     end
+
+    it { is_expected.to respond_to :object_uuid }
+    it { is_expected.to respond_to :maybe }
+    it { is_expected.to respond_to :did_not_execute }
+    it { is_expected.to respond_to :conc_mpx }
+    it { is_expected.to respond_to :reserved_1 }
+    it { is_expected.to respond_to :support_header_sign }
+    it { is_expected.to respond_to :last_frag }
+    it { is_expected.to respond_to :first_frag }
   end
 
   describe '#packed_drep' do
@@ -77,6 +88,21 @@ RSpec.describe RubySMB::Dcerpc::PDUHeader do
     it 'should have a default value of 1' do
       expect(packet.call_id).to eq 1
     end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new(
+      rpc_vers: rand(0xFF),
+      rpc_vers_minor: rand(0xFF),
+      ptype: rand(0xFF),
+      pfc_flags: { support_header_sign: 1},
+      packed_drep: rand(0xFF),
+      frag_length: rand(0xFF),
+      auth_length: rand(0xFF),
+      call_id: rand(0xFF)
+    )
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 
 end

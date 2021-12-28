@@ -16,14 +16,15 @@ RSpec.describe RubySMB::Dcerpc::Svcctl::StartServiceWRequest do
   end
 
   describe '#argc' do
-    it 'is a 32-bit unsigned integer' do
-      expect(packet.argc).to be_a BinData::Uint32le
+    it 'is a NdrUint32' do
+      expect(packet.argc).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
     end
   end
 
   describe '#argv' do
-    it 'is a NdrLpStringPtrsw structure' do
-      expect(packet.argv).to be_a RubySMB::Dcerpc::Ndr::NdrLpStringPtrsw
+    it 'is a Ndr::NdrConfArray of Ndr::NdrWideStringPtr elements' do
+      expect(packet.argv).to be_a RubySMB::Dcerpc::Ndr::NdrConfArray
+      expect(packet.argv[0]).to be_a RubySMB::Dcerpc::Ndr::NdrWideStringPtr
     end
   end
 

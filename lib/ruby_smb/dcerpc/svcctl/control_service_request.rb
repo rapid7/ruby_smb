@@ -11,7 +11,7 @@ module RubySMB
         endian :little
 
         sc_rpc_handle :h_service
-        uint32        :dw_control
+        ndr_uint32    :dw_control
 
         def initialize_instance
           super

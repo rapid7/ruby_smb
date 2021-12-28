@@ -12,6 +12,10 @@ RSpec.describe RubySMB::Dcerpc::Uuid do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'is 4-byte aligned' do
+    expect(packet.eval_parameter(:byte_align)).to eq(4)
+  end
+
   describe '#time_low' do
     it 'should be a 32-bit unsigned integer' do
       expect(packet.time_low).to be_a BinData::Uint32le
@@ -78,31 +82,19 @@ RSpec.describe RubySMB::Dcerpc::Uuid do
         expect(packet.clock_seq_low).to eq 0xE8
         expect(packet.node).to eq [0x08, 0x00, 0x2B, 0x10, 0x48, 0x60]
       end
+
+      it 'removes surrounding curly brackets' do
+        packet.set("{#{uuid_string}}")
+        expect(packet).to eq(uuid_string)
+      end
     end
+  end
+
+  it 'reads its own binary representation and output the same packet' do
+    packet = described_class.new('8a885d04-1ceb-11c9-9fe8-08002b104860')
+    binary = packet.to_binary_s
+    expect(described_class.read(binary)).to eq(packet)
   end
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-RSpec.describe RubySMB::Dcerpc::Uuid do
-  let(:uuid_string){'8a885d04-1ceb-11c9-9fe8-08002b104860'}
-  let(:uuid){RubySMB::Dcerpc::Uuid.new(initial_value: uuid_string)}
-
-  describe '#initialize' do
-    it 'should create a 16 byte struct' do
-      expect(uuid.do_num_bytes).to be 16
-    end
-  end
-end
