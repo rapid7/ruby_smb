@@ -73,7 +73,27 @@ module RubySMB
             return
           end
 
-          response = handle_smb1(raw_request, header)
+          begin
+            response = handle_smb1(raw_request, header)
+          rescue NotImplementedError
+            logger.error("Caught a NotImplementedError while handling a #{SMB1::Commands.name(header.command)} request")
+            response = RubySMB::SMB1::Packet::EmptyPacket.new
+            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
+          end
+
+          unless response.nil?
+            # set these header fields if they were not initialized
+            if response.is_a?(SMB1::Packet::EmptyPacket)
+              response.smb_header.command = header.command
+              response.smb_header.flags.reply = 1
+            end
+
+            response.smb_header.pid_high = header.pid_high if response.smb_header.pid_high == 0
+            response.smb_header.tid = header.tid if response.smb_header.tid == 0
+            response.smb_header.pid_low = header.pid_low if response.smb_header.pid_low == 0
+            response.smb_header.uid = header.uid if response.smb_header.uid == 0
+            response.smb_header.mid = header.mid if response.smb_header.mid == 0
+          end
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
           begin
             header = RubySMB::SMB2::SMB2Header.read(raw_request)
