@@ -12,8 +12,8 @@ module RubySMB
         file_time        :last_access,        label: 'Last Accessed Time'
         file_time        :last_write,         label: 'Last Write Time'
         file_time        :last_change,        label: 'Last Modified Time'
-        uint64           :allocation_size,    label: 'Allocated Size'
-        uint64           :end_of_file,        label: 'End of File'
+        int64            :allocation_size,    label: 'Allocated Size'
+        int64            :end_of_file,        label: 'End of File'
         file_attributes  :file_attributes,    label: 'File Attributes'
         uint32           :reserved,           label: 'Reserved Space'
       end

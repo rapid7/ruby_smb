@@ -40,8 +40,9 @@ module RubySMB
         private
 
         def build_buffer
+          align = 8
           buf = contexts.map(&:to_binary_s).join
-          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+          buf << "\x00".b * ((align - buf.length % align) % align)
         end
       end
     end

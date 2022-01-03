@@ -13,7 +13,7 @@ module RubySMB
       FILE_FS_OBJECT_ID_INFORMATION    = 8
       FILE_FS_DRIVER_PATH_INFORMATION  = 9
       FILE_FS_VOLUME_FLAGS_INFORMATION = 10
-      FILE_FS_SECTOR_SIZE_INFORMATION  = 12
+      FILE_FS_SECTOR_SIZE_INFORMATION  = 11
 
       require 'ruby_smb/fscc/file_system_information/file_fs_attribute_information'
       require 'ruby_smb/fscc/file_system_information/file_fs_volume_information'

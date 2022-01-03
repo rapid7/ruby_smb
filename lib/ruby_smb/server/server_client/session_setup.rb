@@ -76,7 +76,8 @@ module RubySMB
         end
 
         def do_logoff_smb2(request, session)
-          @session_table.delete(session.id)
+          session = @session_table.delete(session.id)
+          session.logoff!
 
           response = SMB2::Packet::LogoffResponse.new
           response

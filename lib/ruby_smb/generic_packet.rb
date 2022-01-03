@@ -70,6 +70,10 @@ module RubySMB
       end
     end
 
+    def self.from_hex(val)
+      self.read(val.scan(/../).map { |x| x.hex.chr }.join)
+    end
+
     def status_code
       value = -1
       smb_version = packet_smb_version

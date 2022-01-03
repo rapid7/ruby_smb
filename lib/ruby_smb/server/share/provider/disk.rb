@@ -34,12 +34,11 @@ module RubySMB
               response = RubySMB::SMB2::Packet::CloseResponse.new
               set_common_info(response, local_path)
               response.flags = 1
-              response.structure_size = 0x3c
               response
             end
 
             def do_create_smb2(request)
-              unless request.create_disposition == 1
+              unless request.create_disposition == RubySMB::Dispositions::FILE_OPEN
                 logger.warn("Can not handle CREATE request for disposition: #{request.create_disposition}")
                 raise NotImplementedError
               end
@@ -54,10 +53,10 @@ module RubySMB
                 end
               end
 
-              path = request.name.snapshot.dup
+              path = request.name.snapshot
               path = path.encode.gsub('\\', File::SEPARATOR)
               local_path = get_local_path(path)
-              unless local_path.file? || local_path.directory?
+              unless local_path && (local_path.file? || local_path.directory?)
                 logger.warn("Requested path does not exist: #{local_path}")
                 response = RubySMB::SMB2::Packet::ErrorPacket.new
                 response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_OBJECT_NAME_NOT_FOUND
@@ -66,7 +65,7 @@ module RubySMB
 
               durable = false
               response = RubySMB::SMB2::Packet::CreateResponse.new
-              response.create_action = 1
+              response.create_action = RubySMB::CreateActions::FILE_OPENED
               set_common_info(response, local_path)
               response.file_id.persistent = Zlib::crc32(path)
               response.file_id.volatile = rand(0xffffffff)
@@ -166,6 +165,7 @@ module RubySMB
 
               return_single = request.flags.return_single == 1
 
+              align = 8
               infos = []
               total_size = 0
 
@@ -193,7 +193,7 @@ module RubySMB
                 next unless search_regex.match?(dirent_name)
 
                 info = build_info(dirent, info_class, rename: dirent_name)
-                info_size = info.num_bytes + (7 - (info.num_bytes + 7) % 8)
+                info_size = info.num_bytes + ((align - info.num_bytes % align) % align)
                 if total_size + info_size > request.output_length
                   dirents.unshift(dirent) # no space left for this one so put it back
                   break
@@ -215,7 +215,7 @@ module RubySMB
               buffer = ""
               infos.each do |info|
                 info = info.to_binary_s
-                buffer << info + ("\x00".b * (7 - (info.length + 7) % 8))
+                buffer << info + "\x00".b * ((align - info.length % align) % align)
               end
               response.buffer = buffer
               response
@@ -299,7 +299,8 @@ module RubySMB
                 raise NotImplementedError, "unsupported info class: #{info_class}"
               end
 
-              info.next_offset = (info.num_bytes + (7 - (info.num_bytes + 7) % 8))
+              align = 8
+              info.next_offset = info.num_bytes + ((align - info.num_bytes % align) % align)
               info
             end
 

@@ -24,6 +24,11 @@ module RubySMB
         @user_id == Gss::Provider::IDENTITY_ANONYMOUS
       end
 
+      def logoff!
+        @tree_connect_table.values.each { |share_processor| share_processor.disconnect! }
+        @tree_connect_table.clear
+      end
+
       # This session's unique identifier.
       # @!attribute [rw] id
       #   @return [Integer]

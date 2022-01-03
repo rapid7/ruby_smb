@@ -12,6 +12,7 @@ require 'windows_error/nt_status'
 # [[MS-SMB2] Server Message Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
   require 'ruby_smb/error'
+  require 'ruby_smb/create_actions'
   require 'ruby_smb/dispositions'
   require 'ruby_smb/impersonation_levels'
   require 'ruby_smb/gss'

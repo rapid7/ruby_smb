@@ -50,7 +50,8 @@ module RubySMB
 
             begin
               gss_api = OpenSSL::ASN1.decode(request_buffer)
-            rescue OpenSSL::ASN1::ASN1Error
+            rescue OpenSSL::ASN1::ASN1Error => e
+              logger.error("Failed to parse the ASN1-encoded authentication request (#{e.message})")
               return
             end
 

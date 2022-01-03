@@ -37,7 +37,7 @@ module RubySMB
           bit1   :file_supports_usn_journal,         label: 'FS Supports USN Change Journal'
           bit1   :file_supports_open_by_file_id,     label: 'FS Supports Open By File ID'
         end
-        uint32   :maximum_component_name_length,     label: 'Maximum Component Name Length'
+        int32    :maximum_component_name_length,     label: 'Maximum Component Name Length'
         uint32   :file_system_name_length,           label: 'File System Name Length', initial_value: -> { file_system_name.do_num_bytes }
         string16 :file_system_name,                  label: 'File System Name', read_length: -> { file_system_name_length }
       end

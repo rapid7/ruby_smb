@@ -23,24 +23,6 @@ module RubySMB
         end
       end
 
-      # [2.2.14.2.10 SMB2_CREATE_RESPONSE_LEASE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/a60d6c95-15ca-4c69-816e-c145506108a3)
-      class CreateLeaseResponse < BinData::Record
-        NAME = CREATE_LEASE
-
-        endian :little
-        string :lease_key,      label: 'Lease Key', length: 16
-        struct :lease_state,    label: 'Lease State' do
-          bit5 :reserved,       label: 'Reserved'
-          bit1 :read_caching,   label: 'Read Caching'
-          bit1 :handle_caching, label: 'Handle Caching'
-          bit1 :write_caching,  label: 'Write Caching'
-          skip length: 3
-        end
-        uint32 :lease_flags,    label: 'Lease Flags'
-        string :lease_duration, label: 'Lease Duration', length: 8
-      end
-
-
       # [2.2.14.2.5 SMB2_CREATE_QUERY_MAXIMAL_ACCESS_RESPONSE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/0fe6be15-3a76-4032-9a44-56f846ac6244)
       class CreateQueryMaximalAccessResponse < BinData::Record
         NAME = CREATE_QUERY_MAXIMAL_ACCESS

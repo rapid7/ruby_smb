@@ -16,7 +16,7 @@ module RubySMB
         uint16       :reserved,                label: 'Reserved Space'
         uint32       :input_buffer_length,     label: 'Input Buffer Length'
         struct       :additional_information do
-          bit1       :reserved
+          bit1       :reserved1
           bit1       :scope_security_information,     label: 'Scope Security Information'
           bit1       :attribute_security_information, label: 'Attribute Security Information'
           bit1       :label_security_information,     label: 'Label Security Information'
@@ -24,7 +24,9 @@ module RubySMB
           bit1       :dacl_security_information,      label: 'DACL Security Information'
           bit1       :group_security_information,     label: 'Group Security Information'
           bit1       :owner_security_information,     label: 'Owner Security Information'
-          skip       length: 3
+          bit7       :reserved2
+          bit1       :backup_security_information,    label: 'Backup Security Information'
+          skip       length: 2
         end
         struct       :flags do
           bit5       :reserved

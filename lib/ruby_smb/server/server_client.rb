@@ -65,10 +65,24 @@ module RubySMB
 
         case raw_request[0...4].unpack1('L>')
         when RubySMB::SMB1::SMB_PROTOCOL_ID
-          header = RubySMB::SMB1::SMBHeader.read(raw_request)
+          begin
+            header = RubySMB::SMB1::SMBHeader.read(raw_request)
+          rescue IOError => e
+            logger.error("Caught a #{e.class} while reading the SMB1 header (#{e.message})")
+            disconnect!
+            return
+          end
+
           response = handle_smb1(raw_request, header)
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
-          header = RubySMB::SMB2::SMB2Header.read(raw_request)
+          begin
+            header = RubySMB::SMB2::SMB2Header.read(raw_request)
+          rescue IOError => e
+            logger.error("Caught a #{e.class} while reading the SMB2 header (#{e.message})")
+            disconnect!
+            return
+          end
+
           begin
             response = handle_smb2(raw_request, header)
           rescue NotImplementedError

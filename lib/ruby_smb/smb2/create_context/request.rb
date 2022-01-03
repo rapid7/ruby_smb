@@ -1,3 +1,5 @@
+require 'ruby_smb/dcerpc/uuid'
+
 module RubySMB
   module SMB2
     module CreateContext
@@ -22,24 +24,7 @@ module RubySMB
           skip length: 3
         end
         string :reserved,    length: 8
-        string :create_guid, label: 'Create GUID', length: 16
-      end
-
-      # [2.2.13.2.8 SMB2_CREATE_REQUEST_LEASE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/250a5100-f8b0-4b32-a202-f592ce4c05e7)
-      class CreateLeaseRequest < BinData::Record
-        NAME = CREATE_LEASE
-
-        endian :little
-        string :lease_key,      label: 'Lease Key', length: 16
-        struct :lease_state,    label: 'Lease State' do
-          bit5 :reserved,       label: 'Reserved'
-          bit1 :read_caching,   label: 'Read Caching'
-          bit1 :handle_caching, label: 'Handle Caching'
-          bit1 :write_caching,  label: 'Write Caching'
-          skip length: 3
-        end
-        uint32 :lease_flags,    label: 'Lease Flags'
-        string :lease_duration, label: 'Lease Duration', length: 8
+        uuid   :create_guid, label: 'Create GUID'
       end
 
       # [2.2.13.2.5 SMB2_CREATE_QUERY_MAXIMAL_ACCESS_REQUEST](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/5ea40835-5d40-4e85-977d-13cd745d3af8)

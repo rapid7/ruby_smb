@@ -41,16 +41,18 @@ module RubySMB
         private
 
         def build_buffer
+          align = 8
           buf = name.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
-          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+          buf << "\x00".b * ((align - buf.length % align) % align)
           buf << data.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
-          buf << "\x00".b * (7 - (buf.length + 7) % 8)
+          buf << "\x00".b * ((align - buf.length % align) % align)
         end
 
         def calc_buffer_size
+          align = 8
           size = 0
-          size += name_length + (7 - (name_length + 7) % 8)
-          size += data_length + (7 - (data_length + 7) % 8)
+          size += name_length + ((align - name_length % align) % align)
+          size += data_length + ((align - data_length % align) % align)
           size
         end
 
@@ -58,7 +60,8 @@ module RubySMB
           if data.num_bytes == 0
             0
           else
-            buffer.rel_offset + (name_length + 7 - (name_length + 7) % 8)
+            align = 8
+            buffer.rel_offset + name_length + ((align - name_length % align) % align)
           end
         end
       end

@@ -7,8 +7,8 @@ module RubySMB
         endian :little
         uint32   :next_entry_offset,      label: 'Next Entry Offset'
         uint32   :stream_name_length,     label: 'Stream Name Length', initial_value: -> { stream_name.do_num_bytes }
-        uint64   :stream_size,            label: 'Stream Size'
-        uint64   :stream_allocation_size, label: 'Stream Allocation Size'
+        int64    :stream_size,            label: 'Stream Size'
+        int64    :stream_allocation_size, label: 'Stream Allocation Size'
         string16 :stream_name,            label: 'Stream Name', read_length: -> { stream_name_length }
       end
     end
