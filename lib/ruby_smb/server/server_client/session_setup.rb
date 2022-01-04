@@ -3,16 +3,21 @@ module RubySMB
     class ServerClient
       module SessionSetup
         def do_session_setup_smb1(request, session)
-          gss_result = process_gss(request.data_block.security_blob)
-          return if gss_result.nil?
-
           session_id = request.smb_header.uid
           if session_id == 0
-            session_id = rand(0x10000)
+            session_id = rand(1..0x10000)
             session = @session_table[session_id] = Server::Session.new(session_id)
           else
             session = @session_table[session_id]
+            if session.nil?
+              response = SMB1::Packet::EmptyPacket.new
+              response.smb_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+              return response
+            end
           end
+
+          gss_result = process_gss(request.data_block.security_blob)
+          return if gss_result.nil?
 
           response = SMB1::Packet::SessionSetupResponse.new
           response.smb_header.pid_low = request.smb_header.pid_low
@@ -37,9 +42,6 @@ module RubySMB
         end
 
         def do_session_setup_smb2(request, session)
-          gss_result = process_gss(request.buffer)
-          return if gss_result.nil?
-
           session_id = request.smb2_header.session_id
           if session_id == 0
             session_id = rand(1..0xfffffffe)
@@ -49,10 +51,12 @@ module RubySMB
             if session.nil?
               response = SMB2::Packet::ErrorPacket.new
               response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
-              response.smb2_header.message_id = request.smb2_header.message_id
               return response
             end
           end
+
+          gss_result = process_gss(request.buffer)
+          return if gss_result.nil?
 
           response = SMB2::Packet::SessionSetupResponse.new
           response.smb2_header.nt_status = gss_result.nt_status.value
