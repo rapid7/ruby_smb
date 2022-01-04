@@ -2,7 +2,7 @@ module RubySMB
   class Server
     class ServerClient
       module SessionSetup
-        def do_session_setup_smb1(request)
+        def do_session_setup_smb1(request, session)
           gss_result = process_gss(request.data_block.security_blob)
           return if gss_result.nil?
 
@@ -36,7 +36,7 @@ module RubySMB
           response
         end
 
-        def do_session_setup_smb2(request)
+        def do_session_setup_smb2(request, session)
           gss_result = process_gss(request.buffer)
           return if gss_result.nil?
 

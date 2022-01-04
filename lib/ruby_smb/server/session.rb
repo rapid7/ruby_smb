@@ -18,6 +18,10 @@ module RubySMB
         @creation_time = Time.now
       end
 
+      def inspect
+        "#<Session id: #{@id.inspect}, user_id: #{@user_id.inspect}, state: #{@state.inspect}>"
+      end
+
       # Whether or not this session is anonymous.
       # @return [Boolean]
       def is_anonymous

@@ -84,7 +84,7 @@ module RubySMB
           unless response.nil?
             # set these header fields if they were not initialized
             if response.is_a?(SMB1::Packet::EmptyPacket)
-              response.smb_header.command = header.command
+              response.smb_header.command = header.command if response.smb_header.command == 0
               response.smb_header.flags.reply = 1
             end
 
@@ -259,16 +259,31 @@ module RubySMB
       # @return [RubySMB::GenericPacket]
       def handle_smb1(raw_request, header)
         # session = @session_table[header.uid]
+        session = nil
 
         case header.command
         when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
-          response = do_session_setup_smb1(SMB1::Packet::SessionSetupRequest.read(raw_request))
+          dispatcher, request_class = :do_session_setup_smb1, SMB1::Packet::SessionSetupRequest
         else
           logger.warn("The SMB1 #{SMB1::Commands.name(header.command)} command is not supported")
           raise NotImplementedError
         end
 
-        response
+        begin
+          request = request_class.read(raw_request)
+        rescue IOError, RubySMB::Error::InvalidPacket => e
+          logger.error("Caught a #{e.class} while reading the SMB1 #{request_class} (#{e.message})")
+          response = RubySMB::SMB1::Packet::EmptyPacket.new
+        end
+
+        if request.is_a?(SMB1::Packet::EmptyPacket)
+          logger.error("Received an error packet for SMB1 command: #{SMB1::Commands.name(header.command)}")
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          return response
+        end
+
+        logger.debug("Dispatching request to #{dispatcher} (session: #{session.inspect})")
+        send(dispatcher, request, session)
       end
 
       #
@@ -290,31 +305,45 @@ module RubySMB
 
         case header.command
         when SMB2::Commands::CLOSE
-          response = do_close_smb2(SMB2::Packet::CloseRequest.read(raw_request), session)
+          dispatcher, request_class = :do_close_smb2, SMB2::Packet::CloseRequest
         when SMB2::Commands::CREATE
-          response = do_create_smb2(SMB2::Packet::CreateRequest.read(raw_request), session)
+          dispatcher, request_class = :do_create_smb2, SMB2::Packet::CreateRequest
         when SMB2::Commands::IOCTL
-          response = do_ioctl_smb2(SMB2::Packet::IoctlRequest.read(raw_request), session)
+          dispatcher, request_class = :do_ioctl_smb2, SMB2::Packet::IoctlRequest
         when SMB2::Commands::LOGOFF
-          response = do_logoff_smb2(SMB2::Packet::LogoffRequest.read(raw_request), session)
+          dispatcher, request_class = :do_logoff_smb2, SMB2::Packet::LogoffRequest
         when SMB2::Commands::QUERY_DIRECTORY
-          response = do_query_directory_smb2(SMB2::Packet::QueryDirectoryRequest.read(raw_request), session)
+          dispatcher, request_class = :do_query_directory_smb2, SMB2::Packet::QueryDirectoryRequest
         when SMB2::Commands::QUERY_INFO
-          response = do_query_info_smb2(SMB2::Packet::QueryInfoRequest.read(raw_request), session)
+          dispatcher, request_class = :do_query_info_smb2, SMB2::Packet::QueryInfoRequest
         when SMB2::Commands::READ
-          response = do_read_smb2(SMB2::Packet::ReadRequest.read(raw_request), session)
+          dispatcher, request_class = :do_read_smb2, SMB2::Packet::ReadRequest
         when SMB2::Commands::SESSION_SETUP
-          response = do_session_setup_smb2(SMB2::Packet::SessionSetupRequest.read(raw_request))
+          dispatcher, request_class = :do_session_setup_smb2, SMB2::Packet::SessionSetupRequest
         when SMB2::Commands::TREE_CONNECT
-          response = do_tree_connect_smb2(SMB2::Packet::TreeConnectRequest.read(raw_request), session)
+          dispatcher, request_class = :do_tree_connect_smb2, SMB2::Packet::TreeConnectRequest
         when SMB2::Commands::TREE_DISCONNECT
-          response = do_tree_disconnect_smb2(SMB2::Packet::TreeDisconnectRequest.read(raw_request), session)
+          dispatcher, request_class = :do_tree_disconnect_smb2, SMB2::Packet::TreeDisconnectRequest
         else
           logger.warn("The SMB2 #{SMB2::Commands.name(header.command)} command is not supported")
           raise NotImplementedError
         end
 
-        response
+        begin
+          request = request_class.read(raw_request)
+        rescue IOError, RubySMB::Error::InvalidPacket => e
+          logger.error("Caught a #{e.class} while reading the SMB2 #{request_class} (#{e.message})")
+          response = RubySMB::SMB2::Packet::ErrorPacket.new
+        end
+
+        if request.is_a?(SMB2::Packet::ErrorPacket)
+          logger.error("Received an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}")
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          return response
+        end
+
+        logger.debug("Dispatching request to #{dispatcher} (session: #{session.inspect})")
+        send(dispatcher, request, session)
       end
     end
   end

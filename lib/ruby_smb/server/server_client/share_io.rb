@@ -3,12 +3,6 @@ module RubySMB
     class ServerClient
       module ShareIO
         def proxy_share_io_smb2(request, session)
-          if request.is_a?(SMB2::Packet::ErrorPacket)
-            # This is probably an issue with parsing the incoming request that resulted in it being turned into an ErrorPacket
-            logger.error("Received an error packet for command: #{SMB2::Commands.name(request.smb2_header.command)}")
-            raise RuntimeError, 'can not process error packet'
-          end
-
           # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/9a639360-87be-4d49-a1dd-4c6be0c020bd
           share_processor = session.tree_connect_table[request.smb2_header.tree_id]
           if share_processor.nil?
