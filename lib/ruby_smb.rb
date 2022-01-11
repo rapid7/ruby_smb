@@ -29,4 +29,5 @@ module RubySMB
   require 'ruby_smb/compression'
   require 'ruby_smb/server'
   require 'ruby_smb/dialect'
+  require 'ruby_smb/smb_error'
 end

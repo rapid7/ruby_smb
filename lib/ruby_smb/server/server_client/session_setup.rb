@@ -11,7 +11,7 @@ module RubySMB
             session = @session_table[session_id]
             if session.nil?
               response = SMB1::Packet::EmptyPacket.new
-              response.smb_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+              response.smb_header.nt_status = SMBError::STATUS_SMB_BAD_UID
               return response
             end
           end
