@@ -52,7 +52,7 @@ module RubySMB
     def run(&block)
       loop do
         sock = @socket.accept
-        server_client = ServerClient.new(self, RubySMB::Dispatcher::Socket.new(sock))
+        server_client = ServerClient.new(self, RubySMB::Dispatcher::Socket.new(sock, read_timeout: nil))
         @connections << Connection.new(server_client, Thread.new { server_client.run })
 
         break unless block.nil? || block.call(server_client)

@@ -164,6 +164,8 @@ module RubySMB
 
           break if @dispatcher.tcp_socket.closed?
         end
+
+        disconnect!
       end
 
       #
@@ -171,7 +173,7 @@ module RubySMB
       #
       def disconnect!
         @dialect = nil
-        @dispatcher.tcp_socket.close
+        @dispatcher.tcp_socket.close unless @dispatcher.tcp_socket.closed?
       end
 
       #

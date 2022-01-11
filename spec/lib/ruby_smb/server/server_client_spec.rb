@@ -9,6 +9,7 @@ RSpec.describe RubySMB::Server::ServerClient do
 
   describe '#disconnect!' do
     it 'closes the socket' do
+      expect(dispatcher.tcp_socket).to receive(:closed?).with(no_args).and_return(false)
       expect(dispatcher.tcp_socket).to receive(:close).with(no_args).and_return(nil)
       server_client.disconnect!
     end
@@ -56,7 +57,8 @@ RSpec.describe RubySMB::Server::ServerClient do
     before(:each) do
       expect(server_client).to receive(:recv_packet).and_return(packet)
       # this hook should ensure that the dispatcher loop returns after processing a single request
-      expect(dispatcher.tcp_socket).to receive(:closed?).and_return(true)
+      expect(dispatcher.tcp_socket).to receive(:closed?).with(no_args).and_return(true)
+      expect(server_client).to receive(:disconnect!).with(no_args).and_return(nil)
     end
 
     it 'calls #handle_negotiate when the dialect is nil' do
