@@ -73,7 +73,6 @@ module RubySMB
           response.data_block.server_guid = @server.guid
           response.data_block.security_blob = process_gss.buffer
 
-          @state = :session_setup
           @dialect = dialect
           response
         end
@@ -146,7 +145,6 @@ module RubySMB
             update_preauth_hash(response)
           end
 
-          @state = :session_setup
           @dialect = dialect
           response
         end

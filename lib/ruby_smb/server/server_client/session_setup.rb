@@ -2,39 +2,26 @@ module RubySMB
   class Server
     class ServerClient
       module SessionSetup
-        #
-        # Setup a new session based on the negotiated dialect. Once session setup is complete, the state will be updated
-        # to :authenticated.
-        #
-        # @param [String] raw_request the session setup request to process
-        def handle_session_setup(raw_request)
-          response = nil
-
-          case metadialect.order
-          when Dialect::ORDER_SMB1
-            request = SMB1::Packet::SessionSetupRequest.read(raw_request)
-            response = do_session_setup_smb1(request)
-          when Dialect::ORDER_SMB2
-            request = SMB2::Packet::SessionSetupRequest.read(raw_request)
-            response = do_session_setup_smb2(request)
-          end
-
-          if response.nil?
-            disconnect!
+        def do_session_setup_smb1(request, session)
+          session_id = request.smb_header.uid
+          if session_id == 0
+            session_id = rand(1..0x10000)
+            session = @session_table[session_id] = Server::Session.new(session_id)
           else
-            send_packet(response)
+            session = @session_table[session_id]
+            if session.nil?
+              response = SMB1::Packet::EmptyPacket.new
+              response.smb_header.nt_status = SMBError::STATUS_SMB_BAD_UID
+              return response
+            end
           end
 
-          nil
-        end
-
-        def do_session_setup_smb1(request)
           gss_result = process_gss(request.data_block.security_blob)
           return if gss_result.nil?
 
           response = SMB1::Packet::SessionSetupResponse.new
           response.smb_header.pid_low = request.smb_header.pid_low
-          response.smb_header.uid = rand(0x10000)
+          response.smb_header.uid = session_id
           response.smb_header.mid = request.smb_header.mid
           response.smb_header.nt_status = gss_result.nt_status.value
           response.smb_header.flags.reply = true
@@ -46,14 +33,28 @@ module RubySMB
           end
 
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
-            @state = :authenticated
-            @identity = gss_result.identity
+            session.state = :valid
+            session.user_id = gss_result.identity
+            session.key = @gss_authenticator.session_key
           end
 
           response
         end
 
-        def do_session_setup_smb2(request)
+        def do_session_setup_smb2(request, session)
+          session_id = request.smb2_header.session_id
+          if session_id == 0
+            session_id = rand(1..0xfffffffe)
+            session = @session_table[session_id] = Session.new(session_id)
+          else
+            session = @session_table[session_id]
+            if session.nil?
+              response = SMB2::Packet::ErrorPacket.new
+              response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+              return response
+            end
+          end
+
           gss_result = process_gss(request.buffer)
           return if gss_result.nil?
 
@@ -61,18 +62,28 @@ module RubySMB
           response.smb2_header.nt_status = gss_result.nt_status.value
           response.smb2_header.credits = 1
           response.smb2_header.message_id = request.smb2_header.message_id
-          response.smb2_header.session_id = @session_id = @session_id || SecureRandom.random_bytes(4).unpack1('V')
+          response.smb2_header.session_id = session_id
           response.buffer = gss_result.buffer
 
           update_preauth_hash(request) if @dialect == '0x0311'
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
-            @state = :authenticated
-            @identity = gss_result.identity
-            @session_key = @gss_authenticator.session_key
+            response.smb2_header.credits = 32
+            session.state = :valid
+            session.user_id = gss_result.identity
+            session.key = @gss_authenticator.session_key
+            session.signing_required = request.security_mode.signing_required == 1
           elsif gss_result.nt_status == WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED && @dialect == '0x0311'
             update_preauth_hash(response)
           end
 
+          response
+        end
+
+        def do_logoff_smb2(request, session)
+          session = @session_table.delete(session.id)
+          session.logoff!
+
+          response = SMB2::Packet::LogoffResponse.new
           response
         end
       end

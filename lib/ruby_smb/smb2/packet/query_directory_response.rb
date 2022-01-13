@@ -9,8 +9,8 @@ module RubySMB
         endian       :little
         smb2_header  :smb2_header
         uint16       :structure_size,  label: 'Structure Size',       initial_value: 9
-        uint16       :buffer_offset,   label: 'Output Buffer Offset', initial_value: -> { buffer.abs_offset }
-        uint32       :buffer_length,   label: 'Output Buffer Length', initial_value: -> { buffer.do_num_bytes }
+        uint16       :buffer_offset,   label: 'Output Buffer Offset', initial_value: -> { buffer.empty? ? 0 : buffer.abs_offset }
+        uint32       :buffer_length,   label: 'Output Buffer Length', initial_value: -> { buffer.empty? ? 0 : buffer.do_num_bytes }
         string       :buffer,          read_length: -> { buffer_length }
 
         def initialize_instance

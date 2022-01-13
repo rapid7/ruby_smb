@@ -30,8 +30,9 @@ RSpec.describe RubySMB::SMB2::Packet::QueryDirectoryResponse do
     expect(packet.structure_size).to eq 9
   end
 
-  it 'has an offset pointer to the buffer field' do
-    expect(packet.buffer_offset).to eq packet.buffer.abs_offset
+  it 'has an offset pointer of 0 for an empty buffer field' do
+    expect(packet.buffer).to be_empty
+    expect(packet.buffer_offset).to eq 0
   end
 
   it 'has a length value for the buffer field' do

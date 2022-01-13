@@ -21,7 +21,7 @@ module RubySMB
         uint8                 :reserved,       label: 'Reserved Space', initial_value: 0x00
         share_flags           :share_flags
         share_capabilities    :capabilities
-        directory_access_mask :maximal_access, label: 'Maximal Access'
+        file_access_mask      :maximal_access, label: 'Maximal Access'
 
         def initialize_instance
           super

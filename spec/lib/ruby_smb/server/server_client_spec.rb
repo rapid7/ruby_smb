@@ -5,33 +5,24 @@ RSpec.describe RubySMB::Server::ServerClient do
   subject(:server_client) { described_class.new(server, dispatcher) }
 
   it { is_expected.to respond_to :dialect }
-  it { is_expected.to respond_to :identity }
-  it { is_expected.to respond_to :state }
-  it { is_expected.to respond_to :session_key }
+  it { is_expected.to respond_to :session_table }
 
   describe '#disconnect!' do
     it 'closes the socket' do
+      expect(dispatcher.tcp_socket).to receive(:closed?).with(no_args).and_return(false)
       expect(dispatcher.tcp_socket).to receive(:close).with(no_args).and_return(nil)
       server_client.disconnect!
     end
   end
 
   describe '#initialize' do
-    it 'starts in the negotiate state' do
-      expect(server_client.state).to eq :negotiate
-    end
-
     it 'starts without a dialect' do
       expect(server_client.dialect).to be_nil
       expect(server_client.metadialect).to be_nil
     end
 
-    it 'starts without an identity' do
-      expect(server_client.identity).to be_nil
-    end
-
-    it 'starts without a session_key' do
-      expect(server_client.session_key).to be_nil
+    it 'starts without any sessions' do
+      expect(server_client.session_table).to be_empty
     end
 
     it 'creates a new authenticator instance' do
@@ -66,33 +57,30 @@ RSpec.describe RubySMB::Server::ServerClient do
     before(:each) do
       expect(server_client).to receive(:recv_packet).and_return(packet)
       # this hook should ensure that the dispatcher loop returns after processing a single request
-      expect(dispatcher.tcp_socket).to receive(:closed?).and_return(true)
+      expect(dispatcher.tcp_socket).to receive(:closed?).with(no_args).and_return(true)
+      expect(server_client).to receive(:disconnect!).with(no_args).and_return(nil)
     end
 
-    it 'calls #handle_negotiate when the state is negotiate' do
+    it 'calls #handle_negotiate when the dialect is nil' do
       expect(server_client).to receive(:handle_negotiate).with(packet).and_return(nil)
-      server_client.instance_eval { @state = :negotiate }
+      server_client.instance_eval { @dialect = nil }
       server_client.run
     end
 
-    it 'calls #handle_session_setup when the state is session_setup' do
-      expect(server_client).to receive(:handle_session_setup).with(packet).and_return(nil)
-      server_client.instance_eval { @state = :session_setup }
-      server_client.run
-    end
-
-    it 'calls #authenticated when the state is authenticated' do
-      expect(server_client).to receive(:handle_authenticated).with(packet).and_return(nil)
-      server_client.instance_eval { @state = :authenticated }
+    it 'calls #handle_smb when the dialect is not nil' do
+      expect(server_client).to receive(:handle_smb).with(packet).and_return(nil)
+      server_client.instance_eval { @dialect = true }
       server_client.run
     end
   end
 
   describe '#send_packet' do
-    let(:packet) { RubySMB::GenericPacket.new }
+    let(:session_id) { rand(0xffffffff) }
+    let(:packet) { RubySMB::SMB2::Packet::SessionSetupResponse.new(smb2_header: { session_id: session_id }) }
 
     before(:each) do
       expect(dispatcher).to receive(:send_packet).with(packet).and_return(nil)
+      server_client.session_table[session_id] = RubySMB::Server::Session.new(session_id)
     end
 
     it 'sends a packet to the dispatcher' do
@@ -105,40 +93,35 @@ RSpec.describe RubySMB::Server::ServerClient do
           server_client.instance_eval { @dialect = dialect }
         end
 
-        context 'and the state is authenticated' do
+        context 'and the identity is anonymous' do
           before(:each) do
-            server_client.instance_eval { @state = :authenticated }
+            server_client.session_table[session_id].user_id = RubySMB::Gss::Provider::IDENTITY_ANONYMOUS
           end
 
-          context 'and the identity is anonymous' do
-            before(:each) do
-              server_client.instance_eval { @identity = RubySMB::Gss::Provider::IDENTITY_ANONYMOUS }
-            end
+          it 'does not sign packets' do
+            expect(RubySMB::Signing).to_not receive(:smb2_sign)
+            expect(RubySMB::Signing).to_not receive(:smb3_sign)
+            server_client.send_packet(packet)
+          end
+        end
 
-            it 'does not sign packets' do
-              expect(server_client).to_not receive(:smb2_sign)
-              expect(server_client).to_not receive(:smb3_sign)
-              server_client.send_packet(packet)
-            end
+        context 'and the identity is not anonymous' do
+          before(:each) do
+            server_client.session_table[session_id].user_id = 'WORKGROUP\RubySMB'
+            server_client.session_table[session_id].key = Random.new.bytes(16)
           end
 
-          context 'and the identity is not anonymous' do
-            before(:each) do
-              server_client.instance_eval { @identity = 'WORKGROUP\RubySMB'; @session_key = Random.new.bytes(16) }
+          it 'does sign packets' do
+            dialect_family = RubySMB::Dialect[dialect].family
+            session = server_client.session_table[session_id]
+            if dialect_family == RubySMB::Dialect::FAMILY_SMB2
+              expect(RubySMB::Signing).to receive(:smb2_sign).with(packet, session.key).and_return(packet)
+              expect(RubySMB::Signing).to_not receive(:smb3_sign)
+            elsif dialect_family == RubySMB::Dialect::FAMILY_SMB3
+              expect(RubySMB::Signing).to receive(:smb3_sign).with(packet, session.key, dialect, any_args).and_return(packet)
+              expect(RubySMB::Signing).to_not receive(:smb2_sign)
             end
-
-            it 'does sign packets' do
-              packet = RubySMB::GenericPacket.new
-              dialect_family = RubySMB::Dialect[dialect].family
-              if dialect_family == RubySMB::Dialect::FAMILY_SMB2
-                expect(server_client).to receive(:smb2_sign).with(packet).and_return(packet)
-                expect(server_client).to_not receive(:smb3_sign)
-              elsif dialect_family == RubySMB::Dialect::FAMILY_SMB3
-                expect(server_client).to receive(:smb3_sign).with(packet).and_return(packet)
-                expect(server_client).to_not receive(:smb2_sign)
-              end
-              server_client.send_packet(packet)
-            end
+            server_client.send_packet(packet)
           end
         end
       end

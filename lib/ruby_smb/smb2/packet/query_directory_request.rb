@@ -25,7 +25,7 @@ module RubySMB
         uint16        :name_offset,   label: 'File Name Offset',      initial_value: -> { name.abs_offset }
         uint16        :name_length,   label: 'File Name Length',      initial_value: -> { name.do_num_bytes }
         uint32        :output_length, label: 'Output Buffer Length'
-        string16      :name,          label: 'Name/Search Pattern'
+        string16      :name,          label: 'Name/Search Pattern',   read_length: :name_length
 
       end
     end

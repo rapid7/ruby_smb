@@ -4,9 +4,8 @@ module RubySMB
       # An SMB2 Create Request Packet as defined in
       # [2.2.13 SMB2 CREATE Request](https://msdn.microsoft.com/en-us/library/cc246502.aspx)
       class CreateRequest < RubySMB::GenericPacket
-        COMMAND = RubySMB::SMB2::Commands::CREATE
-
         require 'ruby_smb/smb1/bit_field/create_options'
+        COMMAND = RubySMB::SMB2::Commands::CREATE
 
         endian :little
         smb2_header           :smb2_header
@@ -35,17 +34,34 @@ module RubySMB
           bit8  :reserved4, label: 'Reserved Space'
         end
 
-        uint32          :create_disposition, label: 'Create Disposition'
-        create_options  :create_options
-        uint16          :name_offset,         label: 'Name Offset',            initial_value: -> { name.abs_offset }
-        uint16          :name_length,         label: 'Name Length',            initial_value: -> { name.do_num_bytes }
-        uint32          :context_offset,      label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
-        uint32          :context_length,      label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
-        string16        :name,                label: 'File Name'
-        uint32          :reserved5,           label: 'Reserved Space'
+        uint32                :create_disposition, label: 'Create Disposition'
+        create_options        :create_options
+        uint16                :name_offset,         label: 'Name Offset'
+        uint16                :name_length,         label: 'Name Length', initial_value: -> { name.num_bytes }
+        uint32                :contexts_offset,     label: 'Create Contexts Offset'
+        uint32                :contexts_length,     label: 'Create Contexts Length'
+        count_bytes_remaining :bytes_remaining
+        string                :buffer,              label: 'Buffer', initial_value: -> { build_buffer }, read_length: :bytes_remaining
 
-        array :context, label: 'Contexts', type: :create_context, read_until: :eof
+        delayed_io :name, label: 'File Name', read_abs_offset: :name_offset do
+          string16 read_length: :name_length
+        end
 
+        delayed_io :contexts, label: 'Context Array', read_abs_offset: :contexts_offset, onlyif: -> { contexts_offset != 0 } do
+          buffer length: :contexts_length do
+            create_context_array_request :contexts
+          end
+        end
+
+        private
+
+        def build_buffer
+          align = 8
+          buf = name.dup.tap { |obj| obj.abs_offset = 0 }.to_binary_s { |obj| obj.write_now! }
+          buf << "\x00".b * ((align - buf.length % align) % align)
+          buf << contexts.map(&:to_binary_s).join
+          buf << "\x00".b * ((align - buf.length % align) % align)
+        end
       end
     end
   end

@@ -21,14 +21,28 @@ module RubySMB
         file_attributes       :file_attributes,      label: 'File Attributes'
         uint32                :reserved,             label: 'Reserved Space'
         smb2_fileid           :file_id,              label: 'File ID'
-        uint32                :context_offset,       label: 'Create Context Offset',  initial_value: -> { context.abs_offset }
-        uint32                :context_length,       label: 'Create Context Length',  initial_value: -> { context.do_num_bytes }
+        uint32                :contexts_offset,      label: 'Create Contexts Offset'
+        uint32                :contexts_length,      label: 'Create Contexts Length'
+        count_bytes_remaining :bytes_remaining
+        string                :buffer,               label: 'Buffer', initial_value: -> { build_buffer }, read_length: :bytes_remaining
 
-        array :context, label: 'Contexts', type: :create_context, read_until: :eof
+        delayed_io :contexts, label: 'Context Array', read_abs_offset: -> { contexts_offset }, onlyif: -> { contexts_offset != 0 } do
+          buffer length: :contexts_length do
+            create_context_array_response :contexts
+          end
+        end
 
         def initialize_instance
           super
           smb2_header.flags.reply = 1
+        end
+
+        private
+
+        def build_buffer
+          align = 8
+          buf = contexts.map(&:to_binary_s).join
+          buf << "\x00".b * ((align - buf.length % align) % align)
         end
       end
     end

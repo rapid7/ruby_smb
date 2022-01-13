@@ -17,6 +17,10 @@ module RubySMB
       # contents of a directory.
       FILE_BOTH_DIRECTORY_INFORMATION    = 0x03
 
+      # Information class used to query for the size of the extended attributes
+      # (EA) for a file.
+      FILE_EA_INFORMATION                = 0x07
+
       # Information class used to rename a file.
       FILE_RENAME_INFORMATION            = 0x0A
 
@@ -26,6 +30,14 @@ module RubySMB
 
       # Information class used to mark a file for deletion.
       FILE_DISPOSITION_INFORMATION       = 0x0D
+
+      # Information class used to enumerate the data streams of a file or a
+      # directory.
+      FILE_STREAM_INFORMATION            = 0x16
+
+      # This information class is used to query for information that is commonly
+      # needed when a file is opened across a network.
+      FILE_NETWORK_OPEN_INFORMATION      = 0x22
 
       # Information class used in directory enumeration to return detailed
       # information (with extended attributes size, short names and file ID)
@@ -38,6 +50,13 @@ module RubySMB
       FILE_ID_FULL_DIRECTORY_INFORMATION = 0x26
 
 
+      # This information class is used to query the normalized name of a file. A
+      # normalized name is an absolute pathname where each short name component
+      # has been replaced with the corresponding long name component, and each
+      # name component uses the exact letter casing stored on disk.
+      FILE_NORMALIZED_NAME_INFORMATION = 0x30
+
+
       # These Information Classes can be used by SMB1 using the pass-through
       # Information Levels when available on the server (CAP_INFOLEVEL_PASSTHRU
       # capability flag in an SMB_COM_NEGOTIATE server response). The constant
@@ -46,6 +65,13 @@ module RubySMB
       # [2.2.2.3.5 Pass-through Information Level Codes](https://msdn.microsoft.com/en-us/library/ff470158.aspx)
       SMB_INFO_PASSTHROUGH               = 0x03e8
 
+      # The FILE_NAME_INFORMATION type as defined in
+      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/20406fb1-605f-4629-ba9a-c67ee25f23d2
+      class FileNameInformation < BinData::Record
+        endian :little
+        uint32           :file_name_length, label: 'File Name Length',  initial_value: -> { file_name.do_num_bytes }
+        string16         :file_name,        label: 'File Name',         read_length: -> { file_name_length }
+      end
 
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
@@ -55,6 +81,9 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_names_information'
       require 'ruby_smb/fscc/file_information/file_rename_information'
+      require 'ruby_smb/fscc/file_information/file_network_open_information'
+      require 'ruby_smb/fscc/file_information/file_ea_information'
+      require 'ruby_smb/fscc/file_information/file_stream_information'
     end
   end
 end

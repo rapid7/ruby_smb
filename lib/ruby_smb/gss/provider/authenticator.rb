@@ -17,6 +17,10 @@ module RubySMB
             reset!
           end
 
+          def logger
+            @server_client.logger
+          end
+
           #
           # Process a GSS authentication buffer. If no buffer is specified, the request is assumed to be the first in
           # the negotiation sequence.
