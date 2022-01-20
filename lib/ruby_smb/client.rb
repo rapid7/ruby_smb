@@ -320,6 +320,15 @@ module RubySMB
       @open_files = {}
 
       @smb2_message_id = 0
+
+      # The dispatcher can override some instance variables
+      if @dispatcher.instance_variable_defined?("@override_client_instance_variables")
+        @dispatcher.instance_variables.each do |k|
+          if self.instance_variable_defined?(k.to_s)
+            self.instance_variable_set k,@dispatcher.instance_variable_get(k.to_s)
+          end
+        end
+      end
     end
 
     # Logs off any currently open session on the server

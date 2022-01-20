@@ -48,6 +48,7 @@ module RubySMB
         end
         choice 'Svcctl', selection: -> { opnum } do
           open_sc_manager_w_request       Svcctl::OPEN_SC_MANAGER_W
+          create_service_w_request        Svcctl::CREATE_SERVICE_W
           open_service_w_request          Svcctl::OPEN_SERVICE_W
           query_service_status_request    Svcctl::QUERY_SERVICE_STATUS
           query_service_config_w_request  Svcctl::QUERY_SERVICE_CONFIG_W
@@ -55,6 +56,7 @@ module RubySMB
           start_service_w_request         Svcctl::START_SERVICE_W
           control_service_request         Svcctl::CONTROL_SERVICE
           close_service_handle_request    Svcctl::CLOSE_SERVICE_HANDLE
+          delete_service_request          Svcctl::DELETE_SERVICE
           string                          :default
         end
         choice 'Samr', selection: -> { opnum } do
