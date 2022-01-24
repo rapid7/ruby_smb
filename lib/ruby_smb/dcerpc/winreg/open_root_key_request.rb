@@ -33,7 +33,7 @@ module RubySMB
           super
           @opnum = get_parameter(:opnum) if has_parameter?(:opnum)
           self.server_name = :null
-          self.sam_desired.maximum = 1 unless [OPEN_HKPD, OPEN_HKPT, OPEN_HKPN].include?(@opnum)
+          self.sam_desired.maximum_allowed = 1 unless [OPEN_HKPD, OPEN_HKPT, OPEN_HKPN].include?(@opnum)
         end
       end
 

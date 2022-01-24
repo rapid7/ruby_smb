@@ -33,7 +33,7 @@ module RubySMB
         bit1    :generic_execute,        label: 'Generic Execute'
         bit1    :generic_all,            label: 'Generic All'
         bit2    :reserved4,              label: 'Reserved Space'
-        bit1    :maximum,                label: 'Maximum Allowed'
+        bit1    :maximum_allowed,        label: 'Maximum Allowed'
         bit1    :system_security,        label: 'System Security'
       end
 

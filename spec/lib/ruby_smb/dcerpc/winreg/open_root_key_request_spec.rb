@@ -57,30 +57,30 @@ RSpec.describe RubySMB::Dcerpc::Winreg::OpenRootKeyRequest do
     end
 
     context 'when #opnum is not OPEN_HKPD, OPEN_HKPT or OPEN_HKPN' do
-      it 'sets the #sam_desired.maximum flag' do
+      it 'sets the #sam_desired.maximum_allowed flag' do
         packet = described_class.new(opnum: RubySMB::Dcerpc::Winreg::OPEN_HKCR)
-        expect(packet.sam_desired.maximum).to eq(1)
+        expect(packet.sam_desired.maximum_allowed).to eq(1)
       end
     end
 
     context 'when #opnum is OPEN_HKPD' do
-      it 'does not set the #sam_desired.maximum flag' do
+      it 'does not set the #sam_desired.maximum_allowed flag' do
         packet = described_class.new(opnum: RubySMB::Dcerpc::Winreg::OPEN_HKPD)
-        expect(packet.sam_desired.maximum).to eq(0)
+        expect(packet.sam_desired.maximum_allowed).to eq(0)
       end
     end
 
     context 'when #opnum is OPEN_HKPT' do
-      it 'does not set the #sam_desired.maximum flag' do
+      it 'does not set the #sam_desired.maximum_allowed flag' do
         packet = described_class.new(opnum: RubySMB::Dcerpc::Winreg::OPEN_HKPT)
-        expect(packet.sam_desired.maximum).to eq(0)
+        expect(packet.sam_desired.maximum_allowed).to eq(0)
       end
     end
 
     context 'when #opnum is OPEN_HKPN' do
-      it 'does not set the #sam_desired.maximum flag' do
+      it 'does not set the #sam_desired.maximum_allowed flag' do
         packet = described_class.new(opnum: RubySMB::Dcerpc::Winreg::OPEN_HKPN)
-        expect(packet.sam_desired.maximum).to eq(0)
+        expect(packet.sam_desired.maximum_allowed).to eq(0)
       end
     end
   end

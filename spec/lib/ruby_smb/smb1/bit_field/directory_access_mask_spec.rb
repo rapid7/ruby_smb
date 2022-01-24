@@ -19,7 +19,7 @@ RSpec.describe RubySMB::SMB1::BitField::DirectoryAccessMask do
   it { is_expected.to respond_to :generic_write }
   it { is_expected.to respond_to :generic_execute }
   it { is_expected.to respond_to :generic_all }
-  it { is_expected.to respond_to :maximum }
+  it { is_expected.to respond_to :maximum_allowed }
   it { is_expected.to respond_to :system_security }
 
   it 'is little endian' do
@@ -146,12 +146,12 @@ RSpec.describe RubySMB::SMB1::BitField::DirectoryAccessMask do
     it_behaves_like 'bit field with one flag set', :system_security, 'V', 0x01000000
   end
 
-  describe '#maximum' do
+  describe '#maximum_allowed' do
     it 'should be a 1-bit field per the SMB spec' do
-      expect(flags.maximum).to be_a BinData::Bit1
+      expect(flags.maximum_allowed).to be_a BinData::Bit1
     end
 
-    it_behaves_like 'bit field with one flag set', :maximum, 'V', 0x02000000
+    it_behaves_like 'bit field with one flag set', :maximum_allowed, 'V', 0x02000000
   end
 
   describe '#generic_all' do

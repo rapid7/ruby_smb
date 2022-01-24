@@ -274,7 +274,7 @@ module RubySMB
           lp_sub_key:             sub_key,
           lp_class:               opts[:lp_class] || :null,
           dw_options:             opts[:dw_options] || RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_KEY_TYPE_VOLATILE,
-          sam_desired:            opts[:sam_desired] || RubySMB::Dcerpc::Winreg::Regsam.new(maximum: 1),
+          sam_desired:            opts[:sam_desired] || RubySMB::Dcerpc::Winreg::Regsam.new(maximum_allowed: 1),
           lp_security_attributes: opts[:lp_security_attributes] || RubySMB::Dcerpc::RpcSecurityAttributes.new,
           lpdw_disposition:       opts[:lpdw_disposition] || RubySMB::Dcerpc::Winreg::CreateKeyRequest::REG_CREATED_NEW_KEY,
         }
