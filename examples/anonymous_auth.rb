@@ -27,4 +27,4 @@ username = ''
 password = ''
 
 # Negotiate with only SMB1 enabled
-run_authentication(address, true, false, false, username, password)
+run_authentication(address, true, true, true, username, password)

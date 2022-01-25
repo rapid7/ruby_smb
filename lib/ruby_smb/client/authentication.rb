@@ -204,6 +204,10 @@ module RubySMB
         @session_id = challenge_packet.smb2_header.session_id
         type2_b64_message = smb2_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
+        if username.empty? && password.empty?
+          type3_message.lm_response = ''
+          type3_message.ntlm_response = ''
+        end
 
         @session_key = @ntlm_client.session_key
         challenge_message = ntlm_client.session.challenge_message
