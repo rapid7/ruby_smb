@@ -33,13 +33,13 @@ options = {
 options[:target ] = args.pop
 optparser = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename(__FILE__)} [options] target"
-  opts.on("--[no-]smbv1", "Enabled or disable SMBv1 (default: #{options[:smbv1] ? 'Enabled' : 'Disabled'})") do |smbv1|
+  opts.on("--[no-]smbv1", "Enable or disable SMBv1 (default: #{options[:smbv1] ? 'Enabled' : 'Disabled'})") do |smbv1|
     options[:smbv1] = smbv1
   end
-  opts.on("--[no-]smbv2", "Enabled or disable SMBv2 (default: #{options[:smbv2] ? 'Enabled' : 'Disabled'})") do |smbv2|
+  opts.on("--[no-]smbv2", "Enable or disable SMBv2 (default: #{options[:smbv2] ? 'Enabled' : 'Disabled'})") do |smbv2|
     options[:smbv2] = smbv2
   end
-  opts.on("--[no-]smbv3", "Enabled or disable SMBv3 (default: #{options[:smbv3] ? 'Enabled' : 'Disabled'})") do |smbv3|
+  opts.on("--[no-]smbv3", "Enable or disable SMBv3 (default: #{options[:smbv3] ? 'Enabled' : 'Disabled'})") do |smbv3|
     options[:smbv3] = smbv3
   end
 end
