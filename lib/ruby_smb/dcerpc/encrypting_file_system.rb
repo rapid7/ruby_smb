@@ -2,7 +2,8 @@ module RubySMB
   module Dcerpc
     module EncryptingFileSystem
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/403c7ae0-1a3a-4e96-8efc-54e79a2cc451
-      UUID = 'df1941c5-fe89-4e79-bf10-463657acf44d'.freeze
+      UUID = EFSRPC_UUID = 'df1941c5-fe89-4e79-bf10-463657acf44d'.freeze
+      LSARPC_UUID = 'c681d488-d850-11d0-8c52-00c04fd90f7e'.freeze
       VER_MAJOR = 1
       VER_MINOR = 0
 
