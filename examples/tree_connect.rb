@@ -24,9 +24,6 @@ options[:share] = args.pop
 options[:target ] = args.pop
 optparser = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename(__FILE__)} [options] target share"
-  opts.on("--share SHARE", "The share name") do |share|
-    options[:share_name] = share
-  end
   opts.on("--[no-]smbv1", "Enabled or disable SMBv1 (default: #{options[:smbv1] ? 'Enabled' : 'Disabled'})") do |smbv1|
     options[:smbv1] = smbv1
   end
