@@ -214,11 +214,10 @@ module RubySMB
         response = smb2_ntlmssp_final_packet(raw)
 
         if @smb3
-          if username == '' && password == ''
-            # don't encrypt anonymous sessions
-            @session_encrypt_data = false
-          elsif !@session_encrypt_data && response.session_flags.encrypt_data == 1
+          if response.session_flags.encrypt_data == 1
             @session_encrypt_data = true
+          elsif response.session_flags.guest == 1 || (username == '' && password == '')
+            @session_encrypt_data = false
           end
         end
         ######
