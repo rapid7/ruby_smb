@@ -292,6 +292,7 @@ module RubySMB
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
+      @session_is_guest  = false
       @signing_required  = false
       @smb1              = smb1
       @smb2              = smb2
@@ -444,8 +445,13 @@ module RubySMB
         unless packet.is_a?(RubySMB::SMB2::Packet::SessionSetupRequest) || session_key.empty?
           if self.smb2 && signing_required
             packet = smb2_sign(packet)
-          elsif self.smb3 && (signing_required || packet.is_a?(RubySMB::SMB2::Packet::TreeConnectRequest))
-            packet = smb3_sign(packet)
+          elsif self.smb3
+            # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/652e0c14-5014-4470-999d-b174d7b2da87
+            if @dialect == '0x0311' && (signing_required || (!@session_is_guest && packet.is_a?(RubySMB::SMB2::Packet::TreeConnectRequest)))
+              packet = smb3_sign(packet)
+            elsif signing_required
+              packet = smb3_sign(packet)
+            end
           end
         end
       else
@@ -589,6 +595,7 @@ module RubySMB
       self.session_id       = 0x00
       self.user_id          = 0x00
       self.session_key      = ''
+      self.session_is_guest = false
       self.sequence_counter = 0
       self.smb2_message_id  = 0
       self.client_encryption_key = nil

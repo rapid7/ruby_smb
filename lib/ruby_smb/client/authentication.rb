@@ -212,11 +212,12 @@ module RubySMB
 
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
+        @session_is_guest = response.session_flags.guest == 1
 
         if @smb3
           if response.session_flags.encrypt_data == 1
             @session_encrypt_data = true
-          elsif response.session_flags.guest == 1 || (username == '' && password == '')
+          elsif @session_is_guest || (username == '' && password == '')
             @session_encrypt_data = false
           end
         end
