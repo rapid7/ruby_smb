@@ -8,9 +8,9 @@ module RubySMB
 
         endian :little
 
-        ndr_uint32    :lp_dw_tag_id
-        sc_rpc_handle :lp_sc_handle
-        ndr_uint32    :error_status
+        ndr_uint32_ptr :lp_dw_tag_id
+        sc_rpc_handle  :lp_sc_handle
+        ndr_uint32     :error_status
 
         def initialize_instance
           super

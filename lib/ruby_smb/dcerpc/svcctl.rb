@@ -21,6 +21,10 @@ module RubySMB
 
       class ScRpcHandle < Ndr::NdrContextHandle; end
 
+      class SvcctlByteArrayPtr < Ndr::NdrConfArray
+        default_parameters type: :ndr_uint8
+        extend Ndr::PointerClassPlugin
+      end
 
       #################################
       #           Constants           #
@@ -308,8 +312,6 @@ module RubySMB
         create_service_w_request = CreateServiceWRequest.new(dw_desired_access: SERVICE_ALL_ACCESS)
         create_service_w_request.dw_service_type = SERVICE_INTERACTIVE_PROCESS | SERVICE_WIN32_OWN_PROCESS
         create_service_w_request.dw_start_type = SERVICE_DEMAND_START
-        create_service_w_request.lp_u_load_order_group = 0
-        create_service_w_request.lp_u_service_start_name = 0
         create_service_w_request.h_sc_object = scm_handle
         create_service_w_request.lp_service_name = service_name
         create_service_w_request.lp_display_name = display_name
@@ -515,7 +517,7 @@ module RubySMB
       # Deletes the specified service
       #
       # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
-      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the respanse is not a DeleteServiceResponse packet
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a DeleteServiceResponse packet
       # @raise [RubySMB::Dcerpc::Error::SvcctlError] if the response error status is not ERROR_SUCCESS
       def delete_service(svc_handle)
         ds_request = DeleteServiceRequest.new(lp_sc_handle: svc_handle)
