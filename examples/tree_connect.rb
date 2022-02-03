@@ -60,6 +60,10 @@ protocol = client.negotiate
 status = client.authenticate
 
 puts "#{protocol} : #{status}"
+unless status == WindowsError::NTStatus::STATUS_SUCCESS
+  puts 'Authentication failed!'
+  exit(1)
+end
 
 begin
   tree = client.tree_connect(path)
@@ -67,4 +71,5 @@ begin
   tree.disconnect!
 rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
+  exit(1)
 end

@@ -216,10 +216,13 @@ module RubySMB
 
         if @smb3
           if response.session_flags.encrypt_data == 1
+            # if the server indicates that encryption is required, enable it
             @session_encrypt_data = true
-          elsif @session_is_guest || (username == '' && password == '')
+          elsif (@session_is_guest && password != '') || (username == '' && password == '')
+            # disable encryption when necessary
             @session_encrypt_data = false
           end
+          # otherwise, leave encryption to the default value that it was initialized to
         end
         ######
         # DEBUG

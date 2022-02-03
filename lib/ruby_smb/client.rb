@@ -307,6 +307,8 @@ module RubySMB
       @server_supports_multi_credit = false
 
       # SMB 3.x options
+      # this merely initializes the default value for session encryption, it may be changed as necessary when a
+      # session setup response is received
       @session_encrypt_data = always_encrypt
 
       @ntlm_client = Net::NTLM::Client.new(
