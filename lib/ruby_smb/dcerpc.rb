@@ -50,8 +50,8 @@ module RubySMB
     require 'ruby_smb/dcerpc/rpc_auth3'
     require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/bind_ack'
-
-
+    require 'ruby_smb/dcerpc/print_system'
+    require 'ruby_smb/dcerpc/encrypting_file_system'
 
     # Bind to the remote server interface endpoint.
     #
