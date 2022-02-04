@@ -28,6 +28,13 @@ module RubySMB
       EFS_RPC_ENCRYPT_FILE_EX_SRV = 21
       EFS_RPC_QUERY_PROTECTORS = 22
 
+      # EfsRpcOpenFileRaw flags,
+      # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/ccc4fb75-1c86-41d7-bbc4-b278ec13bfb8
+      CREATE_FOR_IMPORT = 0x00000001
+      CREATE_FOR_DIR = 0x00000002
+      OVERWRITE_HIDDEN = 0x00000004
+      EFS_DROP_ALTERNATE_STREAMS = 0x00000010
+
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
