@@ -60,13 +60,15 @@ module RubySMB
         # Make sure we don't modify the caller's hash options
         opts = opts.dup
         opts[:filename] = opts[:filename].dup
-        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with? '\\'
+        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with?('\\')
         open_file(**opts)
       end
 
       def open_file(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                     impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
 
+        filename = filename.dup
+        filename = filename[1..-1] if filename.start_with?('\\'.encode(filename.encoding))
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 

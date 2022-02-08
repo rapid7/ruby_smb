@@ -82,6 +82,9 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def open_file(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                     impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
+
+        filename = filename.dup
+        filename = filename[1..-1] if filename.start_with?('\\'.encode(filename.encoding))
         nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
         nt_create_andx_request = set_header_fields(nt_create_andx_request)
 
