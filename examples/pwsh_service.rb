@@ -75,7 +75,7 @@ scm_handle = svcctl.open_sc_manager_w(options[:target])
 
 service_name = random_string(8)
 display_name = random_string(8)
-binary_path_name = "%COMSPEC% /b /c start /b /min powershell.exe -nop -win hid -noni -en #{[options[:command].encode("UTF-16LE")].pack("m0")}"
+binary_path_name = "%COMSPEC% /c start /b /min powershell.exe -nop -win hid -noni -en #{[options[:command].encode("UTF-16LE")].pack("m0")}"
 puts "Full Command: #{binary_path_name}"
 svc_handle = svcctl.create_service_w(scm_handle, service_name, display_name, binary_path_name)
 
@@ -91,7 +91,12 @@ puts('Starting the service')
 
 begin
   svcctl.start_service_w(svc_handle)
-rescue RubySMB::Dcerpc::Error::SvcctlError
+rescue RubySMB::Dcerpc::Error::SvcctlError => e
+  if e.message.include?('ERROR_SERVICE_REQUEST_TIMEOUT')
+    puts "Service start timed out, OK if running a command or non-service executable..."
+  else
+    puts "Service start error: #{e}"
+  end
 end
 
 puts('Deleting the service')
