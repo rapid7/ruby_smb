@@ -60,80 +60,16 @@ module RubySMB
         # Make sure we don't modify the caller's hash options
         opts = opts.dup
         opts[:filename] = opts[:filename].dup
-        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with?('\\')
-        open_file(**opts)
+        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with?('\\'.encode(opts[:filename].encoding))
+        _open(**opts)
       end
 
-      def open_file(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
-                    impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
-
-        filename = filename.dup
-        filename = filename[1..-1] if filename.start_with?('\\'.encode(filename.encoding))
-        create_request = RubySMB::SMB2::Packet::CreateRequest.new
-        create_request = set_header_fields(create_request)
-
-        # If the user supplied file attributes, use those, otherwise set some
-        # sane defaults.
-        if attributes
-          create_request.file_attributes = attributes
-        else
-          create_request.file_attributes.directory  = 0
-          create_request.file_attributes.normal     = 1
-        end
-
-        # If the user supplied Create Options, use those, otherwise set some
-        # sane defaults.
-        if options
-          create_request.create_options = options
-        else
-          create_request.create_options.directory_file      = 0
-          create_request.create_options.non_directory_file  = 1
-        end
-
-        if read
-          create_request.share_access.read_access = 1
-          create_request.desired_access.read_data = 1
-        end
-
-        if write
-          create_request.share_access.write_access   = 1
-          create_request.desired_access.write_data   = 1
-          create_request.desired_access.append_data  = 1
-        end
-
-        if delete
-          create_request.share_access.delete_access   = 1
-          create_request.desired_access.delete_access = 1
-        end
-
-        create_request.requested_oplock     = 0xff
-        create_request.impersonation_level  = impersonation
-        create_request.create_disposition   = disposition
-        create_request.name                 = filename
-
-        raw_response  = client.send_recv(create_request, encrypt: @tree_connect_encrypt_data)
-        response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
-        unless response.valid?
-          raise RubySMB::Error::InvalidPacket.new(
-            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
-            expected_cmd:   RubySMB::SMB2::Packet::CreateResponse::COMMAND,
-            packet:         response
-          )
-        end
-        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
-        end
-
-        case @share_type
-        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_DISK
-          RubySMB::SMB2::File.new(name: filename, tree: self, response: response, encrypt: @tree_connect_encrypt_data)
-        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PIPE
-          RubySMB::SMB2::Pipe.new(name: filename, tree: self, response: response)
-        # when RubySMB::SMB2::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
-        #   it's a printer!
-        else
-          raise RubySMB::Error::RubySMBError, 'Unsupported share type'
-        end
+      def open_file(opts)
+        # Make sure we don't modify the caller's hash options
+        opts = opts.dup
+        opts[:filename] = opts[:filename].dup
+        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with?('\\'.encode(opts[:filename].encoding))
+        _open(**opts)
       end
 
       # List `directory` on the remote share.
@@ -271,6 +207,78 @@ module RubySMB
         request.smb2_header.tree_id = id
         request.smb2_header.credits = 256
         request
+      end
+
+      private
+
+      def _open(filename:, attributes: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                    impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
+
+        create_request = RubySMB::SMB2::Packet::CreateRequest.new
+        create_request = set_header_fields(create_request)
+
+        # If the user supplied file attributes, use those, otherwise set some
+        # sane defaults.
+        if attributes
+          create_request.file_attributes = attributes
+        else
+          create_request.file_attributes.directory  = 0
+          create_request.file_attributes.normal     = 1
+        end
+
+        # If the user supplied Create Options, use those, otherwise set some
+        # sane defaults.
+        if options
+          create_request.create_options = options
+        else
+          create_request.create_options.directory_file      = 0
+          create_request.create_options.non_directory_file  = 1
+        end
+
+        if read
+          create_request.share_access.read_access = 1
+          create_request.desired_access.read_data = 1
+        end
+
+        if write
+          create_request.share_access.write_access   = 1
+          create_request.desired_access.write_data   = 1
+          create_request.desired_access.append_data  = 1
+        end
+
+        if delete
+          create_request.share_access.delete_access   = 1
+          create_request.desired_access.delete_access = 1
+        end
+
+        create_request.requested_oplock     = 0xff
+        create_request.impersonation_level  = impersonation
+        create_request.create_disposition   = disposition
+        create_request.name                 = filename
+
+        raw_response  = client.send_recv(create_request, encrypt: @tree_connect_encrypt_data)
+        response      = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB2::SMB2_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB2::Packet::CreateResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+
+        case @share_type
+        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_DISK
+          RubySMB::SMB2::File.new(name: filename, tree: self, response: response, encrypt: @tree_connect_encrypt_data)
+        when RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PIPE
+          RubySMB::SMB2::Pipe.new(name: filename, tree: self, response: response)
+        # when RubySMB::SMB2::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
+        #   it's a printer!
+        else
+          raise RubySMB::Error::RubySMBError, 'Unsupported share type'
+        end
       end
     end
   end
