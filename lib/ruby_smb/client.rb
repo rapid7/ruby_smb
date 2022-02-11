@@ -29,10 +29,26 @@ module RubySMB
     # It indicates that the server implements SMB 2.1 or future dialect revisions
     # Note that this must be used for SMB3
     SMB1_DIALECT_SMB2_WILDCARD = 'SMB 2.???'.freeze
+
+    SMB2_DIALECT_0202 = '0x0202'.freeze
+    SMB2_DIALECT_0210 = '0x0210'.freeze
+    SMB2_DIALECT_0300  = '0x0300'.freeze
+    SMB2_DIALECT_0302  = '0x0302'.freeze
+    SMB2_DIALECT_0311  = '0x0311'.freeze
+
     # Dialect values for SMB2
-    SMB2_DIALECT_DEFAULT = ['0x0202', '0x0210']
+    SMB2_DIALECT_DEFAULT = [
+      SMB2_DIALECT_0202,
+      SMB2_DIALECT_0210,
+    ].freeze
+
     # Dialect values for SMB3
-    SMB3_DIALECT_DEFAULT = ['0x0300', '0x0302', '0x0311']
+    SMB3_DIALECT_DEFAULT = [
+      SMB2_DIALECT_0300,
+      SMB2_DIALECT_0302,
+      SMB2_DIALECT_0311
+    ].freeze
+
     # The default maximum size of a SMB message that the Client accepts (in bytes)
     MAX_BUFFER_SIZE = 64512
     # The default maximum size of a SMB message that the Server accepts (in bytes)

@@ -251,7 +251,7 @@ module RubySMB
           raise ArgumentError, 'Must be an array of strings' unless dialect.is_a? String
           packet.add_dialect(dialect.to_i(16))
         end
-        packet.capabilities.encryption = 1
+        packet.capabilities.encryption = @session_encrypt_data ? 1 : 0
 
         if packet.dialects.include?(0x0311)
           nc = RubySMB::SMB2::NegotiateContext.new(

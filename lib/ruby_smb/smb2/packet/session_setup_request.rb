@@ -18,6 +18,17 @@ module RubySMB
         uint64                     :previous_session_id,     label: 'Previous Session ID'
         string                     :buffer,                  label: 'Security Buffer', length: -> { security_buffer_length }
 
+        # Takes the specified security buffer string and inserts it into the {RubySMB::SMB2::Packet::SessionSetupRequest#buffer}
+        # as well as updating the {RubySMB::SMB2::Packet::SessionSetupRequest#security_buffer_length}
+        # This method DOES NOT wrap the security buffer in any way.
+        #
+        # @param type1_message [String] the security buffer
+        # @return [void]
+        def set_security_buffer(buffer)
+          self.security_buffer_length = buffer.length
+          self.buffer = buffer
+        end
+
         # Takes a serialized NTLM Type 1 message and wraps it in the GSS ASN1 encoding
         # and inserts it into the {RubySMB::SMB2::Packet::SessionSetupRequest#buffer}
         # as well as updating the {RubySMB::SMB2::Packet::SessionSetupRequest#security_buffer_length}
