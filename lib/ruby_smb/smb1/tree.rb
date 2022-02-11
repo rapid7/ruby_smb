@@ -59,8 +59,8 @@ module RubySMB
         # Make sure we don't modify the caller's hash options
         opts = opts.dup
         opts[:filename] = opts[:filename].dup
-        opts[:filename].prepend('\\') unless opts[:filename].start_with?('\\')
-        open_file(**opts)
+        opts[:filename].prepend('\\') unless opts[:filename].start_with?('\\'.encode(opts[:filename].encoding))
+        _open(**opts)
       end
 
       # Open a file on the remote share.
@@ -80,83 +80,12 @@ module RubySMB
       # @return [RubySMB::SMB1::File] handle to the created file
       # @raise [RubySMB::Error::InvalidPacket] if the response command is not SMB_COM_NT_CREATE_ANDX
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
-      def open_file(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
-                    impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
-        nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
-        nt_create_andx_request = set_header_fields(nt_create_andx_request)
-
-        nt_create_andx_request.parameter_block.ext_file_attributes.normal = 1
-
-        if flags
-          nt_create_andx_request.parameter_block.flags = flags
-        else
-          nt_create_andx_request.parameter_block.flags.request_extended_response = 1
-        end
-
-        if options
-          nt_create_andx_request.parameter_block.create_options = options
-        else
-          nt_create_andx_request.parameter_block.create_options.directory_file     = 0
-          nt_create_andx_request.parameter_block.create_options.non_directory_file = 1
-        end
-
-        if read
-          nt_create_andx_request.parameter_block.share_access.share_read     = 1
-          nt_create_andx_request.parameter_block.desired_access.read_data    = 1
-          nt_create_andx_request.parameter_block.desired_access.read_ea      = 1
-          nt_create_andx_request.parameter_block.desired_access.read_attr    = 1
-          nt_create_andx_request.parameter_block.desired_access.read_control = 1
-        end
-
-        if write
-          nt_create_andx_request.parameter_block.share_access.share_write   = 1
-          nt_create_andx_request.parameter_block.desired_access.write_data  = 1
-          nt_create_andx_request.parameter_block.desired_access.append_data = 1
-          nt_create_andx_request.parameter_block.desired_access.write_ea    = 1
-          nt_create_andx_request.parameter_block.desired_access.write_attr  = 1
-        end
-
-        if delete
-          nt_create_andx_request.parameter_block.share_access.share_delete    = 1
-          nt_create_andx_request.parameter_block.desired_access.delete_access = 1
-        end
-
-        nt_create_andx_request.parameter_block.impersonation_level = impersonation
-        nt_create_andx_request.parameter_block.create_disposition  = disposition
-
-        unicode_enabled = nt_create_andx_request.smb_header.flags2.unicode == 1
-        nt_create_andx_request.data_block.file_name = add_null_termination(str: filename, unicode: unicode_enabled)
-
-        raw_response = @client.send_recv(nt_create_andx_request)
-        response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
-        unless response.valid?
-          if response.is_a?(RubySMB::SMB1::Packet::EmptyPacket) &&
-               response.smb_header.protocol == RubySMB::SMB1::SMB_PROTOCOL_ID &&
-               response.smb_header.command == response.original_command
-            raise RubySMB::Error::InvalidPacket.new(
-              'The response seems to be an SMB1 NtCreateAndxResponse but an '\
-              'error occurs while parsing it. It is probably missing the '\
-              'required extended information.'
-            )
-          end
-          raise RubySMB::Error::InvalidPacket.new(
-            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
-            expected_cmd:   RubySMB::SMB1::Packet::NtCreateAndxResponse::COMMAND,
-            packet:         response
-          )
-        end
-        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
-          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
-        end
-
-        case response.parameter_block.resource_type
-        when RubySMB::SMB1::ResourceType::BYTE_MODE_PIPE, RubySMB::SMB1::ResourceType::MESSAGE_MODE_PIPE
-          RubySMB::SMB1::Pipe.new(name: filename, tree: self, response: response)
-        when RubySMB::SMB1::ResourceType::DISK
-          RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
-        else
-          raise RubySMB::Error::RubySMBError
-        end
+      def open_file(opts)
+        # Make sure we don't modify the caller's hash options
+        opts = opts.dup
+        opts[:filename] = opts[:filename].dup
+        opts[:filename] = opts[:filename][1..-1] if opts[:filename].start_with?('\\'.encode(opts[:filename].encoding))
+        _open(**opts)
       end
 
       # List `directory` on the remote share.
@@ -263,6 +192,85 @@ module RubySMB
       end
 
       private
+
+      def _open(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
+                impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
+        nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
+        nt_create_andx_request = set_header_fields(nt_create_andx_request)
+
+        nt_create_andx_request.parameter_block.ext_file_attributes.normal = 1
+
+        if flags
+          nt_create_andx_request.parameter_block.flags = flags
+        else
+          nt_create_andx_request.parameter_block.flags.request_extended_response = 1
+        end
+
+        if options
+          nt_create_andx_request.parameter_block.create_options = options
+        else
+          nt_create_andx_request.parameter_block.create_options.directory_file     = 0
+          nt_create_andx_request.parameter_block.create_options.non_directory_file = 1
+        end
+
+        if read
+          nt_create_andx_request.parameter_block.share_access.share_read     = 1
+          nt_create_andx_request.parameter_block.desired_access.read_data    = 1
+          nt_create_andx_request.parameter_block.desired_access.read_ea      = 1
+          nt_create_andx_request.parameter_block.desired_access.read_attr    = 1
+          nt_create_andx_request.parameter_block.desired_access.read_control = 1
+        end
+
+        if write
+          nt_create_andx_request.parameter_block.share_access.share_write   = 1
+          nt_create_andx_request.parameter_block.desired_access.write_data  = 1
+          nt_create_andx_request.parameter_block.desired_access.append_data = 1
+          nt_create_andx_request.parameter_block.desired_access.write_ea    = 1
+          nt_create_andx_request.parameter_block.desired_access.write_attr  = 1
+        end
+
+        if delete
+          nt_create_andx_request.parameter_block.share_access.share_delete    = 1
+          nt_create_andx_request.parameter_block.desired_access.delete_access = 1
+        end
+
+        nt_create_andx_request.parameter_block.impersonation_level = impersonation
+        nt_create_andx_request.parameter_block.create_disposition  = disposition
+
+        unicode_enabled = nt_create_andx_request.smb_header.flags2.unicode == 1
+        nt_create_andx_request.data_block.file_name = add_null_termination(str: filename, unicode: unicode_enabled)
+
+        raw_response = @client.send_recv(nt_create_andx_request)
+        response = RubySMB::SMB1::Packet::NtCreateAndxResponse.read(raw_response)
+        unless response.valid?
+          if response.is_a?(RubySMB::SMB1::Packet::EmptyPacket) &&
+               response.smb_header.protocol == RubySMB::SMB1::SMB_PROTOCOL_ID &&
+               response.smb_header.command == response.original_command
+            raise RubySMB::Error::InvalidPacket.new(
+              'The response seems to be an SMB1 NtCreateAndxResponse but an '\
+              'error occurs while parsing it. It is probably missing the '\
+              'required extended information.'
+            )
+          end
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::NtCreateAndxResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+
+        case response.parameter_block.resource_type
+        when RubySMB::SMB1::ResourceType::BYTE_MODE_PIPE, RubySMB::SMB1::ResourceType::MESSAGE_MODE_PIPE
+          RubySMB::SMB1::Pipe.new(name: filename, tree: self, response: response)
+        when RubySMB::SMB1::ResourceType::DISK
+          RubySMB::SMB1::File.new(name: filename, tree: self, response: response)
+        else
+          raise RubySMB::Error::RubySMBError
+        end
+      end
 
       # Sets ParameterBlock options for FIND_FIRST2 and
       # FIND_NEXT2 requests. In particular we need to do this

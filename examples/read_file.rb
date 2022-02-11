@@ -7,34 +7,75 @@
 # and read the file short.txt
 
 require 'bundler/setup'
+require 'optparse'
 require 'ruby_smb'
 
-address      = ARGV[0]
-username     = ARGV[1]
-password     = ARGV[2]
-share        = ARGV[3]
-file         = ARGV[4]
-smb_versions = ARGV[5]&.split(',') || ['1','2','3']
+args = ARGV.dup
+options = {
+  domain: '.',
+  username: '',
+  password: '',
+  share: nil,
+  smbv1: true,
+  smbv2: true,
+  smbv3: true,
+  target: nil
+}
+options[:file] = args.pop
+options[:share] = args.pop
+options[:target ] = args.pop
+optparser = OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [options] target share file"
+  opts.on("--[no-]smbv1", "Enable or disable SMBv1 (default: #{options[:smbv1] ? 'Enabled' : 'Disabled'})") do |smbv1|
+    options[:smbv1] = smbv1
+  end
+  opts.on("--[no-]smbv2", "Enable or disable SMBv2 (default: #{options[:smbv2] ? 'Enabled' : 'Disabled'})") do |smbv2|
+    options[:smbv2] = smbv2
+  end
+  opts.on("--[no-]smbv3", "Enable or disable SMBv3 (default: #{options[:smbv3] ? 'Enabled' : 'Disabled'})") do |smbv3|
+    options[:smbv3] = smbv3
+  end
+  opts.on("--username USERNAME", "The account's username (default: #{options[:username]})") do |username|
+    if username.include?('\\')
+      options[:domain], options[:username] = username.split('\\', 2)
+    else
+      options[:username] = username
+    end
+  end
+  opts.on("--password PASSWORD", "The account's password (default: #{options[:password]})") do |password|
+    options[:password] = password
+  end
+end
+optparser.parse!(args)
 
-path     = "\\\\#{address}\\#{share}"
+if options[:target].nil? || options[:share].nil? || options[:file].nil?
+  abort(optparser.help)
+end
 
-sock = TCPSocket.new address, 445
+path     = "\\\\#{options[:target]}\\#{options[:share]}"
+
+sock = TCPSocket.new options[:target], 445
 dispatcher = RubySMB::Dispatcher::Socket.new(sock)
 
-client = RubySMB::Client.new(dispatcher, smb1: smb_versions.include?('1'), smb2: smb_versions.include?('2'), smb3: smb_versions.include?('3'), username: username, password: password)
+client = RubySMB::Client.new(dispatcher, smb1: options[:smbv1], smb2: options[:smbv2], smb3: options[:smbv3], username: options[:username], password: options[:password], domain: options[:domain])
 protocol = client.negotiate
 status = client.authenticate
 
 puts "#{protocol} : #{status}"
+unless status == WindowsError::NTStatus::STATUS_SUCCESS
+  puts 'Authentication failed!'
+  exit(1)
+end
 
 begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
 rescue StandardError => e
   puts "Failed to connect to #{path}: #{e.message}"
+  exit(1)
 end
 
-file = tree.open_file(filename: file)
+file = tree.open_file(filename: options[:file])
 
 data = file.read
 puts data
