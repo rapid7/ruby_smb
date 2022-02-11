@@ -212,9 +212,17 @@ module RubySMB
 
         raw = smb2_ntlmssp_authenticate(type3_message, @session_id)
         response = smb2_ntlmssp_final_packet(raw)
+        @session_is_guest = response.session_flags.guest == 1
 
-        if @smb3 && !@session_encrypt_data && response.session_flags.encrypt_data == 1
-          @session_encrypt_data = true
+        if @smb3
+          if response.session_flags.encrypt_data == 1
+            # if the server indicates that encryption is required, enable it
+            @session_encrypt_data = true
+          elsif (@session_is_guest && password != '') || (username == '' && password == '')
+            # disable encryption when necessary
+            @session_encrypt_data = false
+          end
+          # otherwise, leave encryption to the default value that it was initialized to
         end
         ######
         # DEBUG
