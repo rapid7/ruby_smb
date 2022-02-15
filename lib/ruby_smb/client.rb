@@ -597,7 +597,7 @@ module RubySMB
       self.session_id       = 0x00
       self.user_id          = 0x00
       self.session_key      = ''
-      self.session_is_guest = false
+      @session_is_guest = false
       self.sequence_counter = 0
       self.smb2_message_id  = 0
       self.client_encryption_key = nil

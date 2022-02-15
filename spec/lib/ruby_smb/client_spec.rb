@@ -557,6 +557,16 @@ RSpec.describe RubySMB::Client do
     end
   end
 
+  describe '#wipe_state!' do
+    context 'with SMB1' do
+      it { expect { smb1_client.wipe_state! }.to_not raise_error }
+    end
+
+    context 'with SMB2' do
+      it { expect { smb2_client.wipe_state! }.to_not raise_error }
+    end
+  end
+
   describe '#logoff!' do
     context 'with SMB1' do
       let(:raw_response) { double('Raw response') }
