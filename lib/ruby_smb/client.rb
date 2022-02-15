@@ -129,6 +129,11 @@ module RubySMB
     #   @return [Integer]
     attr_accessor :session_id
 
+    # Whether or not the current session has the guest flag set
+    # @!attribute [rw] session_is_guest
+    #   @return [Boolean]
+    attr_accessor :session_is_guest
+
     # Whether or not the Server requires signing
     # @!attribute [rw] signing_enabled
     #   @return [Boolean]
