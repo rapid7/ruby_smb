@@ -118,6 +118,11 @@ RSpec.describe RubySMB::SMB1::Tree do
         end
         tree.open_file(filename: unicode_filename.chop)
       end
+
+      it 'removes the leading \\ from the filename if needed' do
+        expect(tree).to receive(:_open).with(filename: filename)
+        tree.open_file(filename: '\\' + filename)
+      end
     end
 
     describe 'flags' do
