@@ -348,6 +348,11 @@ RSpec.describe RubySMB::SMB2::Tree do
         end
         tree.open_file(filename: filename)
       end
+
+       it 'removes the leading \\ from the filename if needed' do
+        expect(tree).to receive(:_open).with(filename: filename)
+        tree.open_file(filename: "\\".encode('UTF-16LE') + filename)
+      end
     end
 
     describe 'attributes' do
@@ -544,7 +549,7 @@ RSpec.describe RubySMB::SMB2::Tree do
       tree.open_pipe(**opts)
     end
 
-    it 'remove the leading \\ from the filename if needed' do
+    it 'removes the leading \\ from the filename if needed' do
       expect(tree).to receive(:_open).with(filename: 'test', write: true)
       tree.open_pipe(**opts)
     end
