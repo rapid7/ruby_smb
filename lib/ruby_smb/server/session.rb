@@ -13,6 +13,7 @@ module RubySMB
         @user_id = user_id
         @state = state
         @signing_required = false
+        @metadata = {}
         # tree id => provider processor instance
         @tree_connect_table = {}
         @creation_time = Time.now
@@ -61,6 +62,11 @@ module RubySMB
       # @!attribute [rw] tree_connect_table
       #   @return [Hash]
       attr_accessor :tree_connect_table
+
+      # Untyped hash for storing additional arbitrary metadata about the current session
+      # @!attribute [rw] metadaa
+      #   @return [Hash]
+      attr_accessor :metadata
 
       # The time at which this session was created.
       # @!attribute [r] creation_time
