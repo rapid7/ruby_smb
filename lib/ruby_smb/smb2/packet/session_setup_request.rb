@@ -22,7 +22,7 @@ module RubySMB
         # as well as updating the {RubySMB::SMB2::Packet::SessionSetupRequest#security_buffer_length}
         # This method DOES NOT wrap the security buffer in any way.
         #
-        # @param type1_message [String] the security buffer
+        # @param buffer [String] the security buffer
         # @return [void]
         def set_security_buffer(buffer)
           self.security_buffer_length = buffer.length
