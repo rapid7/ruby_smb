@@ -3,6 +3,25 @@ module RubySMB
     class ServerClient
       MAX_TREE_CONNECTIONS = 1000
       module TreeConnect
+        def do_tree_connect_smb1(request, session)
+          response = RubySMB::SMB1::Packet::TreeConnectResponse.new
+
+          share_name = request.data_block.path.encode('UTF-8').split('\\', 4).last
+          share_provider = @server.shares[share_name]
+          if share_provider.nil?
+            logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")
+            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME
+          end
+          logger.debug("Received TREE_CONNECT request for share: #{share_name}")
+
+          tree_id = request.smb_header.tid.snapshot
+          # todo: handle when the tree_id is already in the tree_connect_table
+          session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)
+          response.parameter_block.access_rights = share_processor.maximal_access
+
+          response
+        end
+
         def do_tree_connect_smb2(request, session)
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1

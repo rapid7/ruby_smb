@@ -260,12 +260,21 @@ module RubySMB
       # @param [RubySMB::SMB1::SMBHeader] header The request header.
       # @return [RubySMB::GenericPacket]
       def handle_smb1(raw_request, header)
-        # session = @session_table[header.uid]
-        session = nil
+        session = @session_table[header.uid]
+
+        # todo: handle when session is nil and the request is not to setup a new session
 
         case header.command
+        when SMB1::Commands::SMB_COM_CLOSE
+          dispatcher, request_class = :do_close_smb1, SMB1::Packet::CloseRequest
+        when SMB1::Commands::SMB_COM_NT_CREATE_ANDX
+          dispatcher, request_class = :do_create_smb1, SMB1::Packet::NtCreateAndxRequest
+        when SMB1::Commands::SMB_COM_READ_ANDX
+          dispatcher, request_class = :do_read_smb1, SMB1::Packet::ReadAndxRequest
         when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
           dispatcher, request_class = :do_session_setup_smb1, SMB1::Packet::SessionSetupRequest
+        when SMB1::Commands::SMB_COM_TREE_CONNECT
+          dispatcher, request_class = :do_tree_connect_smb1, SMB1::Packet::TreeConnectRequest
         else
           logger.warn("The SMB1 #{SMB1::Commands.name(header.command)} command is not supported")
           raise NotImplementedError

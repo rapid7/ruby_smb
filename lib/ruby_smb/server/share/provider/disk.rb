@@ -22,6 +22,15 @@ module RubySMB
               )
             end
 
+            def do_close_smb1(request)
+              if (handle = @handles.delete(request.parameter_block.fid)).nil?
+                raise NotImplementedError
+              end
+
+              response = RubySMB::SMB1::Packet::CloseResponse.new
+              response
+            end
+
             def do_close_smb2(request)
               local_path = get_local_path(request.file_id)
               if local_path.nil?
@@ -34,6 +43,41 @@ module RubySMB
               response = RubySMB::SMB2::Packet::CloseResponse.new
               set_common_info(response, local_path)
               response.flags = 1
+              response
+            end
+
+            def do_create_smb1(request)
+              if request.smb_header.flags2.unicode == 1
+                raise NotImplementedError
+              else
+                path = request.data_block.file_name.snapshot[...-1]
+              end
+              path = path.encode.gsub('\\', File::SEPARATOR)
+              local_path = get_local_path(path)
+              unless local_path && (local_path.file? || local_path.directory?)
+                logger.warn("Requested path does not exist: #{local_path}")
+                raise NotImplementedError
+              end
+
+              response = SMB1::Packet::NtCreateAndxResponse.new
+              block = response.parameter_block
+              block.fid = rand(0xffff)
+              # fields are slightly different so #set_common_info can't be used :(
+              begin
+                block.create_time = local_path.birthtime
+              rescue NotImplementedError
+                logger.warn("The file system does not support #birthtime for #{path}")
+              end
+
+              block.last_access_time = local_path.atime
+              block.last_write_time = local_path.mtime
+              block.last_change_time = local_path.ctime
+              if local_path.file?
+                block.end_of_file = local_path.size
+                block.allocation_size = get_allocation_size(local_path)
+              end
+
+              @handles[response.parameter_block.fid] = Handle.new(path, local_path, false)
               response
             end
 
@@ -54,7 +98,6 @@ module RubySMB
               end
 
               path = request.name.snapshot
-              path = path.encode.gsub('\\', File::SEPARATOR)
               local_path = get_local_path(path)
               unless local_path && (local_path.file? || local_path.directory?)
                 logger.warn("Requested path does not exist: #{local_path}")
@@ -244,6 +287,31 @@ module RubySMB
               response
             end
 
+            def do_read_smb1(request)
+              local_path = get_local_path(request.parameter_block.fid)
+
+              if local_path.nil?
+                raise NotImplementedError
+              end
+
+              buffer = nil
+              local_path.open do |file|
+                file.seek(request.parameter_block.offset.snapshot)
+                buffer = file.read(request.parameter_block.remaining.snapshot)
+              end
+
+              # minimum bytes is ignored when reading from a file
+              # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/7e6c7cc2-c3f1-4335-8263-d7412f77140e
+              if buffer.nil? || buffer.length == 0
+                raise NotImplementedError
+              end
+
+              response = SMB1::Packet::ReadAndxResponse.new
+              response.parameter_block.data_length = buffer.length
+              response.data_block.data = buffer
+              response
+            end
+
             def do_read_smb2(request)
               local_path = get_local_path(request.file_id)
               if local_path.nil?
@@ -310,9 +378,14 @@ module RubySMB
 
             def get_local_path(path)
               case path
+              # SMB1 uses uint16_t file IDs
+              when ::BinData::Uint16le
+                local_path = @handles[path]&.local_path
+              # SMB2 uses a compound field for file IDs, so convert it to the binary rep and use that as the key
               when Field::Smb2Fileid
                 local_path = @handles[path.to_binary_s]&.local_path
               when ::String
+                path = path.encode.gsub('\\', File::SEPARATOR)
                 local_path = (provider.path + path.encode).cleanpath
                 # TODO: report / handle directory traversal issues more robustly
                 raise RuntimeError unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
