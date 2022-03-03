@@ -95,7 +95,7 @@ RSpec.describe RubySMB::SMB1::Tree do
     describe 'filename' do
       it 'takes the filename as an argument' do
         allow(client).to receive(:send_recv) do |packet|
-          expect(packet.data_block.file_name).to eq(filename)
+          expect(packet.data_block.file_name.to_binary_s).to eq(filename)
           nt_create_andx_response.to_binary_s
         end
         tree.open_file(filename: filename)
@@ -103,7 +103,7 @@ RSpec.describe RubySMB::SMB1::Tree do
 
       it 'adds the null termination to the filename if missing' do
         allow(client).to receive(:send_recv) do |packet|
-          expect(packet.data_block.file_name).to eq(filename)
+          expect(packet.data_block.file_name.to_binary_s).to eq(filename)
           nt_create_andx_response.to_binary_s
         end
         tree.open_file(filename: filename.chop)
@@ -113,7 +113,7 @@ RSpec.describe RubySMB::SMB1::Tree do
         unicode_filename = filename.encode('UTF-16LE')
         nt_create_andx_req.smb_header.flags2.unicode = 1
         allow(client).to receive(:send_recv) do |packet|
-          expect(packet.data_block.file_name).to eq(unicode_filename.b)
+          expect(packet.data_block.file_name.to_binary_s).to eq(unicode_filename.b)
           nt_create_andx_response.to_binary_s
         end
         tree.open_file(filename: unicode_filename.chop)

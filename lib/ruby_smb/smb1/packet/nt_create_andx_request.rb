@@ -47,7 +47,17 @@ module RubySMB
 
         # Represents the specific layout of the DataBlock for a {NtCreateAndxRequest} Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          string :file_name, label: 'File Name'
+          uint8  :pad,  label: 'Pad',  onlyif: :has_padding?
+          choice :file_name, selection: -> { parent.smb_header.flags2.unicode } do
+            stringz   0
+            stringz16 1
+          end
+
+          # This method checks if the optional pad field is present.
+          def has_padding?
+            parent.smb_header.flags2.unicode == 1 && pad.abs_offset % 2 == 1
+          end
+          private :has_padding?
         end
 
         smb_header        :smb_header
