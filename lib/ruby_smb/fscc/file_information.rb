@@ -17,6 +17,9 @@ module RubySMB
       # contents of a directory.
       FILE_BOTH_DIRECTORY_INFORMATION    = 0x03
 
+      # Information class used to query or set file information.
+      FILE_BASIC_INFORMATION             = 0x04
+
       # Information class used to query for the size of the extended attributes
       # (EA) for a file.
       FILE_EA_INFORMATION                = 0x07
@@ -57,6 +60,10 @@ module RubySMB
       FILE_NORMALIZED_NAME_INFORMATION = 0x30
 
 
+      # Information class is used to query a collection of file information
+      # structures.
+      FILE_ALL_INFORMATION = 0x12
+
       # These Information Classes can be used by SMB1 using the pass-through
       # Information Levels when available on the server (CAP_INFOLEVEL_PASSTHRU
       # capability flag in an SMB_COM_NEGOTIATE server response). The constant
@@ -88,6 +95,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_network_open_information'
       require 'ruby_smb/fscc/file_information/file_ea_information'
       require 'ruby_smb/fscc/file_information/file_stream_information'
+      require 'ruby_smb/fscc/file_information/file_basic_information'
     end
   end
 end
