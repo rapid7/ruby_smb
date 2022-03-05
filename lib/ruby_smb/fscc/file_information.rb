@@ -20,6 +20,9 @@ module RubySMB
       # Information class used to query or set file information.
       FILE_BASIC_INFORMATION             = 0x04
 
+      # Information class is used to query file information.
+      FILE_STANDARD_INFORMATION          = 0x05
+
       # Information class used to query for the size of the extended attributes
       # (EA) for a file.
       FILE_EA_INFORMATION                = 0x07
@@ -96,6 +99,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_ea_information'
       require 'ruby_smb/fscc/file_information/file_stream_information'
       require 'ruby_smb/fscc/file_information/file_basic_information'
+      require 'ruby_smb/fscc/file_information/file_standard_information'
     end
   end
 end
