@@ -8,13 +8,8 @@ module RubySMB
         class Disk < Base
           class Processor < Provider::Processor::Base
             module Create
-              def do_create_smb1(request)
-                if request.smb_header.flags2.unicode == 1
-                  raise NotImplementedError
-                else
-                  path = request.data_block.file_name.snapshot[...-1]
-                end
-                path = path.encode.gsub('\\', File::SEPARATOR)
+              def do_nt_create_andx_smb1(request)
+                path = request.data_block.file_name.snapshot[...-1]
                 local_path = get_local_path(path)
                 unless local_path && (local_path.file? || local_path.directory?)
                   logger.warn("Requested path does not exist: #{local_path}")

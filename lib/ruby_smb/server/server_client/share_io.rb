@@ -12,9 +12,9 @@ module RubySMB
           share_processor.send(__callee__, request)
         end
 
-        alias :do_close_smb1  :proxy_share_io_smb1
-        alias :do_create_smb1 :proxy_share_io_smb1
-        alias :do_read_smb1   :proxy_share_io_smb1
+        alias :do_close_smb1          :proxy_share_io_smb1
+        alias :do_nt_create_andx_smb1 :proxy_share_io_smb1
+        alias :do_read_andx_smb1      :proxy_share_io_smb1
 
         def proxy_share_io_smb2(request, session)
           # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/9a639360-87be-4d49-a1dd-4c6be0c020bd

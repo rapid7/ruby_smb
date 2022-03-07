@@ -7,7 +7,7 @@ module RubySMB
         class Disk < Base
           class Processor < Provider::Processor::Base
             module Read
-              def do_read_smb1(request)
+              def do_read_andx_smb1(request)
                 local_path = get_local_path(request.parameter_block.fid)
 
                 if local_path.nil?

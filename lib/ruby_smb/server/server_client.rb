@@ -268,11 +268,11 @@ module RubySMB
         when SMB1::Commands::SMB_COM_CLOSE
           dispatcher, request_class = :do_close_smb1, SMB1::Packet::CloseRequest
         when SMB1::Commands::SMB_COM_NT_CREATE_ANDX
-          dispatcher, request_class = :do_create_smb1, SMB1::Packet::NtCreateAndxRequest
+          dispatcher, request_class = :do_nt_create_andx_smb1, SMB1::Packet::NtCreateAndxRequest
         when SMB1::Commands::SMB_COM_READ_ANDX
-          dispatcher, request_class = :do_read_smb1, SMB1::Packet::ReadAndxRequest
+          dispatcher, request_class = :do_read_andx_smb1, SMB1::Packet::ReadAndxRequest
         when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
-          dispatcher, request_class = :do_session_setup_smb1, SMB1::Packet::SessionSetupRequest
+          dispatcher, request_class = :do_session_setup_andx_smb1, SMB1::Packet::SessionSetupRequest
         when SMB1::Commands::SMB_COM_TREE_CONNECT
           dispatcher, request_class = :do_tree_connect_smb1, SMB1::Packet::TreeConnectRequest
         else

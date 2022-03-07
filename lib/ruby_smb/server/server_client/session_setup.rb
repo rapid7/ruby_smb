@@ -2,7 +2,7 @@ module RubySMB
   class Server
     class ServerClient
       module SessionSetup
-        def do_session_setup_smb1(request, session)
+        def do_session_setup_andx_smb1(request, session)
           session_id = request.smb_header.uid
           if session_id == 0
             session_id = rand(1..0x10000)
@@ -40,6 +40,8 @@ module RubySMB
 
           response
         end
+
+        alias :do_session_setup_smb1 :do_session_setup_andx_smb1
 
         def do_session_setup_smb2(request, session)
           session_id = request.smb2_header.session_id
