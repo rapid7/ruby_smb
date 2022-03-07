@@ -42,7 +42,7 @@ module RubySMB
             end
           end
 
-          # The Trans2 Data Blcok for this particular Subcommand
+          # The Trans2 Data Block for this particular Subcommand
           class Trans2Data < BinData::Record
             smb_gea_list :extended_attribute_list, label: 'Get Extended Attribute List',
               onlyif: -> { parent.trans2_parameters.information_level == FindInformationLevel::SMB_INFO_QUERY_EAS_FROM_LIST}

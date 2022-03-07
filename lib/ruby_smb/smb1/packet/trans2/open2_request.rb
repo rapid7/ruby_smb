@@ -32,7 +32,7 @@ module RubySMB
             end
           end
 
-          # The Trans2 Data Blcok for this particular Subcommand
+          # The Trans2 Data Block for this particular Subcommand
           class Trans2Data < BinData::Record
             smb_fea_list :extended_attribute_list, label: 'Extended Attribute List'
           end

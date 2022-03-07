@@ -27,7 +27,7 @@ module RubySMB
             end
           end
 
-          # The Trans2 Data Blcok for this particular Subcommand
+          # The Trans2 Data Block for this particular Subcommand
           class Trans2Data < BinData::Record
             rest :buffer, label: 'Results Buffer'
 
