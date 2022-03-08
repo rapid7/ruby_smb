@@ -7,6 +7,16 @@ module RubySMB
         class Disk < Base
           class Processor < Provider::Processor::Base
             module Query
+              def do_transactions2_smb1(request)
+                local_path = get_local_path(request.data_block.trans2_parameters.fid)
+
+                if local_path.nil?
+                  raise NotImplementedError
+                end
+
+                response = RubySMB::SMB1::Packet::Trans2::Response.new
+              end
+
               def do_query_directory_smb2(request)
                 local_path = get_local_path(request.file_id)
                 if local_path.nil?

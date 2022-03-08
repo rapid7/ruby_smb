@@ -25,7 +25,7 @@ module RubySMB
             uint8         :setup_count,           label: 'Setup Count',            initial_value: -> { setup.length }
             uint8         :reserved3,             label: 'Reserved Space',         initial_value: 0x00
 
-            array :setup, type: :uint16, initial_length: 0
+            array :setup, type: :uint16, initial_length: :setup_count
           end
 
           # The {RubySMB::SMB1::DataBlock} specific to this packet type.

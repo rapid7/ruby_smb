@@ -273,6 +273,8 @@ module RubySMB
           dispatcher, request_class = :do_read_andx_smb1, SMB1::Packet::ReadAndxRequest
         when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
           dispatcher, request_class = :do_session_setup_andx_smb1, SMB1::Packet::SessionSetupRequest
+        when SMB1::Commands::SMB_COM_TRANSACTION2
+          dispatcher, request_class = :do_transactions2_smb1, SMB1::Packet::Trans2::Request
         when SMB1::Commands::SMB_COM_TREE_CONNECT
           dispatcher, request_class = :do_tree_connect_smb1, SMB1::Packet::TreeConnectRequest
         else
