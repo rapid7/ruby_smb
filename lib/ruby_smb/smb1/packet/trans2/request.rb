@@ -30,17 +30,29 @@ module RubySMB
 
           # The {RubySMB::SMB1::DataBlock} specific to this packet type.
           class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            uint8  :name,               label: 'Name', initial_value: 0x00
-            string :pad1,               length: -> { pad1_length }
-            string :trans2_parameters,  label: 'Trans2 Parameters'
-            string :pad2,               length: -> { pad2_length }
-            string :trans2_data,        label: 'Trans2 Data'
+            uint8  :name,              label: 'Name', initial_value: 0x00
+            string :pad1,              length: -> { pad1_length }
+            string :trans2_parameters, label: 'Trans2 Parameters'
+            string :pad2,              length: -> { pad2_length }
+            string :trans2_data,       label: 'Trans2 Data'
           end
+
+          require 'ruby_smb/smb1/packet/trans2/find_first2_request'
+          require 'ruby_smb/smb1/packet/trans2/find_next2_request'
+          require 'ruby_smb/smb1/packet/trans2/open2_request'
+          require 'ruby_smb/smb1/packet/trans2/query_file_information_request'
+          require 'ruby_smb/smb1/packet/trans2/set_file_information_request'
 
           smb_header        :smb_header
           parameter_block   :parameter_block
-          data_block        :data_block
-
+          choice            :data_block, selection: -> { parameter_block.setup.first || :default } do
+            open2_request_data_block                  Subcommands::OPEN2
+            find_first2_request_data_block            Subcommands::FIND_FIRST2
+            find_next2_request_data_block             Subcommands::FIND_NEXT2
+            query_file_information_request_data_block Subcommands::QUERY_FILE_INFORMATION
+            set_file_information_request_data_block   Subcommands::SET_FILE_INFORMATION
+            data_block                                :default
+          end
         end
       end
     end

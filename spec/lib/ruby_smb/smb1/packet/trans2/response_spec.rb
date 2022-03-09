@@ -67,7 +67,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
     subject(:data_block) { packet.data_block }
 
     it 'is a Trans2 DataBlock' do
-      expect(data_block).to be_a RubySMB::SMB1::Packet::Trans2::DataBlock
+      expect(data_block).to be_a BinData::Choice
     end
 
     it { is_expected.to respond_to :trans2_parameters }

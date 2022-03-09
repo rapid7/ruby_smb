@@ -9,7 +9,7 @@ module RubySMB
 
           # The {RubySMB::SMB1::ParameterBlock} specific to this packet type.
           class ParameterBlock < RubySMB::SMB1::ParameterBlock
-            uint16 :total_parameter_count, label: 'Total Parameter Count(bytes)'
+            uint16  :total_parameter_count,   label: 'Total Parameter Count(bytes)'
             uint16  :total_data_count,        label: 'Total Data Count(bytes)'
             uint16  :parameter_count,         label: 'Parameter Count(bytes)',         initial_value: -> { parent.data_block.trans2_parameters.length }
             uint16  :parameter_offset,        label: 'Parameter Offset',               initial_value: -> { parent.data_block.trans2_parameters.abs_offset }
@@ -24,9 +24,9 @@ module RubySMB
           class DataBlock < RubySMB::SMB1::Packet::Trans2::Request::DataBlock
           end
 
-          smb_header        :smb_header
-          parameter_block   :parameter_block
-          data_block        :data_block
+          smb_header       :smb_header
+          parameter_block  :parameter_block
+          data_block       :data_block
 
         end
       end
