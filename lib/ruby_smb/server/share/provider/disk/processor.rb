@@ -32,7 +32,7 @@ module RubySMB
 
             private
 
-            def build_file_attributes(path)
+            def build_fscc_file_attributes(path)
               file_attributes = Fscc::FileAttributes.new
               if path.file?
                 file_attributes.normal = 1
@@ -42,7 +42,7 @@ module RubySMB
               file_attributes
             end
 
-            def build_info(path, info_class, rename: nil)
+            def build_fscc_file_information(path, info_class, rename: nil)
               case info_class
               when Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
                 info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
@@ -85,62 +85,6 @@ module RubySMB
               local_path
             end
 
-            def query_info_smb2_file(request, local_path)
-              raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILE
-
-              case request.file_information_class
-              when Fscc::FileInformation::FILE_EA_INFORMATION
-                info = Fscc::FileInformation::FileEaInformation.new
-              when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
-                info = Fscc::FileInformation::FileNetworkOpenInformation.new
-                set_common_info(info, local_path)
-              when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
-                info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
-              when Fscc::FileInformation::FILE_STREAM_INFORMATION
-                raise NotImplementedError unless local_path.file?
-
-                info = Fscc::FileInformation::FileStreamInformation.new(
-                  stream_size: local_path.size,
-                  stream_allocation_size: get_allocation_size(local_path),
-                  stream_name: '::$DATA'
-                )
-              else
-                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
-                raise NotImplementedError
-              end
-
-              info
-            end
-
-            def query_info_smb2_filesystem(request, local_path)
-              raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILESYSTEM
-
-              case request.file_information_class
-              when Fscc::FileSystemInformation::FILE_FS_ATTRIBUTE_INFORMATION
-                # emulate NTFS just like Samba does
-                info = Fscc::FileSystemInformation::FileFsAttributeInformation.new(
-                  file_system_attributes: {
-                    file_case_sensitive_search: 1,
-                    file_case_preserved_names: 1,
-                    file_unicode_on_disk: 1,
-                    file_supports_object_ids: 1,
-                  },
-                  maximum_component_name_length: 255,
-                  file_system_name: 'NTFS'
-                )
-              when Fscc::FileSystemInformation::FILE_FS_VOLUME_INFORMATION
-                info = Fscc::FileSystemInformation::FileFsVolumeInformation.new(
-                  volume_serial_number: provider.path.stat.ino,
-                  volume_label: provider.name
-                )
-              else
-                logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
-                raise NotImplementedError
-              end
-
-              info
-            end
-
             # A bunch of structures have these common fields with the same meaning, so set them all here
             def set_common_info(info, path)
               set_common_timestamps(info, path)
@@ -148,7 +92,7 @@ module RubySMB
                 info.end_of_file = path.size
                 info.allocation_size = get_allocation_size(path)
               end
-              info.file_attributes = build_file_attributes(path)
+              info.file_attributes = build_fscc_file_attributes(path)
             end
 
             def set_common_timestamps(info, path)
