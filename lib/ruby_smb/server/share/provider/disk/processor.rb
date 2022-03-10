@@ -143,6 +143,15 @@ module RubySMB
 
             # A bunch of structures have these common fields with the same meaning, so set them all here
             def set_common_info(info, path)
+              set_common_timestamps(info, path)
+              if path.file?
+                info.end_of_file = path.size
+                info.allocation_size = get_allocation_size(path)
+              end
+              info.file_attributes = build_file_attributes(path)
+            end
+
+            def set_common_timestamps(info, path)
               begin
                 info.create_time = path.birthtime
               rescue NotImplementedError
@@ -152,11 +161,6 @@ module RubySMB
               info.last_access = path.atime
               info.last_write = path.mtime
               info.last_change = path.ctime
-              if path.file?
-                info.end_of_file = path.size
-                info.allocation_size = get_allocation_size(path)
-              end
-              info.file_attributes = build_file_attributes(path)
             end
 
             # Turn a wildcard expression into a regex. Not all wildcard

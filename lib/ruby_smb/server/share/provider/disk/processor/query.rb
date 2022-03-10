@@ -8,13 +8,42 @@ module RubySMB
           class Processor < Provider::Processor::Base
             module Query
               def do_transactions2_smb1(request)
-                local_path = get_local_path(request.data_block.trans2_parameters.fid)
+                # can't find an example where more than one setup is set, this code makes alot of assumptions there are exactly 0 or 1 entries
+                raise NotImplementedError if request.parameter_block.setup.length > 1
 
-                if local_path.nil?
+                case request.data_block.trans2_parameters
+                when SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
+                  local_path = get_local_path(request.data_block.trans2_parameters.fid)
+
+                  if local_path.nil?
+                    raise NotImplementedError
+                  end
+
+                  response = RubySMB::SMB1::Packet::Trans2::QueryFileInformationResponse.new
+                  case request.data_block.trans2_parameters.information_level
+                  when SMB1::Packet::QueryInfo::SMB_QUERY_FILE_BASIC_INFO
+                    resp_info = SMB1::Packet::QueryInfo::SmbQueryFileBasicInfo.new
+                    set_common_timestamps(resp_info, local_path)
+                    resp_info.ext_file_attributes.directory = local_path.directory? ? 1 : 0
+                    resp_info.ext_file_attributes.read_only = !local_path.writable? ? 1 : 0
+                    resp_info.ext_file_attributes.normal = (local_path.file? && local_path.writeable?) ? 1 : 0
+                  when SMB1::Packet::QueryInfo::SMB_QUERY_FILE_STANDARD_INFO
+                    resp_info = SMB1::Packet::QueryInfo::SmbQueryFileStandardInfo.new
+                    resp_info.end_of_file = local_path.size
+                    resp_info.allocation_size = get_allocation_size(local_path)
+                    resp_info.directory = local_path.directory? ? 1 : 0
+                  else
+                    raise NotImplementedError
+                  end
+
+                  response.parameter_block.total_parameter_count = response.parameter_block.parameter_count = request.parameter_block.setup.length * 2 # x2 because it's the byte count
+                  response.parameter_block.total_data_count = response.parameter_block.data_count = resp_info.num_bytes
+                  response.data_block.trans2_data = resp_info.to_binary_s
+                else
                   raise NotImplementedError
                 end
 
-                response = RubySMB::SMB1::Packet::Trans2::Response.new
+                response
               end
 
               def do_query_directory_smb2(request)
