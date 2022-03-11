@@ -262,11 +262,24 @@ module RubySMB
       def handle_smb1(raw_request, header)
         session = @session_table[header.uid]
 
-        # todo: handle when session is nil and the request is not to setup a new session
+        if session.nil? && !(header.command == SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX && header.uid == 0)
+          response = SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+        if session&.state == :expired
+          response = SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED
+          return response
+        end
 
         case header.command
         when SMB1::Commands::SMB_COM_CLOSE
           dispatcher, request_class = :do_close_smb1, SMB1::Packet::CloseRequest
+        when SMB1::Commands::SMB_COM_TREE_DISCONNECT
+          dispatcher, request_class = :do_tree_disconnect_smb1, SMB1::Packet::TreeDisconnectRequest
+        when SMB1::Commands::SMB_COM_LOGOFF_ANDX
+          dispatcher, request_class = :do_logoff_andx_smb1, SMB1::Packet::LogoffRequest
         when SMB1::Commands::SMB_COM_NT_CREATE_ANDX
           dispatcher, request_class = :do_nt_create_andx_smb1, SMB1::Packet::NtCreateAndxRequest
         when SMB1::Commands::SMB_COM_READ_ANDX
@@ -313,6 +326,11 @@ module RubySMB
         if session.nil? && !(header.command == SMB2::Commands::SESSION_SETUP && header.session_id == 0)
           response = SMB2::Packet::ErrorPacket.new
           response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+        if session&.state == :expired
+          response = SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED
           return response
         end
 

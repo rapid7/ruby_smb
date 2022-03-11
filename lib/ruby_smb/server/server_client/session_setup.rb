@@ -43,6 +43,15 @@ module RubySMB
 
         alias :do_session_setup_smb1 :do_session_setup_andx_smb1
 
+        def do_logoff_andx_smb1(request, session)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/00fc0299-496c-4330-9089-67358994f272
+          @session_table.delete(request.smb_header.uid)
+          session.logoff!
+
+          response = SMB1::Packet::LogoffResponse.new
+          response
+        end
+
         def do_session_setup_smb2(request, session)
           session_id = request.smb2_header.session_id
           if session_id == 0
@@ -82,7 +91,8 @@ module RubySMB
         end
 
         def do_logoff_smb2(request, session)
-          session = @session_table.delete(session.id)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/a6fbc502-75a5-42ef-a88c-c67b44817850
+          @session_table.delete(session.id)
           session.logoff!
 
           response = SMB2::Packet::LogoffResponse.new

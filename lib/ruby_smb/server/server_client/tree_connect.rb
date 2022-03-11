@@ -22,6 +22,20 @@ module RubySMB
           response
         end
 
+        def do_tree_disconnect_smb1(request, session)
+          share_processor = session.tree_connect_table.delete(request.smb_header.tid)
+          if share_processor.nil?
+            response = RubySMB::SMB1::Packet::EmptyPacket.new
+            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_NAME_DELETED
+            return response
+          end
+
+          logger.debug("Received TREE_DISCONNECT request for share: #{share_processor.provider.name}")
+          share_processor.disconnect!
+          response = RubySMB::SMB1::Packet::TreeDisconnectResponse.new
+          response
+        end
+
         def do_tree_connect_smb2(request, session)
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1
