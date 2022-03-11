@@ -8,27 +8,27 @@ module RubySMB
           class Processor < Provider::Processor::Base
             module Read
               def do_read_andx_smb1(request)
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/bb8fcb6a-3032-46a1-ad4a-c0d7892921f9
                 local_path = get_local_path(request.parameter_block.fid)
 
                 if local_path.nil?
-                  raise NotImplementedError
+                  response = SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
                 end
 
                 buffer = nil
                 local_path.open do |file|
                   file.seek(request.parameter_block.offset.snapshot)
-                  buffer = file.read(request.parameter_block.remaining.snapshot)
-                end
-
-                # minimum bytes is ignored when reading from a file
-                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/7e6c7cc2-c3f1-4335-8263-d7412f77140e
-                if buffer.nil? || buffer.length == 0
-                  raise NotImplementedError
+                  buffer = file.read(request.parameter_block.max_count_of_bytes_to_return.snapshot)
                 end
 
                 response = SMB1::Packet::ReadAndxResponse.new
-                response.parameter_block.data_length = buffer.length
-                response.data_block.data = buffer
+                response.parameter_block.available = 0xffff  # this field is only used for named pipes, must be -1 for all others
+                unless buffer.nil?
+                  response.parameter_block.data_length = buffer.length
+                  response.parameter_block.data_offset = response.data_block.data.abs_offset
+                  response.data_block.data = buffer
+                end
                 response
               end
 
