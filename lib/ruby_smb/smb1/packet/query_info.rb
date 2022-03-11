@@ -6,6 +6,7 @@ module RubySMB
       module QueryInfo
         # Constants defined in
         # [2.2.2.3.3 QUERY Information Level Codes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/794afe2e-7c11-4a8c-b909-0a397966f6a9)
+        # [dialect] description
 
         # [LANMAN2.0] Query creation, access, and last write timestamps, size and file attributes.
         SMB_INFO_STANDARD               = 0x0001 # 1
