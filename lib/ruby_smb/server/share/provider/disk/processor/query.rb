@@ -12,10 +12,17 @@ module RubySMB
                 raise NotImplementedError if request.parameter_block.setup.length > 1
 
                 case request.data_block.trans2_parameters
+                when SMB1::Packet::Trans2::FindFirst2RequestTrans2Parameters
+                  response = transaction2_smb1_find_first2(request)
                 when SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
                   response = transaction2_smb1_query_file_information(request)
                 else
                   raise NotImplementedError
+                end
+
+                if response and response.parameter_block.is_a?(RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock)
+                  response.parameter_block.total_parameter_count = response.parameter_block.parameter_count = response.data_block.trans2_parameters.num_bytes
+                  response.parameter_block.total_data_count = response.parameter_block.data_count = response.data_block.trans2_data.num_bytes
                 end
 
                 response
@@ -136,32 +143,100 @@ module RubySMB
 
               private
 
+              def transaction2_smb1_find_first2(request)
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/f93455dc-2bd7-4698-b91e-8c9c7abd63cf
+                raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::FindFirst2RequestTrans2Parameters
+
+                subdir, _, search_pattern = request.data_block.trans2_parameters.filename.encode.gsub('\\', File::SEPARATOR).rpartition(File::SEPARATOR)
+                local_path = get_local_path(subdir)
+                if local_path.nil?
+                  # todo: handle this when the directory wasn't found
+                  raise NotImplementedError
+                end
+
+                begin
+                  search_regex = wildcard_to_regex(search_pattern)
+                rescue NotImplementedError
+                  logger.warn("Can not handle TRANSACTION2 FIND_FIRST2 wildcard pattern: #{search_pattern}")
+                  raise
+                end
+
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/29dfcc9b-3aec-406b-abb5-0b4fe96712e2
+                info_class = request.data_block.trans2_parameters.information_level.to_i
+                unless info_class == SMB1::Packet::Trans2::FindInformationLevel::SMB_FIND_FILE_FULL_DIRECTORY_INFO
+                  logger.warn("Can not handle TRANSACTION2 FIND_FIRST2 request for class: #{info_class}")
+                  raise NotImplementedError
+                end
+
+                infos = []
+                dirents = local_path.children.sort.to_a
+
+                # todo: explore consolidating the code that is duplicated here
+                while dirents.length > 0
+                  dirent = dirents.shift
+                  next unless dirent.file? || dirent.directory? # filter out everything but files and directories
+
+                  case dirent
+                  when local_path
+                    dirent_name = '.'
+                  when local_path.parent
+                    dirent_name = '..'
+                  else
+                    dirent_name = dirent.basename.to_s
+                  end
+                  next unless search_regex.match?(dirent_name)
+
+                  info = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new(unicode: request.smb_header.flags2.unicode == 1)
+                  set_common_timestamps(info, dirent)
+                  info.end_of_file = dirent.size
+                  info.allocation_size = get_allocation_size(dirent)
+                  info.ext_file_attributes.directory = dirent.directory? ? 1 : 0
+                  info.ext_file_attributes.read_only = !dirent.writable? ? 1 : 0
+                  info.ext_file_attributes.normal = (dirent.file? && dirent.writable?) ? 1 : 0
+                  info.file_name = dirent_name
+                  info.next_offset = info.num_bytes
+                  infos << info
+                end
+                infos.last.next_offset = 0 unless infos.empty?
+
+                response = SMB1::Packet::Trans2::FindFirst2Response.new
+                response.parameter_block.setup = []
+                if infos.empty?
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
+                else
+                  buffer = infos.map(&:to_binary_s).join
+                  response.data_block.trans2_parameters.sid = rand(0xffff)
+                  response.data_block.trans2_parameters.search_count = infos.length
+                  response.data_block.trans2_parameters.eos = 1
+                  response.data_block.trans2_data.buffer = buffer
+                end
+                response
+              end
+
               def transaction2_smb1_query_file_information(request)
                 raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
 
                 local_path = get_local_path(request.data_block.trans2_parameters.fid)
                 raise NotImplementedError if local_path.nil?
 
-                response = RubySMB::SMB1::Packet::Trans2::QueryFileInformationResponse.new
+                response = SMB1::Packet::Trans2::QueryFileInformationResponse.new
                 case request.data_block.trans2_parameters.information_level
-                when SMB1::Packet::QueryInfo::SMB_QUERY_FILE_BASIC_INFO
-                  resp_info = SMB1::Packet::QueryInfo::SmbQueryFileBasicInfo.new
-                  set_common_timestamps(resp_info, local_path)
-                  resp_info.ext_file_attributes.directory = local_path.directory? ? 1 : 0
-                  resp_info.ext_file_attributes.read_only = !local_path.writable? ? 1 : 0
-                  resp_info.ext_file_attributes.normal = (local_path.file? && local_path.writeable?) ? 1 : 0
-                when SMB1::Packet::QueryInfo::SMB_QUERY_FILE_STANDARD_INFO
-                  resp_info = SMB1::Packet::QueryInfo::SmbQueryFileStandardInfo.new
-                  resp_info.end_of_file = local_path.size
-                  resp_info.allocation_size = get_allocation_size(local_path)
-                  resp_info.directory = local_path.directory? ? 1 : 0
+                when SMB1::Packet::Trans2::QueryInformationLevel::SMB_QUERY_FILE_BASIC_INFO
+                  info = SMB1::Packet::Trans2::QueryInformationLevel::QueryFileBasicInfo.new
+                  set_common_timestamps(info, local_path)
+                  info.ext_file_attributes.directory = local_path.directory? ? 1 : 0
+                  info.ext_file_attributes.read_only = !local_path.writable? ? 1 : 0
+                  info.ext_file_attributes.normal = (local_path.file? && local_path.writable?) ? 1 : 0
+                when SMB1::Packet::Trans2::QueryInformationLevel::SMB_QUERY_FILE_STANDARD_INFO
+                  info = SMB1::Packet::Trans2::QueryInformationLevel::QueryFileStandardInfo.new
+                  info.end_of_file = local_path.size
+                  info.allocation_size = get_allocation_size(local_path)
+                  info.directory = local_path.directory? ? 1 : 0
                 else
                   raise NotImplementedError
                 end
 
-                response.parameter_block.total_parameter_count = response.parameter_block.parameter_count = request.parameter_block.setup.length * 2 # x2 because it's the byte count
-                response.parameter_block.total_data_count = response.parameter_block.data_count = resp_info.num_bytes
-                response.data_block.trans2_data = resp_info.to_binary_s
+                response.data_block.trans2_data.buffer = info.to_binary_s
                 response
               end
 

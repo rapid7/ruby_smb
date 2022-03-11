@@ -15,13 +15,24 @@ module RubySMB
           end
         end
 
+        # The Trans2 Data Block for this particular Subcommand
+        class QueryFileInformationResponseTrans2Data < BinData::Record
+          rest :buffer, label: 'Results Buffer'
+
+          # Returns the length of the Trans2Data struct
+          # in number of bytes
+          def length
+            do_num_bytes
+          end
+        end
+
         # The {RubySMB::SMB1::DataBlock} specific to this packet type.
         class QueryFileInformationResponseDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
           uint8                                              :name,               label: 'Name', initial_value: 0x00
           string                                             :pad1,               length: -> { pad1_length }
           query_file_information_response_trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
           string                                             :pad2,               length: -> { pad2_length }
-          string                                             :trans2_data,        label: 'Trans2 Data'
+          query_file_information_response_trans2_data        :trans2_data,        label: 'Trans2 Data'
         end
 
         # A Trans2 QUERY_FILE_INFORMATION Response Packet as defined in
