@@ -31,8 +31,6 @@ module RubySMB
       require 'ruby_smb/smb1/packet/close_request'
       require 'ruby_smb/smb1/packet/close_response'
       require 'ruby_smb/smb1/packet/trans'
-      require 'ruby_smb/smb1/packet/query_info'
-      require 'ruby_smb/smb1/packet/find_info'
     end
   end
 end
