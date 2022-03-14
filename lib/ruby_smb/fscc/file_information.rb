@@ -44,6 +44,10 @@ module RubySMB
       # Information class used to mark a file for deletion.
       FILE_DISPOSITION_INFORMATION       = 0x0D
 
+      # Information class used to query or set the position of the file pointer
+      # within a file.
+      FILE_POSITION_INFORMATION          = 0x0E
+
       # Information class used to enumerate the data streams of a file or a
       # directory.
       FILE_STREAM_INFORMATION            = 0x16
@@ -109,6 +113,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_standard_information'
       require 'ruby_smb/fscc/file_information/file_internal_information'
       require 'ruby_smb/fscc/file_information/file_access_information'
+      require 'ruby_smb/fscc/file_information/file_position_information'
     end
   end
 end
