@@ -30,6 +30,10 @@ module RubySMB
       # (EA) for a file.
       FILE_EA_INFORMATION                = 0x07
 
+      # Information class used to query the access rights of a file that were
+      # granted when the file was opened.
+      FILE_ACCESS_INFORMATION            = 0x08
+
       # Information class used to rename a file.
       FILE_RENAME_INFORMATION            = 0x0A
 
@@ -104,6 +108,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_basic_information'
       require 'ruby_smb/fscc/file_information/file_standard_information'
       require 'ruby_smb/fscc/file_information/file_internal_information'
+      require 'ruby_smb/fscc/file_information/file_access_information'
     end
   end
 end
