@@ -25,6 +25,22 @@ module RubySMB
             def disconnect!
             end
 
+            def do_close_smb1(request)
+              raise NotImplementedError
+            end
+
+            def do_nt_create_andx_smb1(request)
+              raise NotImplementedError
+            end
+
+            def do_read_andx_smb1(request)
+              raise NotImplementedError
+            end
+
+            def do_transactions2_smb1(request)
+              raise NotImplementedError
+            end
+
             def do_close_smb2(request)
               raise NotImplementedError
             end
