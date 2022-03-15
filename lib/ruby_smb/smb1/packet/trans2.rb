@@ -19,6 +19,8 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/find_next2_response'
         require 'ruby_smb/smb1/packet/trans2/set_file_information_request'
         require 'ruby_smb/smb1/packet/trans2/set_file_information_response'
+        require 'ruby_smb/smb1/packet/trans2/query_path_information_request'
+        require 'ruby_smb/smb1/packet/trans2/query_path_information_response'
       end
     end
   end

@@ -28,6 +28,7 @@ module RubySMB
           require 'ruby_smb/smb1/packet/trans2/find_next2_response'
           require 'ruby_smb/smb1/packet/trans2/open2_response'
           require 'ruby_smb/smb1/packet/trans2/query_file_information_response'
+          require 'ruby_smb/smb1/packet/trans2/query_path_information_response'
           require 'ruby_smb/smb1/packet/trans2/set_file_information_response'
 
           smb_header        :smb_header
@@ -37,6 +38,7 @@ module RubySMB
             find_first2_response_data_block            Subcommands::FIND_FIRST2
             find_next2_response_data_block             Subcommands::FIND_NEXT2
             query_file_information_response_data_block Subcommands::QUERY_FILE_INFORMATION
+            query_path_information_response_data_block Subcommands::QUERY_PATH_INFORMATION
             set_file_information_response_data_block   Subcommands::SET_FILE_INFORMATION
             data_block                                 :default
           end
