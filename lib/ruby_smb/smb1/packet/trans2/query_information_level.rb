@@ -48,6 +48,10 @@ module RubySMB
           # [NT LANMAN] Query file compression information.
           SMB_QUERY_FILE_COMPRESSION_INFO = 0x010B # 267
 
+          def self.name(value)
+            constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+          end
+
           require 'ruby_smb/smb1/packet/trans2/query_information_level/query_file_basic_info'
           require 'ruby_smb/smb1/packet/trans2/query_information_level/query_file_standard_info'
         end

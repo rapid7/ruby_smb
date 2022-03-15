@@ -75,8 +75,10 @@ module RubySMB
 
           begin
             response = handle_smb1(raw_request, header)
-          rescue NotImplementedError
-            logger.error("Caught a NotImplementedError while handling a #{SMB1::Commands.name(header.command)} request")
+          rescue NotImplementedError => e
+            message = "Caught a NotImplementedError while handling a #{SMB1::Commands.name(header.command)} request"
+            message << " (#{e.message})" if e.message
+            logger.error(message)
             response = RubySMB::SMB1::Packet::EmptyPacket.new
             response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
           end
@@ -105,8 +107,10 @@ module RubySMB
 
           begin
             response = handle_smb2(raw_request, header)
-          rescue NotImplementedError
-            logger.error("Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request")
+          rescue NotImplementedError => e
+            message = "Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request"
+            message << " (#{e.message})" if e.message
+            logger.error(message)
             response = SMB2::Packet::ErrorPacket.new
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
           end

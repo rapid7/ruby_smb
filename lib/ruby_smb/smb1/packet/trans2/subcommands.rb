@@ -22,6 +22,10 @@ module RubySMB
           SESSION_SETUP            = 0x000E
           GET_DFS_REFERRAL         = 0x0010
           REPORT_DFS_INCONSISTENCY = 0x0011
+
+          def self.name(value)
+            constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+          end
         end
       end
     end

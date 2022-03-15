@@ -17,6 +17,12 @@ module RubySMB
                 when SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
                   response = transaction2_smb1_query_file_information(request)
                 else
+                  subcommand = request.parameter_block.setup.first
+                  if subcommand
+                    logger.warn("Can not handle TRANSACTION2 request for subcommand #{subcommand} (#{SMB1::Packet::Trans2::Subcommands.name(subcommand)})")
+                  else
+                    logger.warn('Can not handle TRANSACTION2 request with missing subcommand')
+                  end
                   raise NotImplementedError
                 end
 
