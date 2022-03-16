@@ -79,7 +79,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
 
     it 'should keep #trans2_data 4-byte aligned' do
       data_block.trans2_parameters = 'a'
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
   end
 end

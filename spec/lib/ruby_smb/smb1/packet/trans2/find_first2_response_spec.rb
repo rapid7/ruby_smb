@@ -40,7 +40,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
     end
 
     it 'should keep #trans2_data 4-byte aligned' do
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
 
     describe '#trans2_parameters' do
