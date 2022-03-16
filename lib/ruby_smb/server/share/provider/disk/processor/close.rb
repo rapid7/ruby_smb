@@ -8,8 +8,11 @@ module RubySMB
           class Processor < Provider::Processor::Base
             module Close
               def do_close_smb1(request)
-                if (handle = @handles.delete(request.parameter_block.fid)).nil?
-                  raise NotImplementedError
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/99b767e2-8f0e-438b-ace5-4323940f2dc8
+                if @handles.delete(request.parameter_block.fid).nil?
+                  response = RubySMB::SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
+                  return response
                 end
 
                 response = RubySMB::SMB1::Packet::CloseResponse.new

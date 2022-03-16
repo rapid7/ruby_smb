@@ -4,18 +4,21 @@ module RubySMB
       MAX_TREE_CONNECTIONS = 1000
       module TreeConnect
         def do_tree_connect_smb1(request, session)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/b062f3e3-1b65-4a9a-854a-0ee432499d8f
           response = RubySMB::SMB1::Packet::TreeConnectResponse.new
 
           share_name = request.data_block.path.encode('UTF-8').split('\\', 4).last
           share_provider = @server.shares.transform_keys(&:downcase).fetch(share_name.downcase)
           if share_provider.nil?
             logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")
-            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_BAD_NETWORK_NAME
+            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_OBJECT_PATH_NOT_FOUND
           end
           logger.debug("Received TREE_CONNECT request for share: #{share_name}")
 
-          tree_id = request.smb_header.tid.snapshot
-          # todo: handle when the tree_id is already in the tree_connect_table
+          tree_id = rand(1..0xfffe)
+          tree_id = rand(1..0xfffe) while session.tree_connect_table.include?(tree_id)
+
+          response.smb_header.tid = tree_id
           session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)
           response.parameter_block.access_rights = share_processor.maximal_access
 
@@ -64,8 +67,8 @@ module RubySMB
             RubySMB::SMB2::Packet::TreeConnectResponse::SMB2_SHARE_TYPE_PRINT
           end
 
-          tree_id = rand(0xffffffff)
-          tree_id = rand(0xffffffff) while session.tree_connect_table.include?(tree_id)
+          tree_id = rand(1..0xfffffffe)
+          tree_id = rand(1..0xfffffffe) while session.tree_connect_table.include?(tree_id)
 
           response.smb2_header.tree_id = tree_id
           session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)

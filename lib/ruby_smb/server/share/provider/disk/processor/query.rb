@@ -8,8 +8,11 @@ module RubySMB
           class Processor < Provider::Processor::Base
             module Query
               def do_transactions2_smb1(request)
-                # can't find an example where more than one setup is set, this code makes alot of assumptions there are exactly 0 or 1 entries
-                raise NotImplementedError if request.parameter_block.setup.length > 1
+                # can't find an example where more than one setup is set, this code makes alot of assumptions that there
+                # are exactly 0 or 1 entries
+                if request.parameter_block.setup.length > 1
+                  raise NotImplementedError, 'There are more than 1 TRANSACTION2 setup values'
+                end
 
                 case request.data_block.trans2_parameters
                 when SMB1::Packet::Trans2::FindFirst2RequestTrans2Parameters
@@ -171,8 +174,9 @@ module RubySMB
                 subdir, _, search_pattern = request.data_block.trans2_parameters.filename.encode.gsub('\\', File::SEPARATOR).rpartition(File::SEPARATOR)
                 local_path = get_local_path(subdir)
                 if local_path.nil?
-                  # todo: handle this when the directory wasn't found
-                  raise NotImplementedError
+                  response = SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
+                  return response
                 end
 
                 begin
@@ -207,7 +211,6 @@ module RubySMB
                 infos.last.next_offset = 0 unless infos.empty?
 
                 response = SMB1::Packet::Trans2::FindFirst2Response.new
-                response.parameter_block.setup = []
                 if infos.empty?
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
                 else
@@ -221,7 +224,11 @@ module RubySMB
               end
 
               def transaction2_smb1_query_information(request, response, local_path)
-                raise NotImplementedError if local_path.nil?
+                if local_path.nil?
+                  response = SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
+                  return response
+                end
 
                 case request.data_block.trans2_parameters.information_level
                 when SMB1::Packet::Trans2::QueryInformationLevel::SMB_QUERY_FILE_BASIC_INFO
@@ -246,6 +253,7 @@ module RubySMB
               end
 
               def transaction2_smb1_query_file_information(request)
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/0a96fae0-b183-42b6-92bd-e05b1d92f434
                 raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
 
                 local_path = get_local_path(request.data_block.trans2_parameters.fid)
@@ -254,6 +262,7 @@ module RubySMB
               end
 
               def transactions2_smb1_query_path_information(request)
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/a5941db4-b992-442a-ba81-fe3378c5bd60
                 raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryPathInformationRequestTrans2Parameters
 
                 local_path = get_local_path(request.data_block.trans2_parameters.filename.encode)

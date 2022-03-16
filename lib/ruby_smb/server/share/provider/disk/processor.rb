@@ -58,7 +58,9 @@ module RubySMB
                 info = Fscc::FileInformation::FileNetworkOpenInformation.new
                 set_common_info(info, path)
               when Fscc::FileInformation::FILE_STREAM_INFORMATION
-                  raise NotImplementedError unless path.file?
+                  unless path.file?
+                    raise NotImplementedError, 'Can only generate FILE_STREAM_INFORMATION for files'
+                  end
 
                   info = Fscc::FileInformation::FileStreamInformation.new(
                     stream_size: path.size,
@@ -94,8 +96,9 @@ module RubySMB
                 path = path.encode.gsub('\\', File::SEPARATOR)
                 path = path.delete_prefix(File::SEPARATOR)
                 local_path = (provider.path + path.encode).cleanpath
-                # TODO: report / handle directory traversal issues more robustly
-                raise RuntimeError unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
+                unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
+                  raise RuntimeError, "Directory traversal detected to: #{local_path}"
+                end
               else
                 raise NotImplementedError, "Can not get the local path for: #{path.inspect}, type: #{path.class.inspect}"
               end
@@ -138,7 +141,7 @@ module RubySMB
 
               if wildcard.each_char.any? { |c| c == '<' || c == '>' }
                 # the < > wildcard operators are not supported
-                raise NotImplementedError
+                raise NotImplementedError, 'Unsupported wild card characters'
               end
 
               wildcard = Regexp.escape(wildcard)

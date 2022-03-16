@@ -15,7 +15,9 @@ module RubySMB
                 local_path = get_local_path(path)
                 unless local_path && (local_path.file? || local_path.directory?)
                   logger.warn("Requested path does not exist: #{local_path}")
-                  raise NotImplementedError
+                  response = SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
+                  return response
                 end
 
                 response = SMB1::Packet::NtCreateAndxResponse.new
