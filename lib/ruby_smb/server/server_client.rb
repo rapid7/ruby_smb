@@ -88,6 +88,12 @@ module RubySMB
             if response.is_a?(SMB1::Packet::EmptyPacket)
               response.smb_header.command = header.command if response.smb_header.command == 0
               response.smb_header.flags.reply = 1
+              nt_status = response.smb_header.nt_status.to_i
+              message = "Sending an error packet for SMB1 command: #{SMB1::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+              if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+                message << " (#{nt_status_name})"
+              end
+              logger.info(message)
             end
 
             response.smb_header.pid_high = header.pid_high if response.smb_header.pid_high == 0
@@ -120,6 +126,12 @@ module RubySMB
             if response.is_a?(SMB2::Packet::ErrorPacket)
               response.smb2_header.command = header.command if response.smb2_header.command == 0
               response.smb2_header.flags.reply = 1
+              nt_status = response.smb2_header.nt_status.to_i
+              message = "Sending an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+              if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+                message << " (#{nt_status_name})"
+              end
+              logger.info(message)
             end
 
             response.smb2_header.credits = 1 if response.smb2_header.credits == 0
@@ -304,10 +316,13 @@ module RubySMB
         rescue IOError, RubySMB::Error::InvalidPacket => e
           logger.error("Caught a #{e.class} while reading the SMB1 #{request_class} (#{e.message})")
           response = RubySMB::SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          return response
         end
 
         if request.is_a?(SMB1::Packet::EmptyPacket)
           logger.error("Received an error packet for SMB1 command: #{SMB1::Commands.name(header.command)}")
+          response = RubySMB::SMB1::Packet::EmptyPacket.new
           response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
           return response
         end
