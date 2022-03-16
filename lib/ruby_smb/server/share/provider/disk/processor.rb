@@ -44,20 +44,37 @@ module RubySMB
 
             def build_fscc_file_information(path, info_class, rename: nil)
               case info_class
-              when Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
-                info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
-                set_common_info(info, path)
-                info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_EA_INFORMATION
+                info = Fscc::FileInformation::FileEaInformation.new
               when Fscc::FileInformation::FILE_FULL_DIRECTORY_INFORMATION
                 info = Fscc::FileInformation::FileFullDirectoryInformation.new
                 set_common_info(info, path)
                 info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_ID_BOTH_DIRECTORY_INFORMATION
+                info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
+                set_common_info(info, path)
+                info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
+                info = Fscc::FileInformation::FileNetworkOpenInformation.new
+                set_common_info(info, path)
+              when Fscc::FileInformation::FILE_STREAM_INFORMATION
+                  raise NotImplementedError unless path.file?
+
+                  info = Fscc::FileInformation::FileStreamInformation.new(
+                    stream_size: path.size,
+                    stream_allocation_size: get_allocation_size(path),
+                    stream_name: '::$DATA'
+                  )
               else
-                raise NotImplementedError, "unsupported info class: #{info_class}"
+                raise NotImplementedError, "Unsupported FSCC file information class: #{info_class} (#{Fscc::FileInformation.name(info_class)})"
               end
 
-              align = 8
-              info.next_offset = info.num_bytes + ((align - info.num_bytes % align) % align)
+              # some have a next offset field that needs to be set accordingly
+              if info.respond_to?(:next_offset)
+                align = 8
+                info.next_offset = info.num_bytes + ((align - info.num_bytes % align) % align)
+              end
+
               info
             end
 

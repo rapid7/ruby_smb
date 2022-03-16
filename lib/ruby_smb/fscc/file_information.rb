@@ -65,6 +65,10 @@ module RubySMB
       # [2.2.2.3.5 Pass-through Information Level Codes](https://msdn.microsoft.com/en-us/library/ff470158.aspx)
       SMB_INFO_PASSTHROUGH               = 0x03e8
 
+      def self.name(value)
+        constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+      end
+
       # The FILE_NAME_INFORMATION type as defined in
       # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/20406fb1-605f-4629-ba9a-c67ee25f23d2
       class FileNameInformation < BinData::Record

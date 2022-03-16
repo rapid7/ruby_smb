@@ -264,26 +264,11 @@ module RubySMB
               def query_info_smb2_file(request, local_path)
                 raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILE
 
-                # todo: these should be moved into #build_fscc_file_information
                 case request.file_information_class
-                when Fscc::FileInformation::FILE_EA_INFORMATION
-                  info = Fscc::FileInformation::FileEaInformation.new
-                when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
-                  info = Fscc::FileInformation::FileNetworkOpenInformation.new
-                  set_common_info(info, local_path)
                 when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
                   info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
-                when Fscc::FileInformation::FILE_STREAM_INFORMATION
-                  raise NotImplementedError unless local_path.file?
-
-                  info = Fscc::FileInformation::FileStreamInformation.new(
-                    stream_size: local_path.size,
-                    stream_allocation_size: get_allocation_size(local_path),
-                    stream_name: '::$DATA'
-                  )
                 else
-                  logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
-                  raise NotImplementedError
+                  info = build_fscc_file_information(local_path, request.file_information_class)
                 end
 
                 info
