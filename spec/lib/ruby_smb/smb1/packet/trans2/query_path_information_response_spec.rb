@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
+RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryPathInformationResponse do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -20,8 +20,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it 'should have the setup set to the SET_FILE_INFORMATION subcommand' do
-      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::SET_FILE_INFORMATION
+    it 'should have the setup set to the QUERY_PATH_INFORMATION subcommand' do
+      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_PATH_INFORMATION
     end
   end
 
@@ -32,8 +32,9 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
       expect(data_block).to be_a RubySMB::SMB1::DataBlock
     end
 
+    it { is_expected.to respond_to :name }
     it { is_expected.to respond_to :trans2_parameters }
-    it { is_expected.to_not respond_to :trans2_data }
+    it { is_expected.to respond_to :trans2_data }
 
     it 'should keep #trans2_parameters 4-byte aligned' do
       expect(data_block.trans2_parameters.abs_offset % 4).to eq 0
@@ -47,6 +48,18 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
       describe '#ea_error_offset' do
         it 'is a 16-bit field' do
           expect(parameters.ea_error_offset).to be_a BinData::Uint16le
+        end
+      end
+    end
+
+    describe '#trans2_data' do
+      subject(:data) { data_block.trans2_data }
+
+      it { is_expected.to respond_to :buffer }
+
+      describe '#buffer' do
+        it 'is a String field' do
+          expect(data.buffer).to be_a BinData::String
         end
       end
     end

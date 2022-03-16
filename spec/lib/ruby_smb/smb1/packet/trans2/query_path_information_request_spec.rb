@@ -1,6 +1,6 @@
 include RubySMB::Fscc::FileInformation
 
-RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest do
+RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryPathInformationRequest do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -26,8 +26,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest do
       expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
     end
 
-    it 'should have the setup set to the SET_FILE_INFORMATION subcommand' do
-      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::SET_FILE_INFORMATION
+    it 'should have the setup set to the OPEN2 subcommand' do
+      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_PATH_INFORMATION
     end
   end
 
@@ -54,46 +54,26 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest do
     describe '#trans2_parameters' do
       subject(:parameters) { data_block.trans2_parameters }
 
-      it { is_expected.to respond_to :fid }
       it { is_expected.to respond_to :information_level }
-
-      describe '#fid' do
-        it 'is a 16-bit field' do
-          expect(parameters.fid).to be_a BinData::Uint16le
-        end
-      end
+      it { is_expected.to respond_to :filename }
 
       describe '#information_level' do
         it 'is a 16-bit field' do
           expect(parameters.information_level).to be_a BinData::Uint16le
         end
       end
-    end
 
-    describe '#trans2_data' do
-      subject(:data) { data_block.trans2_data }
-
-      it { is_expected.to respond_to :info_level_struct }
-
-      describe '#info_level_struct' do
-        context 'when #information_level field is FILE_DISPOSITION_INFORMATION with the pass-through capability'
-        it 'is a FileDispositionInformation structure' do
-          info_level = FILE_DISPOSITION_INFORMATION + SMB_INFO_PASSTHROUGH
-          data_block.trans2_parameters.information_level = info_level
-          file_info = FileDispositionInformation.new
-          expect(data.info_level_struct).to eq file_info
+      describe '#filename' do
+        it 'is a BinData::Choice' do
+          expect(parameters.filename).to be_a BinData::Choice
         end
 
-        context 'when #information_level field is FILE_RENAME_INFORMATION with the pass-through capability'
-        it 'is a FileRenameInformation structure' do
-          info_level = FILE_RENAME_INFORMATION + SMB_INFO_PASSTHROUGH
-          data_block.trans2_parameters.information_level = info_level
-          file_info = FileRenameInformation.new
-          expect(data.info_level_struct).to eq file_info
+        it 'responds to #encode' do
+          expect(parameters.filename).to respond_to :encode
+          expect(parameters.filename.encode).to be_a String
         end
       end
     end
-
   end
 end
 

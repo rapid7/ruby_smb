@@ -17,7 +17,7 @@ module RubySMB
 
         # The Trans2 Data Block for this particular Subcommand
         class QueryFileInformationResponseTrans2Data < BinData::Record
-          rest :buffer, label: 'Results Buffer'
+          string :buffer, label: 'Results Buffer'
 
           # Returns the length of the Trans2Data struct
           # in number of bytes
