@@ -84,20 +84,7 @@ module RubySMB
                   dirents = @query_directory_context[request.file_id.to_binary_s]
                 end
 
-                while dirents.length > 0
-                  dirent = dirents.shift
-                  next unless dirent.file? || dirent.directory? # filter out everything but files and directories
-
-                  case dirent
-                  when local_path
-                    dirent_name = '.'
-                  when local_path.parent
-                    dirent_name = '..'
-                  else
-                    dirent_name = dirent.basename.to_s
-                  end
-                  next unless search_regex.match?(dirent_name)
-
+                consume_dirents(local_path, dirents, filter_regex: search_regex) do |dirent, dirent_name|
                   info = build_fscc_file_information(dirent, info_class, rename: dirent_name)
                   info_size = info.num_bytes + ((align - info.num_bytes % align) % align)
                   if total_size + info_size > request.output_length
@@ -152,6 +139,31 @@ module RubySMB
 
               private
 
+              # This function iterates over dirents, filtering out entries as necessary. It relies on the fact that
+              # dirents is a mutable object.
+              #
+              # @param Pathmame local_path a path to use for relative location checks
+              # @param [Array<Pathname>] dirents the array of dirents to iterate over
+              # @param Regex filter_regex a regex that when specified will be used to filter out entries that don't match
+              def consume_dirents(local_path, dirents, filter_regex: nil)
+                until dirents.empty?
+                  dirent = dirents.shift
+                  next unless dirent.file? || dirent.directory? # filter out everything but files and directories
+
+                  case dirent
+                  when local_path
+                    dirent_name = '.'
+                  when local_path.parent
+                    dirent_name = '..'
+                  else
+                    dirent_name = dirent.basename.to_s
+                  end
+                  next unless filter_regex.nil? || filter_regex.match?(dirent_name)
+
+                  yield dirent, dirent_name
+                end
+              end
+
               def transaction2_smb1_find_first2(request)
                 # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/f93455dc-2bd7-4698-b91e-8c9c7abd63cf
                 raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::FindFirst2RequestTrans2Parameters
@@ -180,21 +192,7 @@ module RubySMB
                 infos = []
                 dirents = local_path.children.sort.to_a
 
-                # todo: explore consolidating the code that is duplicated here
-                while dirents.length > 0
-                  dirent = dirents.shift
-                  next unless dirent.file? || dirent.directory? # filter out everything but files and directories
-
-                  case dirent
-                  when local_path
-                    dirent_name = '.'
-                  when local_path.parent
-                    dirent_name = '..'
-                  else
-                    dirent_name = dirent.basename.to_s
-                  end
-                  next unless search_regex.match?(dirent_name)
-
+                consume_dirents(local_path, dirents, filter_regex: search_regex) do |dirent, dirent_name|
                   info = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new(unicode: request.smb_header.flags2.unicode == 1)
                   set_common_timestamps(info, dirent)
                   info.end_of_file = dirent.size
