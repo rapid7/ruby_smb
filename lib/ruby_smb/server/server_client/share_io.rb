@@ -5,7 +5,9 @@ module RubySMB
         def proxy_share_io_smb1(request, session)
           share_processor = session.tree_connect_table[request.smb_header.tid]
           if share_processor.nil?
-            # todo: need to handle this case
+            response = SMB1::Packet::EmptyPacket.new
+            response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_NAME_DELETED
+            return response
           end
 
           logger.debug("Received #{SMB1::Commands.name(request.smb_header.command)} request for share: #{share_processor.provider.name}")

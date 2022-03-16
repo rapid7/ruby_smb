@@ -16,6 +16,8 @@ module RubySMB
                   response = transaction2_smb1_find_first2(request)
                 when SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
                   response = transaction2_smb1_query_file_information(request)
+                when SMB1::Packet::Trans2::QueryPathInformationRequestTrans2Parameters
+                  response = transactions2_smb1_query_path_information(request)
                 else
                   subcommand = request.parameter_block.setup.first
                   if subcommand
@@ -27,6 +29,7 @@ module RubySMB
                 end
 
                 if response and response.parameter_block.is_a?(RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock)
+                  response.parameter_block.setup = []
                   response.parameter_block.total_parameter_count = response.parameter_block.parameter_count = response.data_block.trans2_parameters.num_bytes
                   response.parameter_block.total_data_count = response.parameter_block.data_count = response.data_block.trans2_data.num_bytes
                 end
@@ -219,13 +222,9 @@ module RubySMB
                 response
               end
 
-              def transaction2_smb1_query_file_information(request)
-                raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
-
-                local_path = get_local_path(request.data_block.trans2_parameters.fid)
+              def transaction2_smb1_query_information(request, response, local_path)
                 raise NotImplementedError if local_path.nil?
 
-                response = SMB1::Packet::Trans2::QueryFileInformationResponse.new
                 case request.data_block.trans2_parameters.information_level
                 when SMB1::Packet::Trans2::QueryInformationLevel::SMB_QUERY_FILE_BASIC_INFO
                   info = SMB1::Packet::Trans2::QueryInformationLevel::QueryFileBasicInfo.new
@@ -239,6 +238,8 @@ module RubySMB
                   info.allocation_size = get_allocation_size(local_path)
                   info.directory = local_path.directory? ? 1 : 0
                 else
+                  level = request.data_block.trans2_parameters.information_level
+                  logger.warn("Can not handle TRANSACTION2 QUERY request for information level #{level} (#{SMB1::Packet::Trans2::QueryInformationLevel.name(level)})")
                   raise NotImplementedError
                 end
 
@@ -246,9 +247,26 @@ module RubySMB
                 response
               end
 
+              def transaction2_smb1_query_file_information(request)
+                raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
+
+                local_path = get_local_path(request.data_block.trans2_parameters.fid)
+                response = SMB1::Packet::Trans2::QueryFileInformationResponse.new
+                transaction2_smb1_query_information(request, response, local_path)
+              end
+
+              def transactions2_smb1_query_path_information(request)
+                raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryPathInformationRequestTrans2Parameters
+
+                local_path = get_local_path(request.data_block.trans2_parameters.filename.encode)
+                response = SMB1::Packet::Trans2::QueryPathInformationResponse.new
+                transaction2_smb1_query_information(request, response, local_path)
+              end
+
               def query_info_smb2_file(request, local_path)
                 raise ArgumentError unless request.info_type == SMB2::SMB2_INFO_FILE
 
+                # todo: these should be moved into #build_fscc_file_information
                 case request.file_information_class
                 when Fscc::FileInformation::FILE_EA_INFORMATION
                   info = Fscc::FileInformation::FileEaInformation.new
