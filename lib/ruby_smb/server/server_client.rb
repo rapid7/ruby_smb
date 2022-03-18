@@ -25,6 +25,7 @@ module RubySMB
         @server = server
         @dispatcher = dispatcher
         @dialect = nil
+        @sequence_counter = 0
         @gss_authenticator = server.gss_provider.new_authenticator(self)
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
@@ -240,6 +241,8 @@ module RubySMB
 
         unless session.nil? || session.is_anonymous || session.key.nil?
           case metadialect&.family
+          when Dialect::FAMILY_SMB1
+            packet = Signing::smb1_sign(packet, session.key, @sequence_counter)
           when Dialect::FAMILY_SMB2
             packet = Signing::smb2_sign(packet, session.key)
           when Dialect::FAMILY_SMB3
@@ -247,6 +250,7 @@ module RubySMB
           end
         end
 
+        @sequence_counter += 1
         @dispatcher.send_packet(packet)
       end
 
