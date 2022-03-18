@@ -1,6 +1,6 @@
 include RubySMB::Fscc::FileInformation
 
-RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFileInformationRequest do
+RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -26,8 +26,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFileInformationRequest do
       expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
     end
 
-    it 'should have the setup set to the QUERY_FILE_INFORMATION subcommand' do
-      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_FILE_INFORMATION
+    it 'should have the setup set to the QUERY_FS_INFORMATION subcommand' do
+      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_FS_INFORMATION
     end
   end
 
@@ -40,28 +40,16 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFileInformationRequest do
 
     it { is_expected.to respond_to :name }
     it { is_expected.to respond_to :trans2_parameters }
-    it { is_expected.to respond_to :trans2_data }
+    it { is_expected.to_not respond_to :trans2_data }
 
     it 'should keep #trans2_parameters 4-byte aligned' do
       expect(data_block.trans2_parameters.abs_offset % 4).to eq 0
     end
 
-    it 'should keep #trans2_data 4-byte aligned' do
-      data_block.trans2_parameters.information_level = FILE_DISPOSITION_INFORMATION + SMB_INFO_PASSTHROUGH
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
-    end
-
     describe '#trans2_parameters' do
       subject(:parameters) { data_block.trans2_parameters }
 
-      it { is_expected.to respond_to :fid }
       it { is_expected.to respond_to :information_level }
-
-      describe '#fid' do
-        it 'is a 16-bit field' do
-          expect(parameters.fid).to be_a BinData::Uint16le
-        end
-      end
 
       describe '#information_level' do
         it 'is a 16-bit field' do

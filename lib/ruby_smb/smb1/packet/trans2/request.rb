@@ -43,6 +43,7 @@ module RubySMB
           require 'ruby_smb/smb1/packet/trans2/query_file_information_request'
           require 'ruby_smb/smb1/packet/trans2/query_path_information_request'
           require 'ruby_smb/smb1/packet/trans2/set_file_information_request'
+          require 'ruby_smb/smb1/packet/trans2/query_fs_information_request'
 
           smb_header        :smb_header
           parameter_block   :parameter_block
@@ -53,6 +54,7 @@ module RubySMB
             query_file_information_request_data_block Subcommands::QUERY_FILE_INFORMATION
             query_path_information_request_data_block Subcommands::QUERY_PATH_INFORMATION
             set_file_information_request_data_block   Subcommands::SET_FILE_INFORMATION
+            query_fs_information_request_data_block   Subcommands::QUERY_FS_INFORMATION
             data_block                                :default
           end
         end

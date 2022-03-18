@@ -4,6 +4,7 @@ module RubySMB
       module Trans2
         # SMB Query Information Levels as defined in
         # [2.2.8.3 QUERY Information Levels](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/b9dcb99c-e810-4df8-ae29-cdf37e8c5a23)
+        # used in TRANS2_QUERY_PATH_INFORMATION and TRANS2_QUERY_FILE_INFORMATION
         module QueryInformationLevel
           # Constants defined in
           # [2.2.2.3.3 QUERY Information Level Codes](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/794afe2e-7c11-4a8c-b909-0a397966f6a9)

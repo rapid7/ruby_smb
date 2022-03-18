@@ -24,7 +24,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindNext2Response do
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it 'should have the setup set to the OPEN2 subcommand' do
+    it 'should have the setup set to the FIND_NEXT2 subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_NEXT2
     end
   end

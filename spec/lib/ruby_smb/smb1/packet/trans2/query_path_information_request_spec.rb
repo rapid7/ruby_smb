@@ -26,7 +26,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryPathInformationRequest do
       expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
     end
 
-    it 'should have the setup set to the OPEN2 subcommand' do
+    it 'should have the setup set to the QUERY_PATH_INFORMATION subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_PATH_INFORMATION
     end
   end

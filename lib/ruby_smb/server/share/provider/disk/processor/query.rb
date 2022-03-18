@@ -20,7 +20,9 @@ module RubySMB
                 when SMB1::Packet::Trans2::QueryFileInformationRequestTrans2Parameters
                   response = transaction2_smb1_query_file_information(request)
                 when SMB1::Packet::Trans2::QueryPathInformationRequestTrans2Parameters
-                  response = transactions2_smb1_query_path_information(request)
+                  response = transaction2_smb1_query_path_information(request)
+                when SMB1::Packet::Trans2::QueryFsInformationRequestTrans2Parameters
+                  response = transaction2_smb1_query_fs_information(request)
                 else
                   subcommand = request.parameter_block.setup.first
                   if subcommand
@@ -261,7 +263,36 @@ module RubySMB
                 transaction2_smb1_query_information(request, response, local_path)
               end
 
-              def transactions2_smb1_query_path_information(request)
+              def transaction2_smb1_query_fs_information(request)
+                # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/c396398f-2d7f-4356-bac4-326076bafcd1
+                raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryFsInformationRequestTrans2Parameters
+
+                local_path = provider.path
+                unless local_path&.exist?
+                  response = SMB1::Packet::EmptyPacket.new
+                  response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
+                  return response
+                end
+
+                response = SMB1::Packet::Trans2::QueryFsInformationResponse.new
+
+                case request.data_block.trans2_parameters.information_level
+                when SMB1::Packet::Trans2::QueryFsInformationLevel::SMB_QUERY_FS_ATTRIBUTE_INFO
+                  info = SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsAttributeInfo.new
+                  info.flags.file_case_sensitive_search = 1
+                  info.flags.file_case_preserved_names = 1
+                  info.flags.file_unicode_on_disk = 1
+                else
+                  level = request.data_block.trans2_parameters.information_level
+                  logger.warn("Can not handle TRANSACTION2 QUERY_FS request for information level #{level} (#{SMB1::Packet::Trans2::QueryFsInformationLevel.name(level)})")
+                  raise NotImplementedError
+                end
+
+                response.data_block.trans2_data.buffer = info.to_binary_s
+                response
+              end
+
+              def transaction2_smb1_query_path_information(request)
                 # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/a5941db4-b992-442a-ba81-fe3378c5bd60
                 raise ArgumentError unless request.data_block.trans2_parameters.is_a? SMB1::Packet::Trans2::QueryPathInformationRequestTrans2Parameters
 

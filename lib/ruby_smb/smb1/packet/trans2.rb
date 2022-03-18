@@ -6,6 +6,7 @@ module RubySMB
       module Trans2
         require 'ruby_smb/smb1/packet/trans2/find_information_level'
         require 'ruby_smb/smb1/packet/trans2/query_information_level'
+        require 'ruby_smb/smb1/packet/trans2/query_fs_information_level'
         require 'ruby_smb/smb1/packet/trans2/data_block'
         require 'ruby_smb/smb1/packet/trans2/subcommands'
         require 'ruby_smb/smb1/packet/trans2/request'
