@@ -224,7 +224,7 @@ module RubySMB
               end
 
               def transaction2_smb1_query_information(request, response, local_path)
-                if local_path.nil?
+                unless local_path&.exist?
                   response = SMB1::Packet::EmptyPacket.new
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
                   return response
