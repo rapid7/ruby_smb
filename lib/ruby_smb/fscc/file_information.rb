@@ -123,6 +123,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_position_information'
       require 'ruby_smb/fscc/file_information/file_mode_information'
       require 'ruby_smb/fscc/file_information/file_alignment_information'
+      require 'ruby_smb/fscc/file_information/file_all_information'
     end
   end
 end
