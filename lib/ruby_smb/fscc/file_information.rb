@@ -48,6 +48,9 @@ module RubySMB
       # within a file.
       FILE_POSITION_INFORMATION          = 0x0E
 
+      # Information class used to query or set the mode of the file.
+      FILE_MODE_INFORMATION              = 0x10
+
       # Information class used to enumerate the data streams of a file or a
       # directory.
       FILE_STREAM_INFORMATION            = 0x16
@@ -114,6 +117,7 @@ module RubySMB
       require 'ruby_smb/fscc/file_information/file_internal_information'
       require 'ruby_smb/fscc/file_information/file_access_information'
       require 'ruby_smb/fscc/file_information/file_position_information'
+      require 'ruby_smb/fscc/file_information/file_mode_information'
     end
   end
 end
