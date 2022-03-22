@@ -120,13 +120,19 @@ module RubySMB
 
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
             cipher = nc&.data&.ciphers&.first
-            cipher = 0 unless SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
+            if SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
+              @cipher_id = cipher
+            else
+              cipher = 0
+            end
             contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
               data: {
                 ciphers: [ cipher ]
               }
             )
+          elsif dialect == '0x0300' || dialect == '0x0302'
+            @cipher_id = SMB2::EncryptionCapabilities::AES_128_CCM
           end
 
           # the order in which the response is built is important to ensure it is valid

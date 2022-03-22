@@ -22,7 +22,7 @@ module RubySMB
           end
 
           th = RubySMB::SMB2::Packet::TransformHeader.new(flags: 1, session_id: session.id)
-          th.encrypt(data, server_encryption_key, algorithm: 'AES-128-CCM')
+          th.encrypt(data, server_encryption_key, algorithm: SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@cipher_id])
           th
         end
 
@@ -44,7 +44,7 @@ module RubySMB
             raise RubySMB::Error::EncryptionError.new('Dialect is incompatible with SMBv3 encryption')
           end
 
-          encrypted_request.decrypt(client_encryption_key, algorithm: 'AES-128-CCM')
+          encrypted_request.decrypt(client_encryption_key, algorithm: SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@cipher_id])
         end
       end
     end
