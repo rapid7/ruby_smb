@@ -78,11 +78,13 @@ module RubySMB
 
           update_preauth_hash(request) if @dialect == '0x0311'
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
-            response.smb2_header.credits = 32
             session.state = :valid
             session.user_id = gss_result.identity
             session.key = @gss_authenticator.session_key
             session.signing_required = request.security_mode.signing_required == 1
+
+            response.smb2_header.credits = 32
+            response.session_flags.encrypt_data = 1 if metadialect&.family == Dialect::FAMILY_SMB3 && @cipher_id != 0
           elsif gss_result.nt_status == WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED && @dialect == '0x0311'
             update_preauth_hash(response)
           end

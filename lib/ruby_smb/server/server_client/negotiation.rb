@@ -132,7 +132,12 @@ module RubySMB
               }
             )
           elsif dialect == '0x0300' || dialect == '0x0302'
-            @cipher_id = SMB2::EncryptionCapabilities::AES_128_CCM
+            if request.capabilities.encryption == 1
+              response.capabilities.encryption = 1
+              @cipher_id = SMB2::EncryptionCapabilities::AES_128_CCM
+            else
+              response.capabilities = 0
+            end
           end
 
           # the order in which the response is built is important to ensure it is valid
