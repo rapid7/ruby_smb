@@ -195,17 +195,8 @@ module RubySMB
 
         packet = @dispatcher.recv_packet
         if packet && packet.length >= 4 && packet[0...4].unpack1('L>') == RubySMB::SMB2::SMB2_PROTOCOL_ID
-          header = RubySMB::SMB2::SMB2Header.read(packet)
-          unless header.next_command == 0
-            until header.next_command == 0
-              @in_packet_queue.push(packet[0...header.next_command])
-              packet = packet[header.next_command..-1]
-              header = RubySMB::SMB2::SMB2Header.read(packet)
-            end
-
-            @in_packet_queue.push(packet)
-            packet = @in_packet_queue.shift
-          end
+          @in_packet_queue += split_smb2_chain(packet)
+          packet = @in_packet_queue.shift
         end
 
         packet
@@ -432,11 +423,33 @@ module RubySMB
           return response
         end
 
-        pt_raw_request = smb3_decrypt(header, session)
-        pt_response = _handle_smb2(pt_raw_request)
-        return unless pt_response
+        chain = split_smb2_chain(smb3_decrypt(header, session))
+        chain[0...-1].each do |pt_raw_request|
+          pt_response = _handle_smb2(pt_raw_request)
+          return if pt_response.nil?
 
-        smb3_encrypt(pt_response.to_binary_s, session)
+          send_packet(smb3_encrypt(pt_response, session))
+        end
+
+        pt_response = _handle_smb2(chain.last)
+        return if pt_response.nil?
+
+        smb3_encrypt(pt_response, session)
+      end
+
+      def split_smb2_chain(buffer)
+        chain = []
+        header = RubySMB::SMB2::SMB2Header.read(buffer)
+        unless header.next_command == 0
+          until header.next_command == 0
+            chain << buffer[0...header.next_command]
+            buffer = buffer[header.next_command..-1]
+            header = RubySMB::SMB2::SMB2Header.read(buffer)
+          end
+        end
+
+        chain << buffer
+        chain
       end
     end
   end
