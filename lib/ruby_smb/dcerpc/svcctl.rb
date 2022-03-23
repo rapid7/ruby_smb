@@ -9,8 +9,10 @@ module RubySMB
       # Operation numbers
       CLOSE_SERVICE_HANDLE    = 0x0000
       CONTROL_SERVICE         = 0x0001
+      DELETE_SERVICE          = 0x0002
       QUERY_SERVICE_STATUS    = 0x0006
       CHANGE_SERVICE_CONFIG_W = 0x000B
+      CREATE_SERVICE_W        = 0x000C
       OPEN_SC_MANAGER_W       = 0x000F
       OPEN_SERVICE_W          = 0x0010
       QUERY_SERVICE_CONFIG_W  = 0x0011
@@ -19,6 +21,10 @@ module RubySMB
 
       class ScRpcHandle < Ndr::NdrContextHandle; end
 
+      class SvcctlByteArrayPtr < Ndr::NdrConfArray
+        default_parameters type: :ndr_uint8
+        extend Ndr::PointerClassPlugin
+      end
 
       #################################
       #           Constants           #
@@ -254,10 +260,14 @@ module RubySMB
       require 'ruby_smb/dcerpc/svcctl/open_service_w_response'
       require 'ruby_smb/dcerpc/svcctl/query_service_status_request'
       require 'ruby_smb/dcerpc/svcctl/query_service_status_response'
+      require 'ruby_smb/dcerpc/svcctl/delete_service_request'
+      require 'ruby_smb/dcerpc/svcctl/delete_service_response'
       require 'ruby_smb/dcerpc/svcctl/query_service_config_w_request'
       require 'ruby_smb/dcerpc/svcctl/query_service_config_w_response'
       require 'ruby_smb/dcerpc/svcctl/change_service_config_w_request'
       require 'ruby_smb/dcerpc/svcctl/change_service_config_w_response'
+      require 'ruby_smb/dcerpc/svcctl/create_service_w_request'
+      require 'ruby_smb/dcerpc/svcctl/create_service_w_response'
       require 'ruby_smb/dcerpc/svcctl/start_service_w_request'
       require 'ruby_smb/dcerpc/svcctl/start_service_w_response'
       require 'ruby_smb/dcerpc/svcctl/control_service_request'
@@ -289,10 +299,41 @@ module RubySMB
         open_sc_manager_w_response.lp_sc_handle
       end
 
+      # Creates an RPC context handle to a new service record.
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the SCM database
+      # @param service_name [String] the ServiceName of the service record
+      # @param display_name [String] the DisplayName of the service record
+      # @param binary_path_name [String] the BinaryPathName of the service record
+      # @return [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the created service record
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a CreateServiceWResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SvcctlError] if the response error status is not ERROR_SUCCESS
+      def create_service_w(scm_handle, service_name, display_name, binary_path_name)
+        create_service_w_request = CreateServiceWRequest.new(dw_desired_access: SERVICE_ALL_ACCESS)
+        create_service_w_request.dw_service_type = SERVICE_INTERACTIVE_PROCESS | SERVICE_WIN32_OWN_PROCESS
+        create_service_w_request.dw_start_type = SERVICE_DEMAND_START
+        create_service_w_request.h_sc_object = scm_handle
+        create_service_w_request.lp_service_name = service_name
+        create_service_w_request.lp_display_name = display_name
+        create_service_w_request.lp_binary_path_name = binary_path_name
+        response = dcerpc_request(create_service_w_request)
+        begin
+          create_service_w_response = CreateServiceWResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading CreateServiceWResponse'
+        end
+        unless create_service_w_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          raise RubySMB::Dcerpc::Error::SvcctlError,
+            "Error returned when creating #{service_name} service: "\
+            "#{WindowsError::Win32.find_by_retval(create_service_w_response.error_status.value).join(',')}"
+        end
+        create_service_w_response.lp_sc_handle
+      end
+
       # Creates an RPC context handle to an existing service record.
       #
       # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the SCM database
-      # @param service_name [Srting] the ServiceName of the service record
+      # @param service_name [String] the ServiceName of the service record
       # @param access [Integer] access right
       # @return [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the found service record
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a OpenServiceWResponse packet
@@ -303,16 +344,16 @@ module RubySMB
         open_service_w_request.lp_service_name = service_name
         response = dcerpc_request(open_service_w_request)
         begin
-          open_sercice_w_response = OpenServiceWResponse.read(response)
+          open_service_w_response = OpenServiceWResponse.read(response)
         rescue IOError
           raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading OpenServiceWResponse'
         end
-        unless open_sercice_w_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+        unless open_service_w_response.error_status == WindowsError::Win32::ERROR_SUCCESS
           raise RubySMB::Dcerpc::Error::SvcctlError,
             "Error returned when opening #{service_name} service: "\
-            "#{WindowsError::Win32.find_by_retval(open_sercice_w_response.error_status.value).join(',')}"
+            "#{WindowsError::Win32.find_by_retval(open_service_w_response.error_status.value).join(',')}"
         end
-        open_sercice_w_response.lp_sc_handle
+        open_service_w_response.lp_sc_handle
       end
 
       # Returns the current status of the specified service
@@ -470,6 +511,26 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::SvcctlError,
             "Error returned when closing the service: "\
             "#{WindowsError::Win32.find_by_retval(csh_response.error_status.value).join(',')}"
+        end
+      end
+
+      # Deletes the specified service
+      #
+      # @param scm_handle [RubySMB::Dcerpc::Svcctl::ScRpcHandle] handle to the service record
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a DeleteServiceResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SvcctlError] if the response error status is not ERROR_SUCCESS
+      def delete_service(svc_handle)
+        ds_request = DeleteServiceRequest.new(lp_sc_handle: svc_handle)
+        response = dcerpc_request(ds_request)
+        begin
+          ds_response = DeleteServiceResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading DeleteServiceResponse'
+        end
+        unless ds_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+         raise RubySMB::Dcerpc::Error::SvcctlError,
+           "Error returned when deleting the service: "\
+           "#{WindowsError::Win32.find_by_retval(ds_response.error_status.value).join(',')}"
         end
       end
     end
