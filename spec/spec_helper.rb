@@ -1,8 +1,7 @@
 require 'simplecov'
 
-SimpleCov.start do
-  add_filter '/spec/'
-end
+SimpleCov.start unless SimpleCov.running
+SimpleCov.add_filter '/spec/'
 
 require 'coveralls'
 require 'ruby_smb'
