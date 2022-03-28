@@ -13,6 +13,10 @@ The RubySMB library provides client-level and packet-level support for the proto
 See the Wiki for more information on this project's long-term goals, style guide, and developer tips.
 
 
+## Versioning
+RubySMB attempts to follow [the Semantic Versioning 2.0.0](https://semver.org/) standard, however due to certain key architectural qualities, some reservations are made regarding what will trigger major and minor version bumps. Upstream consumers utilizing higher-level SMB operations can lock to minor (`~= 3.0`) versions however consumers utilizing raw SMB packet manipulation are recommended to set restrictions for compatibility to allow update resolution for patch versions (`~= 3.0.0`).
+
+
 
 ## Installation
 
