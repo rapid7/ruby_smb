@@ -1,8 +1,33 @@
 # Contributing
 
+## Versioning
+
+RubySMB attempts to follow [the Semantic Versioning 2.0.0](https://semver.org/) standard, however due to certain key architectural qualities, some reservations are made regarding what will trigger major and minor version bumps. A large component of RubySMB are the data definitions written using [BinData](https://github.com/dmendel/bindata). These definitions are implemented in an incremental fashion, causing some to be missing while others are only partially implemented (particularly in cases where fields are dependent on other types that may or may not be defined). Because of this, the RubySMB project reserves the right to update these definitions without incrementing the major version. In most cases, the definitions and their fields do not need to be used to perform standard operations such as connecting to, authenticating to and reading a file from a remote SMB server. The API provided by non-BinData objects will remain stable across minor versions, with backwards incompatible changes triggering a major version bump. Backwards incompatible changes to data structure definitions in BinData will cause the RubySMB maintianers to perform a minor version bump. These changes include but are not limited to:
+
+* Changes to the class name due to how BinData's internal registration works
+* Their field names which may be updated to avoid conflicts
+* Their field types which may be extended with more functionality or switched from integers to full-flag based definitions
+
+### Usage Examples
+The following two examples show dangerous operations that may not be stable across minor version bumps, and safe operations.
+
+```
+# dangerous operation, the BinData object name (TransformHeader) may change in the future
+header = RubySMB::SMB2::Packet::TransformHeader.read(raw_request)
+# also dangerous operation, the field name may change in the future
+header.flags = 0
+```
+
+```
+# safe operation, the API exposed on the Client won't change without a major version bump
+client = RubySMB::Client.new(dispatcher, smb1: options[:smbv1], smb2: options[:smbv2], smb3: options[:smbv3], username: options[:username], password: options[:password], domain: options[:domain])
+# safe operation, methods on non-BinData objects won't change without a major version bump
+protocol = client.negotiate
+```
+
 ## Forking
 
-[Fork this repository](https://github.com/rapid7/smb2/fork)
+[Fork this repository](https://github.com/rapid7/ruby_smb/fork)
 
 ## Branching
 
@@ -14,7 +39,7 @@ Branch names follow the format `TYPE/ISSUE/SUMMARY`.  You can create it with `gi
 
 ### `ISSUE`
 
-`ISSUE` is either a [Github issue](https://github.com/rapid7/smb2/issues) or an issue from some other
+`ISSUE` is either a [Github issue](https://github.com/rapid7/ruby_smb/issues) or an issue from some other
 issue tracking software.
 
 ### `SUMMARY`
@@ -49,7 +74,7 @@ Push your branch to your fork on gitub: `git push TYPE/ISSUE/SUMMARY`
 
 ### Pull Request
 
-* [Create new Pull Request](https://github.com/rapid7/smb2/compare/)
+* [Create new Pull Request](https://github.com/rapid7/ruby_smb/compare/)
 * Add a Verification Steps to the description comment
 
 ```

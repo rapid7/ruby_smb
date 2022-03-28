@@ -12,6 +12,8 @@ The RubySMB library provides client-level and packet-level support for the proto
 
 See the Wiki for more information on this project's long-term goals, style guide, and developer tips.
 
+
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -33,6 +35,8 @@ Or install it yourself as:
 ### Defining a packet
 
 All packets are implemented in a declarative style with BinData. Nested data structures are used where appropriate to give users an easy method of manipulating individual fields inside of a packet.
+
+Note that these packets are defined using [BinData](https://github.com/dmendel/bindata) and that their struction is subject to change across minor version bumps. See [CONTRIBUTING.md](https://github.com/rapid7/ruby_smb/blob/master/CONTRIBUTING.md#versioning) for more information.
 
 #### SMB1
 
