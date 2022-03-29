@@ -24,8 +24,21 @@ module RubySMB
         # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
           string      :security_blob,  label: 'Security Blob (GSS-API)', length: -> { parent.parameter_block.security_blob_length }
-          string      :native_os,      label: 'Native OS',             initial_value: "Windows 7 Ultimate N 7601 Service Pack 1\x00"
-          string      :native_lan_man, label: 'Native LAN Manager',    initial_value: "Windows 7 Ultimate N 6.1\x00"
+          choice :native_os, label: 'Native OS', selection: -> { parent.smb_header.flags2.unicode } do
+            stringz   0, initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
+            stringz16 1, initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'.encode('utf-16le')
+          end
+          choice :native_lan_man, label: 'Native LAN Manager', selection: -> { parent.smb_header.flags2.unicode } do
+            stringz   0, initial_value: 'Windows 7 Ultimate N 6.1'
+            stringz16 1, initial_value: 'Windows 7 Ultimate N 6.1'.encode('utf-16le')
+          end
+
+          # This method checks if the optional pad field is present.
+          def has_padding?
+            parent.smb_header.flags2.unicode == 1 && pad.abs_offset % 2 == 1
+          end
+
+          private :has_padding?
         end
 
         smb_header        :smb_header
