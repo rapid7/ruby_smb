@@ -8,10 +8,11 @@ module RubySMB
           response = RubySMB::SMB1::Packet::TreeConnectResponse.new
 
           share_name = request.data_block.path.encode('UTF-8').split('\\', 4).last
-          share_provider = @server.shares.transform_keys(&:downcase).fetch(share_name.downcase)
+          share_provider = @server.shares.transform_keys(&:downcase)[share_name.downcase]
           if share_provider.nil?
             logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")
             response.smb_header.nt_status = WindowsError::NTStatus::STATUS_OBJECT_PATH_NOT_FOUND
+            return response
           end
           logger.debug("Received TREE_CONNECT request for share: #{share_name}")
 
@@ -49,7 +50,7 @@ module RubySMB
           end
 
           share_name = request.path.encode('UTF-8').split('\\', 4).last
-          share_provider = @server.shares.transform_keys(&:downcase).fetch(share_name.downcase)
+          share_provider = @server.shares.transform_keys(&:downcase)[share_name.downcase]
 
           if share_provider.nil?
             logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")

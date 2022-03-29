@@ -175,7 +175,7 @@ module RubySMB
 
                 subdir, _, search_pattern = request.data_block.trans2_parameters.filename.encode.gsub('\\', File::SEPARATOR).rpartition(File::SEPARATOR)
                 local_path = get_local_path(subdir)
-                if local_path.nil?
+                unless local_path.directory?
                   response = SMB1::Packet::EmptyPacket.new
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
                   return response
@@ -199,7 +199,8 @@ module RubySMB
                 dirents = local_path.children.sort.to_a
 
                 consume_dirents(local_path, dirents, filter_regex: search_regex) do |dirent, dirent_name|
-                  info = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new(unicode: request.smb_header.flags2.unicode == 1)
+                  info = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new
+                  info.unicode = request.smb_header.flags2.unicode == 1
                   set_common_timestamps(info, dirent)
                   info.end_of_file = dirent.size
                   info.allocation_size = get_allocation_size(dirent)
@@ -213,6 +214,7 @@ module RubySMB
                 infos.last.next_offset = 0 unless infos.empty?
 
                 response = SMB1::Packet::Trans2::FindFirst2Response.new
+                response.smb_header.flags2.unicode = request.smb_header.flags2.unicode == 1
                 if infos.empty?
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NO_SUCH_FILE
                 else
