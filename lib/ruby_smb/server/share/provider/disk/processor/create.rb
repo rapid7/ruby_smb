@@ -9,8 +9,8 @@ module RubySMB
           class Processor < Provider::Processor::Base
             module Create
               def do_nt_create_andx_smb1(request)
-                path = request.data_block.file_name.snapshot.encode
-                path = path.gsub('\\', File::SEPARATOR)
+                path = request.data_block.file_name.snapshot
+                path = path.encode.gsub(/\/|\\/, File::SEPARATOR)
                 path = path.delete_prefix(File::SEPARATOR)
                 local_path = get_local_path(path)
                 unless local_path && (local_path.file? || local_path.directory?)

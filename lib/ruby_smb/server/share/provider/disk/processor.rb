@@ -93,7 +93,7 @@ module RubySMB
               when Field::Smb2Fileid
                 local_path = @handles[path.to_binary_s]&.local_path
               when ::String
-                path = path.encode.gsub('\\', File::SEPARATOR)
+                path = path.encode.gsub(/\/|\\/, File::SEPARATOR)
                 path = path.delete_prefix(File::SEPARATOR)
                 local_path = (provider.path + path.encode).cleanpath
                 unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
