@@ -189,17 +189,22 @@ module RubySMB
                 end
 
                 # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/29dfcc9b-3aec-406b-abb5-0b4fe96712e2
-                info_class = request.data_block.trans2_parameters.information_level.to_i
-                unless info_class == SMB1::Packet::Trans2::FindInformationLevel::SMB_FIND_FILE_FULL_DIRECTORY_INFO
-                  logger.warn("Can not handle TRANSACTION2 FIND_FIRST2 request for class: #{info_class}")
+                info_level = request.data_block.trans2_parameters.information_level.to_i
+                if info_level == SMB1::Packet::Trans2::FindInformationLevel::SMB_FIND_FILE_FULL_DIRECTORY_INFO
+                  info_class = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo
+                elsif info_level == SMB1::Packet::Trans2::FindInformationLevel::SMB_FIND_FILE_BOTH_DIRECTORY_INFO
+                  info_class = SMB1::Packet::Trans2::FindInformationLevel::FindFileBothDirectoryInfo
+                else
+                  logger.warn("Can not handle TRANSACTION2 FIND_FIRST2 request for class: #{info_level} (#{SMB1::Packet::Trans2::FindInformationLevel.name(info_level)})")
                   raise NotImplementedError
                 end
 
+                logger.debug("Handling TRANSACTION2 FIND_FIRST2 request for class: #{info_level} (#{SMB1::Packet::Trans2::FindInformationLevel.name(info_level)})")
                 infos = []
                 dirents = local_path.children.sort.to_a
 
                 consume_dirents(local_path, dirents, filter_regex: search_regex) do |dirent, dirent_name|
-                  info = SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo.new
+                  info = info_class.new
                   info.unicode = request.smb_header.flags2.unicode == 1
                   set_common_timestamps(info, dirent)
                   info.end_of_file = dirent.size

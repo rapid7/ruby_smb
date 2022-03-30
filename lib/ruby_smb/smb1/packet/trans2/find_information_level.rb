@@ -32,6 +32,11 @@ module RubySMB
           # [NT LANMAN] Returns a combination of the data from SMB_FIND_FILE_FULL_DIRECTORY_INFO and SMB_FIND_FILE_NAMES_INFO.
           SMB_FIND_FILE_BOTH_DIRECTORY_INFO = 0x0104 # 260
 
+          def self.name(value)
+            constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+          end
+
+          require 'ruby_smb/smb1/packet/trans2/find_information_level/find_file_both_directory_info'
           require 'ruby_smb/smb1/packet/trans2/find_information_level/find_file_full_directory_info'
         end
       end
