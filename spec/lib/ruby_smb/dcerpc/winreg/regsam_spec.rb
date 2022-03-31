@@ -22,7 +22,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg::Regsam do
   it { is_expected.to respond_to :generic_execute }
   it { is_expected.to respond_to :generic_all }
   it { is_expected.to respond_to :reserved4 }
-  it { is_expected.to respond_to :maximum }
+  it { is_expected.to respond_to :maximum_allowed }
   it { is_expected.to respond_to :system_security }
 
 
