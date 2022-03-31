@@ -17,10 +17,10 @@ jobs:
       fail-fast: true
       matrix:
         ruby:
-          - 2.5
           - 2.6
           - 2.7
           - 3.0.3
+          - 3.1.1
         test_cmd:
           - bundle exec rspec
 
