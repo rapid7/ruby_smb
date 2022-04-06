@@ -44,7 +44,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
     end
 
     describe 'parameter_offset' do
-      it ' contains the absolute_offset to the data_block trans2_parameters field' do
+      it 'contains the absolute_offset to the data_block trans2_parameters field' do
         expect(parameter_block.parameter_offset).to eq packet.data_block.trans2_parameters.abs_offset
       end
     end

@@ -54,6 +54,34 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationResponse do
           expect(data.buffer).to be_a BinData::String
         end
       end
+
+      context 'when the buffer is empty' do
+        before :each do
+          data.buffer = ''
+        end
+
+        it 'should not be padded' do
+          expect(data_block.pad2.num_bytes).to eq 0
+        end
+
+        it 'should read its own binary representation' do
+          expect(packet.class.read(packet.to_binary_s).data_block.trans2_data.buffer).to eq ''
+        end
+      end
+
+      context 'when the buffer is not empty' do
+        before :each do
+          data.buffer = 'test'
+        end
+
+        it 'should be padded to a 4-byte boundary' do
+          expect(data_block.trans2_data.abs_offset % 4).to eq 0
+        end
+
+        it 'should read its own binary representation' do
+          expect(packet.class.read(packet.to_binary_s).data_block.trans2_data.buffer).to eq 'test'
+        end
+      end
     end
   end
 
