@@ -4,18 +4,22 @@ module RubySMB
     module Encryption
       def smb3_encrypt(data)
         unless @client_encryption_key
+          key_bit_len = OpenSSL::Cipher.new(@encryption_algorithm).key_len * 8
+
           case @dialect
           when '0x0300', '0x0302'
             @client_encryption_key = RubySMB::Crypto::KDF.counter_mode(
               @session_key,
               "SMB2AESCCM\x00",
-              "ServerIn \x00"
+              "ServerIn \x00",
+              length: key_bit_len
             )
           when '0x0311'
             @client_encryption_key = RubySMB::Crypto::KDF.counter_mode(
               @session_key,
               "SMBC2SCipherKey\x00",
-              @preauth_integrity_hash_value
+              @preauth_integrity_hash_value,
+              length: key_bit_len
             )
           else
             raise RubySMB::Error::EncryptionError.new('Dialect is incompatible with SMBv3 encryption')
@@ -33,18 +37,22 @@ module RubySMB
 
       def smb3_decrypt(th)
         unless @server_encryption_key
+          key_bit_len = OpenSSL::Cipher.new(@encryption_algorithm).key_len * 8
+
           case @dialect
           when '0x0300', '0x0302'
             @server_encryption_key = RubySMB::Crypto::KDF.counter_mode(
               @session_key,
               "SMB2AESCCM\x00",
-              "ServerOut\x00"
+              "ServerOut\x00",
+              length: key_bit_len
             )
           when '0x0311'
             @server_encryption_key = RubySMB::Crypto::KDF.counter_mode(
               @session_key,
               "SMBS2CCipherKey\x00",
-              @preauth_integrity_hash_value
+              @preauth_integrity_hash_value,
+              length: key_bit_len
             )
           else
             raise RubySMB::Error::EncryptionError.new('Dialect is incompatible with SMBv3 decryption')

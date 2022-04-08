@@ -265,8 +265,10 @@ module RubySMB
           nc = RubySMB::SMB2::NegotiateContext.new(
             context_type: RubySMB::SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES
           )
-          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_256_GCM
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_256_CCM
           nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+          nc.data.ciphers << RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
           packet.add_negotiate_context(nc)
 
           nc = RubySMB::SMB2::NegotiateContext.new(
