@@ -404,6 +404,12 @@ module RubySMB
           if response.is_a?(SMB2::Packet::ErrorPacket)
             response.smb2_header.command = header.command if response.smb2_header.command == 0
             response.smb2_header.flags.reply = 1
+            nt_status = response.smb2_header.nt_status.to_i
+            message = "Sending an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+            if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+              message << " (#{nt_status_name})"
+            end
+            logger.info(message)
           end
 
           response.smb2_header.credits = 1 if response.smb2_header.credits == 0
