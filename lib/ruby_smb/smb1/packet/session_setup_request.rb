@@ -34,13 +34,6 @@ module RubySMB
             stringz   0, initial_value: 'Windows 7 Ultimate N 6.1'
             stringz16 1, initial_value: 'Windows 7 Ultimate N 6.1'.encode('utf-16le')
           end
-
-          # This method checks if the optional pad field is present.
-          def has_padding?
-            parent.smb_header.flags2.unicode == 1 && pad.abs_offset % 2 == 1
-          end
-
-          private :has_padding?
         end
 
         smb_header        :smb_header
