@@ -44,7 +44,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
     end
 
     describe 'parameter_offset' do
-      it ' contains the absolute_offset to the data_block trans2_parameters field' do
+      it 'contains the absolute_offset to the data_block trans2_parameters field' do
         expect(parameter_block.parameter_offset).to eq packet.data_block.trans2_parameters.abs_offset
       end
     end
@@ -67,7 +67,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
     subject(:data_block) { packet.data_block }
 
     it 'is a Trans2 DataBlock' do
-      expect(data_block).to be_a RubySMB::SMB1::Packet::Trans2::DataBlock
+      expect(data_block).to be_a BinData::Choice
     end
 
     it { is_expected.to respond_to :trans2_parameters }
@@ -79,7 +79,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Response do
 
     it 'should keep #trans2_data 4-byte aligned' do
       data_block.trans2_parameters = 'a'
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
   end
 end

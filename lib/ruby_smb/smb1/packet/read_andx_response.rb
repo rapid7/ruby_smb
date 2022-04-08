@@ -22,13 +22,14 @@ module RubySMB
 
         # Represents the specific layout of the DataBlock for a {ReadAndxResponse} Packet.
         class DataBlock < RubySMB::SMB1::DataBlock
-          uint8  :pad,  label: 'Pad',  onlyif: -> { has_padding? }
+          uint8  :pad,  label: 'Pad',  onlyif: :has_padding?
           string :data, label: 'Data', read_length: -> { parent.parameter_block.data_length }
 
-          # This method checks if the optional pad field is present in the response.
+          # This method checks if the optional pad field is present.
           def has_padding?
-            return false if byte_count.zero?
-            return true if byte_count - parent.parameter_block.data_length == 1
+            bc = byte_count.clear? ? 0 : byte_count  # work around infinite recursion
+            return false if bc == 0
+            return true if bc - parent.parameter_block.data_length == 1
             false
           end
           private :has_padding?

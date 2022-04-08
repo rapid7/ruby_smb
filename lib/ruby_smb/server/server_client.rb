@@ -25,6 +25,7 @@ module RubySMB
         @server = server
         @dispatcher = dispatcher
         @dialect = nil
+        @sequence_counter = 0
         @gss_authenticator = server.gss_provider.new_authenticator(self)
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
@@ -75,8 +76,10 @@ module RubySMB
 
           begin
             response = handle_smb1(raw_request, header)
-          rescue NotImplementedError
-            logger.error("Caught a NotImplementedError while handling a #{SMB1::Commands.name(header.command)} request")
+          rescue NotImplementedError => e
+            message = "Caught a NotImplementedError while handling a #{SMB1::Commands.name(header.command)} request"
+            message << " (#{e.message})" if e.message
+            logger.error(message)
             response = RubySMB::SMB1::Packet::EmptyPacket.new
             response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
           end
@@ -86,6 +89,12 @@ module RubySMB
             if response.is_a?(SMB1::Packet::EmptyPacket)
               response.smb_header.command = header.command if response.smb_header.command == 0
               response.smb_header.flags.reply = 1
+              nt_status = response.smb_header.nt_status.to_i
+              message = "Sending an error packet for SMB1 command: #{SMB1::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+              if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+                message << " (#{nt_status_name})"
+              end
+              logger.info(message)
             end
 
             response.smb_header.pid_high = header.pid_high if response.smb_header.pid_high == 0
@@ -105,8 +114,10 @@ module RubySMB
 
           begin
             response = handle_smb2(raw_request, header)
-          rescue NotImplementedError
-            logger.error("Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request")
+          rescue NotImplementedError => e
+            message = "Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request"
+            message << " (#{e.message})" if e.message
+            logger.error(message)
             response = SMB2::Packet::ErrorPacket.new
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
           end
@@ -116,6 +127,12 @@ module RubySMB
             if response.is_a?(SMB2::Packet::ErrorPacket)
               response.smb2_header.command = header.command if response.smb2_header.command == 0
               response.smb2_header.flags.reply = 1
+              nt_status = response.smb2_header.nt_status.to_i
+              message = "Sending an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+              if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+                message << " (#{nt_status_name})"
+              end
+              logger.info(message)
             end
 
             response.smb2_header.credits = 1 if response.smb2_header.credits == 0
@@ -224,6 +241,8 @@ module RubySMB
 
         unless session.nil? || session.is_anonymous || session.key.nil?
           case metadialect&.family
+          when Dialect::FAMILY_SMB1
+            packet = Signing::smb1_sign(packet, session.key, @sequence_counter)
           when Dialect::FAMILY_SMB2
             packet = Signing::smb2_sign(packet, session.key)
           when Dialect::FAMILY_SMB3
@@ -231,6 +250,7 @@ module RubySMB
           end
         end
 
+        @sequence_counter += 1
         @dispatcher.send_packet(packet)
       end
 
@@ -260,12 +280,36 @@ module RubySMB
       # @param [RubySMB::SMB1::SMBHeader] header The request header.
       # @return [RubySMB::GenericPacket]
       def handle_smb1(raw_request, header)
-        # session = @session_table[header.uid]
-        session = nil
+        session = @session_table[header.uid]
+
+        if session.nil? && !(header.command == SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX && header.uid == 0)
+          response = SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+        if session&.state == :expired
+          response = SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED
+          return response
+        end
 
         case header.command
+        when SMB1::Commands::SMB_COM_CLOSE
+          dispatcher, request_class = :do_close_smb1, SMB1::Packet::CloseRequest
+        when SMB1::Commands::SMB_COM_TREE_DISCONNECT
+          dispatcher, request_class = :do_tree_disconnect_smb1, SMB1::Packet::TreeDisconnectRequest
+        when SMB1::Commands::SMB_COM_LOGOFF_ANDX
+          dispatcher, request_class = :do_logoff_andx_smb1, SMB1::Packet::LogoffRequest
+        when SMB1::Commands::SMB_COM_NT_CREATE_ANDX
+          dispatcher, request_class = :do_nt_create_andx_smb1, SMB1::Packet::NtCreateAndxRequest
+        when SMB1::Commands::SMB_COM_READ_ANDX
+          dispatcher, request_class = :do_read_andx_smb1, SMB1::Packet::ReadAndxRequest
         when SMB1::Commands::SMB_COM_SESSION_SETUP_ANDX
-          dispatcher, request_class = :do_session_setup_smb1, SMB1::Packet::SessionSetupRequest
+          dispatcher, request_class = :do_session_setup_andx_smb1, SMB1::Packet::SessionSetupRequest
+        when SMB1::Commands::SMB_COM_TRANSACTION2
+          dispatcher, request_class = :do_transactions2_smb1, SMB1::Packet::Trans2::Request
+        when SMB1::Commands::SMB_COM_TREE_CONNECT
+          dispatcher, request_class = :do_tree_connect_smb1, SMB1::Packet::TreeConnectRequest
         else
           logger.warn("The SMB1 #{SMB1::Commands.name(header.command)} command is not supported")
           raise NotImplementedError
@@ -276,10 +320,13 @@ module RubySMB
         rescue IOError, RubySMB::Error::InvalidPacket => e
           logger.error("Caught a #{e.class} while reading the SMB1 #{request_class} (#{e.message})")
           response = RubySMB::SMB1::Packet::EmptyPacket.new
+          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          return response
         end
 
         if request.is_a?(SMB1::Packet::EmptyPacket)
           logger.error("Received an error packet for SMB1 command: #{SMB1::Commands.name(header.command)}")
+          response = RubySMB::SMB1::Packet::EmptyPacket.new
           response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
           return response
         end
@@ -302,6 +349,11 @@ module RubySMB
         if session.nil? && !(header.command == SMB2::Commands::SESSION_SETUP && header.session_id == 0)
           response = SMB2::Packet::ErrorPacket.new
           response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+        if session&.state == :expired
+          response = SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED
           return response
         end
 

@@ -2,6 +2,41 @@ module RubySMB
   module SMB1
     module Packet
       module Trans2
+        # The Trans2 Parameter Block for this particular Subcommand
+        class FindNext2ResponseTrans2Parameters < BinData::Record
+          endian  :little
+
+          uint16  :search_count,      label: 'Search Count'
+          uint16  :eos,               label: 'End of Search'
+          uint16  :ea_error_offset,   label: 'Offset to EA Error'
+          uint16  :last_name_offset,  label: 'Last Name Offset'
+
+          # Returns the length of the Trans2Parameters struct
+          # in number of bytes
+          def length
+            do_num_bytes
+          end
+        end
+
+        # The Trans2 Data Block for this particular Subcommand
+        class FindNext2ResponseTrans2Data < BinData::Record
+          string :buffer, label: 'Results Buffer', read_length: :buffer_read_length
+
+          # Returns the length of the Trans2Data struct
+          # in number of bytes
+          def length
+            do_num_bytes
+          end
+        end
+
+        # The {RubySMB::SMB1::DataBlock} specific to this packet type.
+        class FindNext2ResponseDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
+          string                                 :pad1,               length: -> { pad1_length }
+          find_next2_response_trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
+          string                                 :pad2,               length: -> { pad2_length }
+          find_next2_response_trans2_data        :trans2_data,        label: 'Trans2 Data', length: 0
+        end
+
         # This class represents an SMB1 Trans2 FIND_NEXT2 Response Packet as defined in
         # [2.2.6.3.2 Response](https://msdn.microsoft.com/en-us/library/ee441871.aspx)
         class FindNext2Response < RubySMB::GenericPacket
@@ -10,44 +45,9 @@ module RubySMB
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock
           end
 
-          # The Trans2 Parameter Block for this particular Subcommand
-          class Trans2Parameters < BinData::Record
-            endian  :little
-
-            uint16  :search_count,      label: 'Search Count'
-            uint16  :eos,               label: 'End of Search'
-            uint16  :ea_error_offset,   label: 'Offset to EA Error'
-            uint16  :last_name_offset,  label: 'Last Name Offset'
-
-            # Returns the length of the Trans2Parameters struct
-            # in number of bytes
-            def length
-              do_num_bytes
-            end
-          end
-
-          # The Trans2 Data Block for this particular Subcommand
-          class Trans2Data < BinData::Record
-            rest :buffer, label: 'Results Buffer'
-
-            # Returns the length of the Trans2Data struct
-            # in number of bytes
-            def length
-              do_num_bytes
-            end
-          end
-
-          # The {RubySMB::SMB1::DataBlock} specific to this packet type.
-          class DataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
-            string             :pad1,               length: -> { pad1_length }
-            trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-            string             :pad2,               length: -> { pad2_length }
-            trans2_data        :trans2_data,        label: 'Trans2 Data', length: 0
-          end
-
-          smb_header        :smb_header
-          parameter_block   :parameter_block
-          data_block        :data_block
+          smb_header                      :smb_header
+          parameter_block                 :parameter_block
+          find_next2_response_data_block  :data_block
 
           def initialize_instance
             super

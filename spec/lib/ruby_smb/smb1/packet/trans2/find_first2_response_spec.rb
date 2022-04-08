@@ -24,7 +24,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it 'should have the setup set to the OPEN2 subcommand' do
+    it 'should have the setup set to the FIND_FIRST2 subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::FIND_FIRST2
     end
   end
@@ -40,7 +40,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
     end
 
     it 'should keep #trans2_data 4-byte aligned' do
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
 
     describe '#trans2_parameters' do
@@ -57,6 +57,40 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::FindFirst2Response do
       subject(:data) { data_block.trans2_data }
 
       it { is_expected.to respond_to :buffer }
+
+      describe '#buffer' do
+        it 'is a String field' do
+          expect(data.buffer).to be_a BinData::String
+        end
+      end
+
+      context 'when the buffer is empty' do
+        before :each do
+          data.buffer = ''
+        end
+
+        it 'should not be padded' do
+          expect(data_block.pad2.num_bytes).to eq 0
+        end
+
+        it 'should read its own binary representation' do
+          expect(packet.class.read(packet.to_binary_s).data_block.trans2_data.buffer).to eq ''
+        end
+      end
+
+      context 'when the buffer is not empty' do
+        before :each do
+          data.buffer = 'test'
+        end
+
+        it 'should be padded to a 4-byte boundary' do
+          expect(data_block.trans2_data.abs_offset % 4).to eq 0
+        end
+
+        it 'should read its own binary representation' do
+          expect(packet.class.read(packet.to_binary_s).data_block.trans2_data.buffer).to eq 'test'
+        end
+      end
     end
   end
 

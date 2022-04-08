@@ -5,6 +5,8 @@ module RubySMB
       # [2.2.4.46 SMB_COM_TRANSACTION2 (0x32)](https://msdn.microsoft.com/en-us/library/ee441652.aspx)
       module Trans2
         require 'ruby_smb/smb1/packet/trans2/find_information_level'
+        require 'ruby_smb/smb1/packet/trans2/query_information_level'
+        require 'ruby_smb/smb1/packet/trans2/query_fs_information_level'
         require 'ruby_smb/smb1/packet/trans2/data_block'
         require 'ruby_smb/smb1/packet/trans2/subcommands'
         require 'ruby_smb/smb1/packet/trans2/request'
@@ -18,6 +20,8 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/find_next2_response'
         require 'ruby_smb/smb1/packet/trans2/set_file_information_request'
         require 'ruby_smb/smb1/packet/trans2/set_file_information_response'
+        require 'ruby_smb/smb1/packet/trans2/query_path_information_request'
+        require 'ruby_smb/smb1/packet/trans2/query_path_information_response'
       end
     end
   end

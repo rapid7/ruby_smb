@@ -75,7 +75,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Request do
     subject(:data_block) { packet.data_block }
 
     it 'is a standard DataBlock' do
-      expect(data_block).to be_a RubySMB::SMB1::DataBlock
+      expect(data_block).to be_a BinData::Choice
     end
 
     it { is_expected.to respond_to :name }
@@ -88,7 +88,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::Request do
 
     it 'should keep #trans2_data 4-byte aligned' do
       data_block.trans2_parameters = 'a'
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
   end
 end

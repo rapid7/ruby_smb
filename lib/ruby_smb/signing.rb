@@ -6,17 +6,31 @@ module RubySMB
     #   @return [String]
     attr_accessor :session_key
 
-    # Take an SMB1 packet and sign it.
+    # Take an SMB1 packet and sign it. This version is an instance method that
+    # accesses the necessary values from the object instance.
     #
     # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb1_sign(packet)
-      # Pack the Sequence counter into a int64le
-      packed_sequence_counter = [@sequence_counter].pack('Q<')
-      packet.smb_header.security_features = packed_sequence_counter
-      signature = OpenSSL::Digest::MD5.digest(@session_key + packet.to_binary_s)[0, 8]
-      packet.smb_header.security_features = signature
+      packet = Signing::smb1_sign(packet, @session_key, @sequence_counter)
       @sequence_counter += 1
+
+      packet
+    end
+
+    # Take an SMB1 packet and sign it. This version is a module function that
+    # requires the necessary values to be explicitly passed to it.
+    #
+    # @param [RubySMB::GenericPacket] packet The packet to sign.
+    # @param [String] session_key The key to use for signing.
+    # @param [Integer] sequence_counter The sequence counter of packet to be sent.
+    # @return [RubySMB::GenericPacket] the signed packet
+    def self.smb1_sign(packet, session_key, sequence_counter)
+      # Pack the Sequence counter into a int64le
+      packed_sequence_counter = [sequence_counter].pack('Q<')
+      packet.smb_header.security_features = packed_sequence_counter
+      signature = OpenSSL::Digest::MD5.digest(session_key + packet.to_binary_s)[0, 8]
+      packet.smb_header.security_features = signature
 
       packet
     end

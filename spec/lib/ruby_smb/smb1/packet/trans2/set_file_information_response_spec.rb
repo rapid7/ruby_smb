@@ -8,7 +8,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
       expect(header).to be_a RubySMB::SMB1::SMBHeader
     end
 
-    it 'should have the command set to SMB_COM_NEGOTIATE' do
+    it 'should have the command set to SMB_COM_TRANSACTION2' do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
     end
 
@@ -20,7 +20,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it 'should have the setup set to the OPEN2 subcommand' do
+    it 'should have the setup set to the SET_FILE_INFORMATION subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::SET_FILE_INFORMATION
     end
   end
@@ -28,7 +28,12 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationResponse do
   describe '#data_block' do
     subject(:data_block) { packet.data_block }
 
+    it 'is a standard DataBlock' do
+      expect(data_block).to be_a RubySMB::SMB1::DataBlock
+    end
+
     it { is_expected.to respond_to :trans2_parameters }
+    it { is_expected.to_not respond_to :trans2_data }
 
     it 'should keep #trans2_parameters 4-byte aligned' do
       expect(data_block.trans2_parameters.abs_offset % 4).to eq 0

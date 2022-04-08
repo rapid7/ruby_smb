@@ -6,12 +6,12 @@ module RubySMB
       module Provider
         class Pipe < Base
           TYPE = TYPE_PIPE
-          class Processor < Processor::Base
+          class Processor < Provider::Processor::Base
           end
         end
 
         class IpcPipe < Pipe
-          class Processor < Processor::Base
+          class Processor < Provider::Processor::Base
             def maximal_access(path=nil)
               RubySMB::SMB2::BitField::DirectoryAccessMask.read([0x001f00a9].pack('V'))
             end

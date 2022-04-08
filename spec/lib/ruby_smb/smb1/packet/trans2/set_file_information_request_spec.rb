@@ -26,7 +26,7 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest do
       expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
     end
 
-    it 'should have the setup set to the OPEN2 subcommand' do
+    it 'should have the setup set to the SET_FILE_INFORMATION subcommand' do
       expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::SET_FILE_INFORMATION
     end
   end
@@ -47,7 +47,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::SetFileInformationRequest do
     end
 
     it 'should keep #trans2_data 4-byte aligned' do
-      expect(data_block.trans2_data.abs_offset % 4).to eq 0
+      data_block.trans2_parameters.information_level = FILE_DISPOSITION_INFORMATION + SMB_INFO_PASSTHROUGH
+      expect(data_block.trans2_data.abs_offset % 4).to eq 0 if data_block.trans2_data.num_bytes != 0
     end
 
     describe '#trans2_parameters' do
