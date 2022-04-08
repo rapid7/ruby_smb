@@ -4,6 +4,8 @@ module RubySMB
     module Encryption
       def smb3_encrypt(data)
         unless @client_encryption_key
+          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not be set') if @encryption_algorithm.nil?
+
           key_bit_len = OpenSSL::Cipher.new(@encryption_algorithm).key_len * 8
 
           case @dialect
@@ -37,6 +39,8 @@ module RubySMB
 
       def smb3_decrypt(th)
         unless @server_encryption_key
+          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not be set') if @encryption_algorithm.nil?
+
           key_bit_len = OpenSSL::Cipher.new(@encryption_algorithm).key_len * 8
 
           case @dialect
