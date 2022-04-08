@@ -24,11 +24,13 @@ module RubySMB
         # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
           string      :security_blob,  label: 'Security Blob (GSS-API)', length: -> { parent.parameter_block.security_blob_length }
-          choice :native_os, label: 'Native OS', selection: -> { parent.smb_header.flags2.unicode } do
+          uint8       :pad1,           label: 'Pad 1', onlyif: -> { parent.smb_header.flags2.unicode == 1 && pad1.abs_offset % 2 == 1 }
+          choice      :native_os,      label: 'Native OS', selection: -> { parent.smb_header.flags2.unicode } do
             stringz   0, initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
             stringz16 1, initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'.encode('utf-16le')
           end
-          choice :native_lan_man, label: 'Native LAN Manager', selection: -> { parent.smb_header.flags2.unicode } do
+          uint8       :pad2,           label: 'Pad 2', onlyif: -> { parent.smb_header.flags2.unicode == 1 && pad2.abs_offset % 2 == 1 }
+          choice      :native_lan_man, label: 'Native LAN Manager', selection: -> { parent.smb_header.flags2.unicode } do
             stringz   0, initial_value: 'Windows 7 Ultimate N 6.1'
             stringz16 1, initial_value: 'Windows 7 Ultimate N 6.1'.encode('utf-16le')
           end
@@ -47,7 +49,7 @@ module RubySMB
 
         # Takes an NTLM Type 1 Message and creates the GSS Security Blob
         # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
-        # field. It also automaticaly sets the length in
+        # field. It also automatically sets the length in
         # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
         #
         # @param type1_message [String] the serialized Type 1 NTLM message
