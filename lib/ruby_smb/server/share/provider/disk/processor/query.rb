@@ -286,9 +286,11 @@ module RubySMB
                 case request.data_block.trans2_parameters.information_level
                 when SMB1::Packet::Trans2::QueryFsInformationLevel::SMB_QUERY_FS_ATTRIBUTE_INFO
                   info = SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsAttributeInfo.new
-                  info.flags.file_case_sensitive_search = 1
-                  info.flags.file_case_preserved_names = 1
-                  info.flags.file_unicode_on_disk = 1
+                  info.file_system_attributes.file_case_sensitive_search = FILE_SYSTEM.case_sensitive_search
+                  info.file_system_attributes.file_case_preserved_names = FILE_SYSTEM.case_preserved_names
+                  info.file_system_attributes.file_unicode_on_disk = FILE_SYSTEM.unicode_on_disk
+                  info.max_file_name_length_in_bytes = FILE_SYSTEM.max_name_bytes
+                  info.file_system_name = FILE_SYSTEM.name
                 else
                   level = request.data_block.trans2_parameters.information_level
                   logger.warn("Can not handle TRANSACTION2 QUERY_FS request for information level #{level} (#{SMB1::Packet::Trans2::QueryFsInformationLevel.name(level)})")
@@ -326,16 +328,15 @@ module RubySMB
 
                 case request.file_information_class
                 when Fscc::FileSystemInformation::FILE_FS_ATTRIBUTE_INFORMATION
-                  # emulate NTFS just like Samba does
                   info = Fscc::FileSystemInformation::FileFsAttributeInformation.new(
                     file_system_attributes: {
-                      file_case_sensitive_search: 1,
-                      file_case_preserved_names: 1,
-                      file_unicode_on_disk: 1,
+                      file_case_sensitive_search: FILE_SYSTEM.case_sensitive_search,
+                      file_case_preserved_names: FILE_SYSTEM.case_preserved_names,
+                      file_unicode_on_disk: FILE_SYSTEM.unicode_on_disk,
                       file_supports_object_ids: 1,
                     },
-                    maximum_component_name_length: 255,
-                    file_system_name: 'NTFS'
+                    maximum_component_name_length: FILE_SYSTEM.max_name_bytes,
+                    file_system_name: FILE_SYSTEM.name
                   )
                 when Fscc::FileSystemInformation::FILE_FS_VOLUME_INFORMATION
                   info = Fscc::FileSystemInformation::FileFsVolumeInformation.new(

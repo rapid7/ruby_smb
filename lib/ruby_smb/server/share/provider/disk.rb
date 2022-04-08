@@ -1,3 +1,4 @@
+require 'ruby_smb/server/share/provider/disk/file_system'
 require 'ruby_smb/server/share/provider/disk/processor'
 
 module RubySMB
@@ -6,6 +7,8 @@ module RubySMB
       module Provider
         class Disk < Base
           TYPE = TYPE_DISK
+          # emulate NTFS just like Samba does
+          FILE_SYSTEM = FileSystem::NTFS
 
           def initialize(name, path)
             path = Pathname.new(File.expand_path(path))
