@@ -103,6 +103,10 @@ module RubySMB
       SMB2_NETNAME_NEGOTIATE_CONTEXT_ID    = 0x0005
       # The NegotiateContext Data field contains the transport capabilities, as specified in section 2.2.3.1.5.
       SMB2_TRANSPORT_CAPABILITIES          = 0x0006
+      # The NegotiateContext Data field contains the RDMA transform capabilities, as specified in section 2.2.3.1.6.
+      SMB2_RDMA_TRANSFORM_CAPABILITIES     = 0x0007
+      # The NegotiateContext Data field contains the signing capabilities, as specified in section 2.2.3.1.7.
+      SMB2_SIGNING_CAPABILITIES            = 0x0008
 
       endian  :little
 
@@ -116,6 +120,7 @@ module RubySMB
         compression_capabilities       SMB2_COMPRESSION_CAPABILITIES,       label: 'Compression Capabilities'
         netname_negotiate_context_id   SMB2_NETNAME_NEGOTIATE_CONTEXT_ID,   label: 'Netname Negotiate Context ID', data_length: :data_length
         transport_capabilities         SMB2_TRANSPORT_CAPABILITIES,         label: 'Transport Capabilities'
+        string                         :default,                            label: 'Unsupported Negotiating Context', read_length: :data_length
       end
 
       def pad_length
