@@ -119,7 +119,8 @@ module RubySMB
             )
 
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
-            if (ciphers = nc&.data&.ciphers)
+            ciphers = nc&.data&.ciphers
+            if ciphers
               cipher = ciphers.find { |cipher| SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include?(cipher) }
               @cipher_id = cipher unless cipher.nil?
             end

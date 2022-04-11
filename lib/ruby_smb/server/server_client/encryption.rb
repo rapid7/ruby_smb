@@ -5,7 +5,7 @@ module RubySMB
       module Encryption
         def smb3_encrypt(data, session)
           encryption_algorithm = SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@cipher_id]
-          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not be set') if encryption_algorithm.nil?
+          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not been set') if encryption_algorithm.nil?
 
           key_bit_len = OpenSSL::Cipher.new(encryption_algorithm).key_len * 8
 
@@ -35,7 +35,7 @@ module RubySMB
 
         def smb3_decrypt(encrypted_request, session)
           encryption_algorithm = SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP[@cipher_id]
-          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not be set') if encryption_algorithm.nil?
+          raise RubySMB::Error::EncryptionError.new('The encryption algorithm has not been set') if encryption_algorithm.nil?
 
           key_bit_len = OpenSSL::Cipher.new(encryption_algorithm).key_len * 8
 
