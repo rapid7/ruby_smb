@@ -119,16 +119,15 @@ module RubySMB
             )
 
             nc = request.find_negotiate_context(SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES)
-            cipher = nc&.data&.ciphers&.first
-            if SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include? cipher
-              @cipher_id = cipher
-            else
-              cipher = 0
+            if (ciphers = nc&.data&.ciphers)
+              cipher = ciphers.find { |cipher| SMB2::EncryptionCapabilities::ENCRYPTION_ALGORITHM_MAP.include?(cipher) }
+              @cipher_id = cipher unless cipher.nil?
             end
+
             contexts << SMB2::NegotiateContext.new(
               context_type: SMB2::NegotiateContext::SMB2_ENCRYPTION_CAPABILITIES,
               data: {
-                ciphers: [ cipher ]
+                ciphers: [ @cipher_id ]
               }
             )
           elsif dialect == '0x0300' || dialect == '0x0302'
