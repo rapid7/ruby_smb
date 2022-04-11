@@ -23,7 +23,7 @@ module RubySMB
         # for the security blob, you must null-terminate the {native_os} and {native_lan_man} fields
         # yourself if you set them away from their defaults.
         class DataBlock < RubySMB::SMB1::DataBlock
-          string      :security_blob,  label: 'Security Blob (GSS-API)', length: -> { parent.parameter_block.security_blob_length }
+          string      :security_blob,  label: 'Security Blob (GSS-API)', read_length: -> { parent.parameter_block.security_blob_length }
           uint8       :pad1,           label: 'Pad 1', onlyif: -> { parent.smb_header.flags2.unicode == 1 && pad1.abs_offset % 2 == 1 }
           choice      :native_os,      label: 'Native OS', selection: -> { parent.smb_header.flags2.unicode } do
             stringz   0, initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
