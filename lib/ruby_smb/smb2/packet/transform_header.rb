@@ -8,7 +8,7 @@ module RubySMB
         hide   :reserved0
 
         endian           :little
-        bit32            :protocol,              label: 'Protocol ID Field',      initial_value: 0xFD534D42
+        bit32            :protocol,              label: 'Protocol ID Field',      initial_value: RubySMB::SMB2::SMB2_TRANSFORM_PROTOCOL_ID
         string           :signature,             label: 'Signature', length: 16
         string           :nonce,                 label: 'Nonce',     length: 16
         uint32           :original_message_size, label: 'Original Message Size'

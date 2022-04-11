@@ -6,12 +6,14 @@ module RubySMB
 
       require 'ruby_smb/dialect'
       require 'ruby_smb/signing'
+      require 'ruby_smb/server/server_client/encryption'
       require 'ruby_smb/server/server_client/negotiation'
       require 'ruby_smb/server/server_client/session_setup'
       require 'ruby_smb/server/server_client/share_io'
       require 'ruby_smb/server/server_client/tree_connect'
 
       include RubySMB::Signing
+      include RubySMB::Server::ServerClient::Encryption
       include RubySMB::Server::ServerClient::Negotiation
       include RubySMB::Server::ServerClient::SessionSetup
       include RubySMB::Server::ServerClient::ShareIO
@@ -26,6 +28,7 @@ module RubySMB
         @dispatcher = dispatcher
         @dialect = nil
         @sequence_counter = 0
+        @cipher_id = 0
         @gss_authenticator = server.gss_provider.new_authenticator(self)
         @preauth_integrity_hash_algorithm = nil
         @preauth_integrity_hash_value = nil
@@ -104,41 +107,23 @@ module RubySMB
             response.smb_header.mid = header.mid if response.smb_header.mid == 0
           end
         when RubySMB::SMB2::SMB2_PROTOCOL_ID
+          response = _handle_smb2(raw_request)
+        when RubySMB::SMB2::SMB2_TRANSFORM_PROTOCOL_ID
           begin
-            header = RubySMB::SMB2::SMB2Header.read(raw_request)
+            header = RubySMB::SMB2::Packet::TransformHeader.read(raw_request)
           rescue IOError => e
-            logger.error("Caught a #{e.class} while reading the SMB2 header (#{e.message})")
+            logger.error("Caught a #{e.class} while reading the SMB3 Transform header")
             disconnect!
             return
           end
 
           begin
-            response = handle_smb2(raw_request, header)
-          rescue NotImplementedError => e
-            message = "Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request"
-            message << " (#{e.message})" if e.message
-            logger.error(message)
+            response = handle_smb3_transform(raw_request, header)
+          rescue NotImplementedError
+            logger.error("Caught a NotImplementedError while handling a SMB3 Transform request")
             response = SMB2::Packet::ErrorPacket.new
             response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
-          end
-
-          unless response.nil?
-            # set these header fields if they were not initialized
-            if response.is_a?(SMB2::Packet::ErrorPacket)
-              response.smb2_header.command = header.command if response.smb2_header.command == 0
-              response.smb2_header.flags.reply = 1
-              nt_status = response.smb2_header.nt_status.to_i
-              message = "Sending an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
-              if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
-                message << " (#{nt_status_name})"
-              end
-              logger.info(message)
-            end
-
-            response.smb2_header.credits = 1 if response.smb2_header.credits == 0
-            response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0
-            response.smb2_header.session_id = header.session_id if response.smb2_header.session_id == 0
-            response.smb2_header.tree_id = header.tree_id if response.smb2_header.tree_id == 0
+            response.smb2_header.session_id = header.session_id
           end
         end
 
@@ -210,17 +195,8 @@ module RubySMB
 
         packet = @dispatcher.recv_packet
         if packet && packet.length >= 4 && packet[0...4].unpack1('L>') == RubySMB::SMB2::SMB2_PROTOCOL_ID
-          header = RubySMB::SMB2::SMB2Header.read(packet)
-          unless header.next_command == 0
-            until header.next_command == 0
-              @in_packet_queue.push(packet[0...header.next_command])
-              packet = packet[header.next_command..-1]
-              header = RubySMB::SMB2::SMB2Header.read(packet)
-            end
-
-            @in_packet_queue.push(packet)
-            packet = @in_packet_queue.shift
-          end
+          @in_packet_queue += split_smb2_chain(packet)
+          packet = @in_packet_queue.shift
         end
 
         packet
@@ -231,15 +207,21 @@ module RubySMB
       #
       # @param [GenericPacket] packet the packet to send
       def send_packet(packet)
-        case metadialect&.order
-        when Dialect::ORDER_SMB1
+        case metadialect&.family
+        when Dialect::FAMILY_SMB1
           session_id = packet.smb_header.uid
-        when Dialect::ORDER_SMB2
+        when Dialect::FAMILY_SMB2
           session_id = packet.smb2_header.session_id
+        when Dialect::FAMILY_SMB3
+          if packet.is_a?(RubySMB::SMB2::Packet::TransformHeader)
+            session_id = packet.session_id
+          else
+            session_id = packet.smb2_header.session_id
+          end
         end
         session = @session_table[session_id]
 
-        unless session.nil? || session.is_anonymous || session.key.nil?
+        unless session.nil? || session.is_anonymous || session.key.nil? || packet.is_a?(RubySMB::SMB2::Packet::TransformHeader)
           case metadialect&.family
           when Dialect::FAMILY_SMB1
             packet = Signing::smb1_sign(packet, session.key, @sequence_counter)
@@ -398,6 +380,82 @@ module RubySMB
 
         logger.debug("Dispatching request to #{dispatcher} (session: #{session.inspect})")
         send(dispatcher, request, session)
+      end
+
+      def _handle_smb2(raw_request)
+        begin
+          header = RubySMB::SMB2::SMB2Header.read(raw_request)
+        rescue IOError => e
+          logger.error("Caught a #{e.class} while reading the SMB2 header (#{e.message})")
+          disconnect!
+          return
+        end
+
+        begin
+          response = handle_smb2(raw_request, header)
+        rescue NotImplementedError
+          logger.error("Caught a NotImplementedError while handling a #{SMB2::Commands.name(header.command)} request")
+          response = SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_NOT_SUPPORTED
+        end
+
+        unless response.nil?
+          # set these header fields if they were not initialized
+          if response.is_a?(SMB2::Packet::ErrorPacket)
+            response.smb2_header.command = header.command if response.smb2_header.command == 0
+            response.smb2_header.flags.reply = 1
+            nt_status = response.smb2_header.nt_status.to_i
+            message = "Sending an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}, status: 0x#{nt_status.to_s(16).rjust(8, '0')}"
+            if (nt_status_name = WindowsError::NTStatus.find_by_retval(nt_status).first&.name)
+              message << " (#{nt_status_name})"
+            end
+            logger.info(message)
+          end
+
+          response.smb2_header.credits = 1 if response.smb2_header.credits == 0
+          response.smb2_header.message_id = header.message_id if response.smb2_header.message_id == 0
+          response.smb2_header.session_id = header.session_id if response.smb2_header.session_id == 0
+          response.smb2_header.tree_id = header.tree_id if response.smb2_header.tree_id == 0
+        end
+
+        response
+      end
+
+      def handle_smb3_transform(raw_request, header)
+        session = @session_table[header.session_id]
+        if session.nil?
+          response = SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
+          return response
+        end
+
+        chain = split_smb2_chain(smb3_decrypt(header, session))
+        chain[0...-1].each do |pt_raw_request|
+          pt_response = _handle_smb2(pt_raw_request)
+          return if pt_response.nil?
+
+          send_packet(smb3_encrypt(pt_response, session))
+        end
+
+        pt_response = _handle_smb2(chain.last)
+        return if pt_response.nil?
+
+        smb3_encrypt(pt_response, session)
+      end
+
+      def split_smb2_chain(buffer)
+        chain = []
+        header = RubySMB::SMB2::SMB2Header.read(buffer)
+        unless header.next_command == 0
+          until header.next_command == 0
+            chain << buffer[0...header.next_command]
+            buffer = buffer[header.next_command..-1]
+            header = RubySMB::SMB2::SMB2Header.read(buffer)
+          end
+        end
+
+        chain << buffer
+        chain
       end
     end
   end
