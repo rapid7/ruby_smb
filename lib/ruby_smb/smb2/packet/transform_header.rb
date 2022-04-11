@@ -22,13 +22,13 @@ module RubySMB
           encrypted_data = self.encrypted_data.to_ary.pack('C*')
 
           case algorithm
-          when 'AES-128-CCM'
+          when 'AES-128-CCM', 'AES-256-CCM'
             cipher = OpenSSL::CCM.new('AES', key, 16)
             unencrypted_data = cipher.decrypt(encrypted_data + self.signature, self.nonce[0...11], auth_data)
             unless unencrypted_data.length > 0
               raise OpenSSL::Cipher::CipherError  # raised for consistency with GCM mode
             end
-          when 'AES-128-GCM'
+          when 'AES-128-GCM', 'AES-256-GCM'
             cipher = OpenSSL::Cipher.new(algorithm).decrypt
             cipher.key = key
             cipher.iv = self.nonce[0...12]
@@ -37,7 +37,7 @@ module RubySMB
             unencrypted_data = cipher.update(encrypted_data)
             cipher.final # raises OpenSSL::Cipher::CipherError on signature failure
           else
-            raise ArgumentError.new('Invalid algorithm, must be either AES-128-CCM or AES-128-GCM')
+            raise ArgumentError.new('Invalid algorithm, must be one of AES-128-CCM, AES-128-GCM, AES-256-CCM, or AES-256-GCM')
           end
 
           unencrypted_data[0...self.original_message_size]
@@ -53,14 +53,14 @@ module RubySMB
           self.original_message_size.assign(unencrypted_data.length)
 
           case algorithm
-          when 'AES-128-CCM'
+          when 'AES-128-CCM', 'AES-256-CCM'
             cipher = OpenSSL::CCM.new('AES', key, 16)
             random_iv = OpenSSL::Random.random_bytes(11)
             self.nonce.assign(random_iv)
             result = cipher.encrypt(unencrypted_data, random_iv, self.to_binary_s[20...52])
             encrypted_data = result[0...-16]
             auth_tag = result[-16..-1]
-          when 'AES-128-GCM'
+          when 'AES-128-GCM', 'AES-256-GCM'
             cipher = OpenSSL::Cipher.new(algorithm).encrypt
             cipher.iv_len = 12
             cipher.key = key
@@ -69,7 +69,7 @@ module RubySMB
             encrypted_data = cipher.update(unencrypted_data) + cipher.final
             auth_tag = cipher.auth_tag
           else
-            raise ArgumentError.new('Invalid algorithm, must be either AES-128-CCM or AES-128-GCM')
+            raise ArgumentError.new('Invalid algorithm, must be one of AES-128-CCM, AES-128-GCM, AES-256-CCM, or AES-256-GCM')
           end
 
           self.encrypted_data.assign(encrypted_data.bytes)

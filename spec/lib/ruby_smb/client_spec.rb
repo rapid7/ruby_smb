@@ -962,8 +962,10 @@ RSpec.describe RubySMB::Client do
           expect(nc.length).to eq(1)
           expect(nc.first.data.ciphers).to eq(
             [
-              RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM,
-              RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM
+              RubySMB::SMB2::EncryptionCapabilities::AES_256_GCM,
+              RubySMB::SMB2::EncryptionCapabilities::AES_256_CCM,
+              RubySMB::SMB2::EncryptionCapabilities::AES_128_GCM,
+              RubySMB::SMB2::EncryptionCapabilities::AES_128_CCM
             ]
           )
         end
@@ -2681,13 +2683,15 @@ RSpec.describe RubySMB::Client do
         context "with #{dialect} dialect" do
           before :example do
             client.dialect = dialect
+            client.encryption_algorithm = 'AES-128-CCM'
           end
 
           it 'generates the client encryption key with the expected parameters' do
             expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
               session_key,
               "SMB2AESCCM\x00",
-              "ServerIn \x00"
+              "ServerIn \x00",
+              {length: 128}
             ).and_call_original
             client.smb3_encrypt(data)
           end
@@ -2698,10 +2702,12 @@ RSpec.describe RubySMB::Client do
         it 'generates the client encryption key with the expected parameters' do
           client.preauth_integrity_hash_value = ''
           client.dialect = '0x0311'
+          client.encryption_algorithm = 'AES-128-CCM'
           expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
             session_key,
             "SMBC2SCipherKey\x00",
-            ''
+            '',
+            {length: 128}
           ).and_call_original
           client.smb3_encrypt(data)
         end
@@ -2723,6 +2729,7 @@ RSpec.describe RubySMB::Client do
 
       it 'generates the expected client encryption key with 0x0302 dialect' do
         client.dialect = '0x0302'
+        client.encryption_algorithm = 'AES-128-CCM'
         expected_enc_key =
           "\xa4\xfa\x23\xc1\xb0\x65\x84\xce\x47\x08\x5b\xe0\x64\x98\xd7\x87".b
         client.smb3_encrypt(data)
@@ -2731,6 +2738,7 @@ RSpec.describe RubySMB::Client do
 
       it 'generates the expected client encryption key with 0x0311 dialect' do
         client.dialect = '0x0311'
+        client.encryption_algorithm = 'AES-128-CCM'
         client.session_key =
           "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b
         client.preauth_integrity_hash_value =
@@ -2765,13 +2773,15 @@ RSpec.describe RubySMB::Client do
         context "with #{dialect} dialect" do
           before :example do
             client.dialect = dialect
+            client.encryption_algorithm = 'AES-128-CCM'
           end
 
           it 'generates the client encryption key with the expected parameters' do
             expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
               session_key,
               "SMB2AESCCM\x00",
-              "ServerOut\x00"
+              "ServerOut\x00",
+              {length: 128}
             ).and_call_original
             client.smb3_decrypt(transform_packet)
           end
@@ -2782,10 +2792,12 @@ RSpec.describe RubySMB::Client do
         it 'generates the client encryption key with the expected parameters' do
           client.preauth_integrity_hash_value = ''
           client.dialect = '0x0311'
+          client.encryption_algorithm = 'AES-128-CCM'
           expect(RubySMB::Crypto::KDF).to receive(:counter_mode).with(
             session_key,
             "SMBS2CCipherKey\x00",
-            ''
+            '',
+            {length: 128}
           ).and_call_original
           client.smb3_decrypt(transform_packet)
         end
@@ -2806,6 +2818,7 @@ RSpec.describe RubySMB::Client do
 
       it 'generates the expected server encryption key with 0x0302 dialect' do
         client.dialect = '0x0302'
+        client.encryption_algorithm = 'AES-128-CCM'
         expected_enc_key =
           "\x65\x21\xd3\x6d\xe9\xe3\x5a\x66\x09\x61\xae\x3e\xc6\x49\x6b\xdf".b
         client.smb3_decrypt(transform_packet)
@@ -2814,6 +2827,7 @@ RSpec.describe RubySMB::Client do
 
       it 'generates the expected server encryption key with 0x0311 dialect' do
         client.dialect = '0x0311'
+        client.encryption_algorithm = 'AES-128-CCM'
         client.session_key =
           "\x5c\x00\x4a\x3b\xf0\xa2\x4f\x75\x4c\xb2\x74\x0a\xcf\xc4\x8e\x1a".b
         client.preauth_integrity_hash_value =

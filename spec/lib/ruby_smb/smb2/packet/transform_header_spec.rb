@@ -69,7 +69,7 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     it 'raises the expected exception if the given algorithm is invalid' do
       expect { packet.decrypt(key, algorithm: 'RC4') }.to raise_error(
         RubySMB::Error::EncryptionError,
-        'Error while decrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be either AES-128-CCM or AES-128-GCM)'
+        'Error while decrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be one of AES-128-CCM, AES-128-GCM, AES-256-CCM, or AES-256-GCM)'
       )
     end
 
@@ -141,7 +141,7 @@ RSpec.describe RubySMB::SMB2::Packet::TransformHeader do
     it 'raises the expected exception if the given algorithm is invalid' do
       expect { packet.encrypt(struct, key, algorithm: 'RC4') }.to raise_error(
         RubySMB::Error::EncryptionError,
-        'Error while encrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be either AES-128-CCM or AES-128-GCM)'
+        'Error while encrypting with \'RC4\' (ArgumentError: Invalid algorithm, must be one of AES-128-CCM, AES-128-GCM, AES-256-CCM, or AES-256-GCM)'
       )
     end
 
