@@ -5,7 +5,7 @@ module RubySMB
     module Negotiation
       # Handles the entire SMB Multi-Protocol Negotiation from the
       # Client to the Server. It sets state on the client appropriate
-      # to the protocol and capabilites negotiated during the exchange.
+      # to the protocol and capabilities negotiated during the exchange.
       # It also keeps track of the negotiated dialect.
       #
       # @return [void]
@@ -23,13 +23,13 @@ module RubySMB
           update_preauth_hash(response_packet)
         end
 
-        # If the response contains the SMB2 wildcard revision number dialect;
-        # it indicates that the server implements SMB 2.1 or future dialect
-        # revisions and expects the client to send a subsequent SMB2 Negotiate
+        # If the response contains an SMB2 dialect and the request was SMB1;
+        # it indicates that the server SMB2 and wants to upgrade the connection,
+        # the server expects the client to send a subsequent SMB2 Negotiate
         # request to negotiate the actual SMB 2 Protocol revision to be used.
         # The wildcard revision number is sent only in response to a
         # multi-protocol negotiate request with the "SMB 2.???" dialect string.
-        if @dialect == '0x02ff'
+        if request_packet.packet_smb_version == 'SMB1' && RubySMB::Dialect[@dialect].order == RubySMB::Dialect::ORDER_SMB2
           self.smb2_message_id += 1
           version = negotiate
         end
