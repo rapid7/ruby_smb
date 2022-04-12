@@ -29,7 +29,7 @@ module RubySMB
         # request to negotiate the actual SMB 2 Protocol revision to be used.
         # The wildcard revision number is sent only in response to a
         # multi-protocol negotiate request with the "SMB 2.???" dialect string.
-        if request_packet.packet_smb_version == 'SMB1' && RubySMB::Dialect[@dialect].order == RubySMB::Dialect::ORDER_SMB2
+        if request_packet.packet_smb_version == 'SMB1' && RubySMB::Dialect[@dialect]&.order == RubySMB::Dialect::ORDER_SMB2
           self.smb2_message_id += 1
           version = negotiate
         end
