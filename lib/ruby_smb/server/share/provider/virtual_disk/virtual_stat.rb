@@ -10,6 +10,10 @@ module RubySMB
               @birthtime = kwargs[:birthtime] || Time.now
             end
 
+            def exist?
+              true
+            end
+
             def blksize
               @values[:blksize] || 4096
             end

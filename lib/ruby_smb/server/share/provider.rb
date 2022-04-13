@@ -36,3 +36,4 @@ end
 
 require 'ruby_smb/server/share/provider/disk'
 require 'ruby_smb/server/share/provider/pipe'
+require 'ruby_smb/server/share/provider/virtual_disk'
