@@ -1279,6 +1279,9 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'calls the backing methods' do
+        request_packet = double('Request packet')
+        allow(client).to receive(:negotiate_request).and_return(request_packet)
+        allow(request_packet).to receive(:packet_smb_version)
         expect(client).to receive(:negotiate_request)
         expect(client).to receive(:send_recv)
         expect(client).to receive(:negotiate_response)
@@ -1319,14 +1322,20 @@ RSpec.describe RubySMB::Client do
 
         it 'increments the message ID' do
           expect(client).to receive(:smb2_message_id=).with(1)
+          expect(client).to receive(:negotiate_request).twice.and_call_original
+          expect(client).to receive(:parse_negotiate_response).twice do
+            client.smb1 = false
+          end
           client.negotiate
         end
 
         it 're-negotiates' do
-          expect(client).to receive(:negotiate_request).twice
+          expect(client).to receive(:negotiate_request).twice.and_call_original
           expect(client).to receive(:send_recv).twice
           expect(client).to receive(:negotiate_response).twice
-          expect(client).to receive(:parse_negotiate_response).twice
+          expect(client).to receive(:parse_negotiate_response).twice do
+            client.smb1 = false
+          end
           client.negotiate
         end
       end
