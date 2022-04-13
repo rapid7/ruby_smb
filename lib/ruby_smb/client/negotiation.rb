@@ -24,10 +24,10 @@ module RubySMB
         end
 
         # If the response contains an SMB2 dialect and the request was SMB1;
-        # it indicates that the server SMB2 and wants to upgrade the connection,
-        # the server expects the client to send a subsequent SMB2 Negotiate
-        # request to negotiate the actual SMB 2 Protocol revision to be used.
-        # The wildcard revision number is sent only in response to a
+        # it indicates that the server supports SMB2 and wants to upgrade the
+        # connection. The server expects the client to send a subsequent SMB2
+        # Negotiate request to negotiate the actual SMB 2 Protocol revision to
+        # be used. The wildcard revision number is sent only in response to a
         # multi-protocol negotiate request with the "SMB 2.???" dialect string.
         if request_packet.packet_smb_version == 'SMB1' && RubySMB::Dialect[@dialect]&.order == RubySMB::Dialect::ORDER_SMB2
           self.smb2_message_id += 1

@@ -1279,13 +1279,13 @@ RSpec.describe RubySMB::Client do
       end
 
       it 'calls the backing methods' do
-        expect(client).to receive(:negotiate_request).twice.and_call_original
+        request_packet = double('Request packet')
+        allow(client).to receive(:negotiate_request).and_return(request_packet)
+        allow(request_packet).to receive(:packet_smb_version)
+        expect(client).to receive(:negotiate_request)
         expect(client).to receive(:send_recv)
         expect(client).to receive(:negotiate_response)
-        expect(client).to receive(:parse_negotiate_response).twice do
-          client.dialect = '0x02ff'
-          client.smb1 = false
-        end
+        expect(client).to receive(:parse_negotiate_response)
         client.negotiate
       end
 
