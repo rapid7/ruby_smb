@@ -11,8 +11,10 @@ module RubySMB
           FILE_SYSTEM = FileSystem::NTFS
 
           def initialize(name, path)
-            path = Pathname.new(File.expand_path(path))
-            raise ArgumentError unless path.directory?
+            path = Pathname.new(File.expand_path(path)) if path.is_a?(String)
+            raise ArgumentError.new('path must be a directory') unless path.directory? # it needs to exist
+            raise ArgumentError.new('path must be absolute') unless path.absolute? # it needs to be absolute so it is independent of the cwd
+
             @path = path
             super(name)
           end

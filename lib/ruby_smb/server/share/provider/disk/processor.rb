@@ -16,7 +16,7 @@ module RubySMB
             include RubySMB::Server::Share::Provider::Disk::Processor::Query
             include RubySMB::Server::Share::Provider::Disk::Processor::Read
 
-            Handle = Struct.new(:remote_path, :local_path, :durable?)
+            Handle = Struct.new(:remote_path, :local_path, :durable?, :file)
             def initialize(provider, server_client, session)
               super
               @handles = {}
