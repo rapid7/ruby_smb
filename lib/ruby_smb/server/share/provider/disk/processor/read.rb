@@ -21,7 +21,7 @@ module RubySMB
 
                 response = SMB1::Packet::ReadAndxResponse.new
                 response.parameter_block.available = 0xffff  # this field is only used for named pipes, must be -1 for all others
-                unless buffer.empty?
+                unless buffer.nil?
                   response.parameter_block.data_length = buffer.length
                   response.parameter_block.data_offset = response.data_block.data.abs_offset
                   response.data_block.data = buffer

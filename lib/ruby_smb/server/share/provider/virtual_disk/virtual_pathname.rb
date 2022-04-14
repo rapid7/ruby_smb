@@ -45,6 +45,10 @@ module RubySMB
               other.is_a?(self.class) && other.to_s == to_s
             end
 
+            def <=>(other)
+              to_s <=> other.to_s
+            end
+
             def join(other)
               sep = to_s[SEPARATOR] || File::SEPARATOR
               lookup_or_create(to_s + sep + other.to_s)
@@ -70,8 +74,17 @@ module RubySMB
             end
 
             def dirname
+              return self if to_s.length == 1 && to_s =~ SEPARATOR
+
               name = to_s.rpartition(SEPARATOR).first
-              lookup_or_create(name.empty? ? '.' : '')
+              if name.empty?
+                if absolute?
+                  name = to_s[0]
+                else
+                  name = '.'
+                end
+              end
+              lookup_or_create(name)
             end
 
             def extname
@@ -82,10 +95,21 @@ module RubySMB
               [dirname, basename]
             end
 
-            def entries
+            alias :parent :dirname
+
+            def children(with_directory=true)
               raise Errno::ENOTDIR.new("Not a directory @ dir_initialize - #{to_s}") unless directory?
 
-              @virtual_disk.each_value.select { |dirent| dirent.dirname == self }
+              @virtual_disk.each_value.select do |dirent|
+                next if dirent == self
+                next unless dirent.dirname == self
+
+                with_directory ? dirent : dirent.basename
+              end
+            end
+
+            def entries
+              children(false)
             end
 
             def cleanpath(consider_symlink=false)
@@ -115,6 +139,10 @@ module RubySMB
             private
 
             def lookup_or_create(path, **kwargs)
+              existing = @virtual_disk[self.class.cleanpath(path)]
+              return existing if existing
+
+              kwargs[:stat] ||= VirtualStat.new(exist?: false)
               @virtual_disk[self.class.cleanpath(path)] || VirtualPathname.new(@virtual_disk, path, **kwargs)
             end
 

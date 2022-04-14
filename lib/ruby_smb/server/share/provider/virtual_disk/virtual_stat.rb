@@ -6,16 +6,22 @@ module RubySMB
           class VirtualStat
 
             def initialize(**kwargs)
+              raise ArgumentError.new('can not be both a file and a directory') if !!kwargs[:directory?] && !!kwargs[:file?]
+
               @values = kwargs.dup
+              # the default is a directory that exists
+              @values[:directory?] = !@values.delete(:file?) if @values.key?(:file?) # normalize on directory? if file? was specified.
+              @values[:directory?] = @values.fetch(:directory?, true) && @values.fetch(:exist?, true)
+
               @birthtime = kwargs[:birthtime] || Time.now
             end
 
             def exist?
-              true
+              @values.fetch(:exist?, true)
             end
 
             def blksize
-              @values[:blksize] || 4096
+              @values.fetch(:blksize, 4096)
             end
 
             def blockdev?
@@ -23,7 +29,7 @@ module RubySMB
             end
 
             def blocks
-              @values[:blocks] || 0
+              @values.fetch(:blocks, 0)
             end
 
             def chardev?
@@ -43,19 +49,21 @@ module RubySMB
             end
 
             def directory?
-              @values.fetch(:directory?, true)
+              exist? && @values.fetch(:directory?, true)
             end
 
             def file?
-              !directory?
+              exist? && !directory?
             end
 
             def ftype
+              raise Errno.ENOENT.new('No such file or directory') unless file? || directory?
+
               file? ? 'file' : 'directory'
             end
 
             def size
-              @values[:size] || 0
+              @values.fetch(:size, 0)
             end
 
             def zero?
@@ -63,7 +71,7 @@ module RubySMB
             end
 
             def nlink
-              @values[:nlink] || 0
+              @values.fetch(:nlink, 0)
             end
 
             def dev
@@ -75,7 +83,7 @@ module RubySMB
             end
 
             def gid
-              @values[:gid] || Process.gid
+              @values.fetch(:gid, Process.gid)
             end
 
             def grpowned?
@@ -83,7 +91,7 @@ module RubySMB
             end
 
             def uid
-              @values[:uid] || Process.uid
+              @values.fetch(:uid, Process.uid)
             end
 
             def owned?
@@ -92,23 +100,23 @@ module RubySMB
 
             # last access time
             def atime
-              @values[:atime] || @birthtime
+              @values.fetch(:atime, @birthtime)
             end
 
             # modification time
             def mtime
-              @values[:mtime] || @birthtime
+              @values.fetch(:mtime, @birthtime)
             end
 
             # change time
             def ctime
-              @values[:ctime] || @birthtime
+              @values.fetch(:ctime, @birthtime)
             end
 
             # the permission bits, normalized based on the standard GNU representation,
             # see: https://www.gnu.org/software/libc/manual/html_node/Permission-Bits.html
             def mode
-              @values[:mode] || (file? ? 0o644 : 0o755)
+              @values.fetch(:mode, (file? ? 0o644 : 0o755))
             end
 
             def setuid?
