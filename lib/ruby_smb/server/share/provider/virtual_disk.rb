@@ -43,7 +43,18 @@ module RubySMB
           private
 
           def add(virtual_pathname)
-            @vfs[virtual_pathname.to_s] = virtual_pathname
+            raise ArgumentError.new('paths must be absolute') unless virtual_pathname.absolute?
+
+            path = virtual_pathname.to_s
+            path_parts = path.split(VirtualPathname::SEPARATOR)
+            2.upto(path_parts.length - 1) do |idx|
+              ancestor = path_parts[0...idx].join(path[VirtualPathname::SEPARATOR])
+              next if @vfs[ancestor]&.directory?
+
+              @vfs[ancestor] = VirtualPathname.new(self, ancestor, stat: VirtualStat.new(directory?: true))
+            end
+
+            @vfs[path] = virtual_pathname
           end
 
           def method_missing(symbol, *args)

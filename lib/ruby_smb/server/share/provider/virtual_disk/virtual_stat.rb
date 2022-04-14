@@ -57,7 +57,7 @@ module RubySMB
             end
 
             def ftype
-              raise Errno.ENOENT.new('No such file or directory') unless file? || directory?
+              raise Errno::ENOENT.new("No such file or directory") unless file? || directory?
 
               file? ? 'file' : 'directory'
             end
