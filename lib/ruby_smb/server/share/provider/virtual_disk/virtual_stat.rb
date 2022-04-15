@@ -9,15 +9,10 @@ module RubySMB
               raise ArgumentError.new('can not be both a file and a directory') if !!kwargs[:directory?] && !!kwargs[:file?]
 
               @values = kwargs.dup
-              # the default is a directory that exists
+              # the default is a directory
               @values[:directory?] = !@values.delete(:file?) if @values.key?(:file?) # normalize on directory? if file? was specified.
-              @values[:directory?] = @values.fetch(:directory?, true) && @values.fetch(:exist?, true)
 
               @birthtime = kwargs[:birthtime] || Time.now
-            end
-
-            def exist?
-              @values.fetch(:exist?, true)
             end
 
             def blksize
@@ -49,15 +44,15 @@ module RubySMB
             end
 
             def directory?
-              exist? && @values.fetch(:directory?, true)
+              @values.fetch(:directory?, true)
             end
 
             def file?
-              exist? && !directory?
+              !directory?
             end
 
             def ftype
-              raise Errno::ENOENT.new("No such file or directory") unless file? || directory?
+              raise Errno::ENOENT.new('No such file or directory') unless file? || directory?
 
               file? ? 'file' : 'directory'
             end

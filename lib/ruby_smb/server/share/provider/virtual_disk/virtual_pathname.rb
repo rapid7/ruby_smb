@@ -5,40 +5,44 @@ module RubySMB
         class VirtualDisk < Disk
           class VirtualPathname
             SEPARATOR = /[\/\\]/
-            # see: https://ruby-doc.org/stdlib-2.6.3/libdoc/pathname/rdoc/Pathname.html#class-Pathname-label-File+status+predicate+methods
+            # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html
             STAT_METHODS = %i[
+              atime
+              birthtime
               blockdev?
               chardev?
+              ctime
               directory?
               executable?
-              exist?
               file?
+              ftype
               grpowned?
+              mtime
               owned?
               pipe?
               readable?
-              world_readable?
               setgid?
               setuid?
               size
               socket?
               sticky?
               symlink?
-              writable?
+              world_readable?
               world_writable?
+              writable?
               zero?
-
-              atime
-              birthtime
-              ctime
-              mtime
-              ftype
             ]
+            private_constant :STAT_METHODS
 
-            def initialize(disk, path, stat: nil)
+            def initialize(disk, path, stat: nil, **kwargs)
               @virtual_disk = disk
               @path = path
-              @stat = stat || VirtualStat.new
+              if kwargs.fetch(:exist?, true)
+                @stat = stat || VirtualStat.new
+              else
+                raise ArgumentError.new('can not specify a stat object when exist? is false') if stat
+                @stat = nil
+              end
             end
 
             def ==(other)
@@ -47,6 +51,10 @@ module RubySMB
 
             def <=>(other)
               to_s <=> other.to_s
+            end
+
+            def exist?
+              !@stat.nil?
             end
 
             def stat
@@ -76,7 +84,7 @@ module RubySMB
             end
 
             def basename
-              lookup_or_create(to_s.rpartition(SEPARATOR).last, stat: @stat)
+              lookup_or_create(to_s.rpartition(SEPARATOR).last)
             end
 
             def dirname
@@ -146,13 +154,25 @@ module RubySMB
               existing = @virtual_disk[self.class.cleanpath(path)]
               return existing if existing
 
-              kwargs[:stat] ||= VirtualStat.new(exist?: false)
+              kwargs[:exist?] = false
               @virtual_disk[self.class.cleanpath(path)] || VirtualPathname.new(@virtual_disk, path, **kwargs)
             end
 
             def method_missing(symbol, *args)
+              # should we forward to one of the stat methods
               if STAT_METHODS.include?(symbol)
-                return @stat.send(symbol, *args)
+                # if we have a stat object then forward it
+                return @stat.send(symbol, *args) if @stat
+                # if we don't have a stat object, emulate what Pathname does when it does not exist
+
+                # these two methods return nil
+                return nil if %i[ world_readable? world_writable? ].include?(symbol)
+
+                # any of the other ?-suffixed methods return false
+                return false if symbol.end_with?('?')
+
+                # any other method raises a Errno::ENOENT exception
+                raise Errno::ENOENT.new('No such file or directory')
               end
 
               raise NoMethodError, "undefined method `#{symbol}' for #{self.class}"

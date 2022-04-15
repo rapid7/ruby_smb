@@ -46,6 +46,8 @@ module RubySMB
             raise ArgumentError.new('paths must be absolute') unless virtual_pathname.absolute?
 
             path = virtual_pathname.to_s
+            raise ArgumentError.new('paths must be normalized') unless VirtualPathname.cleanpath(path) == path
+
             path_parts = path.split(VirtualPathname::SEPARATOR)
             2.upto(path_parts.length - 1) do |idx|
               ancestor = path_parts[0...idx].join(path[VirtualPathname::SEPARATOR])
