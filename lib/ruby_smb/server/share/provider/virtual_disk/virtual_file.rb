@@ -27,7 +27,7 @@ module RubySMB
               end
             end
 
-            def open(&block)
+            def open(mode = 'r', &block)
               content = generate_content
               if content.length < @content_size
                 content = content.ljust(@content_size, @pad)
@@ -46,6 +46,29 @@ module RubySMB
               generate_content do
                 content
               end
+            end
+          end
+
+          class VirtualMappedFile < VirtualPathname
+            def initialize(disk, path, mapped_path)
+              mapped_path = Pathname.new(File.expand_path(mapped_path)) if mapped_path.is_a?(String)
+              raise ArgumentError.new('mapped_path must be absolute') unless mapped_path.absolute? # it needs to be absolute so it is independent of the cwd
+
+              @virtual_disk = disk
+              @path = path
+              @mapped_path = mapped_path
+            end
+
+            def exist?
+              @mapped_path.exist?
+            end
+
+            def stat
+              @mapped_path.stat
+            end
+
+            def open(mode = 'r', &block)
+              @mapped_path.open(mode, &block)
             end
           end
         end

@@ -34,13 +34,14 @@ module RubySMB
             ]
             private_constant :STAT_METHODS
 
-            def initialize(disk, path, stat: nil, **kwargs)
+            def initialize(disk, path, **kwargs)
               @virtual_disk = disk
               @path = path
+
               if kwargs.fetch(:exist?, true)
-                @stat = stat || VirtualStat.new
+                @stat = kwargs[:stat] || VirtualStat.new
               else
-                raise ArgumentError.new('can not specify a stat object when exist? is false') if stat
+                raise ArgumentError.new('can not specify a stat object when exist? is false') if kwargs[:stat]
                 @stat = nil
               end
             end
@@ -55,10 +56,12 @@ module RubySMB
 
             def exist?
               !@stat.nil?
+            rescue Errno::ENOENT
+              false
             end
 
             def stat
-              raise Errno::ENOENT.new('No such file or directory') unless file? || directory?
+              raise Errno::ENOENT.new('No such file or directory') unless exist? && (@stat.file? || @stat.directory?)
 
               @stat
             end
@@ -127,7 +130,7 @@ module RubySMB
             end
 
             def cleanpath(consider_symlink=false)
-              lookup_or_create(self.class.cleanpath(to_s), stat: @stat)
+              lookup_or_create(self.class.cleanpath(to_s), stat: (exist? ? stat : nil))
             end
 
             def self.cleanpath(path_string, sep: nil)
@@ -162,7 +165,7 @@ module RubySMB
               # should we forward to one of the stat methods
               if STAT_METHODS.include?(symbol)
                 # if we have a stat object then forward it
-                return @stat.send(symbol, *args) if @stat
+                return stat.send(symbol, *args) if exist?
                 # if we don't have a stat object, emulate what Pathname does when it does not exist
 
                 # these two methods return nil

@@ -20,9 +20,15 @@ module RubySMB
             raise ArgumentError.new('must be a file') if stat && !stat.file?
 
             vf = VirtualDynamicFile.new(self, path, content_size, stat: stat, pad: pad)
-            vf.generate_content do
-              block.call
-            end
+            vf.generate_content(&block)
+            add(vf)
+          end
+
+          def add_mapped_file(path, mapped_path)
+            path = VirtualPathname.cleanpath(path)
+            path = File::SEPARATOR + path unless path.start_with?(File::SEPARATOR)
+
+            vf = VirtualMappedFile.new(self, path, mapped_path)
             add(vf)
           end
 
