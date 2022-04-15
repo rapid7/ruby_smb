@@ -49,6 +49,12 @@ module RubySMB
               to_s <=> other.to_s
             end
 
+            def stat
+              raise Errno::ENOENT.new('No such file or directory') unless file? || directory?
+
+              @stat
+            end
+
             def join(other)
               sep = to_s[SEPARATOR] || File::SEPARATOR
               lookup_or_create(to_s + sep + other.to_s)
@@ -115,8 +121,6 @@ module RubySMB
             def cleanpath(consider_symlink=false)
               lookup_or_create(self.class.cleanpath(to_s), stat: @stat)
             end
-
-            attr_reader :stat
 
             def self.cleanpath(path_string, sep: nil)
               sep = sep || path_string[SEPARATOR] || File::SEPARATOR
