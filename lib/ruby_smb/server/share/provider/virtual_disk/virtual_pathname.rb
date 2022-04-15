@@ -3,6 +3,8 @@ module RubySMB
     module Share
       module Provider
         class VirtualDisk < Disk
+          # This object emulates Ruby's builtin Pathname object but uses a virtual file system instead of the real local
+          # one.
           class VirtualPathname
             SEPARATOR = /[\/\\]/
             # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html
@@ -34,6 +36,11 @@ module RubySMB
             ]
             private_constant :STAT_METHODS
 
+            # @param [Hash] disk The mapping of paths to objects representing the virtual file system.
+            # @param [String] path The path of this entry.
+            # @param [Boolean] exist? Whether or not this entry represents an existing entry in the virtual file system.
+            # @param [File::Stat] stat An explicit stat that represents this object. A default VirtualStat will be
+            #   created unless specified.
             def initialize(disk, path, **kwargs)
               @virtual_disk = disk
               @path = path
@@ -153,6 +160,11 @@ module RubySMB
 
             private
 
+            # Check the virtual file system to see if the entry exists. Return it if it does, otherwise create a new
+            # entry representing a non-existent path.
+            #
+            # @param [String] path The path to lookup in the virtual file system. It will be normalized using #cleanpath.
+            # @return [Pathname] The path object representing the specified string.
             def lookup_or_create(path, **kwargs)
               existing = @virtual_disk[self.class.cleanpath(path)]
               return existing if existing

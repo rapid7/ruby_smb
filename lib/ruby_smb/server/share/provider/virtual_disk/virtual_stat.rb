@@ -3,6 +3,9 @@ module RubySMB
     module Share
       module Provider
         class VirtualDisk < Disk
+          # This object emulates Ruby's builtin File::Stat object but uses a virtual file system instead of the real
+          # local one. The current implementation is limited to only representing directories and standard files. All
+          # attributes are read-only can once the object is created, it is immutable.
           class VirtualStat
 
             def initialize(**kwargs)
