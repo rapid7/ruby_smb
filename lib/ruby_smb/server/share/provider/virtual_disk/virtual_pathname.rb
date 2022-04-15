@@ -98,16 +98,16 @@ module RubySMB
               lookup_or_create(self.class.basename(to_s))
             end
 
-            def self.basename(*args, **kwargs)
-              File.basename(*args, **kwargs)
+            def self.basename(*args)
+              File.basename(*args)
             end
 
             def dirname
               lookup_or_create(self.class.dirname(to_s))
             end
 
-            def self.dirname(*args, **kwargs)
-              File.dirname(*args, **kwargs)
+            def self.dirname(*args)
+              File.dirname(*args)
             end
 
             def extname
@@ -139,10 +139,10 @@ module RubySMB
               lookup_or_create(self.class.cleanpath(to_s), stat: (exist? ? stat : nil))
             end
 
-            def self.cleanpath(*args, **kwargs)
+            def self.cleanpath(*args)
               # per the docs this Pathname#cleanpath doesn't touch the file system
               # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html#class-Pathname-label-Core+methods
-              Pathname.new(*args, **kwargs).cleanpath.to_s
+              Pathname.new(*args).cleanpath.to_s
             end
 
             private
@@ -171,7 +171,7 @@ module RubySMB
                 return nil if %i[ world_readable? world_writable? ].include?(symbol)
 
                 # any of the other ?-suffixed methods return false
-                return false if symbol.end_with?('?')
+                return false if symbol.to_s.end_with?('?')
 
                 # any other method raises a Errno::ENOENT exception
                 raise Errno::ENOENT.new('No such file or directory')
