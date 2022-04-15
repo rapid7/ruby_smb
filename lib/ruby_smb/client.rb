@@ -295,6 +295,12 @@ module RubySMB
     #   false otherwise
     attr_accessor :server_supports_multi_credit
 
+    # The negotiated security buffer. This is nil until the negotiation process
+    # has finished.
+    # @!attribute [rw] negotiation_security_buffer
+    #   @return [String] The raw security buffer bytes
+    attr_accessor :negotiation_security_buffer
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support

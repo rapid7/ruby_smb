@@ -99,6 +99,10 @@ module RubySMB
     # unsupported protocol.
     class NegotiationFailure < RubySMBError; end
 
+    # Raised when Authentication fails, possibly due to an
+    # unsupported GSS mechanism type.
+    class AuthenticationFailure < RubySMBError; end
+
     # Raised when trying to parse raw binary into a BitField and the data
     # is invalid.
     class InvalidBitField < RubySMBError; end

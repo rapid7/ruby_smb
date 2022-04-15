@@ -40,6 +40,17 @@ module RubySMB
         parameter_block   :parameter_block
         data_block        :data_block
 
+        # Takes the specified security buffer string and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
+        # field. It also automatically sets the length in
+        # {RubySMB::SMB1::Packet::SessionSetupRequest::ParameterBlock#security_blob_length}
+        #
+        # @param buffer [String] the security buffer
+        # @return [void]
+        def set_security_buffer(buffer)
+          parameter_block.security_blob_length = buffer.length
+          data_block.security_blob = buffer
+        end
+
         # Takes an NTLM Type 1 Message and creates the GSS Security Blob
         # for it and sets it in the {RubySMB::SMB1::Packet::SessionSetupRequest::DataBlock#security_blob}
         # field. It also automatically sets the length in

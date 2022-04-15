@@ -118,6 +118,7 @@ module RubySMB
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
           self.negotiated_smb_version = 1
           self.session_encrypt_data = false
+          self.negotiation_security_buffer = packet.data_block.security_blob
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
@@ -137,6 +138,7 @@ module RubySMB
           self.server_start_time = packet.server_start_time.to_time if packet.server_start_time != 0
           self.server_system_time = packet.system_time.to_time if packet.system_time != 0
           self.server_supports_multi_credit = self.dialect != '0x0202' && packet&.capabilities&.large_mtu == 1
+          self.negotiation_security_buffer = packet.security_buffer
           case self.dialect
           when '0x02ff'
           when '0x0300', '0x0302'
