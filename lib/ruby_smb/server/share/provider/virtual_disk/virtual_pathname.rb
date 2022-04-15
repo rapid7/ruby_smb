@@ -6,7 +6,7 @@ module RubySMB
           # This object emulates Ruby's builtin Pathname object but uses a virtual file system instead of the real local
           # one.
           class VirtualPathname
-            SEPARATOR = /[\/\\]/
+            SEPARATOR = File::SEPARATOR
             # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html
             STAT_METHODS = %i[
               atime
@@ -74,8 +74,9 @@ module RubySMB
             end
 
             def join(other)
-              sep = to_s[SEPARATOR] || File::SEPARATOR
-              lookup_or_create(to_s + sep + other.to_s)
+              # per the docs this Pathname#join doesn't touch the file system
+              # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html#class-Pathname-label-Core+methods
+              lookup_or_create(Pathname.new(to_s).join(other).to_s)
             end
 
             alias :+ :join
@@ -94,21 +95,19 @@ module RubySMB
             end
 
             def basename
-              lookup_or_create(to_s.rpartition(SEPARATOR).last)
+              lookup_or_create(self.class.basename(to_s))
+            end
+
+            def self.basename(*args, **kwargs)
+              File.basename(*args, **kwargs)
             end
 
             def dirname
-              return self if to_s.length == 1 && to_s =~ SEPARATOR
+              lookup_or_create(self.class.dirname(to_s))
+            end
 
-              name = to_s.rpartition(SEPARATOR).first
-              if name.empty?
-                if absolute?
-                  name = to_s[0]
-                else
-                  name = '.'
-                end
-              end
-              lookup_or_create(name)
+            def self.dirname(*args, **kwargs)
+              File.dirname(*args, **kwargs)
             end
 
             def extname
@@ -140,22 +139,10 @@ module RubySMB
               lookup_or_create(self.class.cleanpath(to_s), stat: (exist? ? stat : nil))
             end
 
-            def self.cleanpath(path_string, sep: nil)
-              sep = sep || path_string[SEPARATOR] || File::SEPARATOR
-
-              cleaned = []
-              path_string.split(SEPARATOR).each do |part|
-                next if ['', '.'].include?(part)
-
-                if part == '..'
-                  cleaned.pop
-                  next
-                end
-
-                cleaned << part
-              end
-
-              (path_string.start_with?(sep) ? sep : '') + cleaned.join(sep)
+            def self.cleanpath(*args, **kwargs)
+              # per the docs this Pathname#cleanpath doesn't touch the file system
+              # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html#class-Pathname-label-Core+methods
+              Pathname.new(*args, **kwargs).cleanpath.to_s
             end
 
             private
@@ -191,6 +178,10 @@ module RubySMB
               end
 
               raise NoMethodError, "undefined method `#{symbol}' for #{self.class}"
+            end
+
+            def respond_to_missing?(symbol, include_private = false)
+              STAT_METHODS.include?(symbol)
             end
           end
         end

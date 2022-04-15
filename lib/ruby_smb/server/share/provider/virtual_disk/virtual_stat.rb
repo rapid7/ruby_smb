@@ -9,7 +9,7 @@ module RubySMB
           class VirtualStat
 
             def initialize(**kwargs)
-              raise ArgumentError.new('can not be both a file and a directory') if !!kwargs[:directory?] && !!kwargs[:file?]
+              raise ArgumentError.new('must be either a file or a directory') unless !!kwargs.fetch(:directory?, !kwargs.fetch(:file?, false)) ^ !!kwargs.fetch(:file?, !kwargs.fetch(:directory?, true))
 
               @values = kwargs.dup
               # the default is a directory

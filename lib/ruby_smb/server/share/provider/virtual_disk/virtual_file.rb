@@ -59,7 +59,7 @@ module RubySMB
             # @param [String] content The static content of this file.
             # @param [File::Stat] stat An explicit stat object describing the file.
             def initialize(disk, path, content, stat: nil)
-              super(disk, path, content.size)
+              super(disk, path, content.size, stat: stat)
               generate_content do
                 content
               end
