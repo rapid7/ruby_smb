@@ -10,6 +10,7 @@ Encoding.default_internal = 'UTF-8' if Encoding.default_internal.nil?
 
 options = {
   allow_anonymous: true,
+  allow_guests: false,
   domain: nil,
   username: 'RubySMB',
   password: 'password',
@@ -39,6 +40,9 @@ OptionParser.new do |opts|
   opts.on("--[no-]smbv3", "Enable or disable SMBv3 (default: #{options[:smbv3] ? 'Enabled' : 'Disabled'})") do |smbv3|
     options[:smbv3] = smbv3
   end
+  opts.on("--[no-]guests", "Allow guest accounts (default: #{options[:allow_guests]})") do |allow_guests|
+    options[:allow_guests] = allow_guests
+  end
   opts.on("--username USERNAME", "The account's username (default: #{options[:username]})") do |username|
     if username.include?('\\')
       options[:domain], options[:username] = username.split('\\', 2)
@@ -51,7 +55,10 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-ntlm_provider = RubySMB::Gss::Provider::NTLM.new(allow_anonymous: options[:allow_anonymous])
+ntlm_provider = RubySMB::Gss::Provider::NTLM.new(
+  allow_anonymous: options[:allow_anonymous],
+  allow_guests: options[:allow_guests]
+)
 ntlm_provider.put_account(options[:username], options[:password], domain: options[:domain])  # password can also be an NTLM hash
 
 server = RubySMB::Server.new(

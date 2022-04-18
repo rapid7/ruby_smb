@@ -7,7 +7,11 @@ module RubySMB
       # A special constant implying that the authenticated user is anonymous.
       IDENTITY_ANONYMOUS = :anonymous
       # The result of a processed GSS request.
-      Result = Struct.new(:buffer, :nt_status, :identity)
+      Result = Struct.new(:buffer, :nt_status, :identity, :is_guest) do
+        def is_anonymous
+          identity == Gss::Provider::IDENTITY_ANONYMOUS
+        end
+      end
 
       #
       # The base class for a GSS authentication provider. This class defines a common interface and is not usable as a
@@ -26,6 +30,11 @@ module RubySMB
         # Whether or not anonymous authentication attempts should be permitted.
         #
         attr_accessor :allow_anonymous
+
+        #
+        # Whether or not unknown users should be allowed to authenticate as guests.
+        #
+        attr_accessor :allow_guests
       end
     end
   end

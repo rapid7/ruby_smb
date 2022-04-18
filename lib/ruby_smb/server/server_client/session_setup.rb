@@ -80,12 +80,14 @@ module RubySMB
           if gss_result.nt_status == WindowsError::NTStatus::STATUS_SUCCESS
             session.state = :valid
             session.user_id = gss_result.identity
+            session.is_guest = !!gss_result.is_guest
             session.key = @gss_authenticator.session_key
-            session.signing_required = request.security_mode.signing_required == 1
+            session.signing_required = request.security_mode.signing_required == 1 || (!session.is_guest && !session.is_anonymous)
 
             response.smb2_header.credits = 32
-            @cipher_id = 0 if session.is_anonymous # disable encryption for anonymous users
+            @cipher_id = 0 if session.is_anonymous || session.is_guest # disable encryption for anonymous users and guest users which have a null session key
             response.session_flags.encrypt_data = 1 unless @cipher_id == 0
+            response.session_flags.guest = session.is_guest
           elsif gss_result.nt_status == WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED && @dialect == '0x0311'
             update_preauth_hash(response)
           end
