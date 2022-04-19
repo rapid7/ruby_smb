@@ -5,6 +5,7 @@ RSpec.describe RubySMB::Server::ServerClient do
   subject(:server_client) { described_class.new(server, dispatcher) }
 
   it { is_expected.to respond_to :dialect }
+  it { is_expected.to respond_to :dispatcher }
   it { is_expected.to respond_to :session_table }
 
   describe '#disconnect!' do
@@ -28,6 +29,20 @@ RSpec.describe RubySMB::Server::ServerClient do
     it 'creates a new authenticator instance' do
       expect(server.gss_provider).to receive(:new_authenticator).and_call_original
       described_class.new(server, dispatcher)
+    end
+  end
+
+  describe '#peerhost' do
+    it 'returns the peer IP address' do
+      expect(server_client).to receive(:getpeername).and_return(Socket.sockaddr_in(4444, '127.0.0.1'))
+      expect(server_client.peerhost).to eq '127.0.0.1'
+    end
+  end
+
+  describe '#peerport' do
+    it 'returns the peer IP port' do
+      expect(server_client).to receive(:getpeername).and_return(Socket.sockaddr_in(4444, '127.0.0.1'))
+      expect(server_client.peerport).to eq 4444
     end
   end
 
