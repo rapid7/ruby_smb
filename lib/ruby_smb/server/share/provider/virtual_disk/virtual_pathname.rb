@@ -36,6 +36,8 @@ module RubySMB
             ]
             private_constant :STAT_METHODS
 
+            attr_accessor :virtual_disk
+
             # @param [Hash] disk The mapping of paths to objects representing the virtual file system.
             # @param [String] path The path of this entry.
             # @param [Boolean] exist? Whether or not this entry represents an existing entry in the virtual file system.

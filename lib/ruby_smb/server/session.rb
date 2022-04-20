@@ -64,7 +64,7 @@ module RubySMB
       attr_accessor :tree_connect_table
 
       # Untyped hash for storing additional arbitrary metadata about the current session
-      # @!attribute [rw] metadaa
+      # @!attribute [rw] metadata
       #   @return [Hash]
       attr_accessor :metadata
 

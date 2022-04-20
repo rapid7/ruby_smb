@@ -96,7 +96,7 @@ virtual_disk.add_static_file('greeting', 'Hello World!')
 virtual_disk.add_static_fileobj('self', File.open(__FILE__))
 
 # magic_8_ball is a dynamic file that is generated each time it is open
-virtual_disk.add_dynamic_file('magic_8_ball', MAGIC_8_BALL_ANSWERS.map(&:length).max, pad: ' ') do
+virtual_disk.add_dynamic_file('magic_8_ball') do
   MAGIC_8_BALL_ANSWERS.sample
 end
 
