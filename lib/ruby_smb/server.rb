@@ -14,8 +14,10 @@ module RubySMB
     Connection = Struct.new(:client, :thread)
 
     # @param server_sock the socket on which the server should listen
-    # @param [Gss::Provider] the authentication provider
-    def initialize(server_sock: nil, gss_provider: nil, logger: nil)
+    # @param [Gss::Provider] gss_provider the authentication provider
+    # @param [::Logger] logger the logger to use for diagnostic messages
+    # @param thread_factory a block to create threads for serving clients
+    def initialize(server_sock: nil, gss_provider: nil, logger: nil, thread_factory: nil)
       server_sock = ::TCPServer.new(445) if server_sock.nil?
 
       @guid = Random.new.bytes(16)
@@ -36,6 +38,14 @@ module RubySMB
         @logger = logger
       end
 
+      if thread_factory.nil?
+        # the default thread factory uses Ruby's standard Thread#new
+        thread_factory = Proc.new do |_server_client, &block|
+          Thread.new(&block)
+        end
+      end
+      @thread_factory = thread_factory
+
       # share name => provider instance
       @shares = {
         'IPC$' => Share::Provider::IpcPipe.new
@@ -53,7 +63,7 @@ module RubySMB
       loop do
         sock = @socket.accept
         server_client = ServerClient.new(self, RubySMB::Dispatcher::Socket.new(sock, read_timeout: nil))
-        @connections << Connection.new(server_client, Thread.new { server_client.run })
+        @connections << Connection.new(server_client, @thread_factory.call(server_client) { server_client.run })
 
         break unless block.nil? || block.call(server_client)
       end
