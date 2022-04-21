@@ -78,6 +78,10 @@ module RubySMB
                 msg.flag |= NTLM::NEGOTIATE_FLAGS.fetch(flag)
               end
 
+              if type1_msg.flag & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] == NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY]
+                msg.flag |= NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY]
+              end
+
               @server_challenge = @provider.generate_server_challenge
               msg.challenge = @server_challenge.unpack1('Q<') # 64-bit unsigned, little endian (uint64_t)
               target_info = Net::NTLM::TargetInfo.new('')
