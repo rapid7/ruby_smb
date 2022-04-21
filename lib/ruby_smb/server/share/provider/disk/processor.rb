@@ -44,6 +44,21 @@ module RubySMB
 
             def build_fscc_file_information(path, info_class, rename: nil)
               case info_class
+              when Fscc::FileInformation::FILE_ALL_INFORMATION
+                info = Fscc::FileInformation::FileAllInformation.new
+                info.basic_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_BASIC_INFORMATION, rename: rename)
+                info.standard_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_STANDARD_INFORMATION, rename: rename)
+                info.internal_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_INTERNAL_INFORMATION, rename: rename)
+                info.ea_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_EA_INFORMATION, rename: rename)
+                info.access_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_ACCESS_INFORMATION, rename: rename)
+                info.position_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_POSITION_INFORMATION, rename: rename)
+                info.mode_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_MODE_INFORMATION, rename: rename)
+                info.alignment_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_ALIGNMENT_INFORMATION, rename: rename)
+                info.name_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_NAMES_INFORMATION, rename: rename)
+              when Fscc::FileInformation::FILE_BASIC_INFORMATION
+                info = Fscc::FileInformation::FileBasicInformation.new
+                set_common_timestamps(info, path)
+                info.file_attributes = build_fscc_file_attributes(path)
               when Fscc::FileInformation::FILE_EA_INFORMATION
                 info = Fscc::FileInformation::FileEaInformation.new
               when Fscc::FileInformation::FILE_FULL_DIRECTORY_INFORMATION
@@ -57,16 +72,20 @@ module RubySMB
               when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
                 info = Fscc::FileInformation::FileNetworkOpenInformation.new
                 set_common_info(info, path)
+              when Fscc::FileInformation::FILE_STANDARD_INFORMATION
+                info = Fscc::FileInformation::FileStandardInformation.new
+                info.allocation_size = get_allocation_size(path)
+                info.directory = path.directory? ? 1 : 0
               when Fscc::FileInformation::FILE_STREAM_INFORMATION
-                  unless path.file?
-                    raise NotImplementedError, 'Can only generate FILE_STREAM_INFORMATION for files'
-                  end
+                unless path.file?
+                  raise NotImplementedError, 'Can only generate FILE_STREAM_INFORMATION for files'
+                end
 
-                  info = Fscc::FileInformation::FileStreamInformation.new(
-                    stream_size: path.size,
-                    stream_allocation_size: get_allocation_size(path),
-                    stream_name: '::$DATA'
-                  )
+                info = Fscc::FileInformation::FileStreamInformation.new(
+                  stream_size: path.size,
+                  stream_allocation_size: get_allocation_size(path),
+                  stream_name: '::$DATA'
+                )
               else
                 raise NotImplementedError, "Unsupported FSCC file information class: #{info_class} (#{Fscc::FileInformation.name(info_class)})"
               end

@@ -16,7 +16,7 @@ module RubySMB
         file_position_information   :position_information,  label: 'Position Information'
         file_mode_information       :mode_information,      label: 'Mode Information'
         file_alignment_information  :alignment_information, label: 'Alignment Information'
-        file_name_information       :name_information,      label: 'Label Information'
+        file_name_information       :name_information,      label: 'Name Information'
       end
     end
   end
