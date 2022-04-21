@@ -19,7 +19,7 @@ module RubySMB
       include RubySMB::Server::ServerClient::ShareIO
       include RubySMB::Server::ServerClient::TreeConnect
 
-      attr_reader :dialect, :session_table
+      attr_reader :dialect, :dispatcher, :session_table
 
       # @param [Server] server the server that accepted this connection
       # @param [Dispatcher::Socket] dispatcher the connection's socket dispatcher
@@ -55,6 +55,14 @@ module RubySMB
       # @return [String]
       def getpeername
         @dispatcher.tcp_socket.getpeername
+      end
+
+      def peerhost
+        ::Socket::unpack_sockaddr_in(getpeername)[1]
+      end
+
+      def peerport
+        ::Socket::unpack_sockaddr_in(getpeername)[0]
       end
 
       #
