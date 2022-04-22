@@ -15,6 +15,10 @@ module RubySMB
       FILE_FS_VOLUME_FLAGS_INFORMATION = 10
       FILE_FS_SECTOR_SIZE_INFORMATION  = 11
 
+      def self.name(value)
+        constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
+      end
+
       require 'ruby_smb/fscc/file_system_information/file_fs_attribute_information'
       require 'ruby_smb/fscc/file_system_information/file_fs_volume_information'
     end

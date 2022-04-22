@@ -344,7 +344,7 @@ module RubySMB
                     volume_label: provider.name
                   )
                 else
-                  logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class}")
+                  logger.warn("Can not handle QUERY_INFO request for type: #{request.info_type}, class: #{request.file_information_class} (#{Fscc::FileSystemInformation.name(request.file_information_class)})")
                   raise NotImplementedError
                 end
 
