@@ -43,6 +43,14 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileBothDirectoryInformation do
     expect(struct.last_change).to be_a RubySMB::Field::FileTime
   end
 
+  it 'tracks the file size in a Int64 field' do
+    expect(struct.end_of_file).to be_a BinData::Int64le
+  end
+
+  it 'tracks the allocation size in a Int64 field' do
+    expect(struct.allocation_size).to be_a BinData::Int64le
+  end
+
   it 'contains the file attributes of the file' do
     expect(struct.file_attributes).to be_a RubySMB::Fscc::FileAttributes
   end

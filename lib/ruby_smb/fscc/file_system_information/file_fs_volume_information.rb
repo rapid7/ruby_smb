@@ -7,6 +7,7 @@ module RubySMB
         CLASS_LEVEL = FileSystemInformation::FILE_FS_VOLUME_INFORMATION
 
         endian :little
+
         file_time :volume_creation_time, label: 'Volume Creation Time'
         uint32    :volume_serial_number, label: 'Volume Serial Number'
         uint32    :volume_label_length,  label: 'Volume Label Length', initial_value: -> { volume_label.do_num_bytes }
