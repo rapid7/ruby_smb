@@ -2,7 +2,7 @@ module RubySMB
   module Fscc
     module FileInformation
       # The FileNamesInformation Class as defined in
-      # [2.4.26 FileNamesInformation](https://msdn.microsoft.com/en-us/library/cc232077.aspx)
+      # [2.4.28 FileNamesInformation](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/a289f7a8-83d2-4927-8c88-b2d328dde5a5)
       class FileNamesInformation < BinData::Record
         CLASS_LEVEL = FileInformation::FILE_NAMES_INFORMATION
 

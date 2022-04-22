@@ -34,6 +34,9 @@ module RubySMB
       # granted when the file was opened.
       FILE_ACCESS_INFORMATION            = 0x08
 
+      # Information class is used locally to query the name of a file.
+      FILE_NAME_INFORMATION              = 0x09
+
       # Information class used to rename a file.
       FILE_RENAME_INFORMATION            = 0x0A
 
@@ -97,20 +100,13 @@ module RubySMB
         constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
       end
 
-      # The FILE_NAME_INFORMATION type as defined in
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/20406fb1-605f-4629-ba9a-c67ee25f23d2
-      class FileNameInformation < BinData::Record
-        endian :little
-        uint32           :file_name_length, label: 'File Name Length',  initial_value: -> { file_name.do_num_bytes }
-        string16         :file_name,        label: 'File Name',         read_length: -> { file_name_length }
-      end
-
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_disposition_information'
       require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
+      require 'ruby_smb/fscc/file_information/file_name_information'
       require 'ruby_smb/fscc/file_information/file_names_information'
       require 'ruby_smb/fscc/file_information/file_rename_information'
       require 'ruby_smb/fscc/file_information/file_network_open_information'
