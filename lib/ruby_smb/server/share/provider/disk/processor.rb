@@ -1,3 +1,4 @@
+require 'zlib'
 require 'ruby_smb/server/share/provider/processor'
 
 module RubySMB
@@ -30,6 +31,20 @@ module RubySMB
               )
             end
 
+            def smb2_access_mask(path)
+              # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b3af3aaf-9271-4419-b326-eba0341df7d2
+              if path.directory?
+                am = SMB2::BitField::DirectoryAccessMask.new
+                am.traverse = true
+                am.list = true
+              else
+                am = SMB2::BitField::FileAccessMask.new
+                am.read_data = true
+              end
+              am.read_attr = true
+              am
+            end
+
             private
 
             def build_fscc_file_attributes(path)
@@ -44,6 +59,11 @@ module RubySMB
 
             def build_fscc_file_information(path, info_class, rename: nil)
               case info_class
+              when Fscc::FileInformation::FILE_ACCESS_INFORMATION
+                info = Fscc::FileInformation::FileAccessInformation.new
+                info.access_flags = smb2_access_mask(path).to_binary_s.unpack1('V')
+              when Fscc::FileInformation::FILE_ALIGNMENT_INFORMATION
+                info = Fscc::FileInformation::FileAlignmentInformation.new
               when Fscc::FileInformation::FILE_ALL_INFORMATION
                 info = Fscc::FileInformation::FileAllInformation.new
                 info.basic_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_BASIC_INFORMATION, rename: rename)
@@ -54,7 +74,7 @@ module RubySMB
                 info.position_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_POSITION_INFORMATION, rename: rename)
                 info.mode_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_MODE_INFORMATION, rename: rename)
                 info.alignment_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_ALIGNMENT_INFORMATION, rename: rename)
-                info.name_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_NAMES_INFORMATION, rename: rename)
+                info.name_information = build_fscc_file_information(path, Fscc::FileInformation::FILE_NAME_INFORMATION, rename: rename)
               when Fscc::FileInformation::FILE_BASIC_INFORMATION
                 info = Fscc::FileInformation::FileBasicInformation.new
                 set_common_timestamps(info, path)
@@ -69,12 +89,24 @@ module RubySMB
                 info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
                 set_common_info(info, path)
                 info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_INTERNAL_INFORMATION
+                info = Fscc::FileInformation::FileInternalInformation.new
+                info.file_id = Zlib::crc32(path.to_s)
+              when Fscc::FileInformation::FILE_MODE_INFORMATION
+                info = Fscc::FileInformation::FileModeInformation.new
+              when Fscc::FileInformation::FILE_NAME_INFORMATION
+                info = Fscc::FileInformation::FileNameInformation.new
+                info.file_name = rename || path.basename.to_s
               when Fscc::FileInformation::FILE_NETWORK_OPEN_INFORMATION
                 info = Fscc::FileInformation::FileNetworkOpenInformation.new
                 set_common_info(info, path)
+              when Fscc::FileInformation::FILE_POSITION_INFORMATION
+                info = Fscc::FileInformation::FilePositionInformation.new
+                info.current_byte_offset = path.size
               when Fscc::FileInformation::FILE_STANDARD_INFORMATION
                 info = Fscc::FileInformation::FileStandardInformation.new
                 info.allocation_size = get_allocation_size(path)
+                info.end_of_file = path.size
                 info.directory = path.directory? ? 1 : 0
               when Fscc::FileInformation::FILE_STREAM_INFORMATION
                 unless path.file?
