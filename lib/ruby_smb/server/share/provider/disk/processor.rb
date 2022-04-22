@@ -89,6 +89,10 @@ module RubySMB
                 info = Fscc::FileInformation::FileIdBothDirectoryInformation.new
                 set_common_info(info, path)
                 info.file_name = rename || path.basename.to_s
+              when Fscc::FileInformation::FILE_ID_FULL_DIRECTORY_INFORMATION
+                info = Fscc::FileInformation::FileIdFullDirectoryInformation.new
+                set_common_info(info, path)
+                info.file_name = rename || path.basename.to_s
               when Fscc::FileInformation::FILE_INTERNAL_INFORMATION
                 info = Fscc::FileInformation::FileInternalInformation.new
                 info.file_id = Zlib::crc32(path.to_s)
