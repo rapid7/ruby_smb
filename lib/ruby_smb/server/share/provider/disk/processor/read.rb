@@ -11,7 +11,7 @@ module RubySMB
                 # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/bb8fcb6a-3032-46a1-ad4a-c0d7892921f9
                 handle = @handles[request.parameter_block.fid]
 
-                if handle.nil?
+                if handle.nil? || handle.file.nil?
                   response = SMB1::Packet::EmptyPacket.new
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
                 end
@@ -34,6 +34,12 @@ module RubySMB
                 if handle.nil?
                   response = RubySMB::SMB2::Packet::ErrorPacket.new
                   response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
+                  return response
+                end
+
+                if handle.file.nil?
+                  response = RubySMB::SMB2::Packet::ErrorPacket.new
+                  response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
                   return response
                 end
 

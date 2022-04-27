@@ -93,7 +93,10 @@ virtual_disk = RubySMB::Server::Share::Provider::VirtualDisk.new(options[:share_
 virtual_disk.add_static_file('greeting', 'Hello World!')
 
 # self is this example file, it's read when it's added and is a thin wrapper around #add_static_file
-virtual_disk.add_static_fileobj('self', File.open(__FILE__))
+virtual_disk.add_static_fileobj('self/static', File.open(__FILE__))
+
+# self is this example file, it's mapped in using a real Pathname object
+virtual_disk.add_static_fileobj('self/mapped', Pathname.new(__FILE__))
 
 # magic_8_ball is a dynamic file that is generated each time it is open
 virtual_disk.add_dynamic_file('magic_8_ball') do

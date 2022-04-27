@@ -62,13 +62,13 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     subject(:virtual_pathname) { described_class.new({}, 'testing', exist?: false) }
 
     describe '#atime' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.atime }.to raise_error(Errno::ENOENT)
       end
     end
 
     describe '#birthtime' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.birthtime }.to raise_error(Errno::ENOENT)
       end
     end
@@ -86,7 +86,7 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#ctime' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.ctime }.to raise_error(Errno::ENOENT)
       end
     end
@@ -116,7 +116,7 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#ftype' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.ftype }.to raise_error(Errno::ENOENT)
       end
     end
@@ -128,7 +128,7 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#mtime' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.mtime }.to raise_error(Errno::ENOENT)
       end
     end
@@ -164,7 +164,7 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#size' do
-      it 'returns false' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.size }.to raise_error(Errno::ENOENT)
       end
     end
@@ -176,7 +176,7 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#stat' do
-      it 'raises an exception' do
+      it 'raises Errno::ENOENT' do
         expect { virtual_pathname.stat }.to raise_error(Errno::ENOENT)
       end
     end
@@ -194,13 +194,13 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
     end
 
     describe '#world_readable?' do
-      it 'returns false' do
+      it 'returns nil' do
         expect(virtual_pathname.world_readable?).to be_nil
       end
     end
 
     describe '#world_writable?' do
-      it 'returns false' do
+      it 'returns nil' do
         expect(virtual_pathname.world_writable?).to be_nil
       end
     end

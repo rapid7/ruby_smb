@@ -141,10 +141,10 @@ module RubySMB
               lookup_or_create(self.class.cleanpath(to_s), stat: (exist? ? stat : nil))
             end
 
-            def self.cleanpath(*args)
+            def self.cleanpath(path)
               # per the docs this Pathname#cleanpath doesn't touch the file system
               # see: https://ruby-doc.org/stdlib-3.1.1/libdoc/pathname/rdoc/Pathname.html#class-Pathname-label-Core+methods
-              Pathname.new(*args).cleanpath.to_s
+              Pathname.new(path).cleanpath.to_s
             end
 
             private
@@ -159,7 +159,7 @@ module RubySMB
               return existing if existing
 
               kwargs[:exist?] = false
-              @virtual_disk[self.class.cleanpath(path)] || VirtualPathname.new(@virtual_disk, path, **kwargs)
+              VirtualPathname.new(@virtual_disk, path, **kwargs)
             end
 
             def method_missing(symbol, *args)

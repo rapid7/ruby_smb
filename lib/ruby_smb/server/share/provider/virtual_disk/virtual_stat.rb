@@ -9,7 +9,11 @@ module RubySMB
           class VirtualStat
 
             def initialize(**kwargs)
-              raise ArgumentError.new('must be either a file or a directory') unless !!kwargs.fetch(:directory?, !kwargs.fetch(:file?, false)) ^ !!kwargs.fetch(:file?, !kwargs.fetch(:directory?, true))
+              # directory and file both default to being the opposite of each other, one or both can be specified
+              # but they can not both be true at the same time
+              is_dir = !!kwargs.fetch(:directory?, !kwargs.fetch(:file?, false)) # defaults to not file which defaults to false
+              is_fil = !!kwargs.fetch(:file?, !kwargs.fetch(:directory?, true)) # defaults to not directory which defaults to true
+              raise ArgumentError.new('must be either a file or a directory') unless is_dir ^ is_fil
 
               @values = kwargs.dup
               # the default is a directory
@@ -143,7 +147,7 @@ module RubySMB
             def writable?
               return true if owned? && (mode & 1 << 7 != 0)
               return true if grpowned? && (mode & 1 << 4 != 0)
-              return true if world_readable?
+              return true if world_writable?
               return false
             end
 
