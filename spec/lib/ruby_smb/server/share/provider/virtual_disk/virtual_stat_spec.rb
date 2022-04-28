@@ -101,9 +101,33 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat do
     end
   end
 
+  describe '#owned?' do
+    it 'is expected to return true when uid is this process' do
+      expect(virtual_stat).to receive(:uid).and_return(Process.uid)
+      expect(virtual_stat.owned?).to be true
+    end
+
+    it 'is expected to return false when uid is not this process' do
+      expect(virtual_stat).to receive(:uid)
+      expect(virtual_stat.owned?).to be false
+    end
+  end
+
   describe '#gid' do
     it 'is expected to default to the current process gid' do
       expect(virtual_stat.gid).to eq Process.gid
+    end
+  end
+
+  describe '#grpowned?' do
+    it 'is expected to return true when gid is this process' do
+      expect(virtual_stat).to receive(:gid).and_return(Process.gid)
+      expect(virtual_stat.grpowned?).to be true
+    end
+
+    it 'is expected to return false when gid is not this process' do
+      expect(virtual_stat).to receive(:gid)
+      expect(virtual_stat.grpowned?).to be false
     end
   end
 
@@ -116,6 +140,61 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat do
   describe '#writable?' do
     it 'is expected to writable by default' do
       expect(virtual_stat.writable?).to be true
+    end
+  end
+
+  # test each and every permission represented by the 12 possible bits
+  (0..12).each.map { |bit| (1 << bit) & 0o7777 }.each do |mode|
+    context "when mode is 0o#{mode.to_s(8).rjust(4, '0')}" do
+      before(:each) { expect(virtual_stat).to receive(:mode).at_least(:once).and_return(mode) }
+
+      describe '#executable?' do
+        it 'is correct' do
+          expect(virtual_stat.executable?).to eq mode & 0o111 != 0
+        end
+      end
+
+      describe '#readable?' do
+        it 'is correct' do
+          expect(virtual_stat.readable?).to eq mode & 0o444 != 0
+        end
+      end
+
+      describe '#setgid?' do
+        it 'is correct' do
+          expect(virtual_stat.setgid?).to eq mode & 0o2000 != 0
+        end
+      end
+
+      describe '#setuid?' do
+        it 'is correct' do
+          expect(virtual_stat.setuid?).to eq mode & 0o4000 != 0
+        end
+      end
+
+      describe '#sticky?' do
+        it 'is correct' do
+          expect(virtual_stat.sticky?).to eq mode & 0o1000 != 0
+        end
+      end
+
+      describe '#world_readable?' do
+        it 'is correct' do
+          expect(virtual_stat.world_readable?).to eq mode & 0o004 != 0
+        end
+      end
+
+      describe '#world_writable?' do
+        it 'is correct' do
+          expect(virtual_stat.world_writable?).to eq mode & 0o002 != 0
+        end
+      end
+
+      describe '#writable?' do
+        it 'is correct' do
+          expect(virtual_stat.writable?).to eq mode & 0o222 != 0
+        end
+      end
     end
   end
 end
