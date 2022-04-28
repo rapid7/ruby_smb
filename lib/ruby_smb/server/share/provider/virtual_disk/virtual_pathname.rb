@@ -48,7 +48,15 @@ module RubySMB
               @path = path
 
               if kwargs.fetch(:exist?, true)
-                @stat = kwargs[:stat] || VirtualStat.new
+                if kwargs[:stat]
+                  if kwargs[:stat].is_a?(Hash)
+                    @stat = VirtualStat.new(kwargs[:stat])
+                  else
+                    @stat = kwargs[:stat]
+                  end
+                else
+                  @stat = VirtualStat.new
+                end
               else
                 raise ArgumentError.new('can not specify a stat object when exist? is false') if kwargs[:stat]
                 @stat = nil
@@ -125,12 +133,7 @@ module RubySMB
             def children(with_directory=true)
               raise Errno::ENOTDIR.new("Not a directory @ dir_initialize - #{to_s}") unless directory?
 
-              @virtual_disk.each_value.select do |dirent|
-                next if dirent == self
-                next unless dirent.dirname == self
-
-                with_directory ? dirent : dirent.basename
-              end
+              @virtual_disk.each_value.select { |dent| dent.dirname == self && dent != self }.map { |dent| with_directory ? dent : dent.basename }
             end
 
             def entries
