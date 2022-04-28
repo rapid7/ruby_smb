@@ -47,28 +47,22 @@ module RubySMB
           end
 
           # Add a static file to the virtual file system. A static file is one whose contents are known at creation time
-          # and do not change.
+          # and do not change. If *content* is a file-like object that responds to #read, the data will be read using
+          # that method. Likewise, if *content* has a #stat attribute and *stat* was not specified, then the value of
+          # content's #stat attribute will be used.
           #
           # @param [String] path The path of the file to add, relative to the share root.
-          # @param [String, #read] content The static content to add.
+          # @param [String, #read, #stat] content The static content to add.
           # @param [File::Stat] stat An explicit stat object describing the file.
           def add_static_file(path, content, stat: nil)
             path = VirtualPathname.cleanpath(path)
             path = File::SEPARATOR + path unless path.start_with?(File::SEPARATOR)
             raise ArgumentError.new('must be a file') if stat && !stat.file?
 
+            stat = content.stat if content.respond_to?(:stat) && stat.nil?
             content = content.read if content.respond_to?(:read)
             vf = VirtualStaticFile.new(self, path, content, stat: stat)
             add(vf)
-          end
-
-          # Add a file object to the virtual file system. This will read the file and create a new static file from the
-          # contents. The file's #stat object will be copied over.
-          #
-          # @param [String] path The path of the file to add, relative to the share root.
-          # @param [#stat] file_obj The file object to take the stat object and content from.
-          def add_static_fileobj(path, file_obj)
-            add_static_file(path, file_obj, stat: file_obj.stat)
           end
 
           def add(virtual_pathname)
