@@ -50,7 +50,7 @@ module RubySMB
               if kwargs.fetch(:exist?, true)
                 if kwargs[:stat]
                   if kwargs[:stat].is_a?(Hash)
-                    @stat = VirtualStat.new(kwargs[:stat])
+                    @stat = VirtualStat.new(**kwargs[:stat])
                   else
                     @stat = kwargs[:stat]
                   end
