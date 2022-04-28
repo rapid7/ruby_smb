@@ -143,6 +143,12 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat do
     end
   end
 
+  describe '#ftype' do
+    it 'is expected to be a String' do
+      expect(virtual_stat.ftype).to be_a String
+    end
+  end
+
   # test each and every permission represented by the 12 possible bits
   (0..12).each.map { |bit| (1 << bit) & 0o7777 }.each do |mode|
     context "when mode is 0o#{mode.to_s(8).rjust(4, '0')}" do

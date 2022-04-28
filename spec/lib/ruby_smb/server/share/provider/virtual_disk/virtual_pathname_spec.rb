@@ -191,8 +191,23 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
       expect(described_class.dirname('')).to be_a String
     end
   end
+  describe '#initialize' do
+    it 'defaults to existing' do
+      expect(virtual_pathname.exist?).to be true
+    end
 
-  describe '.new' do
+    it 'defaults to being a directory' do
+      expect(virtual_pathname.directory?).to be true
+    end
+
+    it 'defaults to having a stat object' do
+      expect(virtual_pathname.stat).to be_truthy
+    end
+
+    it 'throws an exception when stat is specified with exist? false' do
+      expect { described_class.new({}, path, exist?: false, stat: true) }.to raise_error(ArgumentError)
+    end
+
     it 'accepts a VirtualStat object' do
       stat = RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat.new
       expect(RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat).to_not receive(:new)
@@ -207,20 +222,6 @@ RSpec.describe RubySMB::Server::Share::Provider::VirtualDisk::VirtualPathname do
       expect(inst.stat).to_not be stat
       expect(inst.stat).to be_a RubySMB::Server::Share::Provider::VirtualDisk::VirtualStat
       expect(inst.stat.size).to eq stat[:size]
-    end
-  end
-
-  describe '#initialize' do
-    it 'defaults to existing' do
-      expect(virtual_pathname.exist?).to be true
-    end
-
-    it 'defaults to being a directory' do
-      expect(virtual_pathname.directory?).to be true
-    end
-
-    it 'defaults to having a stat object' do
-      expect(virtual_pathname.stat).to be_truthy
     end
   end
 

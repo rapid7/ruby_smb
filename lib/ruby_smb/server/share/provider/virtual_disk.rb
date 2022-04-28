@@ -10,6 +10,9 @@ module RubySMB
         # This is a share provider that exposes a virtual file system whose entries do not exist on disk.
         # @since 3.1.1
         class VirtualDisk < Disk
+          HASH_METHODS = %i[ [] each each_key each_value keys length values ]
+          private_constant :HASH_METHODS
+
           # @param [String] name The name of this share.
           def initialize(name)
             @vfs = {}
@@ -96,11 +99,15 @@ module RubySMB
           private
 
           def method_missing(symbol, *args)
-            if %i[ [] each each_key each_value ].include?(symbol)
+            if HASH_METHODS.include?(symbol)
               return @vfs.send(symbol, *args)
             end
 
             raise NoMethodError, "undefined method `#{symbol}' for #{self.class}"
+          end
+
+          def respond_to_missing?(symbol, include_private = false)
+            HASH_METHODS.include?(symbol)
           end
         end
       end
