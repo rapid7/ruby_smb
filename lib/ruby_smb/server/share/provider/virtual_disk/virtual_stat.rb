@@ -5,9 +5,13 @@ module RubySMB
         class VirtualDisk < Disk
           # This object emulates Ruby's builtin File::Stat object but uses a virtual file system instead of the real
           # local one. The current implementation is limited to only representing directories and standard files. All
-          # attributes are read-only can once the object is created, it is immutable.
+          # attributes are read-only and once the object is created, it is immutable.
           class VirtualStat
 
+            # All of the keyword arguments are the keys of the attributes to set. The names are left as is, maintaining
+            # a direct 1 to 1 relationship. See the Ruby docs for File::Stat
+            # (https://ruby-doc.org/core-3.0.2/File/Stat.html) for a list of all the attributes that can be set. Some
+            # values are calculated based on others such as the mode readable? being calculated based on the mode.
             def initialize(**kwargs)
               # directory and file both default to being the opposite of each other, one or both can be specified
               # but they can not both be true at the same time
