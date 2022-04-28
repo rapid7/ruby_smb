@@ -69,6 +69,15 @@ OptionParser.new do |opts|
   opts.on("--password PASSWORD", "The account's password (default: #{options[:password]})") do |password|
     options[:password] = password
   end
+  opts.on("--virtual-content CONTENT", "The virtual share contents") do |virtual_content|
+    options[:virtual_content] = virtual_content
+  end
+  opts.on("--virtual-name NAME", "The virtual share file name") do |virtual_name|
+    options[:virtual_name] = virtual_name
+  end
+  opts.on("--virtual-type TYPE", "The virtual share type") do |virtual_type|
+    options[:virtual_type] = virtual_type
+  end
 end.parse!
 
 ntlm_provider = RubySMB::Gss::Provider::NTLM.new(allow_anonymous: options[:allow_anonymous])
@@ -101,6 +110,28 @@ virtual_disk.add_mapped_file('self/mapped', Pathname.new(File.expand_path(__FILE
 # magic_8_ball is a dynamic file that is generated each time it is open
 virtual_disk.add_dynamic_file('magic_8_ball') do
   MAGIC_8_BALL_ANSWERS.sample
+end
+
+if options[:virtual_content] && options[:virtual_name] && options[:virtual_type]
+  case options[:virtual_type].downcase
+  when 'static'
+    # for static, content is left as is
+    virtual_disk.add_static_file(options[:virtual_name], options[:virtual_content])
+  when 'mapped'
+    # for mapped, content is a file path
+    virtual_disk.add_mapped_file(options[:virtual_name], Pathname.new(File.expand_path(options[:virtual_content])))
+  when 'dynamic'
+    # for dynamic, content is a file path
+    virtual_disk.add_dynamic_file(options[:virtual_name]) do
+      File.read(options[:virtual_content])
+    end
+  else
+    puts "virtual type: #{options[:virtual_type]}, must be one of static, mapped, or dynamic"
+    exit false
+  end
+elsif options[:virtual_content] || options[:virtual_name] || options[:virtual_type]
+  puts 'the --virtual-* flags are only used when all are specified'
+  exit false
 end
 
 server.add_share(virtual_disk)
