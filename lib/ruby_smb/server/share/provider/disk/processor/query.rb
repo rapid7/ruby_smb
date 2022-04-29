@@ -315,7 +315,7 @@ module RubySMB
 
                 case request.file_information_class
                 when Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
-                  info = Fscc::FileInformation::FileNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
+                  info = Fscc::FileInformation::FileNormalizedNameInformation.new(file_name: @handles[request.file_id.to_binary_s].remote_path)
                 else
                   info = build_fscc_file_information(local_path, request.file_information_class)
                 end
