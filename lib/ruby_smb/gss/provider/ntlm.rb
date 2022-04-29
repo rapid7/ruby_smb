@@ -113,6 +113,7 @@ module RubySMB
           def process_ntlm_type3(type3_msg)
             if type3_msg.user == '' && type3_msg.domain == ''
               if @provider.allow_anonymous
+                @session_key = "\x00".b * 16 # see MS-NLMP section 3.4
                 return WindowsError::NTStatus::STATUS_SUCCESS
               end
 
@@ -126,6 +127,12 @@ module RubySMB
               domain: type3_msg.domain
             )
             if account.nil?
+              if @provider.allow_guests
+                logger.info("NTLM authentication request succeeded for #{dbg_string} (guest)")
+                @session_key = "\x00".b * 16 # see MS-NLMP section 3.4
+                return WindowsError::NTStatus::STATUS_SUCCESS
+              end
+
               logger.info("NTLM authentication request failed for #{dbg_string} (no account)")
               return WindowsError::NTStatus::STATUS_LOGON_FAILURE
             end
@@ -233,25 +240,31 @@ module RubySMB
                 domain: type3_msg.domain
               )
               if account.nil?
-                if @provider.allow_anonymous
+                if type3_msg.user == ''
+                  is_guest = false
                   identity = IDENTITY_ANONYMOUS
+                else
+                  is_guest = true
+                  identity = Account.new(type3_msg.user.encode(''.encoding), '', type3_msg.domain.encode(''.encoding)).to_s
                 end
               else
+                is_guest = false
                 identity = account.to_s
               end
             end
 
-            Result.new(buffer, nt_status, identity)
+            Result.new(buffer, nt_status, identity, is_guest)
           end
         end
 
         # @param [Boolean] allow_anonymous whether or not to allow anonymous authentication attempts
         # @param [String] default_domain the default domain to use for authentication, unless specified 'WORKGROUP' will
         #   be used
-        def initialize(allow_anonymous: false, default_domain: 'WORKGROUP')
+        def initialize(allow_anonymous: false, allow_guests: false, default_domain: 'WORKGROUP')
           raise ArgumentError, 'Must specify a default domain' unless default_domain
 
           @allow_anonymous = allow_anonymous
+          @allow_guests = allow_guests
           @default_domain = default_domain
           @accounts = []
           @generate_server_challenge = -> { SecureRandom.bytes(8) }
