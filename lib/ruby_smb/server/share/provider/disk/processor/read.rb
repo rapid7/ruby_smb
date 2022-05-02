@@ -14,6 +14,7 @@ module RubySMB
                 if handle.nil? || handle.file.nil?
                   response = SMB1::Packet::EmptyPacket.new
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
+                  return response
                 end
 
                 handle.file.seek(request.parameter_block.offset.snapshot)
