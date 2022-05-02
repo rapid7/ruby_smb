@@ -38,7 +38,7 @@ module RubySMB
                   block.allocation_size = get_allocation_size(local_path)
                 end
 
-                @handles[response.parameter_block.fid] = Handle.new(path, local_path, false)
+                @handles[response.parameter_block.fid] = Handle.new(path, local_path, false, local_path.file? ? local_path.open : nil)
                 response
               end
 
@@ -131,7 +131,7 @@ module RubySMB
                   response.contexts_length = 0
                 end
 
-                @handles[response.file_id.to_binary_s] = Handle.new(path, local_path, durable)
+                @handles[response.file_id.to_binary_s] = Handle.new(path, local_path, durable, local_path.file? ? local_path.open : nil)
                 response
               end
             end

@@ -9,27 +9,31 @@ module RubySMB
             module Close
               def do_close_smb1(request)
                 # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/99b767e2-8f0e-438b-ace5-4323940f2dc8
-                if @handles.delete(request.parameter_block.fid).nil?
+                handle = @handles.delete(request.parameter_block.fid)
+                if handle.nil?
                   response = RubySMB::SMB1::Packet::EmptyPacket.new
                   response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_HANDLE
                   return response
                 end
+
+                handle.file.close if handle.file
 
                 response = RubySMB::SMB1::Packet::CloseResponse.new
                 response
               end
 
               def do_close_smb2(request)
-                local_path = get_local_path(request.file_id)
-                if local_path.nil?
+                handle = @handles.delete(request.file_id.to_binary_s)
+                if handle.nil?
                   response = RubySMB::SMB2::Packet::ErrorPacket.new
                   response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_FILE_CLOSED
                   return response
                 end
 
-                @handles.delete(request.file_id.to_binary_s)
+                handle.file.close if handle.file
+
                 response = RubySMB::SMB2::Packet::CloseResponse.new
-                set_common_info(response, local_path)
+                set_common_info(response, handle.local_path)
                 response.flags = 1
                 response
               end

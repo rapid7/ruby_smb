@@ -16,7 +16,7 @@ module RubySMB
             include RubySMB::Server::Share::Provider::Disk::Processor::Query
             include RubySMB::Server::Share::Provider::Disk::Processor::Read
 
-            Handle = Struct.new(:remote_path, :local_path, :durable?)
+            Handle = Struct.new(:remote_path, :local_path, :durable?, :file)
             def initialize(provider, server_client, session)
               super
               @handles = {}
@@ -96,7 +96,7 @@ module RubySMB
                 path = path.encode.gsub(/\/|\\/, File::SEPARATOR)
                 path = path.delete_prefix(File::SEPARATOR)
                 local_path = (provider.path + path.encode).cleanpath
-                unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s + '/')
+                unless local_path == provider.path || local_path.to_s.start_with?(provider.path.to_s.delete_suffix(File::SEPARATOR) + File::SEPARATOR)
                   raise RuntimeError, "Directory traversal detected to: #{local_path}"
                 end
               else
