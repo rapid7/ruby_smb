@@ -131,7 +131,8 @@ module RubySMB
                   stream_name: '::$DATA'
                 )
               else
-                raise NotImplementedError, "Unsupported FSCC file information class: #{info_class} (#{Fscc::FileInformation.name(info_class)})"
+                logger.warn("Unsupported FSCC file information class: #{info_class} (#{Fscc::FileInformation.name(info_class)})")
+                raise NotImplementedError
               end
 
               # some have a next offset field that needs to be set accordingly
