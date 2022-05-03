@@ -31,6 +31,11 @@ module RubySMB
               )
             end
 
+            # Build an access mask bit field for the specified path. The return type is a DirectoryAccessMask if path
+            # is a directory, otherwise it's a FileAccessMask.
+            #
+            # @param Pathname path the path to build an access mask for
+            # @return [DirectoryAccessMask, FileAccessMask] the access mask
             def smb2_access_mask(path)
               # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/b3af3aaf-9271-4419-b326-eba0341df7d2
               if path.directory?
@@ -61,7 +66,10 @@ module RubySMB
               case info_class
               when Fscc::FileInformation::FILE_ACCESS_INFORMATION
                 info = Fscc::FileInformation::FileAccessInformation.new
-                info.access_flags = smb2_access_mask(path).to_binary_s.unpack1('V')
+                # smb2_access_mask returns back either file or directory access mask depending on what path is,
+                # FileAccessInformation however isn't defined to account for this context so set it from the binary
+                # value
+                info.access_flags.read(smb2_access_mask(path).to_binary_s)
               when Fscc::FileInformation::FILE_ALIGNMENT_INFORMATION
                 info = Fscc::FileInformation::FileAlignmentInformation.new
               when Fscc::FileInformation::FILE_ALL_INFORMATION
