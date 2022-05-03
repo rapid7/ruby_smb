@@ -4,7 +4,7 @@ module RubySMB
       # The FileRenameInformation Class as defined in
       # [2.4.34.2 FileRenameInformation](https://msdn.microsoft.com/en-us/library/cc704597.aspx)
       class FileRenameInformation < BinData::Record
-        CLASS_LEVEL = FileInformation::FILE_ID_FULL_DIRECTORY_INFORMATION
+        CLASS_LEVEL = FileInformation::FILE_RENAME_INFORMATION
 
         endian :little
 
