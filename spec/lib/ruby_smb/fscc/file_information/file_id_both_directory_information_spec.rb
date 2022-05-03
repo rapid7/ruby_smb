@@ -28,6 +28,14 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileIdBothDirectoryInformation do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'tracks the next offset in a Uint32 field' do
+    expect(struct.next_offset).to be_a BinData::Uint32le
+  end
+
+  it 'tracks the file index in a Uint32 field' do
+    expect(struct.file_index).to be_a BinData::Uint32le
+  end
+
   it 'tracks the creation time in a Filetime field' do
     expect(struct.create_time).to be_a RubySMB::Field::FileTime
   end
@@ -44,6 +52,14 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileIdBothDirectoryInformation do
     expect(struct.last_change).to be_a RubySMB::Field::FileTime
   end
 
+  it 'tracks the file size in a Int64 field' do
+    expect(struct.end_of_file).to be_a BinData::Int64le
+  end
+
+  it 'tracks the allocation size in a Int64 field' do
+    expect(struct.allocation_size).to be_a BinData::Int64le
+  end
+
   it 'contains the file attributes of the file' do
     expect(struct.file_attributes).to be_a RubySMB::Fscc::FileAttributes
   end
@@ -53,20 +69,57 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileIdBothDirectoryInformation do
     expect(struct.file_name_length).to eq struct.file_name.do_num_bytes
   end
 
-  it 'automatically encodes the file name in UTF-16LE' do
-    name = 'Hello_world.txt'
-    struct.file_name = name
-    expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+  it 'tracks the extended attributes size in a Uint32 field' do
+    expect(struct.ea_size).to be_a BinData::Uint32le
   end
 
-  describe 'reading in from a blob' do
-    it 'uses the file_name_length to know when to stop reading' do
+  it 'tracks the short name length in a Uint8 field' do
+    expect(struct.short_name_length).to be_a BinData::Uint8
+  end
+
+  it 'tracks the short name in a String16 field' do
+    expect(struct.short_name).to be_a RubySMB::Field::String16
+  end
+
+  it 'tracks the file id in a Uint64 field' do
+    expect(struct.file_id).to be_a BinData::Uint64le
+  end
+
+  it 'tracks the file name in a String16 field' do
+    expect(struct.file_name).to be_a RubySMB::Field::String16
+  end
+
+  describe '#short_name' do
+    it 'automatically encodes the short name in UTF-16LE' do
+      name = 'Hello_world.'
+      struct.short_name = name
+      expect(struct.short_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+    end
+
+    it 'is always exactly 24 bytes in length' do
+      struct.short_name = ''
+      expect(struct.short_name.num_bytes).to eq 24
+      struct.short_name = 'Hello_world.'
+      expect(struct.short_name.num_bytes).to eq 24
+    end
+  end
+
+  describe '#file_name' do
+    it 'automatically encodes the file name in UTF-16LE' do
       name = 'Hello_world.txt'
       struct.file_name = name
-      blob = struct.to_binary_s
-      blob << 'AAAA'
-      new_from_blob = described_class.read(blob)
-      expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+    end
+
+    describe 'reading in from a blob' do
+      it 'uses the file_name_length to know when to stop reading' do
+        name = 'Hello_world.txt'
+        struct.file_name = name
+        blob = struct.to_binary_s
+        blob << 'AAAA'
+        new_from_blob = described_class.read(blob)
+        expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      end
     end
   end
 end

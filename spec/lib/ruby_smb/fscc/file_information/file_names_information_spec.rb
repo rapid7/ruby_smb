@@ -17,6 +17,14 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileNamesInformation do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
   end
 
+  it 'tracks the next offset in a Uint32 field' do
+    expect(struct.next_offset).to be_a BinData::Uint32le
+  end
+
+  it 'tracks the file index in a Uint32 field' do
+    expect(struct.file_index).to be_a BinData::Uint32le
+  end
+
   it 'tracks the file name length in a Uint32 field' do
     expect(struct.file_name_length).to be_a BinData::Uint32le
   end
@@ -30,20 +38,22 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileNamesInformation do
     expect(struct.file_name_length).to eq struct.file_name.do_num_bytes
   end
 
-  it 'automatically encodes the file name in UTF-16LE' do
-    name = 'Hello_world.txt'
-    struct.file_name = name
-    expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
-  end
-
-  describe 'reading in from a blob' do
-    it 'uses the file_name_length to know when to stop reading' do
+  describe '#file_name' do
+    it 'automatically encodes the file name in UTF-16LE' do
       name = 'Hello_world.txt'
       struct.file_name = name
-      blob = struct.to_binary_s
-      blob << 'AAAA'
-      new_from_blob = described_class.read(blob)
-      expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+    end
+
+    describe 'reading in from a blob' do
+      it 'uses the file_name_length to know when to stop reading' do
+        name = 'Hello_world.txt'
+        struct.file_name = name
+        blob = struct.to_binary_s
+        blob << 'AAAA'
+        new_from_blob = described_class.read(blob)
+        expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      end
     end
   end
 end

@@ -23,20 +23,22 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileNormalizedNameInformation do
     expect(struct.file_name).to be_a RubySMB::Field::String16
   end
 
-  it 'automatically encodes the file name in UTF-16LE' do
-    name = 'Hello_world.txt'
-    struct.file_name = name
-    expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
-  end
-
-  describe 'reading in from a blob' do
-    it 'uses the file_name_length to know when to stop reading' do
+  describe '#file_name' do
+    it 'automatically encodes the file name in UTF-16LE' do
       name = 'Hello_world.txt'
       struct.file_name = name
-      blob = struct.to_binary_s
-      blob << 'AAAA'
-      new_from_blob = described_class.read(blob)
-      expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      expect(struct.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+    end
+
+    describe 'reading in from a blob' do
+      it 'uses the file_name_length to know when to stop reading' do
+        name = 'Hello_world.txt'
+        struct.file_name = name
+        blob = struct.to_binary_s
+        blob << 'AAAA'
+        new_from_blob = described_class.read(blob)
+        expect(new_from_blob.file_name.force_encoding('utf-16le')).to eq name.encode('utf-16le')
+      end
     end
   end
 end
