@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe RubySMB::Fscc::FileInformation::FileRenameInformation do
   it 'references the correct class level' do
     expect(described_class).to be_const_defined(:CLASS_LEVEL)
-    expect(described_class::CLASS_LEVEL).to be RubySMB::Fscc::FileInformation::FILE_ID_FULL_DIRECTORY_INFORMATION
+    expect(described_class::CLASS_LEVEL).to be RubySMB::Fscc::FileInformation::FILE_RENAME_INFORMATION
   end
 
   subject(:struct) { described_class.new }

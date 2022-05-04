@@ -1,28 +1,18 @@
 require 'spec_helper'
 
-RSpec.describe RubySMB::Fscc::FileInformation::FileNamesInformation do
+RSpec.describe RubySMB::Fscc::FileInformation::FileNormalizedNameInformation do
   it 'references the correct class level' do
     expect(described_class).to be_const_defined(:CLASS_LEVEL)
-    expect(described_class::CLASS_LEVEL).to be RubySMB::Fscc::FileInformation::FILE_NAMES_INFORMATION
+    expect(described_class::CLASS_LEVEL).to be RubySMB::Fscc::FileInformation::FILE_NORMALIZED_NAME_INFORMATION
   end
 
   subject(:struct) { described_class.new }
 
-  it { should respond_to :next_offset }
-  it { should respond_to :file_index }
   it { should respond_to :file_name_length }
   it { should respond_to :file_name }
 
   it 'is little endian' do
     expect(described_class.fields.instance_variable_get(:@hints)[:endian]).to eq :little
-  end
-
-  it 'tracks the next offset in a Uint32 field' do
-    expect(struct.next_offset).to be_a BinData::Uint32le
-  end
-
-  it 'tracks the file index in a Uint32 field' do
-    expect(struct.file_index).to be_a BinData::Uint32le
   end
 
   it 'tracks the file name length in a Uint32 field' do
@@ -31,11 +21,6 @@ RSpec.describe RubySMB::Fscc::FileInformation::FileNamesInformation do
 
   it 'tracks the file name in a String16 field' do
     expect(struct.file_name).to be_a RubySMB::Field::String16
-  end
-
-  it 'tracks the length of the file_name field' do
-    struct.file_name = 'Hello.txt'
-    expect(struct.file_name_length).to eq struct.file_name.do_num_bytes
   end
 
   describe '#file_name' do

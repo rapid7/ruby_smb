@@ -17,9 +17,25 @@ module RubySMB
       # contents of a directory.
       FILE_BOTH_DIRECTORY_INFORMATION    = 0x03
 
+      # Information class used to query or set file information.
+      FILE_BASIC_INFORMATION             = 0x04
+
+      # Information class is used to query file information.
+      FILE_STANDARD_INFORMATION          = 0x05
+
+      # Information class used to query for the file system's 64-bit file ID.
+      FILE_INTERNAL_INFORMATION          = 0x06
+
       # Information class used to query for the size of the extended attributes
       # (EA) for a file.
       FILE_EA_INFORMATION                = 0x07
+
+      # Information class used to query the access rights of a file that were
+      # granted when the file was opened.
+      FILE_ACCESS_INFORMATION            = 0x08
+
+      # Information class is used locally to query the name of a file.
+      FILE_NAME_INFORMATION              = 0x09
 
       # Information class used to rename a file.
       FILE_RENAME_INFORMATION            = 0x0A
@@ -30,6 +46,17 @@ module RubySMB
 
       # Information class used to mark a file for deletion.
       FILE_DISPOSITION_INFORMATION       = 0x0D
+
+      # Information class used to query or set the position of the file pointer
+      # within a file.
+      FILE_POSITION_INFORMATION          = 0x0E
+
+      # Information class used to query or set the mode of the file.
+      FILE_MODE_INFORMATION              = 0x10
+
+      # Information class used to query the buffer alignment required by the
+      # underlying device.
+      FILE_ALIGNMENT_INFORMATION         = 0x11
 
       # Information class used to enumerate the data streams of a file or a
       # directory.
@@ -57,6 +84,10 @@ module RubySMB
       FILE_NORMALIZED_NAME_INFORMATION = 0x30
 
 
+      # Information class is used to query a collection of file information
+      # structures.
+      FILE_ALL_INFORMATION = 0x12
+
       # These Information Classes can be used by SMB1 using the pass-through
       # Information Levels when available on the server (CAP_INFOLEVEL_PASSTHRU
       # capability flag in an SMB_COM_NEGOTIATE server response). The constant
@@ -69,25 +100,27 @@ module RubySMB
         constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
       end
 
-      # The FILE_NAME_INFORMATION type as defined in
-      # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/20406fb1-605f-4629-ba9a-c67ee25f23d2
-      class FileNameInformation < BinData::Record
-        endian :little
-        uint32           :file_name_length, label: 'File Name Length',  initial_value: -> { file_name.do_num_bytes }
-        string16         :file_name,        label: 'File Name',         read_length: -> { file_name_length }
-      end
-
       require 'ruby_smb/fscc/file_information/file_directory_information'
       require 'ruby_smb/fscc/file_information/file_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_disposition_information'
       require 'ruby_smb/fscc/file_information/file_id_full_directory_information'
       require 'ruby_smb/fscc/file_information/file_both_directory_information'
       require 'ruby_smb/fscc/file_information/file_id_both_directory_information'
+      require 'ruby_smb/fscc/file_information/file_name_information'
       require 'ruby_smb/fscc/file_information/file_names_information'
+      require 'ruby_smb/fscc/file_information/file_normalized_name_information'
       require 'ruby_smb/fscc/file_information/file_rename_information'
       require 'ruby_smb/fscc/file_information/file_network_open_information'
       require 'ruby_smb/fscc/file_information/file_ea_information'
       require 'ruby_smb/fscc/file_information/file_stream_information'
+      require 'ruby_smb/fscc/file_information/file_basic_information'
+      require 'ruby_smb/fscc/file_information/file_standard_information'
+      require 'ruby_smb/fscc/file_information/file_internal_information'
+      require 'ruby_smb/fscc/file_information/file_access_information'
+      require 'ruby_smb/fscc/file_information/file_position_information'
+      require 'ruby_smb/fscc/file_information/file_mode_information'
+      require 'ruby_smb/fscc/file_information/file_alignment_information'
+      require 'ruby_smb/fscc/file_information/file_all_information'
     end
   end
 end

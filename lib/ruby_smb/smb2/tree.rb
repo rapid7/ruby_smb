@@ -237,6 +237,7 @@ module RubySMB
 
         if read
           create_request.share_access.read_access = 1
+          create_request.desired_access.read_attr = 1
           create_request.desired_access.read_data = 1
         end
 

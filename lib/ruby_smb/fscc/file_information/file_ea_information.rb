@@ -7,6 +7,7 @@ module RubySMB
         CLASS_LEVEL = FileInformation::FILE_EA_INFORMATION
 
         endian :little
+
         uint32 :ea_size, label: 'Extended Attributes Size'
       end
     end

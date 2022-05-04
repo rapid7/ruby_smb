@@ -7,6 +7,7 @@ module RubySMB
         CLASS_LEVEL = FileSystemInformation::FILE_FS_ATTRIBUTE_INFORMATION
 
         endian :little
+
         struct   :file_system_attributes,            label: 'File System Attributes' do
           bit1   :file_supports_reparse_points,      label: 'FS Supports Reparse Points'
           bit1   :file_supports_sparse_files,        label: 'FS Supports Sparse Files'

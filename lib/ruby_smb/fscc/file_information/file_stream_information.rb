@@ -4,7 +4,10 @@ module RubySMB
       # The FileStreamInformation
       # [2.4.43 FileStreamInformation](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/f8762be6-3ab9-411e-a7d6-5cc68f70c78d)
       class FileStreamInformation < BinData::Record
+        CLASS_LEVEL = Fscc::FileInformation::FILE_STREAM_INFORMATION
+
         endian :little
+
         uint32   :next_entry_offset,      label: 'Next Entry Offset'
         uint32   :stream_name_length,     label: 'Stream Name Length', initial_value: -> { stream_name.do_num_bytes }
         int64    :stream_size,            label: 'Stream Size'
