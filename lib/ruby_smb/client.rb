@@ -332,7 +332,7 @@ module RubySMB
       # session setup response is received
       @session_encrypt_data = always_encrypt
 
-      @ntlm_client = Net::NTLM::Client.new(
+      @ntlm_client = NTLM::Client.new(
         @username,
         @password,
         workstation: @local_workstation,
@@ -404,7 +404,7 @@ module RubySMB
       @password          = pass.encode('utf-8') || ''.encode('utf-8')
       @username          = user.encode('utf-8') || ''.encode('utf-8')
 
-      @ntlm_client = Net::NTLM::Client.new(
+      @ntlm_client = NTLM::Client.new(
           @username,
           @password,
           workstation: @local_workstation,
