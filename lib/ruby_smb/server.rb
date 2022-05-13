@@ -6,6 +6,7 @@ module RubySMB
   # Currently, the server only supports negotiating and authenticating requests. No other server functionality is
   # available at this time. The negotiating and authentication is supported for SMB versions 1 through 3.1.1.
   class Server
+    require 'ruby_smb/server/cli'
     require 'ruby_smb/server/server_client'
     require 'ruby_smb/server/session'
     require 'ruby_smb/server/share'
