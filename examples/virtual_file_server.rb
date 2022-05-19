@@ -31,7 +31,7 @@ MAGIC_8_BALL_ANSWERS = [
   'Very doubtful'
 ]
 
-options = RubySMB::Server::Cli.parse! do |options, parser|
+options = RubySMB::Server::Cli.parse do |options, parser|
   parser.banner = "Usage: #{File.basename(__FILE__)} [options]"
 
   parser.on("--virtual-content CONTENT", "The virtual share contents") do |virtual_content|

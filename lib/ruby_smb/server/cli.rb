@@ -31,7 +31,7 @@ module RubySMB
       #   * :smbv2 [Boolean] Whether or not to enable SMBv2 dialects.
       #   * :smbv3 [Boolean] Whether or not to enable SMBv3 dialects.
       #   * :share_name [String] The name of the share to add.
-      def self.parse!(defaults: {}, &block)
+      def self.parse(defaults: {}, &block)
         defaults = DEFAULT_OPTIONS.merge(defaults)
         options = defaults.clone
         OptionParser.new do |parser|
