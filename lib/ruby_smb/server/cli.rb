@@ -35,7 +35,7 @@ module RubySMB
         defaults = DEFAULT_OPTIONS.merge(defaults)
         options = defaults.clone
         OptionParser.new do |parser|
-          parser.on("--share SHARE", "The share name (default: #{defaults[:share_name]})") do |share|
+          parser.on("--share-name SHARE_NAME", "The share name (default: #{defaults[:share_name]})") do |share|
             options[:share_name] = share
           end
 
@@ -92,9 +92,9 @@ module RubySMB
           gss_provider: ntlm_provider,
           logger: :stdout
         )
-        server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB1 } unless options[:smbv1]
-        server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB2 } unless options[:smbv2]
-        server.dialects.select! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB3 } unless options[:smbv3]
+        server.dialects.filter! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB1 } unless options[:smbv1]
+        server.dialects.filter! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB2 } unless options[:smbv2]
+        server.dialects.filter! { |dialect| RubySMB::Dialect[dialect].family != RubySMB::Dialect::FAMILY_SMB3 } unless options[:smbv3]
 
         server
       end
