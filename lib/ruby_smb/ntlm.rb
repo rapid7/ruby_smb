@@ -59,3 +59,4 @@ module RubySMB
   end
 end
 
+require 'ruby_smb/ntlm/client'
