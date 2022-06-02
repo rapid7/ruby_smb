@@ -7,15 +7,51 @@ module RubySMB
       VER_MINOR = 0
 
       # Operation numbers
-      SAMR_CONNECT                     = 0x0000
-      SAMR_CLOSE_HANDLE                = 0x0001
-      SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER = 0x0005
-      SAMR_OPEN_DOMAIN                 = 0x0007
-      SAMR_ENUMERATE_USERS_IN_DOMAIN   = 0x000D
-      SAMR_GET_ALIAS_MEMBERSHIP        = 0x0010
-      SAMR_OPEN_USER                   = 0x0022
-      SAMR_GET_GROUPS_FOR_USER         = 0x0027
-      SAMR_RID_TO_SID                  = 0x0041
+      SAMR_CONNECT                         = 0x0000
+      SAMR_CLOSE_HANDLE                    = 0x0001
+      SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER     = 0x0005
+      SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER = 0x0006
+      SAMR_OPEN_DOMAIN                     = 0x0007
+      SAMR_ENUMERATE_USERS_IN_DOMAIN       = 0x000D
+      SAMR_GET_ALIAS_MEMBERSHIP            = 0x0010
+      SAMR_LOOKUP_NAMES_IN_DOMAIN          = 0x0011
+      SAMR_OPEN_USER                       = 0x0022
+      SAMR_DELETE_USER                     = 0x0023
+      SAMR_GET_GROUPS_FOR_USER             = 0x0027
+      SAMR_CREATE_USER2_IN_DOMAIN          = 0x0032
+      SAMR_SET_INFORMATION_USER2           = 0x003a
+      SAMR_CONNECT5                        = 0x0040
+      SAMR_RID_TO_SID                      = 0x0041
+
+      # [2.2.3.9 SAMPR_RID_ENUMERATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5c94a35a-e7f2-4675-af34-741f5a8ee1a2)
+      class SamprRidEnumeration < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32         :relative_id
+        rpc_unicode_string :name
+      end
+
+      class SamprRidEnumerationArray < Ndr::NdrConfArray
+        default_parameter type: :sampr_rid_enumeration
+      end
+
+      class PsamprRidEnumerationArray < SamprRidEnumerationArray
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.3.10 SAMPR_ENUMERATION_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c53161a4-38e8-4a28-a33e-0d378fce03dd)
+      class SamprEnumerationBuffer < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32                   :entries_read
+        psampr_rid_enumeration_array :buffer
+      end
+
+      class PsamprEnumerationBuffer < SamprEnumerationBuffer
+        extend Ndr::PointerClassPlugin
+      end
 
       class SamprHandle < Ndr::NdrContextHandle; end
 
@@ -308,6 +344,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_response'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_request'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_response'
+      require 'ruby_smb/dcerpc/samr/samr_enumerate_domains_in_sam_server_request'
+      require 'ruby_smb/dcerpc/samr/samr_enumerate_domains_in_sam_server_response'
       require 'ruby_smb/dcerpc/samr/samr_enumerate_users_in_domain_request'
       require 'ruby_smb/dcerpc/samr/samr_enumerate_users_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_request'
@@ -413,6 +451,36 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_open_domain_response.error_status.value).join(',')}"
         end
         samr_open_domain_response.domain_handle
+      end
+
+      def samr_enumerate_domains_in_sam_server(server_handle:, enumeration_context: 0)
+        samr_enum_domains_request = SamrEnumerateDomainsInSamServerRequest.new(
+          server_handle: server_handle,
+          enumeration_context: enumeration_context,
+          prefered_maximum_length: 0xFFFFFFFF
+        )
+        res = []
+        loop do
+          samr_enum_domains_request.enumeration_context = enumeration_context
+          response = dcerpc_request(samr_enum_domains_request)
+          begin
+            samr_enum_domains_reponse = SamrEnumerateDomainsInSamServerResponse.read(response)
+          rescue IOError
+            raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrEnumerateDomainsInSamServerResponse'
+          end
+          unless samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS ||
+                 samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+            raise RubySMB::Dcerpc::Error::SamrError,
+              "Error returned during domains enumeration in SAM server: "\
+              "#{WindowsError::NTStatus.find_by_retval(samr_enum_domains_reponse.error_status.value).join(',')}"
+          end
+          samr_enum_domains_reponse.buffer.buffer.each_with_object(res) do |entry, array|
+            array << entry.name.buffer
+          end
+          break unless samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+          enumeration_context = samr_enum_domains_reponse.enumeration_context
+        end
+        res
       end
 
       # Enumerates all users in the specified domain.
