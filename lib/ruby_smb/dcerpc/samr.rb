@@ -453,6 +453,17 @@ module RubySMB
         samr_open_domain_response.domain_handle
       end
 
+      # Enumerates all domains on the remote server.
+      #
+      # @param server_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the server object
+      # @param enumeration_context [Integer] a cookie used by the server to
+      #   resume an enumeration
+      # @return [Array<String>] an array containing the domain names
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrEnumerateDomainsInSamServerResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
       def samr_enumerate_domains_in_sam_server(server_handle:, enumeration_context: 0)
         samr_enum_domains_request = SamrEnumerateDomainsInSamServerRequest.new(
           server_handle: server_handle,
@@ -487,7 +498,11 @@ module RubySMB
       #
       # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
       #   handle representing the domain object
-      # @return [Hash] hash mapping RID and username
+      # @param enumeration_context [Integer] a cookie used by the server to
+      #   resume an enumeration
+      # @param user_account_control [Integer] a value to use for filtering on
+      #   the userAccountControl attribute
+      # @return [Hash<Integer, String>] hash mapping RID and username
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
       #   SamrEnumerateUsersInDomainResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
