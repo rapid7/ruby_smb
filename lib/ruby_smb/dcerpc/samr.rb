@@ -353,6 +353,8 @@ module RubySMB
 
       require 'ruby_smb/dcerpc/samr/samr_connect_request'
       require 'ruby_smb/dcerpc/samr/samr_connect_response'
+      require 'ruby_smb/dcerpc/samr/samr_create_user2_in_domain_request'
+      require 'ruby_smb/dcerpc/samr/samr_create_user2_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_request'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_response'
       require 'ruby_smb/dcerpc/samr/samr_lookup_names_in_domain_request'
@@ -403,6 +405,47 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_connect_response.error_status.value).join(',')}"
         end
         samr_connect_response.server_handle
+      end
+
+      # Create a new user.
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the domain object
+      # @param name [String] The name of the account to add
+      # @param account_type [Integer] The type of account to add, one of either
+      #   USER_NORMAL_ACCOUNT, USER_WORKSTATION_TRUST_ACCOUNT, or
+      #   USER_SERVER_TRUST_ACCOUNT
+      # @param desired_access [Integer] The access requested on the returned
+      #   object
+      # @return [RubySMB::Dcerpc::Samr::SamprHandle] handle to the server object.
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrConnectResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_create_user2_in_domain(domain_handle:, name:, account_type: USER_NORMAL_ACCOUNT, desired_access: GROUP_ALL_ACCESS)
+        samr_create_request = SamrCreateUser2InDomainRequest.new(
+          domain_handle: domain_handle,
+          name: name,
+          account_type: account_type,
+          desired_access: desired_access
+        )
+        response = dcerpc_request(samr_create_request)
+        begin
+          samr_create_response = SamrCreateUser2InDomainResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrCreateUser2InDomainResponse'
+        end
+        unless samr_create_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned with samr_create_user2_in_domain: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_create_response.error_status.value).join(',')}"
+        end
+
+        {
+          user_handle: samr_create_response.user_handle,
+          granted_access: samr_create_response.granted_access.to_i,
+          relative_id: samr_create_response.relative_id.to_i
+        }
       end
 
       # Obtains the SID of a domain object
