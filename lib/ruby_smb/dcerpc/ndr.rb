@@ -312,29 +312,31 @@ module RubySMB::Dcerpc::Ndr
     def initialize_instance
       @read_until_index = 0
       @max_count = 0
+      @max_count_set = false
       super
     end
 
     def insert(index, *objs)
       obj = super
-      @max_count = length
+      @max_count = length unless @max_count_set
       obj
     end
 
     def slice_index(index)
       obj = super
-      @max_count = length
+      @max_count = length unless @max_count_set
       obj
     end
 
     def []=(index, value)
       obj = super
-      @max_count = length
+      @max_count = length unless @max_count_set
       obj
     end
 
     def set_max_count(val)
       @max_count = @read_until_index = val
+      @max_count_set = true
     end
   end
 

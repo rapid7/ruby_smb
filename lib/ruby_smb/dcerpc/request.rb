@@ -70,6 +70,7 @@ module RubySMB
           samr_open_user_request                       Samr::SAMR_OPEN_USER
           samr_get_groups_for_user_request             Samr::SAMR_GET_GROUPS_FOR_USER
           samr_enumerate_domains_in_sam_server_request Samr::SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER
+          samr_lookup_names_in_domain_request          Samr::SAMR_LOOKUP_NAMES_IN_DOMAIN
           string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do

@@ -109,6 +109,11 @@ module RubySMB
       end
     end
 
+    class RpcUnicodeStringConfVarArray < Ndr::NdrConfVarArray
+      extend Ndr::ArrayClassPlugin
+      default_parameters type: :rpc_unicode_string
+    end
+
     # A pointer to a RPC_UNICODE_STRING structure
     class PrpcUnicodeString < RpcUnicodeString
       extend Ndr::PointerClassPlugin

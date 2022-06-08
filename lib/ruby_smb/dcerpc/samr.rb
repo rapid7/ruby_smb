@@ -55,6 +55,19 @@ module RubySMB
 
       class SamprHandle < Ndr::NdrContextHandle; end
 
+      class PulongArray < Ndr::NdrConfArray
+        default_parameter type: :ndr_uint32
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.7.4 SAMPR_ULONG_ARRAY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2feb3806-4db2-45b7-90d2-86c8336a31ba)
+      class SamprUlongArray < Ndr::NdrStruct
+        default_parameter byte_align: 4
+
+        ndr_uint32   :elem_count, initial_value: -> { elements.size }
+        pulong_array :elements
+      end
+
       # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
       class UserProperty < BinData::Record
         endian   :little
@@ -342,6 +355,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_connect_response'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_request'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_response'
+      require 'ruby_smb/dcerpc/samr/samr_lookup_names_in_domain_request'
+      require 'ruby_smb/dcerpc/samr/samr_lookup_names_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_request'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_enumerate_domains_in_sam_server_request'
@@ -418,6 +433,50 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_lookup_domain_in_sam_server_response.error_status.value).join(',')}"
         end
         samr_lookup_domain_in_sam_server_response.domain_id
+      end
+
+      # Obtains the SID of a domain object
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the domain object
+      # @param name [Array<String>] An array of string account names to
+      #   translate to RIDs.
+      # @return [Hash<String, Hash<Symbol, Integer>, Nil] Returns a hash mapping
+      #   the requested names to their information. Nil is returned if one or
+      #   more names could not be found.
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS, STATUS_NONE_MAPPED, or STATUS_SOME_NOT_MAPPED
+      def samr_lookup_names_in_domain(domain_handle:, names:)
+        raise ArgumentError.new('names may not be longer than 1000') if names.length > 1000
+
+        samr_lookup_request = SamrLookupNamesInDomainRequest.new(
+          domain_handle: domain_handle,
+          names_count: names.length,
+          names: names
+        )
+        samr_lookup_request.names.set_max_count(1000)
+        response = dcerpc_request(samr_lookup_request)
+        begin
+          samr_lookup_response = SamrLookupNamesInDomainResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrLookupNamesInDomainResponse'
+        end
+        return nil if samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_NONE_MAPPED
+        return nil if samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_SOME_NOT_MAPPED
+        unless samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned during names lookup in SAM server: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_lookup_response.error_status.value).join(',')}"
+        end
+
+        result = {}
+        names.each_with_index do |name, index|
+          result[name] = {
+            rid: samr_lookup_response.relative_ids.elements[index].to_i,
+            use: samr_lookup_response.use.elements[index].to_i
+          }
+        end
+        result
       end
 
       # Returns a handle to a domain object.
