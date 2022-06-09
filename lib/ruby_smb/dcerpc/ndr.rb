@@ -652,7 +652,7 @@ module RubySMB::Dcerpc::Ndr
     include ConstructedTypePlugin
 
     def should_process_max_count?
-      # According to the NDR defintion for Structures Containing a Conformant
+      # According to the NDR definition for Structures Containing a Conformant
       # Array:
       #
       # "In the NDR representation of a structure that contains a
@@ -763,13 +763,13 @@ module RubySMB::Dcerpc::Ndr
         return (4 - (rel_offset % 4)) % 4
       end
       if obj.is_a?(ConfPlugin)
-        # `max_count` should have been handled at the begining of the structure
+        # `max_count` should have been handled at the beginning of the structure
         # already. We need to fix `rel_offset` since it includes the
         # `max_count` 4 bytes, plus the possible padding bytes needed to align
         # the structure. This is required because BinData Struct is not
-        # aware of `max_count` and considere the first field to be the begining
+        # aware of `max_count` and consider the first field to be the beginning
         # of the structure instead. We have to make sure the alignment is
-        # calculated from the begining of the structure.
+        # calculated from the beginning of the structure.
         align = eval_parameter(:byte_align)
         pad_length = (align - (4 % align)) % align
         rel_offset += (4 + pad_length)
@@ -778,7 +778,7 @@ module RubySMB::Dcerpc::Ndr
         # (not Varying). The size information (max_count) has been place in
         # from of the structure and no other size information is present before
         # the actual elements of the array. Therefore, the alignment must be
-        # done accroding to th rules of the elements. Since a NdrArray has its
+        # done according to the rules of the elements. Since a NdrArray has its
         # default :byte_align value set to 4 (:max_count size), we have to make
         # sure the element size is used instead.
         unless obj.is_a?(VarPlugin)
@@ -839,6 +839,10 @@ module RubySMB::Dcerpc::Ndr
       extend StructPlugin
     end
   end
+
+  #
+  # [Unions](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_08)
+  #
 
   # TODO: Unions
   # TODO: Pipes
