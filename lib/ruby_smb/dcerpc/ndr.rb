@@ -1213,6 +1213,11 @@ module RubySMB::Dcerpc::Ndr
     extend PointerClassPlugin
   end
 
+  class NdrUint16ArrayPtr < NdrConfVarArray
+    default_parameters type: :ndr_uint16
+    extend PointerClassPlugin
+  end
+
   class NdrFileTimePtr < NdrFileTime
     extend PointerClassPlugin
   end

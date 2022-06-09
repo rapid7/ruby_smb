@@ -68,6 +68,80 @@ module RubySMB
         pulong_array :elements
       end
 
+      # [2.2.2.4 RPC_SHORT_BLOB](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/77dbfdbb-6627-4871-ab12-5333929347dc)
+      class RpcShortBlob < BinData::Record
+        ndr_uint16           :buffer_length, initial_value: -> { buffer.length }
+        ndr_uint16           :max_length, initial_value: -> { buffer.length }
+        ndr_uint16_array_ptr :buffer
+      end
+
+      # [2.2.6.22 SAMPR_ENCRYPTED_USER_PASSWORD_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/112ecc94-1cbe-41cd-b669-377402c20786)
+      class SamprEncryptedUserPasswordNew < BinData::Record
+        ndr_fixed_byte_array :buffer, initial_length: 532
+      end
+
+      # [2.2.6.5 SAMPR_LOGON_HOURS](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d83c356b-7dda-4096-8270-5c581f84a4d9)
+      class SamprLogonHours < BinData::Record
+        ndr_uint32         :units_per_week
+        ndr_byte_array_ptr :logon_hours
+      end
+
+      # [2.2.7.11 SAMPR_SR_SECURITY_DESCRIPTOR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/675e37d9-bb97-4f14-bba2-be081c87cd5d)
+      class SamprSrSecurityDescriptor < BinData::Record
+        ndr_uint32         :buffer_length, initial_value: -> { buffer.length }
+        ndr_byte_array_ptr :buffer
+      end
+
+      # [2.2.6.6 SAMPR_USER_ALL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/dc966b81-da27-4dae-a28c-ec16534f1cb9)
+      class SamprUserAllInformation < BinData::Record
+        ndr_uint64                   :last_logon
+        ndr_uint64                   :last_logoff
+        ndr_uint64                   :password_last_set
+        ndr_uint64                   :account_expires
+        ndr_uint64                   :password_can_change
+        ndr_uint64                   :password_must_change
+        rpc_unicode_string           :user_name
+        rpc_unicode_string           :full_name
+        rpc_unicode_string           :home_directory
+        rpc_unicode_string           :home_directory_drive
+        rpc_unicode_string           :script_path
+        rpc_unicode_string           :profile_path
+        rpc_unicode_string           :admin_comment
+        rpc_unicode_string           :work_stations
+        rpc_unicode_string           :user_comment
+        rpc_unicode_string           :parameters
+        rpc_short_blob               :lm_owf_password
+        rpc_short_blob               :nt_owf_password
+        rpc_unicode_string           :private_data
+        sampr_sr_security_descriptor :security_descriptor
+        ndr_uint32                   :user_id
+        ndr_uint32                   :primary_group_id
+        ndr_uint32                   :user_account_control
+        ndr_uint32                   :which_fields
+        sampr_logon_hours            :logon_hours
+        ndr_uint16                   :bad_password_count
+        ndr_uint16                   :logon_count
+        ndr_uint16                   :country_code
+        ndr_uint16                   :code_page
+        ndr_uint8                    :lm_password_present
+        ndr_uint8                    :nt_password_present
+        ndr_uint8                    :password_expired
+        ndr_uint8                    :private_data_sensitive
+      end
+
+      class SamprUserInternal4InformationNew < BinData::Record
+        sampr_user_all_information        :i1
+        sampr_encrypted_user_password_new :user_password
+      end
+
+      # [2.2.6.29 SAMPR_USER_INFO_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9496c26e-490b-4e76-827f-2695fc216f35)
+      class SamprUserInfoBuffer < BinData::Record
+        ndr_uint16 :tag
+        choice     :member, selection: :tag do
+          sampr_user_internal4_information_new USER_INTERNAL4_INFORMATION_NEW
+        end
+      end
+
       # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
       class UserProperty < BinData::Record
         endian   :little
@@ -252,6 +326,33 @@ module RubySMB
       USER_ALL_PASSWORDEXPIRED     = 0x08000000
       USER_ALL_SECURITYDESCRIPTOR  = 0x10000000
       USER_ALL_UNDEFINED_MASK      = 0xC0000000
+
+      # [2.2.6.28 USER_INFORMATION_CLASS Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/6b0dff90-5ac0-429a-93aa-150334adabf6)
+      USER_GENERAL_INFORMATION       = 1
+      USER_PREFERENCES_INFORMATION   = 2
+      USER_LOGON_INFORMATION         = 3
+      USER_LOGON_HOURS_INFORMATION   = 4
+      USER_ACCOUNT_INFORMATION       = 5
+      USER_NAME_INFORMATION          = 6
+      USER_ACCOUNT_NAME_INFORMATION  = 7
+      USER_FULL_NAME_INFORMATION     = 8
+      USER_PRIMARY_GROUP_INFORMATION = 9
+      USER_HOME_INFORMATION          = 10
+      USER_SCRIPT_INFORMATION        = 11
+      USER_PROFILE_INFORMATION       = 12
+      USER_ADMIN_COMMENT_INFORMATION = 13
+      USER_WORK_STATIONS_INFORMATION = 14
+      USER_CONTROL_INFORMATION       = 16
+      USER_EXPIRES_INFORMATION       = 17
+      USER_INTERNAL1_INFORMATION     = 18
+      USER_PARAMETERS_INFORMATION    = 20
+      USER_ALL_INFORMATION           = 21
+      USER_INTERNAL4_INFORMATION     = 23
+      USER_INTERNAL5_INFORMATION     = 24
+      USER_INTERNAL4_INFORMATION_NEW = 25
+      USER_INTERNAL5_INFORMATION_NEW = 26
+      USER_INTERNAL7_INFORMATION     = 31
+      USER_INTERNAL8_INFORMATION     = 32
 
       # [2.2.1.9 ACCOUNT_TYPE Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e742be45-665d-4576-b872-0bc99d1e1fbe)
       SAM_DOMAIN_OBJECT             = 0x00000000
