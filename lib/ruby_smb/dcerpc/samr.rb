@@ -497,6 +497,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_response'
       require 'ruby_smb/dcerpc/samr/samr_set_information_user2_request'
       require 'ruby_smb/dcerpc/samr/samr_set_information_user2_response'
+      require 'ruby_smb/dcerpc/samr/samr_delete_user_request'
+      require 'ruby_smb/dcerpc/samr/samr_delete_user_response'
 
       # Returns a handle to a server object.
       #
@@ -568,6 +570,26 @@ module RubySMB
           granted_access: samr_create_response.granted_access.to_i,
           relative_id: samr_create_response.relative_id.to_i
         }
+      end
+
+      def samr_delete_user(user_handle:)
+        samr_delete_user_request = SamrDeleteUserRequest.new(
+          user_handle: user_handle
+        )
+
+        response = dcerpc_request(samr_delete_user_request)
+        begin
+          samr_delete_user_response = SamrDeleteUserResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrDeleteUserResponse'
+        end
+        unless samr_delete_user_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while deleting user in SAM server: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_delete_user_response.error_status.value).join(',')}"
+        end
+
+        nil
       end
 
       # Obtains the SID of a domain object

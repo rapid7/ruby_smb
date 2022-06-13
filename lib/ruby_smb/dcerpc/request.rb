@@ -73,6 +73,7 @@ module RubySMB
           samr_lookup_names_in_domain_request          Samr::SAMR_LOOKUP_NAMES_IN_DOMAIN
           samr_create_user2_in_domain_request          Samr::SAMR_CREATE_USER2_IN_DOMAIN
           samr_set_information_user2_request           Samr::SAMR_SET_INFORMATION_USER2
+          samr_delete_user_request                     Samr::SAMR_DELETE_USER
           string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do
