@@ -6,6 +6,10 @@ module RubySMB
       VER_MAJOR = 1
       VER_MINOR = 0
 
+      #################################
+      #           Constants           #
+      #################################
+
       # Operation numbers
       SAMR_CONNECT                         = 0x0000
       SAMR_CLOSE_HANDLE                    = 0x0001
@@ -22,198 +26,6 @@ module RubySMB
       SAMR_SET_INFORMATION_USER2           = 0x003a
       SAMR_CONNECT5                        = 0x0040
       SAMR_RID_TO_SID                      = 0x0041
-
-      # [2.2.3.9 SAMPR_RID_ENUMERATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5c94a35a-e7f2-4675-af34-741f5a8ee1a2)
-      class SamprRidEnumeration < Ndr::NdrStruct
-        default_parameters byte_align: 4
-        endian :little
-
-        ndr_uint32         :relative_id
-        rpc_unicode_string :name
-      end
-
-      class SamprRidEnumerationArray < Ndr::NdrConfArray
-        default_parameter type: :sampr_rid_enumeration
-      end
-
-      class PsamprRidEnumerationArray < SamprRidEnumerationArray
-        extend Ndr::PointerClassPlugin
-      end
-
-      # [2.2.3.10 SAMPR_ENUMERATION_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c53161a4-38e8-4a28-a33e-0d378fce03dd)
-      class SamprEnumerationBuffer < Ndr::NdrStruct
-        default_parameters byte_align: 4
-        endian :little
-
-        ndr_uint32                   :entries_read
-        psampr_rid_enumeration_array :buffer
-      end
-
-      class PsamprEnumerationBuffer < SamprEnumerationBuffer
-        extend Ndr::PointerClassPlugin
-      end
-
-      class SamprHandle < Ndr::NdrContextHandle; end
-
-      class PulongArray < Ndr::NdrConfArray
-        default_parameter type: :ndr_uint32
-        extend Ndr::PointerClassPlugin
-      end
-
-      # [2.2.7.4 SAMPR_ULONG_ARRAY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2feb3806-4db2-45b7-90d2-86c8336a31ba)
-      class SamprUlongArray < Ndr::NdrStruct
-        default_parameter byte_align: 4
-
-        ndr_uint32   :elem_count, initial_value: -> { elements.size }
-        pulong_array :elements
-      end
-
-      # [2.2.2.4 RPC_SHORT_BLOB](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/77dbfdbb-6627-4871-ab12-5333929347dc)
-      class RpcShortBlob < BinData::Record
-        ndr_uint16           :buffer_length, initial_value: -> { buffer.length }
-        ndr_uint16           :max_length, initial_value: -> { buffer.length }
-        ndr_uint16_array_ptr :buffer
-      end
-
-      # [2.2.6.22 SAMPR_ENCRYPTED_USER_PASSWORD_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/112ecc94-1cbe-41cd-b669-377402c20786)
-      class SamprEncryptedUserPasswordNew < BinData::Record
-        ndr_fixed_byte_array :buffer, initial_length: 532
-      end
-
-      # [2.2.6.5 SAMPR_LOGON_HOURS](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d83c356b-7dda-4096-8270-5c581f84a4d9)
-      class SamprLogonHours < BinData::Record
-        ndr_uint32         :units_per_week
-        ndr_byte_array_ptr :logon_hours
-      end
-
-      # [2.2.7.11 SAMPR_SR_SECURITY_DESCRIPTOR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/675e37d9-bb97-4f14-bba2-be081c87cd5d)
-      class SamprSrSecurityDescriptor < BinData::Record
-        ndr_uint32         :buffer_length, initial_value: -> { buffer.length }
-        ndr_byte_array_ptr :buffer
-      end
-
-      # [2.2.6.6 SAMPR_USER_ALL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/dc966b81-da27-4dae-a28c-ec16534f1cb9)
-      class SamprUserAllInformation < BinData::Record
-        ndr_uint64                   :last_logon
-        ndr_uint64                   :last_logoff
-        ndr_uint64                   :password_last_set
-        ndr_uint64                   :account_expires
-        ndr_uint64                   :password_can_change
-        ndr_uint64                   :password_must_change
-        rpc_unicode_string           :user_name
-        rpc_unicode_string           :full_name
-        rpc_unicode_string           :home_directory
-        rpc_unicode_string           :home_directory_drive
-        rpc_unicode_string           :script_path
-        rpc_unicode_string           :profile_path
-        rpc_unicode_string           :admin_comment
-        rpc_unicode_string           :work_stations
-        rpc_unicode_string           :user_comment
-        rpc_unicode_string           :parameters
-        rpc_short_blob               :lm_owf_password
-        rpc_short_blob               :nt_owf_password
-        rpc_unicode_string           :private_data
-        sampr_sr_security_descriptor :security_descriptor
-        ndr_uint32                   :user_id
-        ndr_uint32                   :primary_group_id
-        ndr_uint32                   :user_account_control
-        ndr_uint32                   :which_fields
-        sampr_logon_hours            :logon_hours
-        ndr_uint16                   :bad_password_count
-        ndr_uint16                   :logon_count
-        ndr_uint16                   :country_code
-        ndr_uint16                   :code_page
-        ndr_uint8                    :lm_password_present
-        ndr_uint8                    :nt_password_present
-        ndr_uint8                    :password_expired
-        ndr_uint8                    :private_data_sensitive
-      end
-
-      class SamprUserInternal4InformationNew < BinData::Record
-        sampr_user_all_information        :i1
-        sampr_encrypted_user_password_new :user_password
-      end
-
-      # [2.2.6.29 SAMPR_USER_INFO_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9496c26e-490b-4e76-827f-2695fc216f35)
-      class SamprUserInfoBuffer < BinData::Record
-        ndr_uint16 :tag
-        choice     :member, selection: :tag do
-          sampr_user_internal4_information_new USER_INTERNAL4_INFORMATION_NEW
-        end
-      end
-
-      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
-      class UserProperty < BinData::Record
-        endian   :little
-
-        uint16   :name_length, initial_value: -> { property_name.num_bytes }
-        uint16   :value_length, initial_value: -> { property_value.num_bytes }
-        uint16   :reserved
-        string16 :property_name, read_length: :name_length
-        string   :property_value, read_length: :value_length
-      end
-
-      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
-      class UserProperties < BinData::Record
-        endian :little
-
-        uint32 :reserved1
-        uint32 :struct_length, initial_value: -> { num_bytes - 12 }
-        uint16 :reserved2
-        uint16 :reserved3
-        string :reserved4, length: 96
-        uint16 :property_signature, initial_value: 0x50
-        uint16 :property_count, initial_value: -> { user_properties.size }
-        array  :user_properties, type: :user_property, initial_length: :property_count
-        uint8  :reserved5
-      end
-
-      class KerbKeyDataNew < BinData::Record
-        endian :little
-
-        uint16 :reserved1
-        uint16 :reserved2
-        uint32 :reserved3
-        uint32 :iteration_count
-        uint32 :key_type
-        uint32 :key_length
-        uint32 :key_offset
-      end
-
-      # [2.2.10.6 Primary:Kerberos-Newer-Keys - KERB_STORED_CREDENTIAL_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/08cb3ca7-954b-45e3-902e-77512fe3ba8e)
-      class KerbStoredCredentialNew < BinData::Record
-        endian :little
-
-        uint16 :revision
-        uint16 :flags
-        uint16 :credential_count
-        uint16 :service_credential_count
-        uint16 :old_credential_count
-        uint16 :older_credential_count
-        uint16 :default_salt_length
-        uint16 :default_salt_maximum_length
-        uint32 :default_salt_offset
-        uint32 :default_iteration_count
-        array  :credentials, type: :kerb_key_data_new, initial_length: :credential_count
-        array  :service_credentials, type: :kerb_key_data_new, initial_length: :service_credential_count
-        array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
-        array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
-        string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
-        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
-
-        def get_key_values
-          credentials.map do |credential|
-            offset = credential.key_offset - key_values.abs_offset
-            key_values[offset, credential.key_length]
-          end
-        end
-      end
-
-
-      #################################
-      #           Constants           #
-      #################################
-
 
       ################
       # ACCESS_MASK Values
@@ -450,6 +262,213 @@ module RubySMB
         0xffffff74 => 'rc4_hmac'
       }
 
+      # [2.2.3.9 SAMPR_RID_ENUMERATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5c94a35a-e7f2-4675-af34-741f5a8ee1a2)
+      class SamprRidEnumeration < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32         :relative_id
+        rpc_unicode_string :name
+      end
+
+      class SamprRidEnumerationArray < Ndr::NdrConfArray
+        default_parameter type: :sampr_rid_enumeration
+      end
+
+      class PsamprRidEnumerationArray < SamprRidEnumerationArray
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.3.10 SAMPR_ENUMERATION_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c53161a4-38e8-4a28-a33e-0d378fce03dd)
+      class SamprEnumerationBuffer < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32                   :entries_read
+        psampr_rid_enumeration_array :buffer
+      end
+
+      class PsamprEnumerationBuffer < SamprEnumerationBuffer
+        extend Ndr::PointerClassPlugin
+      end
+
+      class SamprHandle < Ndr::NdrContextHandle; end
+
+      class PulongArray < Ndr::NdrConfArray
+        default_parameter type: :ndr_uint32
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.7.4 SAMPR_ULONG_ARRAY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2feb3806-4db2-45b7-90d2-86c8336a31ba)
+      class SamprUlongArray < Ndr::NdrStruct
+        default_parameter byte_align: 4
+
+        ndr_uint32   :elem_count, initial_value: -> { elements.size }
+        pulong_array :elements
+      end
+
+      # [2.2.2.4 RPC_SHORT_BLOB](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/77dbfdbb-6627-4871-ab12-5333929347dc)
+      class RpcShortBlob < BinData::Record
+        ndr_uint16           :buffer_length, initial_value: -> { buffer.length }
+        ndr_uint16           :max_length, initial_value: -> { buffer.length }
+        ndr_uint16_array_ptr :buffer
+      end
+
+      # [2.2.6.22 SAMPR_ENCRYPTED_USER_PASSWORD_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/112ecc94-1cbe-41cd-b669-377402c20786)
+      class SamprEncryptedUserPasswordNew < BinData::Record
+        ndr_fixed_byte_array :buffer, initial_length: 532
+
+        def self.encrypt_password(password, key)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5fe3c4c4-e71b-440d-b2fd-8448bfaf6e04
+          password = password.encode('UTF-16LE').force_encoding('ASCII-8bit')
+          buffer = password.rjust(512, "\x00") + [ password.length ].pack('V')
+          salt = SecureRandom.random_bytes(16)
+          key = OpenSSL::Digest::MD5.new(salt + key).digest
+          cipher = OpenSSL::Cipher.new('RC4').tap do |cipher|
+            cipher.encrypt
+            cipher.key = key
+          end
+          cipher.update(buffer) + salt
+        end
+      end
+
+      # [2.2.6.5 SAMPR_LOGON_HOURS](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d83c356b-7dda-4096-8270-5c581f84a4d9)
+      class SamprLogonHours < BinData::Record
+        ndr_uint32         :units_per_week
+        ndr_byte_array_ptr :logon_hours
+      end
+
+      # [2.2.7.11 SAMPR_SR_SECURITY_DESCRIPTOR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/675e37d9-bb97-4f14-bba2-be081c87cd5d)
+      class SamprSrSecurityDescriptor < BinData::Record
+        ndr_uint32         :buffer_length, initial_value: -> { buffer.length }
+        ndr_byte_array_ptr :buffer
+      end
+
+      # [2.2.6.6 SAMPR_USER_ALL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/dc966b81-da27-4dae-a28c-ec16534f1cb9)
+      class SamprUserAllInformation < BinData::Record
+        ndr_uint64                   :last_logon
+        ndr_uint64                   :last_logoff
+        ndr_uint64                   :password_last_set
+        ndr_uint64                   :account_expires
+        ndr_uint64                   :password_can_change
+        ndr_uint64                   :password_must_change
+        rpc_unicode_string           :user_name
+        rpc_unicode_string           :full_name
+        rpc_unicode_string           :home_directory
+        rpc_unicode_string           :home_directory_drive
+        rpc_unicode_string           :script_path
+        rpc_unicode_string           :profile_path
+        rpc_unicode_string           :admin_comment
+        rpc_unicode_string           :work_stations
+        rpc_unicode_string           :user_comment
+        rpc_unicode_string           :parameters
+        rpc_short_blob               :lm_owf_password
+        rpc_short_blob               :nt_owf_password
+        rpc_unicode_string           :private_data
+        sampr_sr_security_descriptor :security_descriptor
+        ndr_uint32                   :user_id
+        ndr_uint32                   :primary_group_id
+        ndr_uint32                   :user_account_control
+        ndr_uint32                   :which_fields
+        sampr_logon_hours            :logon_hours
+        ndr_uint16                   :bad_password_count
+        ndr_uint16                   :logon_count
+        ndr_uint16                   :country_code
+        ndr_uint16                   :code_page
+        ndr_uint8                    :lm_password_present
+        ndr_uint8                    :nt_password_present
+        ndr_uint8                    :password_expired
+        ndr_uint8                    :private_data_sensitive
+      end
+
+      class SamprUserInternal4InformationNew < BinData::Record
+        sampr_user_all_information        :i1
+        sampr_encrypted_user_password_new :user_password
+      end
+
+      # [2.2.6.3 USER_CONTROL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/eb5f1508-ede1-4ff1-be82-55f3e2ef1633)
+      class UserControlInformation < BinData::Record
+        endian     :little
+
+        ndr_uint32 :user_account_control
+      end
+
+      # [2.2.6.29 SAMPR_USER_INFO_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9496c26e-490b-4e76-827f-2695fc216f35)
+      class SamprUserInfoBuffer < BinData::Record
+        ndr_uint16 :tag
+        choice     :member, selection: :tag do
+          user_control_information             USER_CONTROL_INFORMATION
+          sampr_user_internal4_information_new USER_INTERNAL4_INFORMATION_NEW
+        end
+      end
+
+      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
+      class UserProperty < BinData::Record
+        endian   :little
+
+        uint16   :name_length, initial_value: -> { property_name.num_bytes }
+        uint16   :value_length, initial_value: -> { property_value.num_bytes }
+        uint16   :reserved
+        string16 :property_name, read_length: :name_length
+        string   :property_value, read_length: :value_length
+      end
+
+      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
+      class UserProperties < BinData::Record
+        endian :little
+
+        uint32 :reserved1
+        uint32 :struct_length, initial_value: -> { num_bytes - 12 }
+        uint16 :reserved2
+        uint16 :reserved3
+        string :reserved4, length: 96
+        uint16 :property_signature, initial_value: 0x50
+        uint16 :property_count, initial_value: -> { user_properties.size }
+        array  :user_properties, type: :user_property, initial_length: :property_count
+        uint8  :reserved5
+      end
+
+      class KerbKeyDataNew < BinData::Record
+        endian :little
+
+        uint16 :reserved1
+        uint16 :reserved2
+        uint32 :reserved3
+        uint32 :iteration_count
+        uint32 :key_type
+        uint32 :key_length
+        uint32 :key_offset
+      end
+
+      # [2.2.10.6 Primary:Kerberos-Newer-Keys - KERB_STORED_CREDENTIAL_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/08cb3ca7-954b-45e3-902e-77512fe3ba8e)
+      class KerbStoredCredentialNew < BinData::Record
+        endian :little
+
+        uint16 :revision
+        uint16 :flags
+        uint16 :credential_count
+        uint16 :service_credential_count
+        uint16 :old_credential_count
+        uint16 :older_credential_count
+        uint16 :default_salt_length
+        uint16 :default_salt_maximum_length
+        uint32 :default_salt_offset
+        uint32 :default_iteration_count
+        array  :credentials, type: :kerb_key_data_new, initial_length: :credential_count
+        array  :service_credentials, type: :kerb_key_data_new, initial_length: :service_credential_count
+        array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
+        array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
+        string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
+        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
+
+        def get_key_values
+          credentials.map do |credential|
+            offset = credential.key_offset - key_values.abs_offset
+            key_values[offset, credential.key_length]
+          end
+        end
+      end
+
       require 'ruby_smb/dcerpc/samr/rpc_sid'
 
       require 'ruby_smb/dcerpc/samr/samr_connect_request'
@@ -476,6 +495,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_open_user_response'
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_request'
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_response'
+      require 'ruby_smb/dcerpc/samr/samr_set_information_user2_request'
+      require 'ruby_smb/dcerpc/samr/samr_set_information_user2_response'
 
       # Returns a handle to a server object.
       #
@@ -692,8 +713,10 @@ module RubySMB
             array << entry.name.buffer
           end
           break unless samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+
           enumeration_context = samr_enum_domains_reponse.enumeration_context
         end
+
         res
       end
 
@@ -770,6 +793,35 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_rid_to_sid_response.error_status.value).join(',')}"
         end
         samr_rid_to_sid_response.sid
+      end
+
+      # Update attributes on a user object.
+      #
+      # @param user_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a user object.
+      # @param user_info: [RubySMB::Dcerpc::Samr::SamprUserInfoBuffer] the user
+      #   information to set.
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_set_information_user2(user_handle:, user_info:)
+        samr_set_information_user2_request = SamrSetInformationUser2Request.new(
+          user_handle: user_handle,
+          buffer: user_info
+        )
+        response = dcerpc_request(samr_set_information_user2_request)
+        begin
+          samr_set_information_user2_response = SamrSetInformationUser2Response.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrSetInformationUser2Response'
+        end
+        unless samr_set_information_user2_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while setting user information: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_set_information_user2_response.error_status.value).join(',')}"
+        end
+
+        nil
       end
 
       # Closes (that is, releases server-side resources used by) any context

@@ -72,6 +72,7 @@ module RubySMB
           samr_enumerate_domains_in_sam_server_request Samr::SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER
           samr_lookup_names_in_domain_request          Samr::SAMR_LOOKUP_NAMES_IN_DOMAIN
           samr_create_user2_in_domain_request          Samr::SAMR_CREATE_USER2_IN_DOMAIN
+          samr_set_information_user2_request           Samr::SAMR_SET_INFORMATION_USER2
           string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do
