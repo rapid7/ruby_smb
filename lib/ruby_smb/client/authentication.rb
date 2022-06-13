@@ -222,6 +222,21 @@ module RubySMB
             # disable encryption when necessary
             @session_encrypt_data = false
           end
+
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/7fd079ca-17e6-4f02-8449-46b606ea289c
+          if @dialect == '0x0300' || @dialect == '0x0302'
+            @application_key = RubySMB::Crypto::KDF.counter_mode(
+              @session_key,
+              "SMB2APP\x00",
+              "SmbRpc\x00"
+            )
+          else
+            @application_key = RubySMB::Crypto::KDF.counter_mode(
+              @session_key,
+              "SMBAppKey\x00",
+              @preauth_integrity_hash_value
+            )
+          end
           # otherwise, leave encryption to the default value that it was initialized to
         end
         ######

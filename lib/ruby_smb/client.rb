@@ -54,6 +54,8 @@ module RubySMB
     # The default maximum size of a SMB message that the Server accepts (in bytes)
     SERVER_MAX_BUFFER_SIZE = 4356
 
+    attr_accessor :application_key
+
     # The dispatcher responsible for sending packets
     # @!attribute [rw] dispatcher
     #   @return [RubySMB::Dispatcher::Socket]
@@ -288,7 +290,7 @@ module RubySMB
     attr_accessor :negotiated_smb_version
 
     # Whether or not the server supports multi-credit operations. It is
-    # reported by the LARGE_MTU capabiliy as part of the negotiation process
+    # reported by the LARGE_MTU capability as part of the negotiation process
     # (SMB 2.x and 3.x).
     # @!attribute [rw] server_supports_multi_credit
     #   @return [Boolean] true if the server supports multi-credit operations,
@@ -313,6 +315,7 @@ module RubySMB
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
+      @application_key   = ''
       @session_is_guest  = false
       @signing_required  = false
       @smb1              = smb1
@@ -617,6 +620,7 @@ module RubySMB
     def wipe_state!
       self.session_id       = 0x00
       self.user_id          = 0x00
+      self.application_key  = ''
       self.session_key      = ''
       self.session_is_guest = false
       self.sequence_counter = 0

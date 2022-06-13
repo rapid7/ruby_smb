@@ -606,7 +606,7 @@ module RubySMB
       #   handle representing the domain object
       # @param name [Array<String>] An array of string account names to
       #   translate to RIDs.
-      # @return [Hash<String, Hash<Symbol, Integer>, Nil] Returns a hash mapping
+      # @return [Hash<String, Hash<Symbol, Integer>>, Nil] Returns a hash mapping
       #   the requested names to their information. Nil is returned if one or
       #   more names could not be found.
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
