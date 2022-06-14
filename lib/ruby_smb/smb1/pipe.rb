@@ -142,7 +142,10 @@ module RubySMB
 
       def dcerpc_response_from_raw_response(raw_data)
         dcerpc_response = RubySMB::Dcerpc::Response.read(raw_data)
-        unless dcerpc_response.pdu_header.ptype == RubySMB::Dcerpc::PTypes::RESPONSE
+        if dcerpc_response.pdu_header.ptype == RubySMB::Dcerpc::PTypes::FAULT
+          status = dcerpc_response.stub.unpack('V').first
+          raise RubySMB::Dcerpc::Error::FaultError.new('A fault occurred', status: status)
+        elsif dcerpc_response.pdu_header.ptype != RubySMB::Dcerpc::PTypes::RESPONSE
           raise RubySMB::Dcerpc::Error::InvalidPacket, "Not a Response packet"
         end
         dcerpc_response
