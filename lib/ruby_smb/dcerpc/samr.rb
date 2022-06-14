@@ -303,7 +303,7 @@ module RubySMB
       class SamprUlongArray < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32   :elem_count, initial_value: -> { elements.size }
+        ndr_uint32   :element_count, initial_value: -> { elements.size }
         pulong_array :elements
       end
 
@@ -901,7 +901,7 @@ module RubySMB
             "Error returned while getting alias membership: "\
             "#{WindowsError::NTStatus.find_by_retval(samr_get_alias_membership_reponse.error_status.value).join(',')}"
         end
-        return [] if samr_get_alias_membership_reponse.membership.elem_count == 0
+        return [] if samr_get_alias_membership_reponse.membership.element_count == 0
         samr_get_alias_membership_reponse.membership.elements.to_ary
       end
 
