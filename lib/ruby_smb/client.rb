@@ -462,6 +462,7 @@ module RubySMB
         packet.smb_header.uid = self.user_id if self.user_id
         packet.smb_header.pid_low = self.pid if self.pid
         packet = smb1_sign(packet) if signing_required && !session_key.empty?
+        self.sequence_counter += 1
       when 'SMB2'
         packet = increment_smb_message_id(packet)
         packet.smb2_header.session_id = session_id
@@ -501,7 +502,7 @@ module RubySMB
         break
       end unless version == 'SMB1'
 
-      self.sequence_counter += 1 if signing_required && !session_key.empty?
+      self.sequence_counter += 1
       # update the SMB2 message ID according to the received Credit Charged
       self.smb2_message_id += smb2_header.credit_charge - 1 if smb2_header && self.server_supports_multi_credit
       raw_response
