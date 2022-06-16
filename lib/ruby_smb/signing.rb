@@ -13,6 +13,7 @@ module RubySMB
     # @return [RubySMB::GenericPacket] the signed packet
     def smb1_sign(packet)
       packet = Signing::smb1_sign(packet, @session_key, @sequence_counter)
+      @sequence_counter += 1
 
       packet
     end
