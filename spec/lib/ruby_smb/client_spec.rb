@@ -239,27 +239,6 @@ RSpec.describe RubySMB::Client do
     end
 
     context 'with SMB1' do
-      context 'when tracking sequence numbers' do
-        it 'increments the sequence_counter by 2 when successfully sending and receiving a message' do
-          expect { smb1_client.send_recv(smb1_request) }.to change { smb1_client.sequence_counter }.from(0).to(2)
-        end
-
-        it 'increments the sequence_counter by 1 when waiting for the server response' do
-          expect(smb1_client).to receive(:recv_packet)
-          allow(smb1_client).to receive(:recv_packet) do |*args, **kwargs|
-            expect(smb1_client.sequence_counter).to eq(1)
-          end
-          smb1_client.send_recv(smb1_request)
-        end
-
-        it 'does not increment the sequence_counter again if there is a communication error with the server' do
-          expect do
-            allow(smb1_client).to receive(:recv_packet).and_raise RubySMB::Error::CommunicationError
-            smb1_client.send_recv(smb1_request) rescue RubySMB::Error::CommunicationError
-          end.to change { smb1_client.sequence_counter }.from(0).to(1)
-        end
-      end
-
       it 'does not check if it is a STATUS_PENDING response' do
         expect(smb1_client).to_not receive(:is_status_pending?)
         smb1_client.send_recv(smb1_request)
