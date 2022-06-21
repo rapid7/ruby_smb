@@ -146,7 +146,7 @@ module RubySMB
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
-      def smb1_ntlmssp_final_packet(raw_response)
+      def smb1_session_setup_response(raw_response)
         packet = RubySMB::SMB1::Packet::SessionSetupResponse.read(raw_response)
 
         unless packet.valid?
@@ -157,6 +157,11 @@ module RubySMB
           )
         end
         packet
+      end
+
+      # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
+      def smb1_ntlmssp_final_packet(raw_response)
+        smb1_session_setup_response(raw_response)
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB1::Packet::SessionSetupResponse}
@@ -235,7 +240,7 @@ module RubySMB
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
-      def smb2_ntlmssp_final_packet(raw_response)
+      def smb2_session_setup_response(raw_response)
         packet = RubySMB::SMB2::Packet::SessionSetupResponse.read(raw_response)
         unless packet.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -246,6 +251,11 @@ module RubySMB
         end
 
         packet
+      end
+
+      # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}
+      def smb2_ntlmssp_final_packet(raw_response)
+        smb2_session_setup_response(raw_response)
       end
 
       # Takes the raw binary string and returns a {RubySMB::SMB2::Packet::SessionSetupResponse}

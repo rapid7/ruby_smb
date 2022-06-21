@@ -14,6 +14,7 @@ module RubySMB
     # @param asn The ASN object to apply the traversal path on.
     # @param [Array] path The path to traverse, each element is passed to the
     #   ASN object's #value's #[] operator.
+    # @return [OpenSSL::ASN1::Sequence, nil]
     def self.asn1dig(asn, *path)
       path.each do |part|
         return nil unless asn&.value
