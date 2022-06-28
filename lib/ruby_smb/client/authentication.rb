@@ -80,7 +80,7 @@ module RubySMB
         type2_b64_message = smb1_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
 
-        @session_key = @ntlm_client.session_key
+        @application_key = @session_key = @ntlm_client.session_key
         challenge_message = @ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
@@ -205,7 +205,7 @@ module RubySMB
         type2_b64_message = smb2_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
 
-        @session_key = @ntlm_client.session_key
+        @application_key = @session_key = @ntlm_client.session_key
         challenge_message = ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?

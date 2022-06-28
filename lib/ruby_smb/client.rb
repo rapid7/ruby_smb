@@ -54,6 +54,11 @@ module RubySMB
     # The default maximum size of a SMB message that the Server accepts (in bytes)
     SERVER_MAX_BUFFER_SIZE = 4356
 
+    # The application key. After authenticating to the remote server, this value is the session key for dialects less
+    # than version 3 and a unique value for v3 dialects. See:
+    # https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/901ae284-31d3-4ea1-ae8a-766fc8bfe00e
+    # @!attribute [rw] application_key
+    #   @return [String]
     attr_accessor :application_key
 
     # The dispatcher responsible for sending packets
