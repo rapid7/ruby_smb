@@ -334,7 +334,7 @@ module RubySMB
 
       # [2.2.6.5 SAMPR_LOGON_HOURS](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d83c356b-7dda-4096-8270-5c581f84a4d9)
       class SamprLogonHours < BinData::Record
-        ndr_uint32         :units_per_week
+        ndr_uint16         :units_per_week
         ndr_byte_array_ptr :logon_hours
       end
 
@@ -381,6 +381,7 @@ module RubySMB
         ndr_uint8                    :private_data_sensitive
       end
 
+      # [2.2.6.25 SAMPR_USER_INTERNAL4_INFORMATION_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/b2f614b9-0312-421a-abed-10ee002ef780)
       class SamprUserInternal4InformationNew < BinData::Record
         sampr_user_all_information        :i1
         sampr_encrypted_user_password_new :user_password
@@ -428,6 +429,7 @@ module RubySMB
         uint8  :reserved5
       end
 
+      # [2.2.10.7 KERB_KEY_DATA_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/447520a5-e1cc-48cc-8fdc-b90db57f7eac)
       class KerbKeyDataNew < BinData::Record
         endian :little
 
@@ -572,6 +574,14 @@ module RubySMB
         }
       end
 
+      # Delete an existing user.
+      #
+      # @param user_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the user object to delete
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrDeleteUserResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
       def samr_delete_user(user_handle:)
         samr_delete_user_request = SamrDeleteUserRequest.new(
           user_handle: user_handle
