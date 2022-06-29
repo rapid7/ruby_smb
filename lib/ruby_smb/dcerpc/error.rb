@@ -46,6 +46,15 @@ module RubySMB
 
       # Raised when an error is returned during a Epm operation
       class EpmError < DcerpcError; end
+
+      # Raised when an error is returned during a Dfsnm operation
+      class DfsnmError < DcerpcError
+        attr_accessor :error_status
+        def initialize(msg, error_status: nil)
+          @error_status = error_status
+          super
+        end
+      end
     end
   end
 end
