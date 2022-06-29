@@ -13,6 +13,19 @@ module RubySMB
       # Raised when an invalid packet is received
       class InvalidPacket < DcerpcError; end
 
+      # Raised when a fault response is received
+      class FaultError < InvalidPacket
+        attr_reader :status_code
+        def initialize(message=nil, status:)
+          @status_code = status
+          super(message)
+        end
+
+        def status_name
+          RubySMB::Dcerpc::Fault::Status.name(@status_code)
+        end
+      end
+
       # Raised when an error is returned during a Winreg operation
       class WinregError < DcerpcError; end
 

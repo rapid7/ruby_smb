@@ -29,6 +29,7 @@ module RubySMB
 
     require 'windows_error/win32'
     require 'ruby_smb/dcerpc/error'
+    require 'ruby_smb/dcerpc/fault'
     require 'ruby_smb/dcerpc/uuid'
     require 'ruby_smb/dcerpc/ndr'
     require 'ruby_smb/dcerpc/ptypes'

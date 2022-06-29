@@ -2,8 +2,8 @@ module RubySMB
   module Dcerpc
     module Samr
 
-      # [3.1.5.2.5 SamrEnumerateUsersInDomain (Opnum 13)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/6bdc92c0-c692-4ffb-9de7-65858b68da75)
-      class SamrEnumerateUsersInDomainResponse < BinData::Record
+      # [3.1.5.2.1 SamrEnumerateDomainsInSamServer (Opnum 6)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2142fd2d-0854-42c1-a9fb-2fe964e381ce)
+      class SamrEnumerateDomainsInSamServerResponse < BinData::Record
         attr_reader :opnum
 
         endian :little
@@ -15,10 +15,11 @@ module RubySMB
 
         def initialize_instance
           super
-          @opnum = SAMR_ENUMERATE_USERS_IN_DOMAIN
+          @opnum = SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER
         end
       end
 
     end
   end
 end
+

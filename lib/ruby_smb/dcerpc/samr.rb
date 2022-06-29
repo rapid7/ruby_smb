@@ -6,91 +6,26 @@ module RubySMB
       VER_MAJOR = 1
       VER_MINOR = 0
 
-      # Operation numbers
-      SAMR_CONNECT                     = 0x0000
-      SAMR_CLOSE_HANDLE                = 0x0001
-      SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER = 0x0005
-      SAMR_OPEN_DOMAIN                 = 0x0007
-      SAMR_ENUMERATE_USERS_IN_DOMAIN   = 0x000D
-      SAMR_GET_ALIAS_MEMBERSHIP        = 0x0010
-      SAMR_OPEN_USER                   = 0x0022
-      SAMR_GET_GROUPS_FOR_USER         = 0x0027
-      SAMR_RID_TO_SID                  = 0x0041
-
-      class SamprHandle < Ndr::NdrContextHandle; end
-
-      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
-      class UserProperty < BinData::Record
-        endian   :little
-
-        uint16   :name_length, initial_value: -> { property_name.num_bytes }
-        uint16   :value_length, initial_value: -> { property_value.num_bytes }
-        uint16   :reserved
-        string16 :property_name, read_length: :name_length
-        string   :property_value, read_length: :value_length
-      end
-
-      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
-      class UserProperties < BinData::Record
-        endian :little
-
-        uint32 :reserved1
-        uint32 :struct_length, initial_value: -> { num_bytes - 12 }
-        uint16 :reserved2
-        uint16 :reserved3
-        string :reserved4, length: 96
-        uint16 :property_signature, initial_value: 0x50
-        uint16 :property_count, initial_value: -> { user_properties.size }
-        array  :user_properties, type: :user_property, initial_length: :property_count
-        uint8  :reserved5
-      end
-
-      class KerbKeyDataNew < BinData::Record
-        endian :little
-
-        uint16 :reserved1
-        uint16 :reserved2
-        uint32 :reserved3
-        uint32 :iteration_count
-        uint32 :key_type
-        uint32 :key_length
-        uint32 :key_offset
-      end
-
-      # [2.2.10.6 Primary:Kerberos-Newer-Keys - KERB_STORED_CREDENTIAL_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/08cb3ca7-954b-45e3-902e-77512fe3ba8e)
-      class KerbStoredCredentialNew < BinData::Record
-        endian :little
-
-        uint16 :revision
-        uint16 :flags
-        uint16 :credential_count
-        uint16 :service_credential_count
-        uint16 :old_credential_count
-        uint16 :older_credential_count
-        uint16 :default_salt_length
-        uint16 :default_salt_maximum_length
-        uint32 :default_salt_offset
-        uint32 :default_iteration_count
-        array  :credentials, type: :kerb_key_data_new, initial_length: :credential_count
-        array  :service_credentials, type: :kerb_key_data_new, initial_length: :service_credential_count
-        array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
-        array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
-        string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
-        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
-
-        def get_key_values
-          credentials.map do |credential|
-            offset = credential.key_offset - key_values.abs_offset
-            key_values[offset, credential.key_length]
-          end
-        end
-      end
-
-
       #################################
       #           Constants           #
       #################################
 
+      # Operation numbers
+      SAMR_CONNECT                         = 0x0000
+      SAMR_CLOSE_HANDLE                    = 0x0001
+      SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER     = 0x0005
+      SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER = 0x0006
+      SAMR_OPEN_DOMAIN                     = 0x0007
+      SAMR_ENUMERATE_USERS_IN_DOMAIN       = 0x000D
+      SAMR_GET_ALIAS_MEMBERSHIP            = 0x0010
+      SAMR_LOOKUP_NAMES_IN_DOMAIN          = 0x0011
+      SAMR_OPEN_USER                       = 0x0022
+      SAMR_DELETE_USER                     = 0x0023
+      SAMR_GET_GROUPS_FOR_USER             = 0x0027
+      SAMR_CREATE_USER2_IN_DOMAIN          = 0x0032
+      SAMR_SET_INFORMATION_USER2           = 0x003a
+      SAMR_CONNECT5                        = 0x0040
+      SAMR_RID_TO_SID                      = 0x0041
 
       ################
       # ACCESS_MASK Values
@@ -204,6 +139,33 @@ module RubySMB
       USER_ALL_SECURITYDESCRIPTOR  = 0x10000000
       USER_ALL_UNDEFINED_MASK      = 0xC0000000
 
+      # [2.2.6.28 USER_INFORMATION_CLASS Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/6b0dff90-5ac0-429a-93aa-150334adabf6)
+      USER_GENERAL_INFORMATION       = 1
+      USER_PREFERENCES_INFORMATION   = 2
+      USER_LOGON_INFORMATION         = 3
+      USER_LOGON_HOURS_INFORMATION   = 4
+      USER_ACCOUNT_INFORMATION       = 5
+      USER_NAME_INFORMATION          = 6
+      USER_ACCOUNT_NAME_INFORMATION  = 7
+      USER_FULL_NAME_INFORMATION     = 8
+      USER_PRIMARY_GROUP_INFORMATION = 9
+      USER_HOME_INFORMATION          = 10
+      USER_SCRIPT_INFORMATION        = 11
+      USER_PROFILE_INFORMATION       = 12
+      USER_ADMIN_COMMENT_INFORMATION = 13
+      USER_WORK_STATIONS_INFORMATION = 14
+      USER_CONTROL_INFORMATION       = 16
+      USER_EXPIRES_INFORMATION       = 17
+      USER_INTERNAL1_INFORMATION     = 18
+      USER_PARAMETERS_INFORMATION    = 20
+      USER_ALL_INFORMATION           = 21
+      USER_INTERNAL4_INFORMATION     = 23
+      USER_INTERNAL5_INFORMATION     = 24
+      USER_INTERNAL4_INFORMATION_NEW = 25
+      USER_INTERNAL5_INFORMATION_NEW = 26
+      USER_INTERNAL7_INFORMATION     = 31
+      USER_INTERNAL8_INFORMATION     = 32
+
       # [2.2.1.9 ACCOUNT_TYPE Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e742be45-665d-4576-b872-0bc99d1e1fbe)
       SAM_DOMAIN_OBJECT             = 0x00000000
       SAM_GROUP_OBJECT              = 0x10000000
@@ -300,14 +262,229 @@ module RubySMB
         0xffffff74 => 'rc4_hmac'
       }
 
+      # [2.2.3.9 SAMPR_RID_ENUMERATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5c94a35a-e7f2-4675-af34-741f5a8ee1a2)
+      class SamprRidEnumeration < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32         :relative_id
+        rpc_unicode_string :name
+      end
+
+      class SamprRidEnumerationArray < Ndr::NdrConfArray
+        default_parameter type: :sampr_rid_enumeration
+      end
+
+      class PsamprRidEnumerationArray < SamprRidEnumerationArray
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.3.10 SAMPR_ENUMERATION_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c53161a4-38e8-4a28-a33e-0d378fce03dd)
+      class SamprEnumerationBuffer < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint32                   :entries_read
+        psampr_rid_enumeration_array :buffer
+      end
+
+      class PsamprEnumerationBuffer < SamprEnumerationBuffer
+        extend Ndr::PointerClassPlugin
+      end
+
+      class SamprHandle < Ndr::NdrContextHandle; end
+
+      class PulongArray < Ndr::NdrConfArray
+        default_parameter type: :ndr_uint32
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.7.4 SAMPR_ULONG_ARRAY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2feb3806-4db2-45b7-90d2-86c8336a31ba)
+      class SamprUlongArray < Ndr::NdrStruct
+        default_parameter byte_align: 4
+
+        ndr_uint32   :element_count, initial_value: -> { elements.size }
+        pulong_array :elements
+      end
+
+      # [2.2.2.4 RPC_SHORT_BLOB](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/77dbfdbb-6627-4871-ab12-5333929347dc)
+      class RpcShortBlob < BinData::Record
+        ndr_uint16           :buffer_length, initial_value: -> { buffer.length }
+        ndr_uint16           :max_length, initial_value: -> { buffer.length }
+        ndr_uint16_array_ptr :buffer
+      end
+
+      # [2.2.6.22 SAMPR_ENCRYPTED_USER_PASSWORD_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/112ecc94-1cbe-41cd-b669-377402c20786)
+      class SamprEncryptedUserPasswordNew < BinData::Record
+        ndr_fixed_byte_array :buffer, initial_length: 532
+
+        def self.encrypt_password(password, key)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5fe3c4c4-e71b-440d-b2fd-8448bfaf6e04
+          password = password.encode('UTF-16LE').force_encoding('ASCII-8bit')
+          buffer = password.rjust(512, "\x00") + [ password.length ].pack('V')
+          salt = SecureRandom.random_bytes(16)
+          key = OpenSSL::Digest::MD5.new(salt + key).digest
+          cipher = OpenSSL::Cipher.new('RC4').tap do |cipher|
+            cipher.encrypt
+            cipher.key = key
+          end
+          cipher.update(buffer) + salt
+        end
+      end
+
+      # [2.2.6.5 SAMPR_LOGON_HOURS](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/d83c356b-7dda-4096-8270-5c581f84a4d9)
+      class SamprLogonHours < BinData::Record
+        ndr_uint16         :units_per_week
+        ndr_byte_array_ptr :logon_hours
+      end
+
+      # [2.2.7.11 SAMPR_SR_SECURITY_DESCRIPTOR](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/675e37d9-bb97-4f14-bba2-be081c87cd5d)
+      class SamprSrSecurityDescriptor < BinData::Record
+        ndr_uint32         :buffer_length, initial_value: -> { buffer.length }
+        ndr_byte_array_ptr :buffer
+      end
+
+      # [2.2.6.6 SAMPR_USER_ALL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/dc966b81-da27-4dae-a28c-ec16534f1cb9)
+      class SamprUserAllInformation < BinData::Record
+        ndr_uint64                   :last_logon
+        ndr_uint64                   :last_logoff
+        ndr_uint64                   :password_last_set
+        ndr_uint64                   :account_expires
+        ndr_uint64                   :password_can_change
+        ndr_uint64                   :password_must_change
+        rpc_unicode_string           :user_name
+        rpc_unicode_string           :full_name
+        rpc_unicode_string           :home_directory
+        rpc_unicode_string           :home_directory_drive
+        rpc_unicode_string           :script_path
+        rpc_unicode_string           :profile_path
+        rpc_unicode_string           :admin_comment
+        rpc_unicode_string           :work_stations
+        rpc_unicode_string           :user_comment
+        rpc_unicode_string           :parameters
+        rpc_short_blob               :lm_owf_password
+        rpc_short_blob               :nt_owf_password
+        rpc_unicode_string           :private_data
+        sampr_sr_security_descriptor :security_descriptor
+        ndr_uint32                   :user_id
+        ndr_uint32                   :primary_group_id
+        ndr_uint32                   :user_account_control
+        ndr_uint32                   :which_fields
+        sampr_logon_hours            :logon_hours
+        ndr_uint16                   :bad_password_count
+        ndr_uint16                   :logon_count
+        ndr_uint16                   :country_code
+        ndr_uint16                   :code_page
+        ndr_uint8                    :lm_password_present
+        ndr_uint8                    :nt_password_present
+        ndr_uint8                    :password_expired
+        ndr_uint8                    :private_data_sensitive
+      end
+
+      # [2.2.6.25 SAMPR_USER_INTERNAL4_INFORMATION_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/b2f614b9-0312-421a-abed-10ee002ef780)
+      class SamprUserInternal4InformationNew < BinData::Record
+        sampr_user_all_information        :i1
+        sampr_encrypted_user_password_new :user_password
+      end
+
+      # [2.2.6.3 USER_CONTROL_INFORMATION](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/eb5f1508-ede1-4ff1-be82-55f3e2ef1633)
+      class UserControlInformation < BinData::Record
+        endian     :little
+
+        ndr_uint32 :user_account_control
+      end
+
+      # [2.2.6.29 SAMPR_USER_INFO_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9496c26e-490b-4e76-827f-2695fc216f35)
+      class SamprUserInfoBuffer < BinData::Record
+        ndr_uint16 :tag
+        choice     :member, selection: :tag do
+          user_control_information             USER_CONTROL_INFORMATION
+          sampr_user_internal4_information_new USER_INTERNAL4_INFORMATION_NEW
+        end
+      end
+
+      # [2.2.10.2 USER_PROPERTY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/7c0f2eca-1783-450b-b5a0-754cf11f22c9)
+      class UserProperty < BinData::Record
+        endian   :little
+
+        uint16   :name_length, initial_value: -> { property_name.num_bytes }
+        uint16   :value_length, initial_value: -> { property_value.num_bytes }
+        uint16   :reserved
+        string16 :property_name, read_length: :name_length
+        string   :property_value, read_length: :value_length
+      end
+
+      # [2.2.10.1 USER_PROPERTIES](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/8263e7ab-aba9-43d2-8a36-3a9cb2dd3dad)
+      class UserProperties < BinData::Record
+        endian :little
+
+        uint32 :reserved1
+        uint32 :struct_length, initial_value: -> { num_bytes - 12 }
+        uint16 :reserved2
+        uint16 :reserved3
+        string :reserved4, length: 96
+        uint16 :property_signature, initial_value: 0x50
+        uint16 :property_count, initial_value: -> { user_properties.size }
+        array  :user_properties, type: :user_property, initial_length: :property_count
+        uint8  :reserved5
+      end
+
+      # [2.2.10.7 KERB_KEY_DATA_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/447520a5-e1cc-48cc-8fdc-b90db57f7eac)
+      class KerbKeyDataNew < BinData::Record
+        endian :little
+
+        uint16 :reserved1
+        uint16 :reserved2
+        uint32 :reserved3
+        uint32 :iteration_count
+        uint32 :key_type
+        uint32 :key_length
+        uint32 :key_offset
+      end
+
+      # [2.2.10.6 Primary:Kerberos-Newer-Keys - KERB_STORED_CREDENTIAL_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/08cb3ca7-954b-45e3-902e-77512fe3ba8e)
+      class KerbStoredCredentialNew < BinData::Record
+        endian :little
+
+        uint16 :revision
+        uint16 :flags
+        uint16 :credential_count
+        uint16 :service_credential_count
+        uint16 :old_credential_count
+        uint16 :older_credential_count
+        uint16 :default_salt_length
+        uint16 :default_salt_maximum_length
+        uint32 :default_salt_offset
+        uint32 :default_iteration_count
+        array  :credentials, type: :kerb_key_data_new, initial_length: :credential_count
+        array  :service_credentials, type: :kerb_key_data_new, initial_length: :service_credential_count
+        array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
+        array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
+        string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
+        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
+
+        def get_key_values
+          credentials.map do |credential|
+            offset = credential.key_offset - key_values.abs_offset
+            key_values[offset, credential.key_length]
+          end
+        end
+      end
+
       require 'ruby_smb/dcerpc/samr/rpc_sid'
 
       require 'ruby_smb/dcerpc/samr/samr_connect_request'
       require 'ruby_smb/dcerpc/samr/samr_connect_response'
+      require 'ruby_smb/dcerpc/samr/samr_create_user2_in_domain_request'
+      require 'ruby_smb/dcerpc/samr/samr_create_user2_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_request'
       require 'ruby_smb/dcerpc/samr/samr_lookup_domain_in_sam_server_response'
+      require 'ruby_smb/dcerpc/samr/samr_lookup_names_in_domain_request'
+      require 'ruby_smb/dcerpc/samr/samr_lookup_names_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_request'
       require 'ruby_smb/dcerpc/samr/samr_open_domain_response'
+      require 'ruby_smb/dcerpc/samr/samr_enumerate_domains_in_sam_server_request'
+      require 'ruby_smb/dcerpc/samr/samr_enumerate_domains_in_sam_server_response'
       require 'ruby_smb/dcerpc/samr/samr_enumerate_users_in_domain_request'
       require 'ruby_smb/dcerpc/samr/samr_enumerate_users_in_domain_response'
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_request'
@@ -320,6 +497,10 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_open_user_response'
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_request'
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_response'
+      require 'ruby_smb/dcerpc/samr/samr_set_information_user2_request'
+      require 'ruby_smb/dcerpc/samr/samr_set_information_user2_response'
+      require 'ruby_smb/dcerpc/samr/samr_delete_user_request'
+      require 'ruby_smb/dcerpc/samr/samr_delete_user_response'
 
       # Returns a handle to a server object.
       #
@@ -352,6 +533,75 @@ module RubySMB
         samr_connect_response.server_handle
       end
 
+      # Create a new user.
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the domain object
+      # @param name [String] The name of the account to add
+      # @param account_type [Integer] The type of account to add, one of either
+      #   USER_NORMAL_ACCOUNT, USER_WORKSTATION_TRUST_ACCOUNT, or
+      #   USER_SERVER_TRUST_ACCOUNT
+      # @param desired_access [Integer] The access requested on the returned
+      #   object
+      # @return [RubySMB::Dcerpc::Samr::SamprHandle] handle to the server object.
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrConnectResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_create_user2_in_domain(domain_handle:, name:, account_type: USER_NORMAL_ACCOUNT, desired_access: GROUP_ALL_ACCESS)
+        samr_create_request = SamrCreateUser2InDomainRequest.new(
+          domain_handle: domain_handle,
+          name: name,
+          account_type: account_type,
+          desired_access: desired_access
+        )
+        response = dcerpc_request(samr_create_request)
+        begin
+          samr_create_response = SamrCreateUser2InDomainResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrCreateUser2InDomainResponse'
+        end
+        unless samr_create_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned with samr_create_user2_in_domain: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_create_response.error_status.value).join(',')}"
+        end
+
+        {
+          user_handle: samr_create_response.user_handle,
+          granted_access: samr_create_response.granted_access.to_i,
+          relative_id: samr_create_response.relative_id.to_i
+        }
+      end
+
+      # Delete an existing user.
+      #
+      # @param user_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the user object to delete
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrDeleteUserResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_delete_user(user_handle:)
+        samr_delete_user_request = SamrDeleteUserRequest.new(
+          user_handle: user_handle
+        )
+
+        response = dcerpc_request(samr_delete_user_request)
+        begin
+          samr_delete_user_response = SamrDeleteUserResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrDeleteUserResponse'
+        end
+        unless samr_delete_user_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while deleting user in SAM server: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_delete_user_response.error_status.value).join(',')}"
+        end
+
+        nil
+      end
+
       # Obtains the SID of a domain object
       #
       # @param server_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
@@ -380,6 +630,50 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_lookup_domain_in_sam_server_response.error_status.value).join(',')}"
         end
         samr_lookup_domain_in_sam_server_response.domain_id
+      end
+
+      # Obtains the SID of a domain object
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the domain object
+      # @param name [Array<String>] An array of string account names to
+      #   translate to RIDs.
+      # @return [Hash<String, Hash<Symbol, Integer>>, Nil] Returns a hash mapping
+      #   the requested names to their information. Nil is returned if one or
+      #   more names could not be found.
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS, STATUS_NONE_MAPPED, or STATUS_SOME_NOT_MAPPED
+      def samr_lookup_names_in_domain(domain_handle:, names:)
+        raise ArgumentError.new('names may not be longer than 1000') if names.length > 1000
+
+        samr_lookup_request = SamrLookupNamesInDomainRequest.new(
+          domain_handle: domain_handle,
+          names_count: names.length,
+          names: names
+        )
+        samr_lookup_request.names.set_max_count(1000)
+        response = dcerpc_request(samr_lookup_request)
+        begin
+          samr_lookup_response = SamrLookupNamesInDomainResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrLookupNamesInDomainResponse'
+        end
+        return nil if samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_NONE_MAPPED
+        return nil if samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_SOME_NOT_MAPPED
+        unless samr_lookup_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned during names lookup in SAM server: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_lookup_response.error_status.value).join(',')}"
+        end
+
+        result = {}
+        names.each_with_index do |name, index|
+          result[name] = {
+            rid: samr_lookup_response.relative_ids.elements[index].to_i,
+            use: samr_lookup_response.use.elements[index].to_i
+          }
+        end
+        result
       end
 
       # Returns a handle to a domain object.
@@ -415,11 +709,58 @@ module RubySMB
         samr_open_domain_response.domain_handle
       end
 
+      # Enumerates all domains on the remote server.
+      #
+      # @param server_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
+      #   handle representing the server object
+      # @param enumeration_context [Integer] a cookie used by the server to
+      #   resume an enumeration
+      # @return [Array<String>] an array containing the domain names
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrEnumerateDomainsInSamServerResponse packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_enumerate_domains_in_sam_server(server_handle:, enumeration_context: 0)
+        samr_enum_domains_request = SamrEnumerateDomainsInSamServerRequest.new(
+          server_handle: server_handle,
+          enumeration_context: enumeration_context,
+          prefered_maximum_length: 0xFFFFFFFF
+        )
+        res = []
+        loop do
+          samr_enum_domains_request.enumeration_context = enumeration_context
+          response = dcerpc_request(samr_enum_domains_request)
+          begin
+            samr_enum_domains_reponse = SamrEnumerateDomainsInSamServerResponse.read(response)
+          rescue IOError
+            raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrEnumerateDomainsInSamServerResponse'
+          end
+          unless samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_SUCCESS ||
+                 samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+            raise RubySMB::Dcerpc::Error::SamrError,
+              "Error returned during domains enumeration in SAM server: "\
+              "#{WindowsError::NTStatus.find_by_retval(samr_enum_domains_reponse.error_status.value).join(',')}"
+          end
+          samr_enum_domains_reponse.buffer.buffer.each_with_object(res) do |entry, array|
+            array << entry.name.buffer
+          end
+          break unless samr_enum_domains_reponse.error_status == WindowsError::NTStatus::STATUS_MORE_ENTRIES
+
+          enumeration_context = samr_enum_domains_reponse.enumeration_context
+        end
+
+        res
+      end
+
       # Enumerates all users in the specified domain.
       #
       # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] RPC context
       #   handle representing the domain object
-      # @return [Hash] hash mapping RID and username
+      # @param enumeration_context [Integer] a cookie used by the server to
+      #   resume an enumeration
+      # @param user_account_control [Integer] a value to use for filtering on
+      #   the userAccountControl attribute
+      # @return [Hash<Integer, String>] hash mapping RID and username
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
       #   SamrEnumerateUsersInDomainResponse packet
       # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
@@ -486,6 +827,35 @@ module RubySMB
         samr_rid_to_sid_response.sid
       end
 
+      # Update attributes on a user object.
+      #
+      # @param user_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a user object.
+      # @param user_info: [RubySMB::Dcerpc::Samr::SamprUserInfoBuffer] the user
+      #   information to set.
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_set_information_user2(user_handle:, user_info:)
+        samr_set_information_user2_request = SamrSetInformationUser2Request.new(
+          user_handle: user_handle,
+          buffer: user_info
+        )
+        response = dcerpc_request(samr_set_information_user2_request)
+        begin
+          samr_set_information_user2_response = SamrSetInformationUser2Response.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrSetInformationUser2Response'
+        end
+        unless samr_set_information_user2_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while setting user information: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_set_information_user2_response.error_status.value).join(',')}"
+        end
+
+        nil
+      end
+
       # Closes (that is, releases server-side resources used by) any context
       # handle obtained from this RPC interface
       #
@@ -541,7 +911,7 @@ module RubySMB
             "Error returned while getting alias membership: "\
             "#{WindowsError::NTStatus.find_by_retval(samr_get_alias_membership_reponse.error_status.value).join(',')}"
         end
-        return [] if samr_get_alias_membership_reponse.membership.elem_count == 0
+        return [] if samr_get_alias_membership_reponse.membership.element_count == 0
         samr_get_alias_membership_reponse.membership.elements.to_ary
       end
 

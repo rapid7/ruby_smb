@@ -1881,6 +1881,7 @@ RSpec.describe RubySMB::Client do
           before :example do
             smb2_client.smb3 = true
             smb2_client.session_encrypt_data = false
+            smb2_client.preauth_integrity_hash_value = ''
           end
 
           it 'sets the session_encrypt_data parameter to true if the server requires encryption' do

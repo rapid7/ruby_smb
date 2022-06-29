@@ -80,7 +80,7 @@ module RubySMB
         type2_b64_message = smb1_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
 
-        @session_key = @ntlm_client.session_key
+        @application_key = @session_key = @ntlm_client.session_key
         challenge_message = @ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
@@ -210,7 +210,7 @@ module RubySMB
         type2_b64_message = smb2_type2_message(challenge_packet)
         type3_message = @ntlm_client.init_context(type2_b64_message)
 
-        @session_key = @ntlm_client.session_key
+        @application_key = @session_key = @ntlm_client.session_key
         challenge_message = ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
@@ -226,6 +226,21 @@ module RubySMB
           elsif (@session_is_guest && password != '') || (username == '' && password == '')
             # disable encryption when necessary
             @session_encrypt_data = false
+          end
+
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/7fd079ca-17e6-4f02-8449-46b606ea289c
+          if @dialect == '0x0300' || @dialect == '0x0302'
+            @application_key = RubySMB::Crypto::KDF.counter_mode(
+              @session_key,
+              "SMB2APP\x00",
+              "SmbRpc\x00"
+            )
+          else
+            @application_key = RubySMB::Crypto::KDF.counter_mode(
+              @session_key,
+              "SMBAppKey\x00",
+              @preauth_integrity_hash_value
+            )
           end
           # otherwise, leave encryption to the default value that it was initialized to
         end

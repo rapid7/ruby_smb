@@ -60,16 +60,21 @@ module RubySMB
           string                          :default
         end
         choice 'Samr', selection: -> { opnum } do
-          samr_connect_request                     Samr::SAMR_CONNECT
-          samr_lookup_domain_in_sam_server_request Samr::SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER
-          samr_open_domain_request                 Samr::SAMR_OPEN_DOMAIN
-          samr_enumerate_users_in_domain_request   Samr::SAMR_ENUMERATE_USERS_IN_DOMAIN
-          samr_rid_to_sid_request                  Samr::SAMR_RID_TO_SID
-          samr_close_handle_request                Samr::SAMR_CLOSE_HANDLE
-          samr_get_alias_membership_request        Samr::SAMR_GET_ALIAS_MEMBERSHIP
-          samr_open_user_request                   Samr::SAMR_OPEN_USER
-          samr_get_groups_for_user_request         Samr::SAMR_GET_GROUPS_FOR_USER
-          string                                   :default
+          samr_connect_request                         Samr::SAMR_CONNECT
+          samr_lookup_domain_in_sam_server_request     Samr::SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER
+          samr_open_domain_request                     Samr::SAMR_OPEN_DOMAIN
+          samr_enumerate_users_in_domain_request       Samr::SAMR_ENUMERATE_USERS_IN_DOMAIN
+          samr_rid_to_sid_request                      Samr::SAMR_RID_TO_SID
+          samr_close_handle_request                    Samr::SAMR_CLOSE_HANDLE
+          samr_get_alias_membership_request            Samr::SAMR_GET_ALIAS_MEMBERSHIP
+          samr_open_user_request                       Samr::SAMR_OPEN_USER
+          samr_get_groups_for_user_request             Samr::SAMR_GET_GROUPS_FOR_USER
+          samr_enumerate_domains_in_sam_server_request Samr::SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER
+          samr_lookup_names_in_domain_request          Samr::SAMR_LOOKUP_NAMES_IN_DOMAIN
+          samr_create_user2_in_domain_request          Samr::SAMR_CREATE_USER2_IN_DOMAIN
+          samr_set_information_user2_request           Samr::SAMR_SET_INFORMATION_USER2
+          samr_delete_user_request                     Samr::SAMR_DELETE_USER
+          string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do
           netr_wksta_get_info_request Wkssvc::NETR_WKSTA_GET_INFO
