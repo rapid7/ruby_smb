@@ -49,9 +49,11 @@ module RubySMB
 
       # Raised when an error is returned during a Dfsnm operation
       class DfsnmError < DcerpcError
-        attr_accessor :error_status
-        def initialize(msg, error_status: nil)
-          @error_status = error_status
+        include RubySMB::Error::UnexpectedStatusCode::Mixin
+
+        def initialize(msg, status_code: nil)
+          self.status_code = status_code unless status_code.nil?
+
           super(msg)
         end
       end

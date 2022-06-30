@@ -38,10 +38,10 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading NetrDfsAddStdRootResponse'
         end
         unless netr_dfs_add_std_root_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          status_code = WindowsError::Win32.find_by_retval(netr_dfs_add_std_root_response.error_status.value).first
           raise RubySMB::Dcerpc::Error::DfsnmError.new(
-            "Error returned with netr_dfs_add_std_root: "\
-            "#{WindowsError::Win32.find_by_retval(netr_dfs_add_std_root_response.error_status.value).join(',')}",
-            error_status: netr_dfs_add_std_root_response.error_status.value
+            "Error returned with netr_dfs_add_std_root: #{status_code}",
+            status_code: status_code
           )
         end
 
@@ -69,10 +69,10 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading NetrDfsRemoveStdRootResponse'
         end
         unless netr_dfs_remove_std_root_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          status_code = WindowsError::Win32.find_by_retval(netr_dfs_remove_std_root_response.error_status.value).first
           raise RubySMB::Dcerpc::Error::DfsnmError.new(
-            "Error returned with netr_dfs_remove_std_root: "\
-            "#{WindowsError::Win32.find_by_retval(netr_dfs_remove_std_root_response.error_status.value).join(',')}",
-            error_status: netr_dfs_remove_std_root_response.error_status.value
+            "Error returned with netr_dfs_remove_std_root: #{status_code}",
+            status_code: status_code
           )
         end
 
