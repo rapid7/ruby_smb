@@ -15,12 +15,21 @@ module RubySMB
       require 'ruby_smb/dcerpc/dfsnm/netr_dfs_remove_std_root_request'
       require 'ruby_smb/dcerpc/dfsnm/netr_dfs_remove_std_root_response'
 
-      def netr_dfs_add_std_root(server_name, root_share, comment: '', api_flags: 0)
+      # Create a new stand-alone DFS namespace.
+      #
+      # @param server_name [String] The host name of the DFS root target.
+      # @param root_share [String] The DFS root target share name.
+      # @param comment [String] A comment associated with the DFS namespace.
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   NetrDfsAddStdRootResponse packet
+      # @raise [RubySMB::Dcerpc::Error::DfsnmError] if the response error status
+      #   is not ERROR_SUCCESS
+      def netr_dfs_add_std_root(server_name, root_share, comment: '')
         netr_dfs_add_std_root_request = NetrDfsAddStdRootRequest.new(
           server_name: server_name,
           root_share: root_share,
-          comment: comment,
-          api_flags: api_flags
+          comment: comment
         )
         response = dcerpc_request(netr_dfs_add_std_root_request)
         begin
@@ -39,11 +48,19 @@ module RubySMB
         nil
       end
 
-      def netr_dfs_remove_std_root(server_name, root_share, api_flags: 0)
+      # Delete the specified stand-alone DFS namespace.
+      #
+      # @param server_name [String] The host name of the DFS root target.
+      # @param root_share [String] The DFS root target share name.
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   NetrDfsRemoveStdRootResponse packet
+      # @raise [RubySMB::Dcerpc::Error::DfsnmError] if the response error status
+      #   is not ERROR_SUCCESS
+      def netr_dfs_remove_std_root(server_name, root_share)
         netr_dfs_remove_std_root_request = NetrDfsRemoveStdRootRequest.new(
           server_name: server_name,
-          root_share: root_share,
-          api_flags: api_flags
+          root_share: root_share
         )
         response = dcerpc_request(netr_dfs_remove_std_root_request)
         begin
