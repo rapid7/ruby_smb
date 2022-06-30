@@ -52,7 +52,7 @@ module RubySMB
         attr_accessor :error_status
         def initialize(msg, error_status: nil)
           @error_status = error_status
-          super
+          super(msg)
         end
       end
     end

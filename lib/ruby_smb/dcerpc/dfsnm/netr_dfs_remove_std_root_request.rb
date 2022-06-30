@@ -8,9 +8,9 @@ module RubySMB
 
         endian :little
 
-        ndr_wide_string_ptr :server_name
-        ndr_wide_string_ptr :root_share
-        ndr_uint32          :api_flags
+        ndr_conf_var_wide_stringz :server_name
+        ndr_conf_var_wide_stringz :root_share
+        ndr_uint32                :api_flags
 
         def initialize_instance
           super
