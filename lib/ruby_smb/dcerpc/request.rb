@@ -90,7 +90,12 @@ module RubySMB
           drs_domain_controller_info_request Drsr::DRS_DOMAIN_CONTROLLER_INFO
           drs_crack_names_request            Drsr::DRS_CRACK_NAMES
           drs_get_nc_changes_request         Drsr::DRS_GET_NC_CHANGES
-          string                      :default
+          string                             :default
+        end
+        choice 'Dfsnm', selection: -> { opnum } do
+          netr_dfs_add_std_root_request    Dfsnm::NETR_DFS_ADD_STD_ROOT
+          netr_dfs_remove_std_root_request Dfsnm::NETR_DFS_REMOVE_STD_ROOT
+          string                           :default
         end
         string :default
       end
