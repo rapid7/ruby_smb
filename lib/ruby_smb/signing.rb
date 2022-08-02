@@ -12,8 +12,8 @@ module RubySMB
     # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb1_sign(packet)
-      packet = Signing::smb1_sign(packet, session_key, sequence_counter)
-      self.sequence_counter += 1
+      packet = Signing::smb1_sign(packet, @session_key, @sequence_counter)
+      @sequence_counter += 1
 
       packet
     end
@@ -41,7 +41,7 @@ module RubySMB
     # @param [RubySMB::GenericPacket] packet The packet to sign.
     # @return [RubySMB::GenericPacket] the signed packet
     def smb2_sign(packet)
-      Signing::smb2_sign(packet, session_key)
+      Signing::smb2_sign(packet, @session_key)
     end
 
     # Take an SMB2 packet and sign it. This version is a module function that
@@ -51,10 +51,10 @@ module RubySMB
     # @param [String] session_key The key to use for signing.
     # @return [RubySMB::GenericPacket] the signed packet
     def self.smb2_sign(packet, session_key)
-      return packet if session_key.nil? || session_key == ''
-
       packet.smb2_header.flags.signed = 1
       packet.smb2_header.signature = "\x00" * 16
+      # OpenSSL 3 raises exceptions if the session key is an empty string
+      session_key = session_key == '' ? ("\x00" * 16).b : session_key
       hmac = OpenSSL::HMAC.digest(OpenSSL::Digest.new('SHA256'), session_key, packet.to_binary_s)
       packet.smb2_header.signature = hmac[0, 16]
 
