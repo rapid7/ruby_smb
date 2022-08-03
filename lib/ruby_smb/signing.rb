@@ -53,6 +53,8 @@ module RubySMB
     def self.smb2_sign(packet, session_key)
       packet.smb2_header.flags.signed = 1
       packet.smb2_header.signature = "\x00" * 16
+      # OpenSSL 3 raises exceptions if the session key is an empty string
+      session_key = session_key == '' ? ("\x00" * 16).b : session_key
       hmac = OpenSSL::HMAC.digest(OpenSSL::Digest.new('SHA256'), session_key, packet.to_binary_s)
       packet.smb2_header.signature = hmac[0, 16]
 

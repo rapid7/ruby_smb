@@ -1,18 +1,16 @@
+# Enable legacy providers
+ENV['OPENSSL_CONF'] = File.expand_path(
+  File.join(File.dirname(__FILE__), 'support', 'openssl.conf')
+)
+
 require 'simplecov'
 
 SimpleCov.start unless SimpleCov.running
 SimpleCov.add_filter '/spec/'
 
-require 'coveralls'
 require 'ruby_smb'
 
-if ENV['CI'] == 'true'
-  # don't generate local report as it is inaccessible on travis-ci, which is
-  # why coveralls is being used.
-  SimpleCov.formatter = Coveralls::SimpleCov::Formatter
-else
-  SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
-end
+SimpleCov.formatter = SimpleCov::Formatter::HTMLFormatter
 
 Dir['./spec/support/**/*.rb'].sort.each { |f| require f }
 
