@@ -1208,14 +1208,50 @@ module RubySMB::Dcerpc::Ndr
     extend PointerClassPlugin
   end
 
+
+  # ArrayPtr definitions:
+  #   If the type is Ndr*ArrayPtr, it's a ConfVarArray (Uni-dimensional Conformant-varying Array)
+  #   If the type is Ndr*ConfArrayPtr, it's a ConfArray (Uni-dimensional Conformant Array)
   class NdrByteArrayPtr < NdrConfVarArray
     default_parameters type: :ndr_uint8
     extend PointerClassPlugin
+
+    def assign(val)
+      val = val.bytes if val.is_a?(String)
+      super(val.to_ary)
+    end
   end
 
-  class NdrUint16ArrayPtr < NdrConfVarArray
-    default_parameters type: :ndr_uint16
+  class NdrByteConfArrayPtr < NdrConfArray
+    default_parameters type: :ndr_uint8
     extend PointerClassPlugin
+
+    def assign(val)
+      val = val.bytes if val.is_a?(String)
+      super(val.to_ary)
+    end
+  end
+
+  %i[ Uint8 Uint16 Uint32 Uint64 ].each do |klass|
+    new_klass_name = "Ndr#{klass}ArrayPtr"
+    unless self.const_defined?(new_klass_name)
+      new_klass = Class.new(NdrConfVarArray) do
+        default_parameters type: "ndr_#{klass}".downcase.to_sym
+         extend PointerClassPlugin
+      end
+      self.const_set(new_klass_name, new_klass)
+      BinData::RegisteredClasses.register(new_klass_name, new_klass)
+    end
+
+    new_klass_name = "Ndr#{klass}ConfArrayPtr"
+    unless self.const_defined?(new_klass_name)
+      new_klass = Class.new(NdrConfArray) do
+        default_parameters type: "ndr_#{klass}".downcase.to_sym
+        extend PointerClassPlugin
+      end
+      self.const_set(new_klass_name, new_klass)
+      BinData::RegisteredClasses.register(new_klass_name, new_klass)
+    end
   end
 
   class NdrFileTimePtr < NdrFileTime
