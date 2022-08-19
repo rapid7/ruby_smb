@@ -73,6 +73,10 @@ module RubySMB
       module Mixin
         attr_reader :status_code
 
+        def status_name
+          @status_code.name
+        end
+
         private
 
         def status_code=(status_code)
