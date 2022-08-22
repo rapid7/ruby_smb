@@ -99,6 +99,11 @@ module RubySMB
         options.merge!(endpoint: stub_packet.class.name.split('::').at(-2))
         dcerpc_request = RubySMB::Dcerpc::Request.new({ opnum: stub_packet.opnum }, options)
         dcerpc_request.stub.read(stub_packet.to_binary_s)
+        if options[:auth_level] &&
+           [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(options[:auth_level])
+          set_integrity_privacy(dcerpc_request, auth_level: options[:auth_level], auth_type: options[:auth_type])
+        end
+
         ioctl_send_recv(dcerpc_request, options)
       end
 
@@ -130,6 +135,10 @@ module RubySMB
           unless dcerpc_response.pdu_header.pfc_flags.first_frag == 1
             raise RubySMB::Dcerpc::Error::InvalidPacket, "Not the first fragment"
           end
+          if options[:auth_level] &&
+             [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(options[:auth_level])
+            handle_integrity_privacy(dcerpc_response, auth_level: options[:auth_level], auth_type: options[:auth_type])
+          end
           stub_data = dcerpc_response.stub.to_s
 
           loop do
@@ -141,6 +150,10 @@ module RubySMB
           stub_data
         else
           dcerpc_response = dcerpc_response_from_raw_response(raw_data)
+          if options[:auth_level] &&
+             [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(options[:auth_level])
+            handle_integrity_privacy(dcerpc_response, auth_level: options[:auth_level], auth_type: options[:auth_type])
+          end
           dcerpc_response.stub.to_s
         end
       end

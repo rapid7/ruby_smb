@@ -217,55 +217,6 @@ module RubySMB
         return "#{os_version.major}.#{os_version.minor}.#{os_version.build}"
       end
 
-      # Add the authentication verifier to a Request packet. This includes a
-      # sec trailer and the signature of the packet. This also encrypts the
-      # Request stub if privacy is required (`:auth_level` option is
-      # RPC_C_AUTHN_LEVEL_PKT_PRIVACY).
-      #
-      # @param dcerpc_req [Request] the Request packet to be updated
-      # @param opts [Hash] the authenticaiton options: `:auth_type` and `:auth_level`
-      # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
-      # @raise [ArgumentError] if `:auth_type` is unknown
-      def set_integrity_privacy(dcerpc_req, auth_level:, auth_type:)
-        dcerpc_req.sec_trailer = {
-          auth_type: auth_type,
-          auth_level: auth_level,
-          auth_context_id: @ctx_id + @auth_ctx_id_base
-        }
-        dcerpc_req.auth_value = ' ' * 16
-        dcerpc_req.pdu_header.auth_length = 16
-
-        data_to_sign = plain_stub = dcerpc_req.stub.to_binary_s + dcerpc_req.auth_pad.to_binary_s
-        if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
-          data_to_sign = dcerpc_req.to_binary_s[0..-(dcerpc_req.pdu_header.auth_length + 1)]
-        end
-
-        encrypted_stub = ''
-        if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
-          case auth_type
-          when RPC_C_AUTHN_NONE
-          when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-            encrypted_stub = @ntlm_client.session.seal_message(plain_stub)
-          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-            # TODO
-            raise NotImplementedError
-          else
-            raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-          end
-        end
-
-        signature = @ntlm_client.session.sign_message(data_to_sign)
-
-        unless encrypted_stub.empty?
-          pad_length = dcerpc_req.sec_trailer.auth_pad_length.to_i
-          dcerpc_req.enable_encrypted_stub
-          dcerpc_req.stub = encrypted_stub[0..-(pad_length + 1)]
-          dcerpc_req.auth_pad = encrypted_stub[-(pad_length)..-1]
-        end
-        dcerpc_req.auth_value = signature
-        dcerpc_req.pdu_header.auth_length = signature.size
-      end
-
       # Send a DCERPC request with the provided stub packet.
       #
       # @param stub_packet [BinData::Record] the stub packet to be sent as
@@ -362,60 +313,6 @@ module RubySMB
         response
       rescue Errno::EINVAL, Errno::ECONNABORTED, Errno::ECONNRESET, Errno::EPIPE => e
         raise Error::CommunicationError, "An error occurred reading from the Socket: #{e.message}"
-      end
-
-      # Process the security context received in a response. It decrypts the
-      # encrypted stub if `:auth_level` is set to anything different than
-      # RPC_C_AUTHN_LEVEL_PKT_PRIVACY. It also checks the packet signature and
-      # raises an InvalidPacket error if it fails. Note that the exception is
-      # disabled by default and can be enabled with the
-      # `:raise_signature_error` option
-      #
-      # @param dcerpc_response [Response] the Response packet
-      #   containing the security context to process
-      # @param opts [Hash] the authenticaiton options: `:auth_type` and
-      #   `:auth_level`. To enable errors when signature check fails, set the
-      #   `:raise_signature_error` option to true
-      # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
-      # @raise [Error::CommunicationError] if socket-related error occurs
-      def handle_integrity_privacy(dcerpc_response, auth_level:, auth_type:, raise_signature_error: false)
-        decrypted_stub = ''
-        if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
-          encrypted_stub = dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
-          case auth_type
-          when RPC_C_AUTHN_NONE
-          when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-            decrypted_stub = @ntlm_client.session.unseal_message(encrypted_stub)
-          when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-            # TODO
-            raise NotImplementedError
-          else
-            raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-          end
-        end
-
-        unless decrypted_stub.empty?
-          pad_length = dcerpc_response.sec_trailer.auth_pad_length.to_i
-          dcerpc_response.stub = decrypted_stub[0..-(pad_length + 1)]
-          dcerpc_response.auth_pad = decrypted_stub[-(pad_length)..-1]
-        end
-
-        signature = dcerpc_response.auth_value
-        data_to_check = dcerpc_response.stub.to_binary_s
-        if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
-          data_to_check = dcerpc_response.to_binary_s[0..-(dcerpc_response.pdu_header.auth_length + 1)]
-        end
-        unless @ntlm_client.session.verify_signature(signature, data_to_check)
-          if raise_signature_error
-            raise Error::InvalidPacket.new(
-              "Wrong packet signature received (set `raise_signature_error` to false to ignore)"
-            )
-          end
-        end
-
-        @call_id += 1
-
-        nil
       end
 
     end
