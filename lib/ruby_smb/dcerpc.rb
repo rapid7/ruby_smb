@@ -47,6 +47,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/drsr'
     require 'ruby_smb/dcerpc/sec_trailer'
     require 'ruby_smb/dcerpc/dfsnm'
+    require 'ruby_smb/dcerpc/icpr'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/rpc_auth3'

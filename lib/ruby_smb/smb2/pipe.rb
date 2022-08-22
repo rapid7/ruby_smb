@@ -27,6 +27,8 @@ module RubySMB
           extend RubySMB::Dcerpc::Wkssvc
         when 'netdfs', '\\netdfs'
           extend RubySMB::Dcerpc::Dfsnm
+        when 'cert', '\\cert'
+          extend RubySMB::Dcerpc::Icpr
         end
         super(tree: tree, response: response, name: name)
       end
