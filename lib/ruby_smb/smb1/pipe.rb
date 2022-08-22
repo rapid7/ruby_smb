@@ -36,6 +36,12 @@ module RubySMB
         super(tree: tree, response: response, name: name)
       end
 
+      def bind(options={})
+        @size = 1024
+        @ntlm_client = @tree.client.ntlm_client
+        super
+      end
+
       # Performs a peek operation on the named pipe
       #
       # @param peek_size [Integer] Amount of data to peek

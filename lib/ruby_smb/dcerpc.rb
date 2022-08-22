@@ -56,20 +56,29 @@ module RubySMB
     require 'ruby_smb/dcerpc/print_system'
     require 'ruby_smb/dcerpc/encrypting_file_system'
 
-    # Bind to the remote server interface endpoint.
+    # Bind to the remote server interface endpoint. It takes care of adding
+    # the necessary authentication verifier if `:auth_level` is set to
+    # anything different than RPC_C_AUTHN_LEVEL_NONE
     #
-    # @param options [Hash] the options to pass to the Bind request packet. At least, :endpoint must but provided with an existing Dcerpc class
+    # @param [Hash] options
+    # @option options [Module] :endpoint the endpoint to bind to. This must be a Dcerpc
+    #   class with UUID, VER_MAJOR and VER_MINOR constants defined.
+    # @option options [Integer] :auth_level the authentication level
+    # @option options [Integer] :auth_type the authentication type
     # @return [BindAck] the BindAck response packet
     # @raise [Error::InvalidPacket] if an invalid packet is received
     # @raise [Error::BindError] if the response is not a BindAck packet or if the Bind result code is not ACCEPTANCE
+    # @raise [ArgumentError] if `:auth_type` is unknown
+    # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     def bind(options={})
+      @call_id ||= 1
       bind_req = Bind.new(options)
+      bind_req.pdu_header.call_id = @call_id
+
       if options[:auth_level] && options[:auth_level] != RPC_C_AUTHN_LEVEL_NONE
         case options[:auth_type]
         when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-          @ntlm_client = @tree.client.ntlm_client
           @ctx_id            = 0
-          @call_id           = 1
           @auth_ctx_id_base  = rand(0xFFFFFFFF)
           raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
           type1_message = @ntlm_client.init_context
@@ -83,17 +92,14 @@ module RubySMB
         end
         add_auth_verifier(bind_req, auth, options[:auth_type], options[:auth_level])
       end
+
       send_packet(bind_req)
-      @size = 1024
-      dcerpc_raw_response = read()
       begin
-        dcerpc_response = BindAck.read(dcerpc_raw_response)
-      rescue IOError
-        raise Error::InvalidPacket, "Error reading the DCERPC response"
+        dcerpc_response = recv_struct(BindAck)
+      rescue Error::InvalidPacket
+        raise Error::BindError # raise the more context-specific BindError
       end
-      unless dcerpc_response.pdu_header.ptype == PTypes::BIND_ACK
-        raise Error::BindError, "Not a BindAck packet"
-      end
+      # TODO: see if BindNack response should be handled too
 
       res_list = dcerpc_response.p_result_list
       if res_list.n_results == 0 ||
@@ -101,7 +107,8 @@ module RubySMB
         raise Error::BindError,
           "Bind Failed (Result: #{res_list.p_results[0].result}, Reason: #{res_list.p_results[0].reason})"
       end
-      @tree.client.max_buffer_size = dcerpc_response.max_xmit_frag
+      self.max_buffer_size = dcerpc_response.max_xmit_frag
+      @call_id = dcerpc_response.pdu_header.call_id
 
       if options[:auth_level] && options[:auth_level] != RPC_C_AUTHN_LEVEL_NONE
         # The number of legs needed to build the security context is defined
@@ -117,6 +124,27 @@ module RubySMB
       end
 
       dcerpc_response
+    end
+
+    def max_buffer_size=(value)
+      @tree.client.max_buffer_size = value
+    end
+
+    # Receive a packet from the remote host and parse it according to `struct`
+    #
+    # @param struct [Class] the structure class to parse the response with
+    def recv_struct(struct)
+      raw_response = read
+      begin
+        response = struct.read(raw_response)
+      rescue IOError
+        raise Error::InvalidPacket, "Error reading the #{struct} response"
+      end
+      unless response.pdu_header.ptype == struct::PTYPE
+        raise Error::InvalidPacket, "Not a #{struct} packet"
+      end
+
+      response
     end
 
     # Send a packet to the remote host
