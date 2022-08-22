@@ -9,6 +9,7 @@ module RubySMB
       require 'ruby_smb/dcerpc'
       require 'ruby_smb/gss'
 
+      include Dcerpc
       include Epm
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
@@ -172,67 +173,12 @@ module RubySMB
         @tcp_socket.close if @tcp_socket && !@tcp_socket.closed?
       end
 
-      # Add the authentication verifier to the packet. This includes a sec
-      # trailer and the actual authentication data.
-      #
-      # @param req [BinData::Record] the request to be updated
-      # @param auth [String] the authentication data
-      # @param auth_type [Integer] the authentication type
-      # @param auth_level [Integer] the authentication level
-      def add_auth_verifier(req, auth, auth_type, auth_level)
-        req.sec_trailer = {
-          auth_type: auth_type,
-          auth_level: auth_level,
-          auth_context_id: @ctx_id + @auth_ctx_id_base
-        }
-        req.auth_value = auth
-        req.pdu_header.auth_length = auth.length
-
-        nil
-      end
-
       def process_ntlm_type2(type2_message)
-        ntlmssp_offset = type2_message.index('NTLMSSP')
-        type2_blob = type2_message.slice(ntlmssp_offset..-1)
-        type2_b64_message = [type2_blob].pack('m')
-        type3_message = @ntlm_client.init_context(type2_b64_message)
-        auth3 = type3_message.serialize
-
-        @session_key = @ntlm_client.session_key
+        auth3 = super
         challenge_message = @ntlm_client.session.challenge_message
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
         auth3
-      end
-
-      # Send a rpc_auth3 PDU that ends the authentication handshake.
-      #
-      # @param response [BindAck] the BindAck response packet
-      # @param auth_type [Integer] the authentication type
-      # @param auth_level [Integer] the authentication level
-      # @raise [ArgumentError] if `:auth_type` is unknown
-      # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
-      def send_auth3(response, auth_type, auth_level)
-        case auth_type
-        when RPC_C_AUTHN_NONE
-        when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-          auth3 = process_ntlm_type2(response.auth_value)
-        when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-          # TODO
-          raise NotImplementedError
-        else
-          raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-        end
-
-        rpc_auth3 = RpcAuth3.new
-        add_auth_verifier(rpc_auth3, auth3, auth_type, auth_level)
-        rpc_auth3.pdu_header.call_id = @call_id
-
-        # The server should not respond
-        send_packet(rpc_auth3)
-        @call_id += 1
-
-        nil
       end
 
       # Bind to the remote server interface endpoint. It takes care of adding
