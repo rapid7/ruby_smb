@@ -18,12 +18,13 @@ module RubySMB
       # [2.2.2.2 CERTTRANSBLOB](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-wcce/d6bee093-d862-4122-8f2b-7b49102097dc)
       # (actually defined in MS-WCCE)
       class CertTransBlob < Ndr::NdrStruct
+        endian :little
         default_parameter  byte_align: 4
 
         ndr_uint32              :cb, initial_value: -> { pb.length }
         ndr_byte_conf_array_ptr :pb
 
-        def to_bytes
+        def buffer
           pb.to_ary.pack('C*')
         end
       end
@@ -51,7 +52,7 @@ module RubySMB
 
         ret = {
           disposition: cert_server_request_response.pdw_disposition.value,
-          disposition_message: cert_server_request_response.pctb_disposition_message.to_bytes.chomp("\x00\x00").force_encoding('utf-16le').encode,
+          disposition_message: cert_server_request_response.pctb_disposition_message.buffer.chomp("\x00\x00").force_encoding('utf-16le').encode,
           status: {
             CR_DISP_ISSUED => :issued,
             CR_DISP_UNDER_SUBMISSION => :submitted,
@@ -60,7 +61,7 @@ module RubySMB
 
         # note: error_status == RPC_S_BINDING_HAS_NO_AUTH when not properly bound
         unless ret[:status] == :error
-          ret[:certificate] = OpenSSL::X509::Certificate.new(cert_server_request_response.pctb_encoded_cert.to_bytes)
+          ret[:certificate] = OpenSSL::X509::Certificate.new(cert_server_request_response.pctb_encoded_cert.buffer)
         end
 
         ret
