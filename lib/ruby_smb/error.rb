@@ -86,7 +86,7 @@ module RubySMB
           when Integer
             @status_code = WindowsError::NTStatus.find_by_retval(status_code).first
             if @status_code.nil?
-              @status_code = WindowsError::ErrorCode.new("0x#{status_code.to_s(16).rjust(8, '0')}", status_code, "Unknown status: 0x#{status_code.to_s(16)}")
+              @status_code = WindowsError::ErrorCode.new("0x#{status_code.to_s(16).rjust(8, '0')}", status_code, "Unknown status: 0x#{status_code.to_s(16).rjust(8, '0')}")
             end
           else
             raise ArgumentError, "Status code must be a WindowsError::ErrorCode or an Integer, got #{status_code.class}"

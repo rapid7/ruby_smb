@@ -60,7 +60,19 @@ module RubySMB
         }
 
         # note: error_status == RPC_S_BINDING_HAS_NO_AUTH when not properly bound
-        unless ret[:status] == :error
+        if ret[:status] == :error
+          unless cert_server_request_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+            error_status = cert_server_request_response.error_status.value
+            status_code = WindowsError::Win32.find_by_retval(error_status).first
+            if status_code.nil? && (fault_name = RubySMB::Dcerpc::Fault::Status.name(error_status))
+              status_code = WindowsError::ErrorCode.new(fault_name.to_s, error_status, 'DCERPC fault')
+            end
+            raise RubySMB::Dcerpc::Error::IcprError.new(
+              "Error returned with cert_server_request: #{status_code || "0x#{error_status.to_s(16).rjust(8, '0')}"}",
+              status_code: status_code
+            )
+          end
+        else
           ret[:certificate] = OpenSSL::X509::Certificate.new(cert_server_request_response.pctb_encoded_cert.buffer)
         end
 
