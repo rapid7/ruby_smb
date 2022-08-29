@@ -8,9 +8,11 @@ module RubySMB
       require 'net/ntlm'
       require 'ruby_smb/dcerpc'
       require 'ruby_smb/gss'
+      require 'ruby_smb/peer_info'
 
       include Dcerpc
       include Epm
+      include PeerInfo
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
       MAX_BUFFER_SIZE = 64512
@@ -135,11 +137,11 @@ module RubySMB
       end
 
       # Connect to the RPC endpoint. If a TCP socket was not provided, it takes
-      # care of asking the Enpoint Mapper Interface the port used by the given
+      # care of asking the Endpoint Mapper Interface the port used by the given
       # endpoint provided in #initialize and connect a TCP socket
       #
       # @param port [Integer] An optional port number to connect to. If
-      #   provided, it will not ask the Enpoint Mapper Interface for a port
+      #   provided, it will not ask the Endpoint Mapper Interface for a port
       #   number.
       # @return [TcpSocket] The connected TCP socket
       def connect(port: nil)
@@ -179,42 +181,6 @@ module RubySMB
         store_target_info(challenge_message.target_info) if challenge_message.has_flag?(:TARGET_INFO)
         @os_version = extract_os_version(challenge_message.os_version.to_s) unless challenge_message.os_version.empty?
         auth3
-      end
-
-      # Extract and store useful information about the peer/server from the
-      # NTLM Type 2 (challenge) TargetInfo fields.
-      #
-      # @param target_info_str [String] the Target Info string
-      def store_target_info(target_info_str)
-        target_info = Net::NTLM::TargetInfo.new(target_info_str)
-        {
-          Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME  => :@default_name,
-          Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME    => :@default_domain,
-          Net::NTLM::TargetInfo::MSV_AV_DNS_COMPUTER_NAME => :@dns_host_name,
-          Net::NTLM::TargetInfo::MSV_AV_DNS_DOMAIN_NAME   => :@dns_domain_name,
-          Net::NTLM::TargetInfo::MSV_AV_DNS_TREE_NAME     => :@dns_tree_name
-        }.each do |constant, attribute|
-          if target_info.av_pairs[constant]
-            value = target_info.av_pairs[constant].dup
-            value.force_encoding('UTF-16LE')
-            instance_variable_set(attribute, value.encode('UTF-8'))
-          end
-        end
-      end
-
-      # Extract the peer/server version number from the NTLM Type 2 (challenge)
-      # Version field.
-      #
-      # @param version [String] the version number as a binary string
-      # @return [String] the formated version number (<major>.<minor>.<build>)
-      def extract_os_version(version)
-        #version.unpack('CCS').join('.')
-        begin
-          os_version = NTLM::OSVersion.read(version)
-        rescue IOError
-          return ''
-        end
-        return "#{os_version.major}.#{os_version.minor}.#{os_version.build}"
       end
 
       # Send a DCERPC request with the provided stub packet.
