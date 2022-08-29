@@ -1237,7 +1237,7 @@ module RubySMB::Dcerpc::Ndr
     unless self.const_defined?(new_klass_name)
       new_klass = Class.new(NdrConfVarArray) do
         default_parameters type: "ndr_#{klass}".downcase.to_sym
-         extend PointerClassPlugin
+        extend PointerClassPlugin
       end
       self.const_set(new_klass_name, new_klass)
       BinData::RegisteredClasses.register(new_klass_name, new_klass)

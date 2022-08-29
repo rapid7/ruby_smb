@@ -310,7 +310,7 @@ module RubySMB
 
       rpc_auth3 = RpcAuth3.new
       add_auth_verifier(rpc_auth3, auth3, auth_type, auth_level)
-      rpc_auth3.pdu_header.call_id = @call_id # todo: figure this out for named pipes
+      rpc_auth3.pdu_header.call_id = @call_id
 
       # The server should not respond
       send_packet(rpc_auth3)
