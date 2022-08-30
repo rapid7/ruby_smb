@@ -97,6 +97,10 @@ module RubySMB
           netr_dfs_remove_std_root_request Dfsnm::NETR_DFS_REMOVE_STD_ROOT
           string                           :default
         end
+        choice 'Icpr', selection: -> { opnum } do
+          cert_server_request_request      Icpr::CERT_SERVER_REQUEST
+          string                           :default
+        end
         string :default
       end
       string      :auth_pad,

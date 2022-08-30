@@ -23,6 +23,7 @@ RSpec.describe RubySMB::Dcerpc do
       allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_return(bind_ack_packet)
       allow(tree).to receive(:client).and_return(client)
       allow(client).to receive(:max_buffer_size=)
+      allow(client).to receive(:ntlm_client)
     end
 
     it 'creates a Bind packet' do
@@ -49,7 +50,7 @@ RSpec.describe RubySMB::Dcerpc do
 
     it 'raises the expected exception when an invalid packet is received' do
       allow(RubySMB::Dcerpc::BindAck).to receive(:read).and_raise(IOError)
-      expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      expect { pipe.bind(options) }.to raise_error(RubySMB::Dcerpc::Error::BindError)
     end
 
     it 'raises the expected exception when it is not a BindAck packet' do
