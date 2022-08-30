@@ -186,7 +186,7 @@ Example:
 ```
 ### Using the Client
 
-Sitting on top of the packet layer in RubySMB is the RubySMB::Client class. This is the abstraction that most users of RubySMB will interact with. It provides simple conveience methods for performing SMB actions. It handles the creation, sending and receiving of packets for the user, providing reasonable defaults in many cases.
+Sitting on top of the packet layer in RubySMB is the RubySMB::Client class. This is the abstraction that most users of RubySMB will interact with. It provides simple convenience methods for performing SMB actions. It handles the creation, sending and receiving of packets for the user, providing reasonable defaults in many cases.
 
 #### Negotiation
 
