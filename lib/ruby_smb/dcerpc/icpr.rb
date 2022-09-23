@@ -35,7 +35,7 @@ module RubySMB
       def cert_server_request(attributes:, authority:, csr:)
         cert_server_request_request = CertServerRequestRequest.new(
           pwsz_authority: authority,
-          pctb_attribs: { pb: (attributes.map { |k,v| "#{k}:#{v}" }.join("\n").encode('UTF-16le').force_encoding('ASCII-8bit') + "\x00\x00".b) },
+          pctb_attribs: { pb: (safe_encode(attributes.map { |k,v| "#{k}:#{v}" }.join("\n"), 'UTF-16le').force_encoding('ASCII-8bit') + "\x00\x00".b) },
           pctb_request: { pb: csr.to_der }
         )
 

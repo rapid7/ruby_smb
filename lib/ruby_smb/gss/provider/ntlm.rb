@@ -141,7 +141,7 @@ module RubySMB
             case type3_msg.ntlm_version
             when :ntlmv1
               my_ntlm_response = Net::NTLM::ntlm_response(
-                ntlm_hash: Net::NTLM::ntlm_hash(account.password.encode('UTF-16LE'), unicode: true),
+                ntlm_hash: Net::NTLM::ntlm_hash(safe_encode(account.password, 'UTF-16LE'), unicode: true),
                 challenge: @server_challenge
               )
               matches = my_ntlm_response == type3_msg.ntlm_response
@@ -151,9 +151,9 @@ module RubySMB
               their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
 
               ntlmv2_hash = Net::NTLM.ntlmv2_hash(
-                account.username.encode('UTF-16LE'),
-                account.password.encode('UTF-16LE'),
-                type3_msg.domain.encode('UTF-16LE'),  # don't use the account domain because of the special '.' value
+                safe_encode(account.username, 'UTF-16LE'),
+                safe_encode(account.password, 'UTF-16LE'),
+                safe_encode(type3_msg.domain, 'UTF-16LE'),  # don't use the account domain because of the special '.' value
                 {client_challenge: their_blob[16...24], unicode: true}
               )
 
@@ -305,7 +305,7 @@ module RubySMB
           username = username.downcase
           domain = @default_domain if domain.nil? || domain == '.'.encode(domain.encoding)
           domain = domain.downcase
-          @accounts.find { |account| account.username.encode(username.encoding).downcase == username && account.domain.encode(domain.encoding).downcase == domain }
+          @accounts.find { |account| safe_encode(account.username, username.encoding).downcase == username && safe_encode(account.domain, domain.encoding).downcase == domain }
         end
 
         #

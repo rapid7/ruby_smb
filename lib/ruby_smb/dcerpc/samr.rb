@@ -320,7 +320,7 @@ module RubySMB
 
         def self.encrypt_password(password, key)
           # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5fe3c4c4-e71b-440d-b2fd-8448bfaf6e04
-          password = password.encode('UTF-16LE').force_encoding('ASCII-8bit')
+          password = safe_encode(password, 'UTF-16LE').force_encoding('ASCII-8bit')
           buffer = password.rjust(512, "\x00") + [ password.length ].pack('V')
           salt = SecureRandom.random_bytes(16)
           key = OpenSSL::Digest::MD5.new(salt + key).digest
