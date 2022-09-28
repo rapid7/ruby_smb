@@ -9,6 +9,7 @@ module RubySMB
       #
       class NTLM < Base
         include RubySMB::NTLM
+        include RubySMB::Utils
 
         # An account representing an identity for which this provider will accept authentication attempts.
         Account = Struct.new(:username, :password, :domain) do
@@ -18,6 +19,8 @@ module RubySMB
         end
 
         class Authenticator < Authenticator::Base
+          include RubySMB::Utils
+
           def reset!
             super
             @server_challenge = nil
