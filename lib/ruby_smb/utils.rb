@@ -5,7 +5,7 @@ module RubySMB
       str.encode(encoding)
     rescue EncodingError
       if str.encoding == ::Encoding::ASCII_8BIT
-        str.force_encoding(encoding)
+        str.dup.force_encoding(encoding)
       else
         raise
       end
