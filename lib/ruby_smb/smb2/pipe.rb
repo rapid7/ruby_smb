@@ -145,6 +145,10 @@ module RubySMB
             break if dcerpc_response.pdu_header.pfc_flags.last_frag == 1
             raw_data = read(bytes: @tree.client.max_buffer_size)
             dcerpc_response = dcerpc_response_from_raw_response(raw_data)
+            if options[:auth_level] &&
+               [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(options[:auth_level])
+              handle_integrity_privacy(dcerpc_response, auth_level: options[:auth_level], auth_type: options[:auth_type])
+            end
             stub_data << dcerpc_response.stub.to_s
           end
           stub_data
