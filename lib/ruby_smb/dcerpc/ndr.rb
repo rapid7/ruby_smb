@@ -247,12 +247,22 @@ module RubySMB::Dcerpc::Ndr
 
     def do_read(io)
       if is_a?(ConfPlugin) && should_process_max_count?
-        set_max_count(io.readbytes(4).unpack('L<').first)
+        max_count = io.readbytes(4).unpack1('L<')
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.max_count", max_count.to_s)
+        end
+        set_max_count(max_count)
       end
 
       if is_a?(VarPlugin)
         @offset = io.readbytes(4).unpack('L<').first
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.offset", @offset.to_s)
+        end
         @actual_count = @read_until_index = io.readbytes(4).unpack('L<').first
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.actual_count", @actual_count.to_s)
+        end
       end
 
       if has_elements_to_read?
@@ -523,7 +533,11 @@ module RubySMB::Dcerpc::Ndr
 
     def do_read(io)
       if should_process_max_count?
-        set_max_count(io.readbytes(4).unpack('L<').first)
+        max_count = io.readbytes(4).unpack1('L<')
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.max_count", max_count.to_s)
+        end
+        set_max_count(max_count)
       end
       super
     end
@@ -582,7 +596,13 @@ module RubySMB::Dcerpc::Ndr
 
     def do_read(io)
       @offset = io.readbytes(4).unpack('L<').first
+       BinData.trace_message do |tracer|
+        tracer.trace_obj("#{debug_name}.offset", @offset.to_s)
+      end
       @actual_count = io.readbytes(4).unpack('L<').first
+      BinData.trace_message do |tracer|
+        tracer.trace_obj("#{debug_name}.actual_count", @actual_count.to_s)
+      end
       super if @actual_count > 0
     end
 
@@ -702,7 +722,11 @@ module RubySMB::Dcerpc::Ndr
 
     def do_read(io)
       if should_process_max_count?
-        set_max_count(io.readbytes(4).unpack('L<').first)
+        max_count = io.readbytes(4).unpack1('L<')
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.max_count", max_count.to_s)
+        end
+        set_max_count(max_count)
 
         # Align the structure according to the alignment rules for the structure
         if respond_to?(:referent_bytes_align)
@@ -1034,6 +1058,9 @@ module RubySMB::Dcerpc::Ndr
         end
       else
         @ref_id = io.readbytes(4).unpack('L<').first
+        BinData.trace_message do |tracer|
+          tracer.trace_obj("#{debug_name}.ref_id", @ref_id.to_s)
+        end
         parent_obj = nil
         if parent&.is_a?(ConstructedTypePlugin)
           parent_obj = parent.get_top_level_constructed_type
