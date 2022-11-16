@@ -1,7 +1,7 @@
 module RubySMB
   module Utils
 
-    def safe_encode(str, encoding)
+    def self.safe_encode(str, encoding)
       str.encode(encoding)
     rescue EncodingError
       if str.encoding == ::Encoding::ASCII_8BIT

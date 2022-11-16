@@ -1,9 +1,3 @@
-class Net::NTLM::EncodeUtil
-  def self.encode_utf16le(str)
-    str.dup.force_encoding('UTF-8').encode(Encoding::UTF_16LE, Encoding::UTF_8).force_encoding('ASCII-8BIT')
-  end
-end
-
 module RubySMB::NTLM
   module Message
     def deflag

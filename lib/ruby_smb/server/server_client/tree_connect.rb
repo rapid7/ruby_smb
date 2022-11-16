@@ -7,7 +7,7 @@ module RubySMB
           # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/b062f3e3-1b65-4a9a-854a-0ee432499d8f
           response = RubySMB::SMB1::Packet::TreeConnectResponse.new
 
-          share_name = safe_encode(request.data_block.path, 'UTF-8').split('\\', 4).last
+          share_name = RubySMB::Utils.safe_encode(request.data_block.path, 'UTF-8').split('\\', 4).last
           share_provider = @server.shares.transform_keys(&:downcase)[share_name.downcase]
           if share_provider.nil?
             logger.warn("Received TREE_CONNECT request for non-existent share: #{share_name}")
@@ -49,7 +49,7 @@ module RubySMB
             return response
           end
 
-          share_name = safe_encode(request.path, 'UTF-8').split('\\', 4).last
+          share_name = RubySMB::Utils.safe_encode(request.path, 'UTF-8').split('\\', 4).last
           share_provider = @server.shares.transform_keys(&:downcase)[share_name.downcase]
 
           if share_provider.nil?
