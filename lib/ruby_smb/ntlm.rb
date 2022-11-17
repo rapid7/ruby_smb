@@ -75,8 +75,8 @@ module RubySMB
         end
 
         if opt[:unicode]
-          # Uppercase operation on username containing non-ASCI characters
-          # after behing unicode encoded with `EncodeUtil.encode_utf16le`
+          # Uppercase operation on username containing non-ASCII characters
+          # after being unicode encoded with `EncodeUtil.encode_utf16le`
           # doesn't play well. Upcase should be done before encoding.
           user_upcase = Net::NTLM::EncodeUtil.decode_utf16le(user).upcase
           user_upcase = Net::NTLM::EncodeUtil.encode_utf16le(user_upcase)
