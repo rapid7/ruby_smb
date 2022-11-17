@@ -4,6 +4,7 @@ module RubySMB
   class Client
     require 'ruby_smb/ntlm'
     require 'ruby_smb/signing'
+    require 'ruby_smb/utils'
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
     require 'ruby_smb/client/tree_connect'
@@ -13,6 +14,7 @@ module RubySMB
     require 'ruby_smb/client/encryption'
 
     include RubySMB::Signing
+    include RubySMB::NTLM
     include RubySMB::Client::Negotiation
     include RubySMB::Client::Authentication
     include RubySMB::Client::TreeConnect
@@ -322,7 +324,7 @@ module RubySMB
       @pid               = rand(0xFFFF)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = password.encode('utf-8') || ''.encode('utf-8')
+      @password          = RubySMB::Utils.safe_encode((password||''), 'utf-8')
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
@@ -332,7 +334,7 @@ module RubySMB
       @smb1              = smb1
       @smb2              = smb2
       @smb3              = smb3
-      @username          = username.encode('utf-8') || ''.encode('utf-8')
+      @username          = RubySMB::Utils.safe_encode((username||''), 'utf-8')
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modified during negotiation
       @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
@@ -415,8 +417,8 @@ module RubySMB
                       local_workstation: self.local_workstation, ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = pass.encode('utf-8') || ''.encode('utf-8')
-      @username          = user.encode('utf-8') || ''.encode('utf-8')
+      @password          = RubySMB::Utils.safe_encode((pass||''), 'utf-8')
+      @username          = RubySMB::Utils.safe_encode((user||''), 'utf-8')
 
       @ntlm_client = RubySMB::NTLM::Client.new(
           @username,

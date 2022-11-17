@@ -5,14 +5,16 @@ module RubySMB
     class Client
       require 'bindata'
       require 'windows_error'
-      require 'net/ntlm'
+      require 'ruby_smb/ntlm'
       require 'ruby_smb/dcerpc'
       require 'ruby_smb/gss'
       require 'ruby_smb/peer_info'
+      require 'ruby_smb/utils'
 
       include Dcerpc
       include Epm
       include PeerInfo
+      include Utils
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
       MAX_BUFFER_SIZE = 64512
@@ -118,15 +120,15 @@ module RubySMB
         @read_timeout      = read_timeout
         @domain            = domain
         @local_workstation = local_workstation
-        @username          = username.encode('utf-8')
-        @password          = password.encode('utf-8')
+        @username          = RubySMB::Utils.safe_encode(username, 'utf-8')
+        @password          = RubySMB::Utils.safe_encode(password, 'utf-8')
         @max_buffer_size   = MAX_BUFFER_SIZE
         @call_id           = 1
         @ctx_id            = 0
         @auth_ctx_id_base  = rand(0xFFFFFFFF)
 
         unless username.empty? && password.empty?
-          @ntlm_client = Net::NTLM::Client.new(
+          @ntlm_client = RubySMB::NTLM::Client.new(
             @username,
             @password,
             workstation: @local_workstation,

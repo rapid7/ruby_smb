@@ -51,6 +51,10 @@ module RubySMB::NTLM
         !challenge_message.has_flag?(:UNICODE) && challenge_message.has_flag?(:OEM)
       end
 
+      def ntlmv2_hash
+        @ntlmv2_hash ||= RubySMB::NTLM.ntlmv2_hash(username, password, domain, {:client_challenge => client_challenge, :unicode => !use_oem_strings?})
+      end
+
       def calculate_user_session_key!
         if is_anonymous?
           # see MS-NLMP section 3.4
