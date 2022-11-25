@@ -259,6 +259,8 @@ module RubySMB
         3          => 'des-cbc-md5',
         17         => 'aes128-cts-hmac-sha1-96',
         18         => 'aes256-cts-hmac-sha1-96',
+        # Windows Server 2008 and later DC includes a KeyType of -140. Not present when the domain functional level is raised to DS_BEHAVIOR_WIN2008 or greater
+        # [Appendix_A_24](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/fa61e5fc-f8fb-4d5b-9695-c724af0c3829#Appendix_A_24)
         0xffffff74 => 'rc4_hmac'
       }
 
