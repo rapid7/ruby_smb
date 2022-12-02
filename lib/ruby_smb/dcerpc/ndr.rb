@@ -1315,5 +1315,40 @@ module RubySMB::Dcerpc::Ndr
     end
   end
 
+  # (IDL/NDR) Pickles as defined in
+  # [(IDL/NDR) # Pickles](https://pubs.opengroup.org/onlinepubs/9668899/chap2.htm#tagcjh_05_01_07)
+  # and
+  # [2.2.6 Type Serialization Version # 1](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/9a1d0f97-eac0-49ab-a197-f1a581c2d6a0)
+
+  # [2.2.6.1 Common Type Header for the Serialization Stream](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/6d75d40e-e2d2-4420-b9e9-8508a726a9ae)
+  class TypeSerialization1CommonTypeHeader < NdrStruct
+    default_parameter byte_align: 8
+    endian :little
+
+    ndr_uint8  :version, initial_value: 1
+    ndr_uint8  :endianness, initial_value: 0x10
+    ndr_uint16 :common_header_length, initial_value: 8
+    ndr_uint32 :filler, initial_value: 0xCCCCCCCC
+  end
+
+  # [2.2.6.2 Private Header for Constructed Type](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/63949ba8-bc88-4c0c-9377-23f14b197827)
+  class TypeSerialization1PrivateHeader < NdrStruct
+    default_parameter byte_align: 8
+    endian :little
+
+    ndr_uint32 :object_buffer_length
+    ndr_uint32 :filler, initial_value: 0x00000000
+  end
+
+  # [2.2.6 Type Serialization Version 1](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/9a1d0f97-eac0-49ab-a197-f1a581c2d6a0)
+  class TypeSerialization1 < NdrStruct
+    default_parameter byte_align: 8
+    endian :little
+    search_prefix :type_serialization1
+
+    common_type_header  :common_header
+    private_header      :private_header
+  end
+
 end
 

@@ -4146,3 +4146,131 @@ RSpec.describe 'Alignment' do
     end
   end
 end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1CommonTypeHeader do
+  it 'is a BinData::NdrStruct class' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :version }
+  it { is_expected.to respond_to :endianness }
+  it { is_expected.to respond_to :common_header_length }
+  it { is_expected.to respond_to :filler }
+
+  context 'with #version' do
+    it 'is a NdrUint8' do
+      expect(subject.version).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
+    end
+    it 'returns 1 by default' do
+      expect(subject.version).to eq(1)
+    end
+  end
+
+  context 'with #endianness' do
+    it 'is a NdrUint8' do
+      expect(subject.endianness).to be_a RubySMB::Dcerpc::Ndr::NdrUint8
+    end
+    it 'returns 0x10 by default' do
+      expect(subject.endianness).to eq(0x10)
+    end
+  end
+
+  context 'with #common_header_length' do
+    it 'is a NdrUint16' do
+      expect(subject.common_header_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint16
+    end
+    it 'returns 8 by default' do
+      expect(subject.common_header_length).to eq(8)
+    end
+  end
+
+  context 'with #filler' do
+    it 'is a NdrUint32' do
+      expect(subject.filler).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+    it 'returns 0xCCCCCCCC by default' do
+      expect(subject.filler).to eq(0xCCCCCCCC)
+    end
+  end
+
+  it 'reads itself' do
+    values = {version: 4, endianness: 0x33, common_header_length: 44, filler: 0xFFFFFFFF}
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1PrivateHeader do
+  it 'is a BinData::NdrStruct class' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :object_buffer_length }
+  it { is_expected.to respond_to :filler }
+
+  context 'with #object_buffer_length' do
+    it 'is a NdrUint32' do
+      expect(subject.object_buffer_length).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+  end
+
+  context 'with #filler' do
+    it 'is a NdrUint32' do
+      expect(subject.filler).to be_a RubySMB::Dcerpc::Ndr::NdrUint32
+    end
+    it 'returns 0x00000000 by default' do
+      expect(subject.filler).to eq(0x00000000)
+    end
+  end
+
+  it 'reads itself' do
+    values = {object_buffer_length: 4, filler: 0xFFFFFFFF}
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1 do
+  it 'is a BinData::NdrStruct class' do
+    expect(described_class).to be < RubySMB::Dcerpc::Ndr::NdrStruct
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :common_header }
+  it { is_expected.to respond_to :private_header }
+
+  context 'with #common_header' do
+    it 'is a TypeSerialization1CommonTypeHeader structure' do
+      expect(subject.common_header).to be_a RubySMB::Dcerpc::Ndr::TypeSerialization1CommonTypeHeader
+    end
+  end
+
+  context 'with #private_header' do
+    it 'is a TypeSerialization1PrivateHeader structure' do
+      expect(subject.private_header).to be_a RubySMB::Dcerpc::Ndr::TypeSerialization1PrivateHeader
+    end
+  end
+
+  it 'reads itself' do
+    values = {
+      common_header: {version: 4, endianness: 0x33, common_header_length: 44, filler: 0xFFFFFFFF},
+      private_header: {object_buffer_length: 4, filler: 0xFFFFFFFF}
+    }
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+end
