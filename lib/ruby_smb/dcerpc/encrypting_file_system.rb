@@ -35,6 +35,8 @@ module RubySMB
       OVERWRITE_HIDDEN = 0x00000004
       EFS_DROP_ALTERNATE_STREAMS = 0x00000010
 
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
