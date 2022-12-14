@@ -1,4 +1,4 @@
-require 'ruby_smb/ntlm/custom/ntlm'
+require 'ruby_smb/ntlm/custom/string_encoder'
 
 module RubySMB
   module NTLM
