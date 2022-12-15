@@ -35,12 +35,53 @@ module RubySMB
       OVERWRITE_HIDDEN = 0x00000004
       EFS_DROP_ALTERNATE_STREAMS = 0x00000010
 
+      class EfsHashBlob < Ndr::NdrStruct
+        endian :little
+        default_parameter byte_align: 4
+
+        ndr_uint32   :cb_data
+        ndr_byte_conf_array_ptr :b_data
+      end
+
+      class EfsHashBlobPtr < EfsHashBlob
+        extend Ndr::PointerClassPlugin
+      end
+
+      class EncryptionCertificateHash < Ndr::NdrStruct
+        endian :little
+        default_parameter byte_align: 4
+
+        ndr_uint32                :cb_total_length
+        prpc_sid                  :user_sid
+        efs_hash_blob_ptr         :certificate_hash
+        ndr_wide_stringz_ptr      :lp_display_information
+      end
+
+      class EncryptionCertificateHashPtr < EncryptionCertificateHash
+        default_parameter byte_align: 4
+        extend Ndr::PointerClassPlugin
+      end
+
+      class EncryptionCertificateHashList < BinData::Record
+        endian :little
+        default_parameter byte_align: 4
+
+        uint32 :ncert_hash
+        ndr_var_array :users, type: :encryption_certificate_hash_ptr
+      end
+
+      class EncryptionCertificateHashListPtr < EncryptionCertificateHashList
+        extend Ndr::PointerClassPlugin
+      end
+
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_response'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_response'
     end
   end
 end
