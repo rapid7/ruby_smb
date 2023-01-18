@@ -51,6 +51,7 @@ module RubySMB
         end
 
         ret = {
+          certificate: nil,
           disposition: cert_server_request_response.pdw_disposition.value,
           disposition_message: cert_server_request_response.pctb_disposition_message.buffer.chomp("\x00\x00").force_encoding('utf-16le').encode,
           status: {
@@ -72,7 +73,7 @@ module RubySMB
               status_code: status_code
             )
           end
-        else
+        elsif !cert_server_request_response.pctb_encoded_cert.buffer.empty?
           ret[:certificate] = OpenSSL::X509::Certificate.new(cert_server_request_response.pctb_encoded_cert.buffer)
         end
 
