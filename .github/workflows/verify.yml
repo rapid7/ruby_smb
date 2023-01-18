@@ -33,15 +33,15 @@ jobs:
       fail-fast: true
       matrix:
         ruby:
-          - 2.7
-          - 3.0
-          - 3.1
+          - '2.7'
+          - '3.0'
+          - '3.1'
         os:
           - ubuntu-20.04
           - ubuntu-latest
         exclude:
-          - { os: ubuntu-latest, ruby: 2.7 }
-          - { os: ubuntu-latest, ruby: 3.0 }
+          - { os: ubuntu-latest, ruby: '2.7' }
+          - { os: ubuntu-latest, ruby: '3.0' }
         test_cmd:
           - bundle exec rspec
 
