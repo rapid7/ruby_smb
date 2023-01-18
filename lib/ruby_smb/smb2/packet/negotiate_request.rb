@@ -28,8 +28,8 @@ module RubySMB
 
         # Adds a dialect to the Dialects array
         #
-        # @param [Fixnum] the numeric code for the dialect you wish to add
-        # @return [Array<Fixnum>] the array of all currently selected dialects
+        # @param [Integer] the numeric code for the dialect you wish to add
+        # @return [Array<Integer>] the array of all currently selected dialects
         # @raise [ArgumentError] if the dialect is not an Integer
         def add_dialect(dialect)
           raise ArgumentError, 'Must be a number' unless dialect.is_a? Integer
@@ -40,8 +40,8 @@ module RubySMB
         # the dialect_count field appropriately. Will erase any previously set
         # dialects.
         #
-        # @param [Array<Fixnum>] the array of dialects to set
-        # @return [Array<Fixnum>] the current value of the dialects array
+        # @param [Array<Integer>] the array of dialects to set
+        # @return [Array<Integer>] the current value of the dialects array
         def set_dialects(add_dialects = [])
           self.dialects = []
           add_dialects.each do |dialect|
@@ -53,7 +53,7 @@ module RubySMB
         # Adds a Negotiate Context to the #negotiate_context_list
         #
         # @param [NegotiateContext] the Negotiate Context structure you wish to add
-        # @return [Array<Fixnum>] the array of all currently added Negotiate Contexts
+        # @return [Array<Integer>] the array of all currently added Negotiate Contexts
         # @raise [ArgumentError] if the dialect is not a NegotiateContext structure
         def add_negotiate_context(nc)
           raise ArgumentError, 'Must be a NegotiateContext' unless nc.is_a? NegotiateContext

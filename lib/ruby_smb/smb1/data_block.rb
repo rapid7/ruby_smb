@@ -11,7 +11,7 @@ module RubySMB
       # Class method to stub byte count calculation during
       # lazy evaluation.
       #
-      # @return [Fixnum] will always return 0
+      # @return [Integer] will always return 0
       def self.calculate_byte_count
         0
       end
@@ -28,7 +28,7 @@ module RubySMB
       # Calculates the size of the other fields in the DataBlock
       # in Bytes.
       #
-      # @return [Fixnum] The size of the DataBlock in Words
+      # @return [Integer] The size of the DataBlock in Words
       def calculate_byte_count
         total_count = 0
         self.class.data_fields.each do |field_name|
