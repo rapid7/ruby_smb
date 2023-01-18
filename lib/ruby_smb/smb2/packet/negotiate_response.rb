@@ -48,7 +48,7 @@ module RubySMB
         # Adds a Negotiate Context to the #negotiate_context_list
         #
         # @param [NegotiateContext] the Negotiate Context structure you wish to add
-        # @return [Array<Fixnum>] the array of all currently added Negotiate Contexts
+        # @return [Array<Integer>] the array of all currently added Negotiate Contexts
         # @raise [ArgumentError] if the dialect is not a NegotiateContext structure
         def add_negotiate_context(nc)
           raise ArgumentError, 'Must be a NegotiateContext' unless nc.is_a? NegotiateContext

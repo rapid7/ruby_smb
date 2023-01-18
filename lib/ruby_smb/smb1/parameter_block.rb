@@ -11,7 +11,7 @@ module RubySMB
       # Class method to stub word count calculation during
       # lazy evaluation.
       #
-      # @param [Fixnum] will always return 0
+      # @param [Integer] will always return 0
       def self.calculate_word_count
         0
       end
@@ -28,7 +28,7 @@ module RubySMB
       # Calculates the size of the other fields in the ParameterBlock
       # in Words.
       #
-      # @return [Fixnum] The size of the ParameterBlock in Words
+      # @return [Integer] The size of the ParameterBlock in Words
       def calculate_word_count
         total_count = 0
         self.class.parameter_fields.each do |field_name|

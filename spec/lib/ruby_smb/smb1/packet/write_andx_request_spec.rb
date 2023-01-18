@@ -137,7 +137,7 @@ RSpec.describe RubySMB::SMB1::Packet::WriteAndxRequest do
       expect { packet.set_64_bit_offset('true') }.to raise_error(ArgumentError)
     end
 
-    it 'raises an exception when the value is a Numeric' do
+    it 'raises an exception when the value is a Integer' do
       expect { packet.set_64_bit_offset(1) }.to raise_error(ArgumentError)
     end
 

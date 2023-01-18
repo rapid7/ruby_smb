@@ -16,11 +16,11 @@ module RubySMB
         val
       end
 
-      # Sets the value of the field from a DateTime,Time,Fixnum, or object
+      # Sets the value of the field from a DateTime,Time,Integer, or object
       # that can be converted to an integer. Any other
       # parameter passed in will be assumed to already be correct.
       #
-      # @param value [DateTime,Time,Fixnum,#to_i] the value to set
+      # @param value [DateTime,Time,Integer,#to_i] the value to set
       # @return
       def set(value)
         case value

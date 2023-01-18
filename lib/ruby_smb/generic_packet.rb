@@ -129,7 +129,7 @@ module RubySMB
     # string representation.
     #
     # @param field [Hash] the hash representing the field
-    # @param depth [Fixnum] the recursive depth level to track indentation
+    # @param depth [Integer] the recursive depth level to track indentation
     # @return [String] the formatted string representation of the field
     def self.format_field(field, depth = 0)
       name = field[:name].to_s
@@ -181,7 +181,7 @@ module RubySMB
     # into a string representing the contents of that field.
     #
     # @param field [Hash] hash representation of the field to display
-    # @param depth [Fixnum] the recursion depth for setting indent levels
+    # @param depth [Integer] the recursion depth for setting indent levels
     # @param parents [Array<Symbol>] the name of the parent field, if any, of this field
     # @return [String] a formatted string representing the field and it's current contents
     def display_field(field, depth = 0, parents = [])

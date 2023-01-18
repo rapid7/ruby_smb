@@ -631,7 +631,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'calls #enum_key the expected number of times' do
       winreg.enum_registry_key(key)
-      expect(winreg).to have_received(:enum_key).with(subkey_handle, instance_of(Fixnum)).twice
+      expect(winreg).to have_received(:enum_key).with(subkey_handle, instance_of(Integer)).twice
     end
 
     it 'closes the key' do
@@ -710,7 +710,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'calls #enum_key the expected number of times' do
       winreg.enum_registry_values(key)
-      expect(winreg).to have_received(:enum_value).with(subkey_handle, instance_of(Fixnum)).twice
+      expect(winreg).to have_received(:enum_value).with(subkey_handle, instance_of(Integer)).twice
     end
 
     it 'closes the key' do

@@ -2701,7 +2701,7 @@ RSpec.describe RubySMB::Client do
               session_key,
               "SMB2AESCCM\x00",
               "ServerIn \x00",
-              {length: 128}
+              length: 128
             ).and_call_original
             client.smb3_encrypt(data)
           end
@@ -2717,7 +2717,7 @@ RSpec.describe RubySMB::Client do
             session_key,
             "SMBC2SCipherKey\x00",
             '',
-            {length: 128}
+            length: 128
           ).and_call_original
           client.smb3_encrypt(data)
         end
@@ -2791,7 +2791,7 @@ RSpec.describe RubySMB::Client do
               session_key,
               "SMB2AESCCM\x00",
               "ServerOut\x00",
-              {length: 128}
+              length: 128
             ).and_call_original
             client.smb3_decrypt(transform_packet)
           end
@@ -2807,7 +2807,7 @@ RSpec.describe RubySMB::Client do
             session_key,
             "SMBS2CCipherKey\x00",
             '',
-            {length: 128}
+            length: 128
           ).and_call_original
           client.smb3_decrypt(transform_packet)
         end
