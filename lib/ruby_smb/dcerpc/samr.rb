@@ -461,7 +461,7 @@ module RubySMB
         array  :old_credentials, type: :kerb_key_data_new, initial_length: :old_credential_count
         array  :older_credentials, type: :kerb_key_data_new, initial_length: :older_credential_count
         string :default_salt, read_length: -> { credentials.map { |e| e.key_offset }.min - @obj.abs_offset }
-        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum }
+        string :key_values, read_length: -> { credentials.map { |e| e.key_length }.sum(&:to_i) }
 
         def get_key_values
           credentials.map do |credential|
