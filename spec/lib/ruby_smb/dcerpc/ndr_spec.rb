@@ -4146,3 +4146,201 @@ RSpec.describe 'Alignment' do
     end
   end
 end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1CommonTypeHeader do
+  it 'is a BinData::Record class' do
+    expect(described_class).to be < BinData::Record
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :version }
+  it { is_expected.to respond_to :endianness }
+  it { is_expected.to respond_to :common_header_length }
+  it { is_expected.to respond_to :filler }
+
+  context 'with #version' do
+    it 'is a BinData::Uint8' do
+      expect(subject.version).to be_a BinData::Uint8
+    end
+    it 'returns 1 by default' do
+      expect(subject.version).to eq(1)
+    end
+  end
+
+  context 'with #endianness' do
+    it 'is a BinData::Uint8' do
+      expect(subject.endianness).to be_a BinData::Uint8
+    end
+    it 'returns 0x10 by default' do
+      expect(subject.endianness).to eq(0x10)
+    end
+  end
+
+  context 'with #common_header_length' do
+    it 'is a BinData::Uint16le' do
+      expect(subject.common_header_length).to be_a BinData::Uint16le
+    end
+    it 'returns 8 by default' do
+      expect(subject.common_header_length).to eq(8)
+    end
+  end
+
+  context 'with #filler' do
+    it 'is a BinData::Uint32le' do
+      expect(subject.filler).to be_a BinData::Uint32le
+    end
+    it 'returns 0xCCCCCCCC by default' do
+      expect(subject.filler).to eq(0xCCCCCCCC)
+    end
+  end
+
+  it 'reads itself' do
+    values = {version: 4, endianness: 0x33, common_header_length: 44, filler: 0xFFFFFFFF}
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1PrivateHeader do
+  it 'is a BinData::Record class' do
+    expect(described_class).to be < BinData::Record
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :object_buffer_length }
+  it { is_expected.to respond_to :filler }
+
+  context 'with #object_buffer_length' do
+    it 'is a BinData::Uint32le' do
+      expect(subject.object_buffer_length).to be_a BinData::Uint32le
+    end
+    it 'calls its parent\'s #field_length method to set its default value' do
+      test_struct = Class.new(BinData::Record) do
+        endian :little
+        type_serialization1_private_header :header
+
+        def field_length(obj);end
+      end.new
+      expect(test_struct).to receive(:field_length).and_return(4)
+      expect(test_struct.header.object_buffer_length).to eq(4)
+    end
+    it 'sets the default value to 0 when its parent doesn\'t implemet #field_length' do
+      expect(subject.object_buffer_length).to eq(0)
+    end
+  end
+
+  context 'with #filler' do
+    it 'is a BinData::Uint32le' do
+      expect(subject.filler).to be_a BinData::Uint32le
+    end
+    it 'returns 0x00000000 by default' do
+      expect(subject.filler).to eq(0x00000000)
+    end
+  end
+
+  it 'reads itself' do
+    values = {object_buffer_length: 4, filler: 0xFFFFFFFF}
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+end
+
+RSpec.describe RubySMB::Dcerpc::Ndr::TypeSerialization1 do
+  it 'is a BinData::Record class' do
+    expect(described_class).to be < BinData::Record
+  end
+  it 'has :byte_align parameter set to the expected value' do
+    expect(described_class.default_parameters[:byte_align]).to eq(8)
+  end
+
+  subject { described_class.new }
+
+  it { is_expected.to respond_to :common_header }
+
+  context 'with #common_header' do
+    it 'is a TypeSerialization1CommonTypeHeader structure' do
+      expect(subject.common_header).to be_a RubySMB::Dcerpc::Ndr::TypeSerialization1CommonTypeHeader
+    end
+  end
+
+  it 'reads itself' do
+    values = {
+      common_header: {version: 4, endianness: 0x33, common_header_length: 44, filler: 0xFFFFFFFF}
+    }
+    struct_instance = described_class.new(values)
+    expect(described_class.read(struct_instance.to_binary_s)).to eq(values)
+  end
+
+  context 'when inherited' do
+    let(:test_struct) do
+      Class.new(RubySMB::Dcerpc::Ndr::NdrStruct) do
+        default_parameters byte_align: 8
+        endian :little
+
+        rpc_unicode_string :full_name
+        ndr_uint32 :user_id
+      end
+    end
+    before :example do
+      BinData::RegisteredClasses.register('test_struct', test_struct)
+    end
+    after :example do
+      BinData::RegisteredClasses.unregister('test_struct')
+    end
+
+    subject do
+      Class.new(described_class) do
+        default_parameter byte_align: 8
+        endian :little
+
+        test_struct :data1
+        uint32 :value1, initial_value: 5
+        uint32 :value2, initial_value: 6
+        test_struct :data2
+        uint32 :value3, initial_value: 7
+        test_struct :data3
+      end.new
+    end
+
+    it { is_expected.to respond_to :common_header }
+    it { is_expected.to respond_to :private_header1 }
+    it { is_expected.to respond_to :data1 }
+    it { is_expected.to respond_to :value1 }
+    it { is_expected.to respond_to :value2 }
+    it { is_expected.to respond_to :private_header2 }
+    it { is_expected.to respond_to :data2 }
+    it { is_expected.to respond_to :value3 }
+    it { is_expected.to respond_to :private_header3 }
+    it { is_expected.to respond_to :data3 }
+
+    it 'sets the expected default values' do
+      data_obj = test_struct.new
+      expect(subject.data1).to eq(data_obj)
+      expect(subject.value1).to eq(5)
+      expect(subject.value2).to eq(6)
+      expect(subject.data2).to eq(data_obj)
+      expect(subject.value3).to eq(7)
+      expect(subject.data3).to eq(data_obj)
+    end
+
+    it 'sets the correct private header\'s object_buffer_length field value' do
+      data1 = test_struct.new(full_name: 'test string')
+      subject.data1 = data1
+      expect(subject.private_header1.object_buffer_length).to eq(data1.num_bytes)
+      data2 = test_struct.new(full_name: 'another test string')
+      subject.data2 = data2
+      expect(subject.private_header2.object_buffer_length).to eq(data2.num_bytes)
+      data3 = test_struct.new(full_name: 'more string!!!')
+      subject.data3 = data3
+      expect(subject.private_header3.object_buffer_length).to eq(data3.num_bytes)
+    end
+  end
+end
