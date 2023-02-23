@@ -35,6 +35,7 @@ module RubySMB
       OVERWRITE_HIDDEN = 0x00000004
       EFS_DROP_ALTERNATE_STREAMS = 0x00000010
 
+      # [2.2.7 EFS_HASH_BLOB](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/242d857f-ac8e-4cc8-b5e4-9314a942f45e)
       class EfsHashBlob < Ndr::NdrStruct
         endian :little
         default_parameter byte_align: 4
@@ -47,6 +48,7 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
+      # [2.2.10 ENCRYPTION_CERTIFICATE_HASH](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/3a7e7151-edcb-4b32-a119-35cdce1584c0)
       class EncryptionCertificateHash < Ndr::NdrStruct
         endian :little
         default_parameter byte_align: 4
@@ -58,10 +60,10 @@ module RubySMB
       end
 
       class EncryptionCertificateHashPtr < EncryptionCertificateHash
-        default_parameter byte_align: 4
         extend Ndr::PointerClassPlugin
       end
 
+      # [2.2.11 ENCRYPTION_CERTIFICATE_HASH_LIST](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/2718804c-6ab9-45fd-98cf-541bc3b6bc75)
       class EncryptionCertificateHashList < BinData::Record
         endian :little
         default_parameter byte_align: 4
