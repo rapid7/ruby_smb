@@ -63,13 +63,18 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
+      class EncryptionCertificateHashPtrArrayPtr < Ndr::NdrConfArray
+        default_parameter type: :encryption_certificate_hash_ptr
+        extend Ndr::PointerClassPlugin
+      end
+
       # [2.2.11 ENCRYPTION_CERTIFICATE_HASH_LIST](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/2718804c-6ab9-45fd-98cf-541bc3b6bc75)
       class EncryptionCertificateHashList < BinData::Record
         endian :little
         default_parameter byte_align: 4
 
-        uint32 :ncert_hash
-        ndr_var_array :users, type: :encryption_certificate_hash_ptr
+        uint32                                    :ncert_hash
+        encryption_certificate_hash_ptr_array_ptr :users
       end
 
       class EncryptionCertificateHashListPtr < EncryptionCertificateHashList
