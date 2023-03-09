@@ -35,10 +35,62 @@ module RubySMB
       OVERWRITE_HIDDEN = 0x00000004
       EFS_DROP_ALTERNATE_STREAMS = 0x00000010
 
+      # [2.2.7 EFS_HASH_BLOB](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/242d857f-ac8e-4cc8-b5e4-9314a942f45e)
+      class EfsHashBlob < Ndr::NdrStruct
+        endian :little
+        default_parameter byte_align: 4
+
+        ndr_uint32   :cb_data
+        ndr_byte_conf_array_ptr :b_data
+      end
+
+      class EfsHashBlobPtr < EfsHashBlob
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.10 ENCRYPTION_CERTIFICATE_HASH](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/3a7e7151-edcb-4b32-a119-35cdce1584c0)
+      class EncryptionCertificateHash < Ndr::NdrStruct
+        endian :little
+        default_parameter byte_align: 4
+
+        ndr_uint32                :cb_total_length
+        prpc_sid                  :user_sid
+        efs_hash_blob_ptr         :certificate_hash
+        ndr_wide_stringz_ptr      :lp_display_information
+      end
+
+      class EncryptionCertificateHashPtr < EncryptionCertificateHash
+        extend Ndr::PointerClassPlugin
+      end
+
+      class EncryptionCertificateHashPtrArrayPtr < Ndr::NdrConfArray
+        default_parameter type: :encryption_certificate_hash_ptr
+        extend Ndr::PointerClassPlugin
+      end
+
+      # [2.2.11 ENCRYPTION_CERTIFICATE_HASH_LIST](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/2718804c-6ab9-45fd-98cf-541bc3b6bc75)
+      class EncryptionCertificateHashList < BinData::Record
+        endian :little
+        default_parameter byte_align: 4
+
+        uint32                                    :ncert_hash
+        encryption_certificate_hash_ptr_array_ptr :users
+      end
+
+      class EncryptionCertificateHashListPtr < EncryptionCertificateHashList
+        extend Ndr::PointerClassPlugin
+      end
+
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_response'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_response'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_response'
     end
   end
 end
