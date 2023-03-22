@@ -3,6 +3,8 @@ module RubySMB
     module Share
       module Provider
         class VirtualDisk < Disk
+          require 'pathname'
+
           # This object emulates Ruby's builtin Pathname object but uses a virtual file system instead of the real local
           # one.
           class VirtualPathname
