@@ -60,7 +60,7 @@ dc_infos.each do |dc_info|
     puts "Decrypting hash for user: #{dn}"
 
     entinf_struct = user_record.pmsg_out.msg_getchg.p_objects.entinf
-    object_sid = rid = entinf_struct.p_name.sid[-4..-1].unpack('<L').first
+    object_sid = rid = entinf_struct.p_name.sid[-4..-1].unpack('L<').first
     lm_hash = Net::NTLM.lm_hash('')
     nt_hash = Net::NTLM.ntlm_hash('')
     disabled = nil
