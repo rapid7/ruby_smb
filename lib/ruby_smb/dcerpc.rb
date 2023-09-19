@@ -56,6 +56,77 @@ module RubySMB
     require 'ruby_smb/dcerpc/print_system'
     require 'ruby_smb/dcerpc/encrypting_file_system'
 
+    def auth_provider_init
+      raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
+      type1_message = @ntlm_client.init_context
+
+      type1_message.serialize
+    end
+
+    def auth_provider_encrypt_and_sign(dcerpc_req)
+      plaintext = dcerpc_req.stub.to_binary_s
+      pad_length = get_auth_padding_length(plaintext.length)
+      dcerpc_req.auth_pad = "\x00" * pad_length
+      data_to_sign = plain_stub_with_padding = dcerpc_req.stub.to_binary_s + dcerpc_req.auth_pad.to_binary_s
+      dcerpc_req.sec_trailer.auth_pad_length = pad_length
+      if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
+        data_to_sign = dcerpc_req.to_binary_s[0..-(dcerpc_req.pdu_header.auth_length + 1)]
+      end
+
+      encrypted = @ntlm_client.session.seal_message(plain_stub_with_padding)
+      set_encrypted_packet(dcerpc_req, encrypted, pad_length)
+      signature = @ntlm_client.session.sign_message(data_to_sign)
+
+      set_signature_on_packet(dcerpc_req, signature)
+    end
+
+    def auth_provider_decrypt_and_verify(dcerpc_response)
+      encrypted_stub = dcerpc_response.stub.to_binary_s
+      signature = dcerpc_response.auth_value
+      plaintext = @ntlm_client.session.unseal_message(encrypted_stub)
+      set_decrypted_packet(dcerpc_response, plaintext)
+      data_to_check = dcerpc_response.stub.to_binary_s
+      if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
+        data_to_check = dcerpc_response.to_binary_s[0..-(dcerpc_response.pdu_header.auth_length + 1)]
+      end
+      valid = @ntlm_client.session.verify_signature(signature, data_to_check)
+
+      return [plaintext, valid]
+    end
+
+    def process_ntlm_type2(type2_message)
+      ntlmssp_offset = type2_message.index('NTLMSSP')
+      type2_blob = type2_message.slice(ntlmssp_offset..-1)
+      type2_b64_message = [type2_blob].pack('m')
+      type3_message = @ntlm_client.init_context(type2_b64_message)
+      auth3 = type3_message.serialize
+
+      @session_key = @ntlm_client.session_key
+      auth3
+    end
+
+    # Send a rpc_auth3 PDU that ends the authentication handshake.
+    #
+    # @param response [BindAck] the BindAck response packet
+    # @param auth_type [Integer] the authentication type
+    # @param auth_level [Integer] the authentication level
+    # @raise [ArgumentError] if `:auth_type` is unknown
+    # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
+    def auth_provider_complete_handshake(response, options)
+      auth3 = process_ntlm_type2(response.auth_value)
+
+      rpc_auth3 = RpcAuth3.new
+      add_auth_verifier(rpc_auth3, auth3)
+      rpc_auth3.pdu_header.call_id = @call_id
+
+      # The server should not respond
+      send_packet(rpc_auth3)
+      @call_id += 1
+
+      nil
+    end
+
+
     # Bind to the remote server interface endpoint. It takes care of adding
     # the necessary authentication verifier if `:auth_level` is set to
     # anything different than RPC_C_AUTHN_LEVEL_NONE
@@ -74,23 +145,14 @@ module RubySMB
       @call_id ||= 1
       bind_req = Bind.new(options)
       bind_req.pdu_header.call_id = @call_id
+      @auth_level = options.fetch(:auth_level) { RPC_C_AUTHN_LEVEL_NONE }
+      @auth_type = options.fetch(:auth_type) { RPC_C_AUTHN_WINNT }
 
-      if options[:auth_level] && options[:auth_level] != RPC_C_AUTHN_LEVEL_NONE
-        case options[:auth_type]
-        when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-          @ctx_id            = 0
-          @auth_ctx_id_base  = rand(0xFFFFFFFF)
-          raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
-          type1_message = @ntlm_client.init_context
-          auth = type1_message.serialize
-        when RPC_C_AUTHN_GSS_KERBEROS, RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
-        when RPC_C_AUTHN_GSS_KERBEROS, RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL
-          # TODO
-          raise NotImplementedError
-        else
-          raise ArgumentError, "Unsupported Auth Type: #{options[:auth_type]}"
-        end
-        add_auth_verifier(bind_req, auth, options[:auth_type], options[:auth_level])
+      if @auth_level != RPC_C_AUTHN_LEVEL_NONE
+        @ctx_id            = 0
+        @auth_ctx_id_base  = rand(0xFFFFFFFF)
+        auth = auth_provider_init
+        add_auth_verifier(bind_req, auth)
       end
 
       send_packet(bind_req)
@@ -113,14 +175,8 @@ module RubySMB
       if options[:auth_level] && options[:auth_level] != RPC_C_AUTHN_LEVEL_NONE
         # The number of legs needed to build the security context is defined
         # by the security provider
-        # (see [2.2.1.1.7 Security Providers](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/d4097450-c62f-484b-872f-ddf59a7a0d36))
-        case options[:auth_type]
-        when RPC_C_AUTHN_WINNT
-          send_auth3(dcerpc_response, options[:auth_type], options[:auth_level])
-        when RPC_C_AUTHN_GSS_KERBEROS, RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE
-          # TODO
-          raise NotImplementedError
-        end
+        # (see [2.2.1.1.7 Security Providers](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/d4097450-c62f-484b-872f-ddf59a7a0d36))
+        auth_provider_complete_handshake(dcerpc_response, options)
       end
 
       dcerpc_response
@@ -156,13 +212,17 @@ module RubySMB
       nil
     end
 
+    def get_auth_padding_length(plaintext_len)
+      (16 - (plaintext_len % 16)) % 16
+    end
+
     # Add the authentication verifier to a Request packet. This includes a
     # sec trailer and the signature of the packet. This also encrypts the
     # Request stub if privacy is required (`:auth_level` option is
     # RPC_C_AUTHN_LEVEL_PKT_PRIVACY).
     #
     # @param dcerpc_req [Request] the Request packet to be updated
-    # @param opts [Hash] the authenticaiton options: `:auth_type` and `:auth_level`
+    # @param opts [Hash] the authentication options: `:auth_type` and `:auth_level`
     # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     # @raise [ArgumentError] if `:auth_type` is unknown
     def set_integrity_privacy(dcerpc_req, auth_level:, auth_type:)
@@ -174,35 +234,33 @@ module RubySMB
       dcerpc_req.auth_value = ' ' * 16
       dcerpc_req.pdu_header.auth_length = 16
 
-      data_to_sign = plain_stub = dcerpc_req.stub.to_binary_s + dcerpc_req.auth_pad.to_binary_s
-      if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
-        data_to_sign = dcerpc_req.to_binary_s[0..-(dcerpc_req.pdu_header.auth_length + 1)]
-      end
-
       encrypted_stub = ''
       if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
-        case auth_type
-        when RPC_C_AUTHN_NONE
-        when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-          encrypted_stub = @ntlm_client.session.seal_message(plain_stub)
-        when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-          # TODO
-          raise NotImplementedError
-        else
-          raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-        end
+        auth_provider_encrypt_and_sign(dcerpc_req)
       end
 
-      signature = @ntlm_client.session.sign_message(data_to_sign)
+    end
 
-      unless encrypted_stub.empty?
-        pad_length = dcerpc_req.sec_trailer.auth_pad_length.to_i
-        dcerpc_req.enable_encrypted_stub
-        dcerpc_req.stub = encrypted_stub[0..-(pad_length + 1)]
-        dcerpc_req.auth_pad = encrypted_stub[-(pad_length)..-1]
-      end
+    def set_signature_on_packet(dcerpc_req, signature)
       dcerpc_req.auth_value = signature
       dcerpc_req.pdu_header.auth_length = signature.size
+    end
+
+    def set_encrypted_packet(dcerpc_req, encrypted_stub, pad_length)
+      unless encrypted_stub.empty?
+        dcerpc_req.enable_encrypted_stub
+        dcerpc_req.stub = encrypted_stub[0..-(pad_length+1)]
+        if pad_length != 0
+          dcerpc_req.auth_pad = encrypted_stub[-(pad_length)..-1]
+        end
+      end
+    end
+
+    def set_decrypted_packet(dcerpc_response, decrypted_stub)
+      unless decrypted_stub.empty?
+        pad_length = dcerpc_response.sec_trailer.auth_pad_length.to_i
+        dcerpc_response.stub = decrypted_stub[0..-(pad_length + 1)]
+      end
     end
 
     # Process the security context received in a response. It decrypts the
@@ -214,7 +272,7 @@ module RubySMB
     #
     # @param dcerpc_response [Response] the Response packet
     #   containing the security context to process
-    # @param opts [Hash] the authenticaiton options: `:auth_type` and
+    # @param opts [Hash] the authentication options: `:auth_type` and
     #   `:auth_level`. To enable errors when signature check fails, set the
     #   `:raise_signature_error` option to true
     # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
@@ -222,31 +280,10 @@ module RubySMB
     def handle_integrity_privacy(dcerpc_response, auth_level:, auth_type:, raise_signature_error: false)
       decrypted_stub = ''
       if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
-        encrypted_stub = dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
-        case auth_type
-        when RPC_C_AUTHN_NONE
-        when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-          decrypted_stub = @ntlm_client.session.unseal_message(encrypted_stub)
-        when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-          # TODO
-          raise NotImplementedError
-        else
-          raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-        end
+        signature_valid = auth_provider_decrypt_and_verify(dcerpc_response)
       end
 
-      unless decrypted_stub.empty?
-        pad_length = dcerpc_response.sec_trailer.auth_pad_length.to_i
-        dcerpc_response.stub = decrypted_stub[0..-(pad_length + 1)]
-        dcerpc_response.auth_pad = decrypted_stub[-(pad_length)..-1]
-      end
-
-      signature = dcerpc_response.auth_value
-      data_to_check = dcerpc_response.stub.to_binary_s
-      if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
-        data_to_check = dcerpc_response.to_binary_s[0..-(dcerpc_response.pdu_header.auth_length + 1)]
-      end
-      unless @ntlm_client.session.verify_signature(signature, data_to_check)
+      unless signature_valid
         if raise_signature_error
           raise Error::InvalidPacket.new(
             "Wrong packet signature received (set `raise_signature_error` to false to ignore)"
@@ -264,57 +301,14 @@ module RubySMB
     #
     # @param req [BinData::Record] the request to be updated
     # @param auth [String] the authentication data
-    # @param auth_type [Integer] the authentication type
-    # @param auth_level [Integer] the authentication level
-    def add_auth_verifier(req, auth, auth_type, auth_level)
+    def add_auth_verifier(req, auth)
       req.sec_trailer = {
-        auth_type: auth_type,
-        auth_level: auth_level,
+        auth_type: @auth_type,
+        auth_level: @auth_level,
         auth_context_id: @ctx_id + @auth_ctx_id_base
       }
       req.auth_value = auth
       req.pdu_header.auth_length = auth.length
-
-      nil
-    end
-
-    def process_ntlm_type2(type2_message)
-      ntlmssp_offset = type2_message.index('NTLMSSP')
-      type2_blob = type2_message.slice(ntlmssp_offset..-1)
-      type2_b64_message = [type2_blob].pack('m')
-      type3_message = @ntlm_client.init_context(type2_b64_message)
-      auth3 = type3_message.serialize
-
-      @session_key = @ntlm_client.session_key
-      auth3
-    end
-
-    # Send a rpc_auth3 PDU that ends the authentication handshake.
-    #
-    # @param response [BindAck] the BindAck response packet
-    # @param auth_type [Integer] the authentication type
-    # @param auth_level [Integer] the authentication level
-    # @raise [ArgumentError] if `:auth_type` is unknown
-    # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
-    def send_auth3(response, auth_type, auth_level)
-      case auth_type
-      when RPC_C_AUTHN_NONE
-      when RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT
-        auth3 = process_ntlm_type2(response.auth_value)
-      when RPC_C_AUTHN_NETLOGON, RPC_C_AUTHN_GSS_NEGOTIATE, RPC_C_AUTHN_GSS_SCHANNEL, RPC_C_AUTHN_GSS_KERBEROS
-        # TODO
-        raise NotImplementedError
-      else
-        raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
-      end
-
-      rpc_auth3 = RpcAuth3.new
-      add_auth_verifier(rpc_auth3, auth3, auth_type, auth_level)
-      rpc_auth3.pdu_header.call_id = @call_id
-
-      # The server should not respond
-      send_packet(rpc_auth3)
-      @call_id += 1
 
       nil
     end

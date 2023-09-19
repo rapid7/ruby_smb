@@ -613,8 +613,8 @@ module RubySMB
         drs_bind_request = DrsBindRequest.new(pext_client: drs_extensions_int)
         response = dcerpc_request(
           drs_bind_request,
-          auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-          auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+          auth_level: @auth_level,
+          auth_type: @auth_type
         )
         begin
           drs_bind_response = DrsBindResponse.read(response)
@@ -640,8 +640,8 @@ module RubySMB
           drs_bind_request.pext_client.assign(drs_extensions_int)
           response = dcerpc_request(
             drs_bind_request,
-            auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-            auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+            auth_level: @auth_level,
+            auth_type: @auth_type
           )
           begin
             drs_bind_response = DrsBindResponse.read(response)
@@ -668,8 +668,8 @@ module RubySMB
         drs_unbind_request = DrsUnbindRequest.new(ph_drs: ph_drs)
         response = dcerpc_request(
           drs_unbind_request,
-          auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-          auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+            auth_level: @auth_level,
+            auth_type: @auth_type
         )
         begin
           drs_unbind_response = DrsUnbindResponse.read(response)
@@ -709,8 +709,8 @@ module RubySMB
         )
         response = dcerpc_request(
           drs_domain_controller_info_request,
-          auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-          auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+          auth_level: @auth_level,
+          auth_type: @auth_type
         )
         begin
           drs_domain_controller_info_response = DrsDomainControllerInfoResponse.read(response)
@@ -759,8 +759,8 @@ module RubySMB
         )
         response = dcerpc_request(
           drs_crack_names_request,
-          auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-          auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+          auth_level: @auth_level,
+          auth_type: @auth_type
         )
         begin
           drs_crack_names_response = DrsCrackNamesResponse.read(response)
@@ -790,8 +790,8 @@ module RubySMB
         unless @session_key
           raise RubySMB::Error::EncryptionError, 'Unable to decrypt attribute value: session key is empty'
         end
-        encrypted_payload = EncryptedPayload.read(attribute)
 
+        encrypted_payload = EncryptedPayload.read(attribute)
         signature = OpenSSL::Digest::MD5.digest(@session_key + encrypted_payload.salt.to_binary_s)
         rc4 = OpenSSL::Cipher.new('rc4')
         rc4.decrypt
@@ -886,8 +886,8 @@ module RubySMB
 
         response = dcerpc_request(
           drs_get_nc_changes_request,
-          auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-          auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
+          auth_level: @auth_level,
+          auth_type: @auth_type
         )
         begin
           drs_get_nc_changes_response = DrsGetNcChangesResponse.read(response)

@@ -103,9 +103,8 @@ module RubySMB
         end
         string :default
       end
-      string      :auth_pad,
-        onlyif: -> { has_auth_verifier? },
-        length: -> { (16 - (stub.num_bytes % 16)) % 16 }
+
+      string    :auth_pad
 
       # Auth Verifier
       sec_trailer :sec_trailer, onlyif: -> { has_auth_verifier? }
