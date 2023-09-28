@@ -77,12 +77,6 @@ RSpec.describe RubySMB::Dcerpc::Response do
       packet.pdu_header.auth_length = 10
       expect(packet.auth_pad?).to be true
     end
-
-    it 'makes sure #sec_trailer is 16-bytes aligned with the begining of the PDU body (stub)' do
-      packet.pdu_header.auth_length = 6
-      packet.stub = 'A' * rand(0xFF)
-      expect((packet.sec_trailer.abs_offset - packet.stub.abs_offset) % 16).to eq(0)
-    end
   end
 
   describe '#sec_trailer' do

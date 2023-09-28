@@ -198,7 +198,7 @@ module RubySMB
       self.max_buffer_size = dcerpc_response.max_xmit_frag
       @call_id = dcerpc_response.pdu_header.call_id
 
-      if options[:auth_level] && options[:auth_level] != RPC_C_AUTHN_LEVEL_NONE
+      if auth_level != RPC_C_AUTHN_LEVEL_NONE
         # The number of legs needed to build the security context is defined
         # by the security provider
         # (see [2.2.1.1.7 Security Providers](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-rpce/d4097450-c62f-484b-872f-ddf59a7a0d36))
@@ -265,7 +265,7 @@ module RubySMB
       dcerpc_req.pdu_header.auth_length = 16
 
       encrypted_stub = ''
-      if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+      if [RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_AUTHN_LEVEL_PKT_INTEGRITY].include?(auth_level)
         auth_provider_encrypt_and_sign(dcerpc_req)
       end
 

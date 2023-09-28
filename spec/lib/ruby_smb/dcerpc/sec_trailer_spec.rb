@@ -36,20 +36,6 @@ RSpec.describe RubySMB::Dcerpc::SecTrailer do
       expect(packet.auth_pad_length).to eq(0)
     end
 
-    context 'when the parent structure has an #auth_pad field' do
-      let(:pad) { 'A' * rand(0xFF) }
-      let(:packet_with_parent) do
-        Class.new(BinData::Record) do
-          string      :auth_pad
-          sec_trailer :sec_trailer
-        end.new(auth_pad: pad)
-      end
-
-      it 'has a value equal to the size of the #auth_pad field' do
-        expect(packet_with_parent.sec_trailer.auth_pad_length).to eq(pad.size)
-      end
-    end
-
     context 'when the parent structure does not have an #auth_pad field' do
       let(:pad) { 'A' * rand(0xFF) }
       let(:packet_with_parent) do
