@@ -16,6 +16,7 @@ module RubySMB
 
       # PDU Body
       string      :stub, label: 'Stub', read_length: -> { stub_length }
+      string      :auth_pad, onlyif: -> { has_auth_verifier? }
 
       # Auth Verifier
       sec_trailer :sec_trailer, onlyif: -> { has_auth_verifier? }
@@ -41,6 +42,18 @@ module RubySMB
           stub_length -= (sec_trailer.num_bytes + pdu_header.auth_length)
         end
         stub_length
+      end
+
+       def read(io)
+        super
+        if has_auth_verifier? && sec_trailer.auth_pad_length > 0
+          # At this point, auth_pad is at the end of the stub. We need to move
+          # it to the correct field. It is now possible since we know its
+          # length from the sec_trailer auth_pad_length field.
+          pad = stub[-(sec_trailer.auth_pad_length)..-1]
+          stub.assign(stub[0...-(sec_trailer.auth_pad_length)])
+          auth_pad.assign(pad)
+        end
       end
     end
   end

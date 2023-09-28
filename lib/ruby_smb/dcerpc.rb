@@ -64,6 +64,11 @@ module RubySMB
     end
 
     def auth_provider_encrypt_and_sign(dcerpc_req)
+      auth_type = dcerpc_req.sec_trailer.auth_type
+      auth_level = dcerpc_req.sec_trailer.auth_level
+      unless [RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT].include?(auth_type)
+        raise ArgumentError, "Unsupported Auth Type: #{dcerpc_req.sec_trailer.auth_type}"
+      end
       plaintext = dcerpc_req.stub.to_binary_s
       pad_length = get_auth_padding_length(plaintext.length)
       dcerpc_req.auth_pad = "\x00" * pad_length
@@ -73,25 +78,39 @@ module RubySMB
         data_to_sign = dcerpc_req.to_binary_s[0..-(dcerpc_req.pdu_header.auth_length + 1)]
       end
 
-      encrypted = @ntlm_client.session.seal_message(plain_stub_with_padding)
-      set_encrypted_packet(dcerpc_req, encrypted, pad_length)
+      if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+        encrypted = @ntlm_client.session.seal_message(plain_stub_with_padding)
+        set_encrypted_packet(dcerpc_req, encrypted, pad_length)
+      end
       signature = @ntlm_client.session.sign_message(data_to_sign)
 
       set_signature_on_packet(dcerpc_req, signature)
     end
 
+    def get_response_full_stub(dcerpc_response)
+      dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
+    end
+
     def auth_provider_decrypt_and_verify(dcerpc_response)
-      encrypted_stub = dcerpc_response.stub.to_binary_s
-      signature = dcerpc_response.auth_value
-      plaintext = @ntlm_client.session.unseal_message(encrypted_stub)
-      set_decrypted_packet(dcerpc_response, plaintext)
-      data_to_check = dcerpc_response.stub.to_binary_s
+      auth_type = dcerpc_response.sec_trailer.auth_type
+      auth_level = dcerpc_response.sec_trailer.auth_level
+      unless [RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT].include?(auth_type)
+        raise ArgumentError, "Unsupported Auth Type: #{dcerpc_response.sec_trailer.auth_type}"
+      end
+      encrypted_stub = ''
+      if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+        encrypted_stub = get_response_full_stub(dcerpc_response)
+        signature = dcerpc_response.auth_value
+        plaintext = @ntlm_client.session.unseal_message(encrypted_stub)
+        set_decrypted_packet(dcerpc_response, plaintext)
+      end
+      data_to_check = get_response_full_stub(dcerpc_response)
       if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
         data_to_check = dcerpc_response.to_binary_s[0..-(dcerpc_response.pdu_header.auth_length + 1)]
       end
       valid = @ntlm_client.session.verify_signature(signature, data_to_check)
 
-      return [plaintext, valid]
+      return valid
     end
 
     def process_ntlm_type2(type2_message)
@@ -126,6 +145,11 @@ module RubySMB
       nil
     end
 
+    def force_set_auth_params(auth_type, auth_level)
+      @auth_type = auth_type
+      @auth_level = auth_level
+    end
+
 
     # Bind to the remote server interface endpoint. It takes care of adding
     # the necessary authentication verifier if `:auth_level` is set to
@@ -145,8 +169,10 @@ module RubySMB
       @call_id ||= 1
       bind_req = Bind.new(options)
       bind_req.pdu_header.call_id = @call_id
-      @auth_level = options.fetch(:auth_level) { RPC_C_AUTHN_LEVEL_NONE }
-      @auth_type = options.fetch(:auth_type) { RPC_C_AUTHN_WINNT }
+      auth_type = options.fetch(:auth_type) { RPC_C_AUTHN_WINNT }
+      auth_level = options.fetch(:auth_level) { RPC_C_AUTHN_LEVEL_NONE }
+
+      force_set_auth_params(auth_type, auth_level)
 
       if @auth_level != RPC_C_AUTHN_LEVEL_NONE
         @ctx_id            = 0
@@ -226,6 +252,10 @@ module RubySMB
     # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     # @raise [ArgumentError] if `:auth_type` is unknown
     def set_integrity_privacy(dcerpc_req, auth_level:, auth_type:)
+      unless [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(auth_level)
+        raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
+      end
+
       dcerpc_req.sec_trailer = {
         auth_type: auth_type,
         auth_level: auth_level,
@@ -278,10 +308,11 @@ module RubySMB
     # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     # @raise [Error::CommunicationError] if socket-related error occurs
     def handle_integrity_privacy(dcerpc_response, auth_level:, auth_type:, raise_signature_error: false)
-      decrypted_stub = ''
-      if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
-        signature_valid = auth_provider_decrypt_and_verify(dcerpc_response)
+      unless [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(auth_level)
+        raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
       end
+      decrypted_stub = ''
+      signature_valid = auth_provider_decrypt_and_verify(dcerpc_response)
 
       unless signature_valid
         if raise_signature_error

@@ -104,7 +104,7 @@ module RubySMB
         string :default
       end
 
-      string    :auth_pad
+      string    :auth_pad, onlyif: -> { has_auth_verifier? }
 
       # Auth Verifier
       sec_trailer :sec_trailer, onlyif: -> { has_auth_verifier? }
@@ -124,7 +124,6 @@ module RubySMB
       def has_auth_verifier?
         self.pdu_header.auth_length > 0
       end
-
     end
   end
 end
