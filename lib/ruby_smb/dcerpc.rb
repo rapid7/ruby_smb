@@ -56,6 +56,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/print_system'
     require 'ruby_smb/dcerpc/encrypting_file_system'
 
+    # Initialize the auth provider using NTLM. This function should be overriden for other providers (e.g. Kerberos, etc.)
     def auth_provider_init
       raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
       type1_message = @ntlm_client.init_context
@@ -63,6 +64,9 @@ module RubySMB
       type1_message.serialize
     end
 
+    # Encrypt the value in dcerpc_req.stub, and add a valid signature to the request.
+    # This function modifies the request object in-place, and does not return anything.
+    # This function should be overriden for other providers (e.g. Kerberos, etc.)
     def auth_provider_encrypt_and_sign(dcerpc_req)
       auth_type = dcerpc_req.sec_trailer.auth_type
       auth_level = dcerpc_req.sec_trailer.auth_level
@@ -87,10 +91,14 @@ module RubySMB
       set_signature_on_packet(dcerpc_req, signature)
     end
 
+    # Get the response's full stub value (which will include the auth-pad)
     def get_response_full_stub(dcerpc_response)
       dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
     end
 
+    # Decrypt the value in dcerpc_req.stub, and validate its signature.
+    # This function modifies the request object in-place, and returns whether the signature was valid.
+    # This function should be overriden for other providers (e.g. Kerberos, etc.)
     def auth_provider_decrypt_and_verify(dcerpc_response)
       auth_type = dcerpc_response.sec_trailer.auth_type
       auth_level = dcerpc_response.sec_trailer.auth_level
@@ -125,12 +133,9 @@ module RubySMB
     end
 
     # Send a rpc_auth3 PDU that ends the authentication handshake.
+    # This function should be overriden for other providers (e.g. Kerberos, etc.)
     #
     # @param response [BindAck] the BindAck response packet
-    # @param auth_type [Integer] the authentication type
-    # @param auth_level [Integer] the authentication level
-    # @raise [ArgumentError] if `:auth_type` is unknown
-    # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     def auth_provider_complete_handshake(response, options)
       auth3 = process_ntlm_type2(response.auth_value)
 
