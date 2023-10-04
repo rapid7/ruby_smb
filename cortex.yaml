@@ -1,0 +1,15 @@
+---
+info:
+  title: Ruby Smb
+  description: A native Ruby implementation of the SMB Protocol Family
+  x-cortex-git:
+    github:
+      alias: r7org
+      repository: rapid7/ruby_smb
+  x-cortex-tag: ruby-smb
+  x-cortex-type: service
+  x-cortex-domain-parents:
+  - tag: metasploit
+openapi: 3.0.1
+servers:
+- url: "/"
