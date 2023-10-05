@@ -44,7 +44,7 @@ module RubySMB
         stub_length
       end
 
-       def read(io)
+      def read(io)
         super
         if has_auth_verifier? && sec_trailer.auth_pad_length > 0
           # At this point, auth_pad is at the end of the stub. We need to move
