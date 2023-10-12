@@ -51,12 +51,18 @@ module RubySMB
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/rpc_auth3'
+    require 'ruby_smb/dcerpc/port_any_t'
+    require 'ruby_smb/dcerpc/p_result_t'
+    require 'ruby_smb/dcerpc/p_result_list_t'
     require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/bind_ack'
+    require 'ruby_smb/dcerpc/alter_context_resp'
     require 'ruby_smb/dcerpc/print_system'
     require 'ruby_smb/dcerpc/encrypting_file_system'
 
     # Initialize the auth provider using NTLM. This function should be overriden for other providers (e.g. Kerberos, etc.)
+    # @raise ArgumentError If @ntlm_client isn't initialized with a username and password.
+    # @return Serialized message for initializing the auth provider (NTLM, unless this class is extended/overridden)
     def auth_provider_init
       raise ArgumentError, "NTLM Client not initialized. Username and password must be provided" unless @ntlm_client
       type1_message = @ntlm_client.init_context
@@ -67,6 +73,7 @@ module RubySMB
     # Encrypt the value in dcerpc_req.stub, and add a valid signature to the request.
     # This function modifies the request object in-place, and does not return anything.
     # This function should be overriden for other providers (e.g. Kerberos, etc.)
+    # @param dcerpc_req [Request] The Request object to be encrypted and signed in-place
     def auth_provider_encrypt_and_sign(dcerpc_req)
       auth_type = dcerpc_req.sec_trailer.auth_type
       auth_level = dcerpc_req.sec_trailer.auth_level
@@ -92,6 +99,8 @@ module RubySMB
     end
 
     # Get the response's full stub value (which will include the auth-pad)
+    # @param dcerpc_response [Response] The Response object to extract from
+    # @return [String] The full stub, including auth_pad
     def get_response_full_stub(dcerpc_response)
       dcerpc_response.stub.to_binary_s + dcerpc_response.auth_pad.to_binary_s
     end
@@ -99,6 +108,9 @@ module RubySMB
     # Decrypt the value in dcerpc_req.stub, and validate its signature.
     # This function modifies the request object in-place, and returns whether the signature was valid.
     # This function should be overriden for other providers (e.g. Kerberos, etc.)
+    # @param dcerpc_response [Response] The Response packet to decrypt and verify in-place
+    # @raise ArgumentError If the auth type is not NTLM
+    # @return [Boolean] Is the packet's signature valid?
     def auth_provider_decrypt_and_verify(dcerpc_response)
       auth_type = dcerpc_response.sec_trailer.auth_type
       auth_level = dcerpc_response.sec_trailer.auth_level
@@ -106,21 +118,24 @@ module RubySMB
         raise ArgumentError, "Unsupported Auth Type: #{dcerpc_response.sec_trailer.auth_type}"
       end
       encrypted_stub = ''
+      signature = dcerpc_response.auth_value
       if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
         encrypted_stub = get_response_full_stub(dcerpc_response)
-        signature = dcerpc_response.auth_value
         plaintext = @ntlm_client.session.unseal_message(encrypted_stub)
         set_decrypted_packet(dcerpc_response, plaintext)
       end
-      data_to_check = get_response_full_stub(dcerpc_response)
+      data_to_check = dcerpc_response.stub.to_binary_s
       if @ntlm_client.flags & NTLM::NEGOTIATE_FLAGS[:EXTENDED_SECURITY] != 0
         data_to_check = dcerpc_response.to_binary_s[0..-(dcerpc_response.pdu_header.auth_length + 1)]
       end
-      valid = @ntlm_client.session.verify_signature(signature, data_to_check)
 
-      return valid
+      @ntlm_client.session.verify_signature(signature, data_to_check)
     end
 
+    # Completes local initialisation of @ntlm_client using the server's response
+    #
+    # @param type2_message [String] NTLM type 2 message sent from server
+    # @return [String] Type 3 message to be sent to the server to complete the NTLM handshake
     def process_ntlm_type2(type2_message)
       ntlmssp_offset = type2_message.index('NTLMSSP')
       type2_blob = type2_message.slice(ntlmssp_offset..-1)
@@ -136,6 +151,7 @@ module RubySMB
     # This function should be overriden for other providers (e.g. Kerberos, etc.)
     #
     # @param response [BindAck] the BindAck response packet
+    # @param options [Hash] Unused by the NTLM auth provider
     def auth_provider_complete_handshake(response, options)
       auth3 = process_ntlm_type2(response.auth_value)
 
@@ -269,7 +285,6 @@ module RubySMB
       dcerpc_req.auth_value = ' ' * 16
       dcerpc_req.pdu_header.auth_length = 16
 
-      encrypted_stub = ''
       if [RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_AUTHN_LEVEL_PKT_INTEGRITY].include?(auth_level)
         auth_provider_encrypt_and_sign(dcerpc_req)
       end
@@ -295,6 +310,7 @@ module RubySMB
       unless decrypted_stub.empty?
         pad_length = dcerpc_response.sec_trailer.auth_pad_length.to_i
         dcerpc_response.stub = decrypted_stub[0..-(pad_length + 1)]
+        dcerpc_response.auth_pad = decrypted_stub[-(pad_length + 1)..-1]
       end
     end
 
@@ -316,7 +332,6 @@ module RubySMB
       unless [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(auth_level)
         raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
       end
-      decrypted_stub = ''
       signature_valid = auth_provider_decrypt_and_verify(dcerpc_response)
 
       unless signature_valid
