@@ -6,7 +6,10 @@ RSpec.describe RubySMB::Dcerpc::Drsr do
   end
 
   let(:drsr) do
-    RubySMB::Dcerpc::Client.new('1.2.3.4', RubySMB::Dcerpc::Drsr)
+    drsr = RubySMB::Dcerpc::Client.new('1.2.3.4', RubySMB::Dcerpc::Drsr)
+    drsr.force_set_auth_params(RubySMB::Dcerpc::RPC_C_AUTHN_WINNT, RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
+
+    drsr
   end
 
   describe described_class::DrsHandle do

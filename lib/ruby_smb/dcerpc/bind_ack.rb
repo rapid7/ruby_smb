@@ -2,37 +2,6 @@ module RubySMB
   module Dcerpc
     # The Bind ACK PDU as defined in
     # [The bind_ack PDU](http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06_04_04)
-
-    class PResultT < Ndr::NdrStruct
-      default_parameter byte_align: 4
-      endian :little
-
-      ndr_uint16        :result,          label: 'Presentation context negotiation results'
-      ndr_uint16        :reason,          label: 'Rejection reason'
-      p_syntax_id_t     :transfer_syntax, label: 'Presentation syntax ID',
-        uuid:      -> { Ndr::UUID },
-        ver_major: -> { Ndr::VER_MAJOR },
-        ver_minor: -> { Ndr::VER_MINOR }
-    end
-
-    class PResultListT < Ndr::NdrStruct
-      default_parameter byte_align: 4
-      endian :little
-
-      ndr_uint8  :n_results, label: 'Number of results', initial_value: -> { p_results.size }
-      ndr_uint8  :reserved
-      ndr_uint16 :reserved2
-      array      :p_results, label: 'Results', type: :p_result_t, initial_length: -> { n_results }, byte_align: 4
-    end
-
-    class PortAnyT < Ndr::NdrStruct
-      default_parameter byte_align: 2
-      endian :little
-
-      ndr_uint16  :str_length, label: 'Length', initial_value: -> { port_spec.to_binary_s.size }
-      stringz     :port_spec, label: 'Port string spec', byte_align: 2
-    end
-
     class BindAck < BinData::Record
       PTYPE = PTypes::BIND_ACK
 

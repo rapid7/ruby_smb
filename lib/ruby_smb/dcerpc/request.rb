@@ -103,15 +103,21 @@ module RubySMB
         end
         string :default
       end
-      string      :auth_pad,
+
+      string    :auth_pad,
         onlyif: -> { has_auth_verifier? },
-        length: -> { (16 - (stub.num_bytes % 16)) % 16 }
+        length: -> { calculate_padding_size }
 
       # Auth Verifier
       sec_trailer :sec_trailer, onlyif: -> { has_auth_verifier? }
       string      :auth_value, label: 'Authentication verifier',
         onlyif:      -> { has_auth_verifier? },
         read_length: -> { pdu_header.auth_length }
+
+      # Per the spec (MS_RPCE 2.2.2.11): start of the trailer should be a multiple of 16 bytes offset from the start of the stub
+      def calculate_padding_size
+        (16 - (stub.num_bytes % 16)) % 16
+      end
 
       def initialize_instance
         super
@@ -125,7 +131,6 @@ module RubySMB
       def has_auth_verifier?
         self.pdu_header.auth_length > 0
       end
-
     end
   end
 end

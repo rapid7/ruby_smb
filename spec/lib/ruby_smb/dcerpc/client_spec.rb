@@ -9,7 +9,12 @@ RSpec.describe RubySMB::Dcerpc::Client do
   let(:endpoint) { RubySMB::Dcerpc::Samr }
 
   subject(:client) { described_class.new(host, endpoint) }
-  subject(:auth_client) { described_class.new(host, endpoint, username: 'testuser', password: '1234') }
+  subject(:auth_client) do
+    result = described_class.new(host, endpoint, username: 'testuser', password: '1234')
+    result.force_set_auth_params(RubySMB::Dcerpc::RPC_C_AUTHN_WINNT, RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
+   
+    result
+  end
 
   it { is_expected.to respond_to :domain }
   it { is_expected.to respond_to :local_workstation }
@@ -135,21 +140,21 @@ RSpec.describe RubySMB::Dcerpc::Client do
     describe '#add_auth_verifier' do
       let(:req) { RubySMB::Dcerpc::Bind.new }
       let(:auth_type) { RubySMB::Dcerpc::RPC_C_AUTHN_WINNT }
-      let(:auth_level) { 0 }
+      let(:auth_level) { RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY }
       let(:auth) { 'serialized auth value' }
 
       it 'sets #auth_value field to the expected value' do
-        auth_client.add_auth_verifier(req, auth, auth_type, auth_level)
+        auth_client.add_auth_verifier(req, auth)
         expect(req.auth_value).to eq(auth)
       end
 
       it 'sets PDUHeader #auth_length field to the expected value' do
-        auth_client.add_auth_verifier(req, auth, auth_type, auth_level)
+        auth_client.add_auth_verifier(req, auth)
         expect(req.pdu_header.auth_length).to eq(auth.length)
       end
 
       it 'sets #sec_trailer field to the expected value' do
-        auth_client.add_auth_verifier(req, auth, auth_type, auth_level)
+        auth_client.add_auth_verifier(req, auth)
         expect(req.sec_trailer.auth_type).to eq(auth_type)
         expect(req.sec_trailer.auth_level).to eq(auth_level)
         expect(req.sec_trailer.auth_context_id).to eq(auth_client.instance_variable_get(:@auth_ctx_id_base))
@@ -202,29 +207,29 @@ RSpec.describe RubySMB::Dcerpc::Client do
       end
 
       it 'add an auth verifier to the RpcAuth3 packet' do
-        auth_client.send_auth3(bindack, auth_type, auth_level)
-        expect(auth_client).to have_received(:add_auth_verifier).with(rpc_auth3, auth3, auth_type, auth_level)
+        auth_client.auth_provider_complete_handshake(bindack, auth_type: auth_type, auth_level: auth_level)
+        expect(auth_client).to have_received(:add_auth_verifier).with(rpc_auth3, auth3)
       end
 
       it 'sets the PDUHeader #call_id to the expected value' do
         auth_client.instance_variable_set(:@call_id, 56)
-        auth_client.send_auth3(bindack, auth_type, auth_level)
+        auth_client.auth_provider_complete_handshake(bindack, auth_type: auth_type, auth_level: auth_level)
         expect(rpc_auth3.pdu_header.call_id).to eq(56)
       end
 
       it 'sends the RpcAuth3 packet' do
-        auth_client.send_auth3(bindack, auth_type, auth_level)
+        auth_client.auth_provider_complete_handshake(bindack, auth_type: auth_type, auth_level: auth_level)
         expect(auth_client).to have_received(:send_packet).with(rpc_auth3)
       end
 
       it 'increments #call_id' do
-        auth_client.send_auth3(bindack, auth_type, auth_level)
+        auth_client.auth_provider_complete_handshake(bindack, auth_type: auth_type, auth_level: auth_level)
         expect(auth_client.instance_variable_get(:@call_id)).to eq(2)
       end
 
       context 'with RPC_C_AUTHN_WINNT auth_type' do
         it 'processes NTLM type2 message' do
-          auth_client.send_auth3(bindack, auth_type, auth_level)
+          auth_client.auth_provider_complete_handshake(bindack, auth_type: auth_type, auth_level: auth_level)
           expect(auth_client).to have_received(:process_ntlm_type2).with(auth)
         end
       end
@@ -300,7 +305,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
       context 'with RPC_C_AUTHN_WINNT auth_type' do
         let(:kwargs) do {
-            auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_DEFAULT,
+            auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
             auth_type: RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
           }
         end
@@ -310,7 +315,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
           allow(client.ntlm_client).to receive(:init_context).and_return(type1_message)
           allow(type1_message).to receive(:serialize).and_return(auth)
           allow(client).to receive(:add_auth_verifier)
-          allow(client).to receive(:send_auth3)
+          allow(client).to receive(:auth_provider_complete_handshake)
         end
 
         it 'raises an exception if the NTLM client is not initialized' do
@@ -320,12 +325,12 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
         it 'adds the auth verifier with a NTLM type1 message' do
           client.bind(**kwargs)
-          expect(client).to have_received(:add_auth_verifier).with(bind_req, auth, kwargs[:auth_type], kwargs[:auth_level])
+          expect(client).to have_received(:add_auth_verifier).with(bind_req, auth)
         end
 
         it 'sends an auth3 request' do
           client.bind(**kwargs)
-          expect(client).to have_received(:send_auth3).with(bindack_response, kwargs[:auth_type], kwargs[:auth_level])
+          expect(client).to have_received(:auth_provider_complete_handshake).with(bindack_response, auth_type: kwargs[:auth_type], auth_level: kwargs[:auth_level])
         end
       end
     end
@@ -372,10 +377,14 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
   describe '#set_integrity_privacy' do
     let(:dcerpc_req) do
-      RubySMB::Dcerpc::Request.new(
+      req = RubySMB::Dcerpc::Request.new(
         { opnum: RubySMB::Dcerpc::Winreg::REG_ENUM_KEY },
         { endpoint: 'Winreg' }
       )
+      req.sec_trailer.auth_pad_length = 8
+      req.auth_pad = "\x00" * 8
+
+      req
     end
     let(:auth_level) { RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_PRIVACY }
     let(:auth_type) { RubySMB::Dcerpc::RPC_C_AUTHN_WINNT }
@@ -656,6 +665,8 @@ RSpec.describe RubySMB::Dcerpc::Client do
       # Make sure the encrypted stub includes the correct pad to make sure sec_trailer is 16-bytes aligned
       allow(session).to receive(:unseal_message).and_return(decrypted_stub + auth_pad)
       allow(session).to receive(:verify_signature).and_return true
+      dcerpc_res.sec_trailer.auth_type = auth_type
+      dcerpc_res.sec_trailer.auth_level = auth_level
     end
 
     it 'verifies the signature' do
@@ -698,6 +709,8 @@ RSpec.describe RubySMB::Dcerpc::Client do
     context 'without RPC_C_AUTHN_LEVEL_PKT_PRIVACY auth_level' do
       it 'does not encrypt the stub' do
         plain_stub = dcerpc_res.stub.to_binary_s
+        dcerpc_res.sec_trailer.auth_level = RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_INTEGRITY
+        dcerpc_res.sec_trailer.auth_type = RubySMB::Dcerpc::RPC_C_AUTHN_WINNT
         auth_client.handle_integrity_privacy(dcerpc_res, auth_level: RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, auth_type: auth_type)
         expect(dcerpc_res.stub).to eq(plain_stub)
         expect(session).to_not have_received(:unseal_message)
@@ -706,6 +719,8 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
     context 'with an unsupported auth_level' do
       it 'raises an Argument exception' do
+        dcerpc_res.sec_trailer.auth_level = RubySMB::Dcerpc::RPC_C_AUTHN_LEVEL_PKT_INTEGRITY
+        dcerpc_res.sec_trailer.auth_type = 88
         expect { auth_client.handle_integrity_privacy(dcerpc_res, auth_level: auth_level, auth_type: 88) }.to raise_error(ArgumentError)
       end
     end

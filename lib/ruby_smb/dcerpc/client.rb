@@ -209,6 +209,10 @@ module RubySMB
         if auth_level &&
            [RPC_C_AUTHN_LEVEL_PKT_INTEGRITY, RPC_C_AUTHN_LEVEL_PKT_PRIVACY].include?(auth_level)
           set_integrity_privacy(dcerpc_req, auth_level: auth_level, auth_type: auth_type)
+          # Per the spec (MS_RPCE 2.2.2.11): start of the trailer should be a multiple of 16 bytes offset from the start of the stub
+          valid_offset = (((dcerpc_req.sec_trailer.abs_offset - dcerpc_req.stub.abs_offset) % 16))
+          valid_auth_pad = (dcerpc_req.sec_trailer.auth_pad_length == dcerpc_req.auth_pad.length)
+          raise Error::InvalidPacket unless valid_offset == 0 && valid_auth_pad
         end
 
         send_packet(dcerpc_req)
