@@ -1,9 +1,9 @@
 module RubySMB
   module Dcerpc
-    # The Bind PDU as defined in
-    # [The bind PDU](http://pubs.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06_04_03)
-    class Bind < BinData::Record
-      PTYPE = PTypes::BIND
+    # The Alter context PDU as defined in
+    # [The alter_context PDU](https://pubs.opengroup.org/onlinepubs/9629399/chap12.htm#tagcjh_17_06_04_01)
+    class AlterContext < BinData::Record
+      PTYPE = PTypes::ALTER_CONTEXT
 
       endian :little
 

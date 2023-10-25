@@ -52,8 +52,10 @@ module RubySMB
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/rpc_auth3'
     require 'ruby_smb/dcerpc/port_any_t'
+    require 'ruby_smb/dcerpc/p_cont_list_t'
     require 'ruby_smb/dcerpc/p_result_t'
     require 'ruby_smb/dcerpc/p_result_list_t'
+    require 'ruby_smb/dcerpc/alter_context'
     require 'ruby_smb/dcerpc/bind'
     require 'ruby_smb/dcerpc/bind_ack'
     require 'ruby_smb/dcerpc/alter_context_resp'
@@ -78,7 +80,7 @@ module RubySMB
       auth_type = dcerpc_req.sec_trailer.auth_type
       auth_level = dcerpc_req.sec_trailer.auth_level
       unless [RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT].include?(auth_type)
-        raise ArgumentError, "Unsupported Auth Type: #{dcerpc_req.sec_trailer.auth_type}"
+        raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
       end
       plaintext = dcerpc_req.stub.to_binary_s
       pad_length = get_auth_padding_length(plaintext.length)
@@ -115,9 +117,8 @@ module RubySMB
       auth_type = dcerpc_response.sec_trailer.auth_type
       auth_level = dcerpc_response.sec_trailer.auth_level
       unless [RPC_C_AUTHN_WINNT, RPC_C_AUTHN_DEFAULT].include?(auth_type)
-        raise ArgumentError, "Unsupported Auth Type: #{dcerpc_response.sec_trailer.auth_type}"
+        raise ArgumentError, "Unsupported Auth Type: #{auth_type}"
       end
-      encrypted_stub = ''
       signature = dcerpc_response.auth_value
       if auth_level == RPC_C_AUTHN_LEVEL_PKT_PRIVACY
         encrypted_stub = get_response_full_stub(dcerpc_response)
@@ -285,10 +286,7 @@ module RubySMB
       dcerpc_req.auth_value = ' ' * 16
       dcerpc_req.pdu_header.auth_length = 16
 
-      if [RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_AUTHN_LEVEL_PKT_INTEGRITY].include?(auth_level)
-        auth_provider_encrypt_and_sign(dcerpc_req)
-      end
-
+      auth_provider_encrypt_and_sign(dcerpc_req)
     end
 
     def set_signature_on_packet(dcerpc_req, signature)
