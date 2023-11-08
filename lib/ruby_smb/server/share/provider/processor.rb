@@ -80,6 +80,31 @@ module RubySMB
               @server_client.server
             end
 
+            # Forward a share IO method for a particular request. This is a choke point to allow any hooks that were
+            # registered with the share provider to be executed before and after the specified method is invoked to
+            # process the request and generate the response. This is used for both SMB1 and SMB2 requests.
+            #
+            # @param [Symbol] method_name The method name to forward the request to
+            # @param [RubySMB::GenericPacket] request The request packet to be processed
+            # @return [RubySMB::GenericPacket]
+            def share_io(method_name, request)
+              @provider.hooks.each do |hook|
+                next unless hook.request_class == request.class && hook.location == :before
+
+                request = hook.callback.call(@session, request) || request
+              end
+
+              response = send(method_name, request)
+
+              @provider.hooks.each do |hook|
+                next unless hook.request_class == request.class && hook.location == :after
+
+                response = hook.callback.call(@session, request, response) || response
+              end
+
+              response
+            end
+
             # The underlying share provider that this is a processor for.
             # @!attribute [r] provider
             #   @return [RubySMB::Server::Share::Provider::Base]

@@ -11,7 +11,7 @@ module RubySMB
           end
 
           logger.debug("Received #{SMB1::Commands.name(request.smb_header.command)} request for share: #{share_processor.provider.name}")
-          share_processor.send(__callee__, request)
+          share_processor.share_io(__callee__, request)
         end
 
         alias :do_close_smb1          :proxy_share_io_smb1
@@ -29,7 +29,7 @@ module RubySMB
           end
 
           logger.debug("Received #{SMB2::Commands.name(request.smb2_header.command)} request for share: #{share_processor.provider.name}")
-          share_processor.send(__callee__, request)
+          share_processor.share_io(__callee__, request)
         end
 
         alias :do_close_smb2           :proxy_share_io_smb2
