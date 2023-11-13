@@ -51,8 +51,11 @@ module RubySMB
         def calc_buffer_size
           align = 8
           size = 0
-          size += name_length + ((align - name_length % align) % align)
-          size += data_length + ((align - data_length % align) % align)
+          size += name_length
+          size += ((align - size % align) % align) if name_offset < data_offset
+          size += data_length
+          size += ((align - size % align) % align) if data_offset < name_offset
+          size += ((align - size % align) % align) if next_offset != 0
           size
         end
 
