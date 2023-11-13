@@ -14,13 +14,13 @@ module RubySMB
           # @param [String] name The name of this share.
           # @param [String, Pathname] path The local file system path to share. This path must be an absolute path to an existing
           #   directory.
-          def initialize(name, path)
+          def initialize(name, path, hooks: nil)
             path = Pathname.new(File.expand_path(path)) if path.is_a?(String)
             raise ArgumentError.new('path must be a directory') unless path.directory? # it needs to exist
             raise ArgumentError.new('path must be absolute') unless path.absolute? # it needs to be absolute so it is independent of the cwd
 
             @path = path
-            super(name)
+            super(name, hooks: hooks)
           end
 
           attr_accessor :path

@@ -35,7 +35,7 @@ module RubySMB
           end
 
           uint64                             :allocation_size,     label: 'Allocation Size'
-          smb_ext_file_attributes            :ext_file_attributes, label: 'Extented File Attributes'
+          smb_ext_file_attributes            :ext_file_attributes, label: 'Extended File Attributes'
           share_access                       :share_access,        label: 'Share Access'
           # The following constants are defined in RubySMB::Dispositions
           uint32                             :create_disposition,  label: 'Create Disposition'
