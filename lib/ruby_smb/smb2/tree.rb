@@ -85,6 +85,7 @@ module RubySMB
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a QueryDirectoryResponse packet
       def list(directory: nil, pattern: '*', type: RubySMB::Fscc::FileInformation::FileIdFullDirectoryInformation)
         create_response = open_directory(directory: directory)
+        opened_directory = RubySMB::SMB2::File.new(tree: self, response: create_response, name: directory)
         file_id         = create_response.file_id
 
         directory_request                         = RubySMB::SMB2::Packet::QueryDirectoryRequest.new
@@ -127,7 +128,7 @@ module RubySMB
           # Reset the message id so the client can update appropriately.
           directory_request.smb2_header.message_id = 0
         end
-
+        opened_directory.close
         files
       end
 
