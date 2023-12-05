@@ -166,10 +166,14 @@ RSpec.describe RubySMB::SMB2::Tree do
     let(:create_res) { double('create response') }
     let(:query_dir_req) { RubySMB::SMB2::Packet::QueryDirectoryRequest.new }
     let(:query_dir_res) { RubySMB::SMB2::Packet::QueryDirectoryResponse.new }
+    let(:open_dir) { instance_double(RubySMB::SMB2::File) }
 
     before :example do
       allow(tree).to receive(:open_directory).and_return(create_res)
       allow(create_res).to receive(:file_id)
+      allow(RubySMB::SMB2::File).to receive(:new).and_return(open_dir)
+      allow(open_dir).to receive(:close)
+      allow(create_res).to receive(:file_attributes)
       allow(RubySMB::SMB2::Packet::QueryDirectoryRequest).to receive(:new).and_return(query_dir_req)
       allow(client).to receive(:send_recv)
       allow(RubySMB::SMB2::Packet::QueryDirectoryResponse).to receive(:read).and_return(query_dir_res)
@@ -180,6 +184,7 @@ RSpec.describe RubySMB::SMB2::Tree do
       dir = '/dir'
       expect(tree).to receive(:open_directory).with(directory: dir).and_return(create_res)
       tree.list(directory: dir)
+      expect(open_dir).to have_received(:close)
     end
 
     it 'uses the File ID from the create response' do
