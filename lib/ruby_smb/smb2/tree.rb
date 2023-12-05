@@ -128,8 +128,9 @@ module RubySMB
           # Reset the message id so the client can update appropriately.
           directory_request.smb2_header.message_id = 0
         end
-        opened_directory.close
         files
+      ensure
+        opened_directory.close
       end
 
       # 'Opens' a directory file on the remote end, using a CreateRequest. This
