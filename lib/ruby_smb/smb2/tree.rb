@@ -130,7 +130,7 @@ module RubySMB
         end
         files
       ensure
-        opened_directory.close
+        opened_directory.close if opened_directory
       end
 
       # 'Opens' a directory file on the remote end, using a CreateRequest. This
