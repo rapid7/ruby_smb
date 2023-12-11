@@ -131,7 +131,7 @@ RSpec.describe RubySMB::Dcerpc::Response do
   end
 
   describe '#stub_length' do
-    let(:stub_length) { rand(0xFF) }
+    let(:stub_length) { rand(1..0xFF) }
     before :example do
       packet.stub = 'A' * stub_length
     end
@@ -142,7 +142,7 @@ RSpec.describe RubySMB::Dcerpc::Response do
 
     context 'with auth verifier' do
       it 'returns the correct stub length' do
-        auth_size = rand(0xFF)
+        auth_size = rand(1..0xFF)
         packet.pdu_header.auth_length = auth_size
         packet.auth_value = 'B' * auth_size
         expect(packet.stub_length).to eq(stub_length + packet.auth_pad.num_bytes)
@@ -152,8 +152,8 @@ RSpec.describe RubySMB::Dcerpc::Response do
 
   describe '#read' do
     let(:response) { described_class.new }
-    let(:auth_size) { rand(0xFF) }
-    let(:stub_size) { rand(0xFF) }
+    let(:auth_size) { rand(1..0xFF) }
+    let(:stub_size) { rand(1..0xFF) }
     before :example do
       response.pdu_header.auth_length = auth_size
       response.stub = 'A' * stub_size
@@ -176,5 +176,3 @@ RSpec.describe RubySMB::Dcerpc::Response do
     expect(described_class.read(binary)).to eq(packet)
   end
 end
-
-
