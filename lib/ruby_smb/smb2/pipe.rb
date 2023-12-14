@@ -29,6 +29,8 @@ module RubySMB
           extend RubySMB::Dcerpc::Dfsnm
         when 'cert', '\\cert'
           extend RubySMB::Dcerpc::Icpr
+        when 'efsrpc', '\\efsrpc'
+          extend RubySMB::Dcerpc::EncryptingFileSystem
         end
         super(tree: tree, response: response, name: name)
       end

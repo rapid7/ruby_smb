@@ -87,8 +87,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_response'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recover_agents_response'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recovery_agents_request'
+      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recovery_agents_response'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_request'
       require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_response'
     end

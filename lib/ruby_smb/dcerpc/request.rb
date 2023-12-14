@@ -101,6 +101,13 @@ module RubySMB
           cert_server_request_request      Icpr::CERT_SERVER_REQUEST
           string                           :default
         end
+        choice 'EncryptingFileSystem', selection: -> { opnum } do
+          efs_rpc_decrypt_file_srv_request      EncryptingFileSystem::EFS_RPC_DECRYPT_FILE_SRV
+          efs_rpc_encrypt_file_srv_request      EncryptingFileSystem::EFS_RPC_ENCRYPT_FILE_SRV
+          efs_rpc_open_file_raw_request         EncryptingFileSystem::EFS_RPC_OPEN_FILE_RAW
+          efs_rpc_query_recovery_agents_request EncryptingFileSystem::EFS_RPC_QUERY_RECOVERY_AGENTS
+          efs_rpc_query_users_on_file_request   EncryptingFileSystem::EFS_RPC_QUERY_USERS_ON_FILE
+        end
         string :default
       end
 
