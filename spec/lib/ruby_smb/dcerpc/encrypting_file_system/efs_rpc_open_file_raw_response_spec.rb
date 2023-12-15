@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::Dcerpc::EncryptingFileSystem::EfsRpcOpenFileRawResponse do
+RSpec.describe RubySMB::Dcerpc::Efsrpc::EfsRpcOpenFileRawResponse do
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :h_context }
@@ -22,7 +22,7 @@ RSpec.describe RubySMB::Dcerpc::EncryptingFileSystem::EfsRpcOpenFileRawResponse 
 
   describe '#initialize_instance' do
     it 'sets #opnum to EFS_RPC_OPEN_FILE_RAW constant' do
-      expect(packet.opnum).to eq(RubySMB::Dcerpc::EncryptingFileSystem::EFS_RPC_OPEN_FILE_RAW)
+      expect(packet.opnum).to eq(RubySMB::Dcerpc::Efsrpc::EFS_RPC_OPEN_FILE_RAW)
     end
   end
 

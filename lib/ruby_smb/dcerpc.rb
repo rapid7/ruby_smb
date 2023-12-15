@@ -48,6 +48,8 @@ module RubySMB
     require 'ruby_smb/dcerpc/sec_trailer'
     require 'ruby_smb/dcerpc/dfsnm'
     require 'ruby_smb/dcerpc/icpr'
+    require 'ruby_smb/dcerpc/efsrpc'
+    require 'ruby_smb/dcerpc/lsarpc'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/rpc_auth3'
@@ -60,7 +62,6 @@ module RubySMB
     require 'ruby_smb/dcerpc/bind_ack'
     require 'ruby_smb/dcerpc/alter_context_resp'
     require 'ruby_smb/dcerpc/print_system'
-    require 'ruby_smb/dcerpc/encrypting_file_system'
 
     # Initialize the auth provider using NTLM. This function should be overriden for other providers (e.g. Kerberos, etc.)
     # @raise ArgumentError If @ntlm_client isn't initialized with a username and password.
