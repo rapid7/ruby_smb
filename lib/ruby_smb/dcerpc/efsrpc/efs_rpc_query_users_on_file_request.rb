@@ -1,6 +1,6 @@
 module RubySMB
   module Dcerpc
-    module EncryptingFileSystem
+    module Efsrpc
 
       # [3.1.4.2.7 Receiving an EfsRpcQueryUsersOnFile Message (Opnum 6)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/a058dc6c-bb7e-491c-9143-a5cb1f7e7cea)
       class EfsRpcQueryUsersOnFileRequest < BinData::Record

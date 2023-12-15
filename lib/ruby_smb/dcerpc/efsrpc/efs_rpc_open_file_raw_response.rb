@@ -1,15 +1,15 @@
 module RubySMB
   module Dcerpc
-    module EncryptingFileSystem
+    module Efsrpc
 
       # [3.1.4.2.1 EfsRpcOpenFileRaw (Opnum 0)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/ccc4fb75-1c86-41d7-bbc4-b278ec13bfb8)
-      class EfsRpcOpenFileRawRequest < BinData::Record
+      class EfsRpcOpenFileRawResponse < BinData::Record
         attr_reader :opnum
 
         endian :little
 
-        ndr_conf_var_wide_stringz :file_name
-        ndr_uint32                :flags
+        ndr_context_handle :h_context
+        ndr_uint32         :error_status
 
         def initialize_instance
           super

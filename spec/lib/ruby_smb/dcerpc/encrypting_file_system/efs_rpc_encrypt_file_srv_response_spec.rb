@@ -1,4 +1,4 @@
-RSpec.describe RubySMB::Dcerpc::EncryptingFileSystem::EfsRpcEncryptFileSrvResponse do
+RSpec.describe RubySMB::Dcerpc::Efsrpc::EfsRpcEncryptFileSrvResponse do
   subject(:packet) { described_class.new }
 
   it { is_expected.to respond_to :error_status }
@@ -15,7 +15,7 @@ RSpec.describe RubySMB::Dcerpc::EncryptingFileSystem::EfsRpcEncryptFileSrvRespon
 
   describe '#initialize_instance' do
     it 'sets #opnum to EFS_RPC_ENCRYPT_FILE_SRV constant' do
-      expect(packet.opnum).to eq(RubySMB::Dcerpc::EncryptingFileSystem::EFS_RPC_ENCRYPT_FILE_SRV)
+      expect(packet.opnum).to eq(RubySMB::Dcerpc::Efsrpc::EFS_RPC_ENCRYPT_FILE_SRV)
     end
   end
 

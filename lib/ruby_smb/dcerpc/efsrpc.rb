@@ -1,6 +1,6 @@
 module RubySMB
   module Dcerpc
-    module EncryptingFileSystem
+    module Efsrpc
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/403c7ae0-1a3a-4e96-8efc-54e79a2cc451
       UUID = EFSRPC_UUID = 'df1941c5-fe89-4e79-bf10-463657acf44d'.freeze
       LSARPC_UUID = 'c681d488-d850-11d0-8c52-00c04fd90f7e'.freeze
@@ -81,16 +81,16 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_decrypt_file_srv_response'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_encrypt_file_srv_response'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_open_file_raw_response'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recovery_agents_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_recovery_agents_response'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_request'
-      require 'ruby_smb/dcerpc/encrypting_file_system/efs_rpc_query_users_on_file_response'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_decrypt_file_srv_request'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_decrypt_file_srv_response'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_encrypt_file_srv_request'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_encrypt_file_srv_response'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_open_file_raw_request'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_open_file_raw_response'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_query_recovery_agents_request'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_query_recovery_agents_response'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_query_users_on_file_request'
+      require 'ruby_smb/dcerpc/efsrpc/efs_rpc_query_users_on_file_response'
     end
   end
 end

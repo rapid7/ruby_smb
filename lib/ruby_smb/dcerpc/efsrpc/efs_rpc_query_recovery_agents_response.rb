@@ -1,14 +1,15 @@
 module RubySMB
   module Dcerpc
-    module EncryptingFileSystem
+    module Efsrpc
 
       # [3.1.4.2.8 Receiving an EfsRpcQueryRecoveryAgents Message (Opnum 7)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-efsr/cf759c00-1b90-4c33-9ace-f51c20149cea)
-      class EfsRpcQueryRecoveryAgentsRequest < BinData::Record
+      class EfsRpcQueryRecoveryAgentsResponse < BinData::Record
         attr_reader :opnum
 
         endian :little
 
-        ndr_conf_var_wide_stringz :file_name
+        encryption_certificate_hash_list_ptr :recover_agents
+        ndr_uint32                           :error_status
 
         def initialize_instance
           super
