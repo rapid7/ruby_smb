@@ -28,6 +28,8 @@ module RubySMB
           extend RubySMB::Dcerpc::Samr
         when 'wkssvc', '\\wkssvc'
           extend RubySMB::Dcerpc::Wkssvc
+        when 'lsarpc', '\\lsarpc'
+          extend RubySMB::Dcerpc::Lsarpc
         when 'netdfs', '\\netdfs'
           extend RubySMB::Dcerpc::Dfsnm
         when 'cert', '\\cert'
