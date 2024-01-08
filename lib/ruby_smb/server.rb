@@ -58,6 +58,14 @@ module RubySMB
       @shares[share_provider.name] = share_provider
     end
 
+    def remove_share(share_provider)
+      share_provider = share_provder.name if share_provider.is_a?(RubySMB::Server::Share::Provider::Base)
+      logger.debug("Removing share: #{share_provider}")
+      @shares.delete(share_provider)
+
+      nil
+    end
+
     # Run the server and accept any connections. For each connection, the block will be executed if specified. When the
     # block returns false, the loop will exit and the server will no long accept new connections.
     def run(&block)
