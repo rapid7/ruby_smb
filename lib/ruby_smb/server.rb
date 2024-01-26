@@ -53,9 +53,19 @@ module RubySMB
       }
     end
 
+    # @param [Share::Provider::Base] share_provider the share provider to register
     def add_share(share_provider)
       logger.debug("Adding #{share_provider.type} share: #{share_provider.name}")
       @shares[share_provider.name] = share_provider
+    end
+
+    # @param [String, Share::Provider::Base] share_provider the share provider to deregister
+    def remove_share(share_provider)
+      share_provider = share_provider.name if share_provider.is_a?(RubySMB::Server::Share::Provider::Base)
+      logger.debug("Removing share: #{share_provider}")
+      @shares.delete(share_provider)
+
+      nil
     end
 
     # Run the server and accept any connections. For each connection, the block will be executed if specified. When the
