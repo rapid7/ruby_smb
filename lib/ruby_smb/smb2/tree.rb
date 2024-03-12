@@ -147,10 +147,11 @@ module RubySMB
       # @raise [RubySMB::Error::InvalidPacket] if the response is not a CreateResponse packet
       def open_directory(directory: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                          impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
-                         read: true, write: false, delete: false)
+                         read: true, write: false, delete: false, desired_delete: false)
 
         create_request  = open_directory_packet(directory: directory, disposition: disposition,
-                                                impersonation: impersonation, read: read, write: write, delete: delete)
+                                                impersonation: impersonation, read: read, write: write, delete: delete,
+                                                desired_delete: desired_delete)
         raw_response    = client.send_recv(create_request, encrypt: @tree_connect_encrypt_data)
         response = RubySMB::SMB2::Packet::CreateResponse.read(raw_response)
         unless response.valid?
@@ -178,7 +179,7 @@ module RubySMB
       # @return [RubySMB::SMB2::Packet::CreateRequest] the request packet to send to the server
       def open_directory_packet(directory: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                                 impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE,
-                                read: true, write: false, delete: false)
+                                read: true, write: false, delete: false, desired_delete: false)
         create_request = RubySMB::SMB2::Packet::CreateRequest.new
         create_request = set_header_fields(create_request)
 
@@ -189,6 +190,7 @@ module RubySMB
         create_request.share_access.read_access       = 1 if read
         create_request.share_access.write_access      = 1 if write
         create_request.share_access.delete_access     = 1 if delete
+        create_request.desired_access.delete_access   = 1 if desired_delete
         create_request.create_disposition             = disposition
 
         if directory.nil? || directory.empty?
