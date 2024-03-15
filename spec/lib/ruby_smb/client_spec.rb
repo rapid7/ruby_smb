@@ -471,9 +471,9 @@ RSpec.describe RubySMB::Client do
       it 'raises an EncryptionError exception if an error occurs while receiving the response' do
         allow(dispatcher).to receive(:recv_packet).and_raise(RubySMB::Error::CommunicationError)
         expect { client.recv_packet(encrypt: true) }.to raise_error(
-          RubySMB::Error::EncryptionError,
+          RubySMB::Error::CommunicationError,
           'Communication error with the remote host: RubySMB::Error::CommunicationError. '\
-          'The server supports encryption but was not able to handle the encrypted request.'
+          'The server supports encryption and this error may have been caused by encryption issues, but not always.'
         )
       end
 
@@ -2853,4 +2853,3 @@ RSpec.describe RubySMB::Client do
     end
   end
 end
-
