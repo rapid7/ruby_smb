@@ -578,9 +578,9 @@ module RubySMB
         raw_response = dispatcher.recv_packet
       rescue RubySMB::Error::CommunicationError => e
         if encrypt
-          raise RubySMB::Error::EncryptionError, "Communication error with the "\
-            "remote host: #{e.message}. The server supports encryption but was "\
-            "not able to handle the encrypted request."
+          raise e, "Communication error with the "\
+            "remote host: #{e.message}. The server supports encryption and this error "\
+            "may have been caused by encryption issues, but not always."
         else
           raise e
         end
