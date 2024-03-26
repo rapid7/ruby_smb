@@ -73,12 +73,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     before :example do
       allow(described_class::OpenKeyRequest).to receive(:new).and_return(openkey_request_packet)
       allow(openkey_request_packet).to receive(:sam_desired).and_return(regsam)
-      allow(regsam).to receive_messages(
-        :read_control=           => nil,
-        :key_query_value=        => nil,
-        :key_enumerate_sub_keys= => nil,
-        :key_notify=             => nil,
-      )
+      allow(regsam).to receive(:maximum_allowed=)
       allow(winreg).to receive(:dcerpc_request).and_return(response)
       allow(described_class::OpenKeyResponse).to receive(:read).and_return(open_key_response)
       allow(open_key_response).to receive_messages(
@@ -94,10 +89,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'sets the expected user rights on the request packet' do
       winreg.open_key(handle, sub_key)
-      expect(regsam).to have_received(:read_control=).with(1)
-      expect(regsam).to have_received(:key_query_value=).with(1)
-      expect(regsam).to have_received(:key_enumerate_sub_keys=).with(1)
-      expect(regsam).to have_received(:key_notify=).with(1)
+      expect(regsam).to have_received(:maximum_allowed=).with(1)
     end
 
     it 'sends the expected dcerpc request' do
@@ -235,6 +227,16 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
 
     it 'returns the expected response data' do
       expect(winreg.query_value(handle, value_name)).to eq(data)
+    end
+
+    context 'when the data type is also required' do
+      let(:lp_type) { double('Type') }
+      before :example do
+        allow(query_value_response2).to receive(:lp_type).and_return(lp_type)
+      end
+      it 'returns the expected response type and data' do
+        expect(winreg.query_value(handle, value_name, type: true)).to eq([lp_type, data])
+      end
     end
   end
 
@@ -864,4 +866,257 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       end
     end
   end
+
+  describe '#get_key_security_descriptor' do
+    let(:root_key)                  { 'HKLM' }
+    let(:sub_key)                   { 'my\\sub\\key\\path' }
+    let(:key)                       { "#{root_key}\\#{sub_key}" }
+    let(:root_key_handle)           { double('Root Key Handle') }
+    let(:subkey_handle)             { double('Subkey Handle') }
+    before :example do
+      allow(winreg).to receive_messages(
+        :bind           => nil,
+        :open_root_key  => root_key_handle,
+        :open_key       => subkey_handle,
+        :get_key_security => nil,
+        :close_key      => nil
+      )
+    end
+
+    it 'binds a DCERPC connection to the expected remote endpoint' do
+      winreg.get_key_security_descriptor(key)
+      expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
+    end
+
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.get_key_security_descriptor(key, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
+    it 'opens the expected root key' do
+      winreg.get_key_security_descriptor(key)
+      expect(winreg).to have_received(:open_root_key).with(root_key)
+    end
+
+    it 'opens the expected registry key' do
+      winreg.get_key_security_descriptor(key)
+      expect(winreg).to have_received(:open_key).with(root_key_handle, sub_key)
+    end
+
+    it 'calls #get_key_security with the expected arguments' do
+      winreg.get_key_security_descriptor(key)
+      security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION
+      expect(winreg).to have_received(:get_key_security).with(subkey_handle, security_information)
+    end
+
+    context 'with a non-default security informaiton' do
+      it 'calls #get_key_security with the expected arguments' do
+        security_information = RubySMB::Field::SecurityDescriptor::GROUP_SECURITY_INFORMATION
+        winreg.get_key_security_descriptor(key, security_information)
+        expect(winreg).to have_received(:get_key_security).with(subkey_handle, security_information)
+      end
+    end
+  end
+
+  describe '#get_key_security' do
+    let(:handle)                    { double('Handle') }
+    let(:get_key_security_request)  { double('GetKeySecurity Request') }
+    let(:response)                  {
+      '0000020000100000940000000010000000000000940000000100048078000000880000'\
+      '0000000000140000000200640004000000000214003f000f0001010000000000051200'\
+      '0000000218000000060001020000000000052000000020020000000218000900060001'\
+      '0200000000000520000000200200000002180009000600010200000000000520000000'\
+      '2002000001020000000000052000000020020000010100000000000512000000000000'\
+      '00'.unhexlify
+    }
+    let(:security_descriptor) {
+      '01000480780000008800000000000000140000000200640004000000000214003f000f'\
+      '0001010000000000051200000000021800000006000102000000000005200000002002'\
+      '0000000218000900060001020000000000052000000020020000000218000900060001'\
+      '0200000000000520000000200200000102000000000005200000002002000001010000'\
+      '0000000512000000'.unhexlify
+    }
+    before :example do
+      allow(described_class::GetKeySecurityRequest).to receive(:new).and_return(get_key_security_request)
+      allow(winreg).to receive(:dcerpc_request).and_return(response)
+    end
+
+    it 'create the expected GetKeySecurityRequest packet with the default options' do
+      opts = {
+        hkey:                   handle,
+        security_information:   RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION,
+        prpc_security_descriptor_in: { cb_in_security_descriptor: 4096 }
+      }
+      winreg.get_key_security(handle)
+      expect(described_class::GetKeySecurityRequest).to have_received(:new).with(opts)
+    end
+
+    it 'create the expected SaveKeyRequest packet with custom options' do
+      security_information = RubySMB::Field::SecurityDescriptor::GROUP_SECURITY_INFORMATION
+      opts = {
+        hkey:                   handle,
+        security_information:   security_information,
+        prpc_security_descriptor_in: { cb_in_security_descriptor: 4096 }
+      }
+      winreg.get_key_security(handle, security_information)
+      expect(described_class::GetKeySecurityRequest).to have_received(:new).with(opts)
+    end
+
+    it 'sends the expected dcerpc request' do
+      winreg.get_key_security(handle)
+      expect(winreg).to have_received(:dcerpc_request).with(get_key_security_request)
+    end
+
+    it 'creates a GetKeySecurityResponse structure from the expected dcerpc response' do
+      expect(described_class::GetKeySecurityResponse).to receive(:read).with(response).and_call_original
+      winreg.get_key_security(handle)
+    end
+
+    context 'when an IOError occurs while parsing the response' do
+      it 'raises a RubySMB::Dcerpc::Error::InvalidPacket' do
+        allow(described_class::GetKeySecurityResponse).to receive(:read).and_raise(IOError)
+        expect { winreg.get_key_security(handle) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+      it 'raises a RubySMB::Dcerpc::Error::WinregError' do
+        response[-4..-1] = [WindowsError::Win32::ERROR_INVALID_DATA.value].pack('V')
+        expect { winreg.get_key_security(handle) }.to raise_error(RubySMB::Dcerpc::Error::WinregError)
+      end
+    end
+
+    it 'returns the expected security descriptor' do
+      expect(winreg.get_key_security(handle)).to eq(security_descriptor)
+    end
+  end
+
+  describe '#set_key_security_descriptor' do
+    let(:root_key)                  { 'HKLM' }
+    let(:sub_key)                   { 'my\\sub\\key\\path' }
+    let(:key)                       { "#{root_key}\\#{sub_key}" }
+    let(:security_descriptor)       { 'Security Descriptor' }
+    let(:root_key_handle)           { double('Root Key Handle') }
+    let(:subkey_handle)             { double('Subkey Handle') }
+    before :example do
+      allow(winreg).to receive_messages(
+        :bind           => nil,
+        :open_root_key  => root_key_handle,
+        :open_key       => subkey_handle,
+        :set_key_security => nil,
+        :close_key      => nil
+      )
+    end
+
+    it 'binds a DCERPC connection to the expected remote endpoint' do
+      winreg.set_key_security_descriptor(key, security_descriptor)
+      expect(winreg).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Winreg)
+    end
+
+    it 'does not bind a DCERPC connection if #bind argument is false' do
+      winreg.set_key_security_descriptor(key, security_descriptor, bind: false)
+      expect(winreg).to_not have_received(:bind)
+    end
+
+    it 'opens the expected root key' do
+      winreg.set_key_security_descriptor(key, security_descriptor)
+      expect(winreg).to have_received(:open_root_key).with(root_key)
+    end
+
+    it 'opens the expected registry key' do
+      winreg.set_key_security_descriptor(key, security_descriptor)
+      expect(winreg).to have_received(:open_key).with(root_key_handle, sub_key)
+    end
+
+    it 'calls #set_key_security with the expected arguments' do
+      winreg.set_key_security_descriptor(key, security_descriptor)
+      security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION
+      expect(winreg).to have_received(:set_key_security).with(subkey_handle, security_descriptor, security_information)
+    end
+
+    context 'with a non-default security informaiton' do
+      it 'calls #get_key_security with the expected arguments' do
+        security_information = RubySMB::Field::SecurityDescriptor::GROUP_SECURITY_INFORMATION
+        winreg.set_key_security_descriptor(key, security_descriptor, security_information)
+        expect(winreg).to have_received(:set_key_security).with(subkey_handle, security_descriptor, security_information)
+      end
+    end
+  end
+
+  describe '#set_key_security' do
+    let(:handle)                    { double('Handle') }
+    let(:set_key_security_request)  { double('GetKeySecurity Request') }
+    let(:response)                  { '00000000'.unhexlify }
+    let(:security_descriptor) {
+      '0100048014000000240000000000000030000000010200000000000520000000200200'\
+      '0001010000000000051200000002007c0005000000000214003f000f00010100000000'\
+      '0005120000000002180000000600010200000000000520000000200200000002180009'\
+      '0006000102000000000005200000002002000000021800090006000102000000000005'\
+      '2000000020020000000218000900060001020000000000052000000020020000'.unhexlify
+    }
+    before :example do
+      allow(described_class::SetKeySecurityRequest).to receive(:new).and_return(set_key_security_request)
+      allow(winreg).to receive(:dcerpc_request).and_return(response)
+    end
+
+    it 'create the expected SetKeySecurityRequest packet with the default options' do
+      opts = {
+        hkey: handle,
+        security_information: RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION,
+        prpc_security_descriptor: {
+          lp_security_descriptor: security_descriptor.bytes,
+          cb_in_security_descriptor: security_descriptor.size,
+          cb_out_security_descriptor: security_descriptor.size
+        }
+      }
+      winreg.set_key_security(handle, security_descriptor)
+      expect(described_class::SetKeySecurityRequest).to have_received(:new).with(opts)
+    end
+
+    it 'create the expected SaveKeyRequest packet with custom options' do
+      security_information = RubySMB::Field::SecurityDescriptor::GROUP_SECURITY_INFORMATION
+      opts = {
+        hkey:                   handle,
+        security_information:   security_information,
+        prpc_security_descriptor: {
+          lp_security_descriptor: security_descriptor.bytes,
+          cb_in_security_descriptor: security_descriptor.size,
+          cb_out_security_descriptor: security_descriptor.size
+        }
+      }
+      winreg.set_key_security(handle, security_descriptor, security_information)
+      expect(described_class::SetKeySecurityRequest).to have_received(:new).with(opts)
+    end
+
+    it 'sends the expected dcerpc request' do
+      winreg.set_key_security(handle, security_descriptor)
+      expect(winreg).to have_received(:dcerpc_request).with(set_key_security_request)
+    end
+
+    it 'creates a SetKeySecurityResponse structure from the expected dcerpc response' do
+      expect(described_class::SetKeySecurityResponse).to receive(:read).with(response).and_call_original
+      winreg.set_key_security(handle, security_descriptor)
+    end
+
+    context 'when an IOError occurs while parsing the response' do
+      it 'raises a RubySMB::Dcerpc::Error::InvalidPacket' do
+        allow(described_class::SetKeySecurityResponse).to receive(:read).and_raise(IOError)
+        expect { winreg.set_key_security(handle, security_descriptor) }.to raise_error(RubySMB::Dcerpc::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response error status is not WindowsError::Win32::ERROR_SUCCESS' do
+      it 'raises a RubySMB::Dcerpc::Error::WinregError' do
+        response[-4..-1] = [WindowsError::Win32::ERROR_INVALID_DATA.value].pack('V')
+        expect { winreg.set_key_security(handle, security_descriptor) }.to raise_error(RubySMB::Dcerpc::Error::WinregError)
+      end
+    end
+
+    it 'returns the expected error status' do
+      expect(winreg.set_key_security(handle, security_descriptor)).to eq(WindowsError::Win32::ERROR_SUCCESS)
+    end
+  end
+
+
+
 end

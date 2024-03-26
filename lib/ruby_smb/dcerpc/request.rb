@@ -18,22 +18,24 @@ module RubySMB
       choice :stub, label: 'Stub', selection: -> { @obj.parent.get_parameter(:endpoint) || '' } do
         string 'Encrypted'
         choice 'Winreg', selection: -> { opnum } do
-          open_root_key_request  Winreg::OPEN_HKCR, opnum: Winreg::OPEN_HKCR
-          open_root_key_request  Winreg::OPEN_HKCU, opnum: Winreg::OPEN_HKCU
-          open_root_key_request  Winreg::OPEN_HKLM, opnum: Winreg::OPEN_HKLM
-          open_root_key_request  Winreg::OPEN_HKPD, opnum: Winreg::OPEN_HKPD
-          open_root_key_request  Winreg::OPEN_HKU,  opnum: Winreg::OPEN_HKU
-          open_root_key_request  Winreg::OPEN_HKCC, opnum: Winreg::OPEN_HKCC
-          open_root_key_request  Winreg::OPEN_HKPT, opnum: Winreg::OPEN_HKPT
-          open_root_key_request  Winreg::OPEN_HKPN, opnum: Winreg::OPEN_HKPN
-          close_key_request      Winreg::REG_CLOSE_KEY
-          enum_key_request       Winreg::REG_ENUM_KEY
-          enum_value_request     Winreg::REG_ENUM_VALUE
-          open_key_request       Winreg::REG_OPEN_KEY
-          query_info_key_request Winreg::REG_QUERY_INFO_KEY
-          query_value_request    Winreg::REG_QUERY_VALUE
-          create_key_request     Winreg::REG_CREATE_KEY
-          save_key_request       Winreg::REG_SAVE_KEY
+          open_root_key_request     Winreg::OPEN_HKCR, opnum: Winreg::OPEN_HKCR
+          open_root_key_request     Winreg::OPEN_HKCU, opnum: Winreg::OPEN_HKCU
+          open_root_key_request     Winreg::OPEN_HKLM, opnum: Winreg::OPEN_HKLM
+          open_root_key_request     Winreg::OPEN_HKPD, opnum: Winreg::OPEN_HKPD
+          open_root_key_request     Winreg::OPEN_HKU,  opnum: Winreg::OPEN_HKU
+          open_root_key_request     Winreg::OPEN_HKCC, opnum: Winreg::OPEN_HKCC
+          open_root_key_request     Winreg::OPEN_HKPT, opnum: Winreg::OPEN_HKPT
+          open_root_key_request     Winreg::OPEN_HKPN, opnum: Winreg::OPEN_HKPN
+          close_key_request         Winreg::REG_CLOSE_KEY
+          enum_key_request          Winreg::REG_ENUM_KEY
+          enum_value_request        Winreg::REG_ENUM_VALUE
+          open_key_request          Winreg::REG_OPEN_KEY
+          query_info_key_request    Winreg::REG_QUERY_INFO_KEY
+          query_value_request       Winreg::REG_QUERY_VALUE
+          create_key_request        Winreg::REG_CREATE_KEY
+          save_key_request          Winreg::REG_SAVE_KEY
+          get_key_security_request  Winreg::REG_GET_KEY_SECURITY
+          set_key_security_request  Winreg::REG_SET_KEY_SECURITY
           string                 :default
         end
         choice 'Netlogon', selection: -> { opnum } do

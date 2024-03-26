@@ -16,10 +16,12 @@ module RubySMB
       REG_CREATE_KEY        = 0x06
       REG_ENUM_KEY          = 0x09
       REG_ENUM_VALUE        = 0x0a
+      REG_GET_KEY_SECURITY  = 0x0c
       REG_OPEN_KEY          = 0x0f
       REG_QUERY_INFO_KEY    = 0x10
       REG_QUERY_VALUE       = 0x11
       REG_SAVE_KEY          = 0x14
+      REG_SET_KEY_SECURITY  = 0x15
       OPEN_HKCC             = 0x1b
       OPEN_HKPT             = 0x20
       OPEN_HKPN             = 0x21
@@ -43,6 +45,10 @@ module RubySMB
       require 'ruby_smb/dcerpc/winreg/create_key_response'
       require 'ruby_smb/dcerpc/winreg/save_key_request'
       require 'ruby_smb/dcerpc/winreg/save_key_response'
+      require 'ruby_smb/dcerpc/winreg/get_key_security_request'
+      require 'ruby_smb/dcerpc/winreg/get_key_security_response'
+      require 'ruby_smb/dcerpc/winreg/set_key_security_request'
+      require 'ruby_smb/dcerpc/winreg/set_key_security_response'
 
       ROOT_KEY_MAP = {
         "HKEY_CLASSES_ROOT"         => OPEN_HKCR,
@@ -105,10 +111,7 @@ module RubySMB
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
       def open_key(handle, sub_key)
         openkey_request_packet = RubySMB::Dcerpc::Winreg::OpenKeyRequest.new(hkey: handle, lp_sub_key: sub_key)
-        openkey_request_packet.sam_desired.read_control = 1
-        openkey_request_packet.sam_desired.key_query_value = 1
-        openkey_request_packet.sam_desired.key_enumerate_sub_keys = 1
-        openkey_request_packet.sam_desired.key_notify = 1
+        openkey_request_packet.sam_desired.maximum_allowed = 1
         response = dcerpc_request(openkey_request_packet)
         begin
           open_key_response = RubySMB::Dcerpc::Winreg::OpenKeyResponse.read(response)
@@ -124,14 +127,16 @@ module RubySMB
       end
 
       # Retrieve the data associated with the named value of a specified
-      # registry open key.
+      # registry open key. This will also return the type if required.
       #
       # @param handle [Ndr::NdrContextHandle] the handle for the key
       # @param value_name [String] the name of the value
+      # @param value_name [Boolean] also return the data type if set to true
       # @return [String] the data of the value entry
+      # @return [Array] if `type` is true, an array containing the data type and the actual data of the value entry
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a QueryValueResponse packet
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
-      def query_value(handle, value_name)
+      def query_value(handle, value_name, type: false)
         query_value_request_packet = RubySMB::Dcerpc::Winreg::QueryValueRequest.new(hkey: handle, lp_value_name: value_name)
         query_value_request_packet.lp_type = 0
         query_value_request_packet.lpcb_data = 0
@@ -161,7 +166,11 @@ module RubySMB
             "#{WindowsError::Win32.find_by_retval(query_value_response.error_status.value).join(',')}"
         end
 
-        query_value_response.data
+        if type
+          [query_value_response.lp_type, query_value_response.data]
+        else
+          query_value_response.data
+        end
       end
 
       # Close the handle to the registry key.
@@ -323,6 +332,7 @@ module RubySMB
       # exists, false otherwise.
       #
       # @param key [String] the registry key to check
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
       # @return [Boolean]
       def has_registry_key?(key, bind: true)
         bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
@@ -345,6 +355,7 @@ module RubySMB
       #
       # @param key [String] the registry key
       # @param value_name [String] the name of the value to read
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
       # @return [String] the data of the value entry
       def read_registry_key_value(key, value_name, bind: true)
         bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
@@ -363,6 +374,7 @@ module RubySMB
       # is provided, it enumerates its subkeys.
       #
       # @param key [String] the registry key
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
       # @return [Array<String>] the subkeys
       def enum_registry_key(key, bind: true)
         bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
@@ -389,6 +401,7 @@ module RubySMB
       # Enumerate the values for the specified registry key.
       #
       # @param key [String] the registry key
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
       # @return [Array<String>] the values
       def enum_registry_values(key, bind: true)
         bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
@@ -410,6 +423,108 @@ module RubySMB
       ensure
         close_key(subkey_handle) if subkey_handle
         close_key(root_key_handle) if root_key_handle && root_key_handle != subkey_handle
+      end
+
+
+      # Retrieve the security descriptor for the given registry key handle.
+      #
+      # @param handle [String] the handle to the registry key
+      # @param security_information [] the security information to query (see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/23e75ca3-98fd-4396-84e5-86cd9d40d343). These constants are defined in the `RubySMB::Field::SecurityDescriptor` class
+      # @return [String] The security descriptor as a byte stream
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a GetKeySecurityResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def get_key_security(handle, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION)
+        get_key_security_request = RubySMB::Dcerpc::Winreg::GetKeySecurityRequest.new(
+          hkey: handle,
+          security_information: security_information,
+          prpc_security_descriptor_in: { cb_in_security_descriptor: 4096 }
+        )
+        response = dcerpc_request(get_key_security_request)
+        begin
+          get_key_security_response = RubySMB::Dcerpc::Winreg::GetKeySecurityResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the GetKeySecurity response"
+        end
+        unless get_key_security_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          raise RubySMB::Dcerpc::Error::WinregError, "Error returned when querying information: "\
+            "#{WindowsError::Win32.find_by_retval(get_key_security_response.error_status.value).join(',')}"
+        end
+
+        get_key_security_response.prpc_security_descriptor_out.lp_security_descriptor.to_a.pack('C*')
+      end
+
+      # Retrieve the security descriptor for the given key.
+      #
+      # @param key [String] the registry key
+      # @param security_information [] the security information to query (see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/23e75ca3-98fd-4396-84e5-86cd9d40d343). These constants are defined in the `RubySMB::Field::SecurityDescriptor` class
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
+      # @return [String] The security descriptor as a byte stream
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a GetKeySecurityResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def get_key_security_descriptor(key, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
+
+        root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
+        root_key_handle = open_root_key(root_key)
+        subkey_handle = open_key(root_key_handle, sub_key)
+        get_key_security(subkey_handle, security_information)
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
+      end
+
+      # Set the security descriptor for the given registry key handle.
+      #
+      # @param handle [String] the handle to the registry key
+      # @param security_descriptor [String] the new security descriptor to set as a byte stream
+      # @param security_information [] the security information to query (see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/23e75ca3-98fd-4396-84e5-86cd9d40d343). These constants are defined in the `RubySMB::Field::SecurityDescriptor` class
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
+      # @return [Integer] The error status returned by the DCERPC call
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a SetKeySecurityResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def set_key_security(handle, security_descriptor, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION)
+        set_key_security_request = RubySMB::Dcerpc::Winreg::SetKeySecurityRequest.new(
+          hkey: handle,
+          security_information: security_information,
+          prpc_security_descriptor: {
+            lp_security_descriptor: security_descriptor.bytes,
+            cb_in_security_descriptor: security_descriptor.b.size,
+            cb_out_security_descriptor: security_descriptor.b.size
+          }
+        )
+        response = dcerpc_request(set_key_security_request)
+        begin
+          set_key_security_response = RubySMB::Dcerpc::Winreg::SetKeySecurityResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, "Error reading the SetKeySecurity response"
+        end
+        unless set_key_security_response.error_status == WindowsError::Win32::ERROR_SUCCESS
+          raise RubySMB::Dcerpc::Error::WinregError, "Error returned when setting the registry key: "\
+            "#{WindowsError::Win32.find_by_retval(set_key_security_response.error_status.value).join(',')}"
+        end
+
+        set_key_security_response.error_status
+      end
+
+      # Set the security descriptor for the given key.
+      #
+      # @param key [String] the registry key
+      # @param security_descriptor [String] the new security descriptor to set as a byte stream
+      # @param security_information [] the security information to query (see https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/23e75ca3-98fd-4396-84e5-86cd9d40d343). These constants are defined in the `RubySMB::Field::SecurityDescriptor` class
+      # @param bind [Boolean] Bind to the winreg endpoint if true (default)
+      # @return [Integer] The error status returned by the DCERPC call
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a SetKeySecurityResponse packet
+      # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
+      def set_key_security_descriptor(key, security_descriptor, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION, bind: true)
+        bind(endpoint: RubySMB::Dcerpc::Winreg) if bind
+
+        root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
+        root_key_handle = open_root_key(root_key)
+        subkey_handle = open_key(root_key_handle, sub_key)
+        set_key_security(subkey_handle, security_descriptor, security_information)
+      ensure
+        close_key(subkey_handle) if subkey_handle
+        close_key(root_key_handle) if root_key_handle
       end
 
     end

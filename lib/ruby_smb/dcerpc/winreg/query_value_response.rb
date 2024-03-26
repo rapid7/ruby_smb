@@ -27,7 +27,7 @@ module RubySMB
           case lp_type
           when 1,2
             bytes.force_encoding('utf-16le').strip
-          when 3
+          when 0,3 # 0 is undefined type, let's consider an array of bytes
             bytes
           when 4
             bytes.unpack('V').first

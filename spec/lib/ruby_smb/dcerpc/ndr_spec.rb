@@ -1352,6 +1352,15 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarString do
     }
     let(:value) { 'ABCD' }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: false, char_size: 1, null_terminated: false do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
@@ -1368,6 +1377,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarStringz do
     }
     let(:value) { 'ABCD' }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: false, char_size: 1, null_terminated: true do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x01\x00\x00\x00"\
+        "\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
@@ -1383,6 +1402,15 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideString do
     }
     let(:value) { 'ABCD'.encode('utf-16le') }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: false, char_size: 2, null_terminated: false do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
@@ -1397,6 +1425,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrVarWideStringz do
       "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
     }
     let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: false, char_size: 2, null_terminated: true do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x01\x00\x00\x00"\
+        "\x00\x00".b
+      }
+      let(:value) { '' }
+    end
   end
 end
 
@@ -1415,6 +1453,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarString do
     }
     let(:value) { 'ABCD' }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: true, char_size: 1, null_terminated: false do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
@@ -1432,6 +1480,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarStringz do
     }
     let(:value) { 'ABCD' }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: true, char_size: 1, null_terminated: true do
+      let(:binary_stream) {
+        "\x01\x00\x00\x00"\
+        "\x00\x00\x00\x00"\
+        "\x01\x00\x00\x00"\
+        "\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
@@ -1448,6 +1507,16 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideString do
     }
     let(:value) { 'ABCD'.encode('utf-16le') }
   end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: true, char_size: 2, null_terminated: false do
+      let(:binary_stream) {
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00"\
+        "\x00\x00\x00\x00".b
+      }
+      let(:value) { '' }
+    end
+  end
 end
 
 RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
@@ -1463,6 +1532,17 @@ RSpec.describe RubySMB::Dcerpc::Ndr::NdrConfVarWideStringz do
       "\x41\x00\x42\x00\x43\x00\x44\x00\x00\x00".b
     }
     let(:value) { 'ABCD'.encode('utf-16le') }
+  end
+  context 'with an empty string' do
+    it_behaves_like 'a NDR String', conformant: true, char_size: 1, null_terminated: true do
+      let(:binary_stream) {
+        "\x01\x00\x00\x00"\
+        "\x00\x00\x00\x00"\
+        "\x01\x00\x00\x00"\
+        "\x00\x00".b
+      }
+      let(:value) { '' }
+    end
   end
 end
 
