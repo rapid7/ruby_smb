@@ -92,6 +92,8 @@ module RubySMB
             update_preauth_hash(response)
           end
 
+          @smb2_related_operations_state[:session_id] = session_id
+
           response
         end
 

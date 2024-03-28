@@ -75,6 +75,8 @@ module RubySMB
           session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)
           response.maximal_access = share_processor.maximal_access
 
+          @smb2_related_operations_state[:tree_id] = tree_id
+
           response
         end
 

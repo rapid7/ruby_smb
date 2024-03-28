@@ -36,6 +36,7 @@ module RubySMB
 
         # session id => session instance
         @session_table = {}
+        @smb2_related_operations_state = {}
       end
 
       #
@@ -334,9 +335,23 @@ module RubySMB
       # @raise [NotImplementedError] Raised when the requested operation is not
       #   supported.
       def handle_smb2(raw_request, header)
-        session = @session_table[header.session_id]
+        session_required = !(header.command == SMB2::Commands::SESSION_SETUP && header.session_id == 0)
 
-        if session.nil? && !(header.command == SMB2::Commands::SESSION_SETUP && header.session_id == 0)
+        if header.flags.related_operations == 0
+          @smb2_related_operations_state.clear
+          session = @session_table[header.session_id]
+          @smb2_related_operations_state[:session_id] = header.session_id
+        else
+          # see: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-smb2/46dd4182-62d3-4e30-9fe5-e2ec124edca1
+          if @smb2_related_operations_state.fetch(:session_id) == 0 && session_required
+            response = SMB2::Packet::ErrorPacket.new
+            response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER
+            return response
+          end
+          session = @session_table[@smb2_related_operations_state[:session_id]]
+        end
+
+        if session.nil? && session_required
           response = SMB2::Packet::ErrorPacket.new
           response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_USER_SESSION_DELETED
           return response
@@ -387,7 +402,13 @@ module RubySMB
         end
 
         logger.debug("Dispatching request to #{dispatcher} (session: #{session.inspect})")
-        send(dispatcher, request, session)
+        response = send(dispatcher, request, session)
+
+        if response.is_a?(SMB2::Packet::ErrorPacket)
+          @smb2_related_operations_state.clear
+        end
+
+        response
       end
 
       def _handle_smb2(raw_request)
