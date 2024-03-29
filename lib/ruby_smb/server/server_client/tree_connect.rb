@@ -41,6 +41,8 @@ module RubySMB
         end
 
         def do_tree_connect_smb2(request, session)
+          @smb2_related_operations_state.delete(:tree_id)
+
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1
           if session.tree_connect_table.length >= MAX_TREE_CONNECTIONS

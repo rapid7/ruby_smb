@@ -53,10 +53,12 @@ module RubySMB
         end
 
         def do_session_setup_smb2(request, session)
+          @smb2_related_operations_state.delete(:session_id)
+
           session_id = request.smb2_header.session_id
           if session_id == 0
             session_id = rand(1..0xfffffffe)
-            session = @session_table[session_id] = Session.new(session_id)
+            session = Session.new(session_id)
           else
             session = @session_table[session_id]
             if session.nil?
@@ -92,6 +94,8 @@ module RubySMB
             update_preauth_hash(response)
           end
 
+
+          @session_table[session_id] = session
           @smb2_related_operations_state[:session_id] = session_id
 
           response
