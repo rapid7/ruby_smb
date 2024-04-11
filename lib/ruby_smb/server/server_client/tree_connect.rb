@@ -41,6 +41,8 @@ module RubySMB
         end
 
         def do_tree_connect_smb2(request, session)
+          @smb2_related_operations_state.delete(:tree_id)
+
           response = RubySMB::SMB2::Packet::TreeConnectResponse.new
           response.smb2_header.credits = 1
           if session.tree_connect_table.length >= MAX_TREE_CONNECTIONS
@@ -74,6 +76,8 @@ module RubySMB
           response.smb2_header.tree_id = tree_id
           session.tree_connect_table[tree_id] = share_processor = share_provider.new_processor(self, session)
           response.maximal_access = share_processor.maximal_access
+
+          @smb2_related_operations_state[:tree_id] = tree_id
 
           response
         end
