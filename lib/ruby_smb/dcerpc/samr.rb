@@ -16,6 +16,7 @@ module RubySMB
       SAMR_LOOKUP_DOMAIN_IN_SAM_SERVER     = 0x0005
       SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER = 0x0006
       SAMR_OPEN_DOMAIN                     = 0x0007
+      SAMR_QUERY_INFORMATION_DOMAIN        = 0x0008
       SAMR_ENUMERATE_USERS_IN_DOMAIN       = 0x000D
       SAMR_GET_ALIAS_MEMBERSHIP            = 0x0010
       SAMR_LOOKUP_NAMES_IN_DOMAIN          = 0x0011
@@ -138,6 +139,20 @@ module RubySMB
       USER_ALL_PASSWORDEXPIRED     = 0x08000000
       USER_ALL_SECURITYDESCRIPTOR  = 0x10000000
       USER_ALL_UNDEFINED_MASK      = 0xC0000000
+
+      # [2.2.3.16 DOMAIN_INFORMATION_CLASS Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/6b0dff90-5ac0-429a-93aa-150334adabf6)
+      DOMAIN_PASSWORD_INFORMATION    = 1
+      DOMAIN_GENERAL_INFORMATION     = 2
+      DOMAIN_LOGOFF_INFORMATION      = 3
+      DOMAIN_OEM_INFORMATION         = 4
+      DOMAIN_NAME_INFORMATION        = 5
+      DOMAIN_REPLICATION_INFORMATION = 6
+      DOMAIN_SERVER_ROLE_INFORMATION = 7
+      DOMAIN_MODIFIED_INFORMATION    = 8
+      DOMAIN_STATE_INFORMATION       = 9
+      DOMAIN_GENERAL_INFORMATION2    = 11
+      DOMAIN_LOCKOUT_INFORMATION     = 12
+      DOMAIN_MODIFIED_INFORMATION2   = 13
 
       # [2.2.6.28 USER_INFORMATION_CLASS Values](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/6b0dff90-5ac0-429a-93aa-150334adabf6)
       USER_GENERAL_INFORMATION       = 1
@@ -474,6 +489,7 @@ module RubySMB
       end
 
       require 'ruby_smb/dcerpc/samr/rpc_sid'
+      require 'ruby_smb/dcerpc/samr/sampr_domain_info_buffer'
 
       require 'ruby_smb/dcerpc/samr/samr_connect_request'
       require 'ruby_smb/dcerpc/samr/samr_connect_response'
@@ -503,6 +519,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_set_information_user2_response'
       require 'ruby_smb/dcerpc/samr/samr_delete_user_request'
       require 'ruby_smb/dcerpc/samr/samr_delete_user_response'
+      require 'ruby_smb/dcerpc/samr/samr_query_information_domain_request'
+      require 'ruby_smb/dcerpc/samr/samr_query_information_domain_response'
 
       # Returns a handle to a server object.
       #
@@ -979,7 +997,24 @@ module RubySMB
         samr_get_groups_for_user_reponse.groups.groups.to_ary
       end
 
+      def samr_query_information_domain(domain_handle:, info_class:)
+        samr_request = SamrQueryInformationDomainRequest.new(
+          domain_handle: domain_handle,
+          domain_information_class: info_class
+        )
+        response = dcerpc_request(samr_request)
+        begin
+          samr_response = SamrQueryInformationDomainResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrQueryInformationDomainResponse'
+        end
+        unless samr_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while querying domain information: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_response.error_status.value).join(',')}"
+        end
+        samr_response.buffer
+      end
     end
   end
 end
-
