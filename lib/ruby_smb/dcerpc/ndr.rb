@@ -66,12 +66,16 @@ module RubySMB::Dcerpc::Ndr
   end
 
   # [Integers](https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_02_05)
-  # This will define the four size Integers accepted by the NDR protocol:
+  # This will define the eight Integers accepted by the NDR protocol:
+  # - NdrInt8
   # - NdrUint8
+  # - NdrInt16
   # - NdrUint16
+  # - NdrInt32
   # - NdrUint32
+  # - NdrInt64
   # - NdrUint64
-  {Uint8: 1, Uint16le: 2, Uint32le: 4, Uint64le: 8}.each do |klass, nb_bytes|
+  {Int8: 1, Uint8: 1, Int16le: 2, Uint16le: 2, Int32le: 4, Uint32le: 4, Int64le: 8, Uint64le: 8}.each do |klass, nb_bytes|
     new_klass_name = "Ndr#{klass.to_s.chomp('le')}"
     unless self.const_defined?(new_klass_name)
       new_klass = Class.new(BinData.const_get(klass)) do
