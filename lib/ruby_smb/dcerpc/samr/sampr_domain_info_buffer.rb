@@ -48,7 +48,7 @@ module RubySMB
         rpc_unicode_string :oem_information
         rpc_unicode_string :domain_name
         rpc_unicode_string :replica_source_node_name
-        ndr_int64          :domain_modified_count # change to ndr_int64
+        ndr_int64          :domain_modified_count
         ndr_uint32         :domain_server_state
         ndr_uint32         :domain_server_role
         ndr_uint8          :uas_compatibility_required
@@ -65,6 +65,34 @@ module RubySMB
         ndr_int64  :force_logoff
       end
 
+      # [2.2.3.13 SAMPR_DOMAIN_NAME_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5131d2c0-04c7-4c1b-8fd5-0b0b6cfa6c24)
+      class SamprDomainNameInformation < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        rpc_unicode_string :domain_name
+      end
+
+      # [2.2.3.8 DOMAIN_MODIFIED_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5131d2c0-04c7-4c1b-8fd5-0b0b6cfa6c24)
+      class SamprDomainModifiedInformation < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_int64 :domain_modified_count
+        ndr_int64 :creation_time
+      end
+
+      # [2.2.3.9 DOMAIN_MODIFIED_INFORMATION2](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/47eea81b-5fee-4925-b5c1-fc594dcc8dff)
+      class SamprDomainModifiedInformation2 < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_int64 :domain_modified_count
+        ndr_int64 :creation_time
+        ndr_int64 :modified_count_at_last_promotion
+      end
+
+      # [2.2.3.17 SAMPR_DOMAIN_INFO_BUFFER](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/1adc2142-dbb8-4554-aa24-010c713698bf)
       class SamprDomainInfoBuffer < BinData::Record
         default_parameters byte_align: 4
         endian :little
@@ -79,6 +107,12 @@ module RubySMB
           sampr_domain_lockout_information     DOMAIN_LOCKOUT_INFORMATION
           sampr_domain_logoff_information      DOMAIN_LOGOFF_INFORMATION
           sampr_domain_general_information     DOMAIN_GENERAL_INFORMATION
+          sampr_domain_name_information        DOMAIN_NAME_INFORMATION
+          sampr_domain_modified_information    DOMAIN_MODIFIED_INFORMATION
+          sampr_domain_modified_information2   DOMAIN_MODIFIED_INFORMATION2
+          # DOMAIN_REPLICATION_INFORMATION
+          # DOMAIN_GENERAL_INFORMATION2
+          # DOMAIN_STATE_INFORMATION
         end
       end
 
