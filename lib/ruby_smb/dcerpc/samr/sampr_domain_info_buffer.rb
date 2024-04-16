@@ -73,7 +73,7 @@ module RubySMB
         rpc_unicode_string :domain_name
       end
 
-      # [2.2.3.8 DOMAIN_MODIFIED_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5131d2c0-04c7-4c1b-8fd5-0b0b6cfa6c24)
+      # [2.2.3.8 DOMAIN_MODIFIED_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/e1da9680-8968-423b-98c0-fbdcf1535ef9)
       class SamprDomainModifiedInformation < Ndr::NdrStruct
         default_parameters byte_align: 4
         endian :little
@@ -90,6 +90,33 @@ module RubySMB
         ndr_int64 :domain_modified_count
         ndr_int64 :creation_time
         ndr_int64 :modified_count_at_last_promotion
+      end
+
+      # [2.2.3.3 DOMAIN_STATE_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/f224edcf-8d4e-4294-b0c3-b0eda384c402)
+      class SamprDomainStateInformation < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        ndr_uint16 :domain_server_state
+      end
+
+      # [2.2.3.11 SAMPR_DOMAIN_GENERAL_INFORMATION2](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9a663cf2-0923-4959-b2c5-2e25c19735ff)
+      class SamprDomainGeneralInformation2 < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        sampr_domain_general_information :i1
+        ndr_uint64  :lockout_duration
+        ndr_uint64  :lockout_observation_window
+        ndr_uint16  :lockout_threshold
+      end
+
+      # [2.2.3.14 SAMPR_DOMAIN_REPLICATION_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/c9293797-e11d-4098-be12-bf9e1de91f20)
+      class SamprDomainReplicationInformation < Ndr::NdrStruct
+        default_parameters byte_align: 4
+        endian :little
+
+        rpc_unicode_string :replica_node_name
       end
 
       # [2.2.3.17 SAMPR_DOMAIN_INFO_BUFFER](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/1adc2142-dbb8-4554-aa24-010c713698bf)
@@ -110,9 +137,9 @@ module RubySMB
           sampr_domain_name_information        DOMAIN_NAME_INFORMATION
           sampr_domain_modified_information    DOMAIN_MODIFIED_INFORMATION
           sampr_domain_modified_information2   DOMAIN_MODIFIED_INFORMATION2
-          # DOMAIN_REPLICATION_INFORMATION
-          # DOMAIN_GENERAL_INFORMATION2
-          # DOMAIN_STATE_INFORMATION
+          sampr_domain_state_information       DOMAIN_STATE_INFORMATION
+          sampr_domain_general_information2    DOMAIN_GENERAL_INFORMATION2
+          sampr_domain_replication_information DOMAIN_REPLICATION_INFORMATION
         end
       end
 

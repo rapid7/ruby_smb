@@ -997,6 +997,12 @@ module RubySMB
         samr_get_groups_for_user_reponse.groups.groups.to_ary
       end
 
+      # Returns domain information.
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a domain object
+      # @param info_class [Integer] The class of information to retrieve
+      # @return [BinData::Choice] The requested information.
       def samr_query_information_domain(domain_handle:, info_class:)
         samr_request = SamrQueryInformationDomainRequest.new(
           domain_handle: domain_handle,
@@ -1013,7 +1019,7 @@ module RubySMB
             "Error returned while querying domain information: "\
             "#{WindowsError::NTStatus.find_by_retval(samr_response.error_status.value).join(',')}"
         end
-        samr_response.buffer
+        samr_response.buffer.buffer
       end
     end
   end
