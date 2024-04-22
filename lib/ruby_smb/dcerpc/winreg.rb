@@ -71,6 +71,8 @@ module RubySMB
 
       BUFFER_SIZE = 1024
 
+      RegValue = Struct.new(:type, :data)
+
       # Open the registry root key and return a handle for it. The key can be
       # either a long format (e.g. HKEY_LOCAL_MACHINE) or a short format
       # (e.g. HKLM)
@@ -132,11 +134,10 @@ module RubySMB
       # @param handle [Ndr::NdrContextHandle] the handle for the key
       # @param value_name [String] the name of the value
       # @param value_name [Boolean] also return the data type if set to true
-      # @return [String] the data of the value entry
-      # @return [Array] if `type` is true, an array containing the data type and the actual data of the value entry
+      # @return [RegValue] a RegValue struct containing the data type and the actual data of the value entry
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a QueryValueResponse packet
       # @raise [RubySMB::Dcerpc::Error::WinregError] if the response error status is not ERROR_SUCCESS
-      def query_value(handle, value_name, type: false)
+      def query_value(handle, value_name)
         query_value_request_packet = RubySMB::Dcerpc::Winreg::QueryValueRequest.new(hkey: handle, lp_value_name: value_name)
         query_value_request_packet.lp_type = 0
         query_value_request_packet.lpcb_data = 0
@@ -166,11 +167,7 @@ module RubySMB
             "#{WindowsError::Win32.find_by_retval(query_value_response.error_status.value).join(',')}"
         end
 
-        if type
-          [query_value_response.lp_type, query_value_response.data]
-        else
-          query_value_response.data
-        end
+        RegValue.new(query_value_response.lp_type, query_value_response.data)
       end
 
       # Close the handle to the registry key.
@@ -363,8 +360,8 @@ module RubySMB
         root_key, sub_key = key.gsub(/\//, '\\').split('\\', 2)
         root_key_handle = open_root_key(root_key)
         subkey_handle = open_key(root_key_handle, sub_key)
-        value = query_value(subkey_handle, value_name)
-        value
+        reg_value = query_value(subkey_handle, value_name)
+        reg_value.data
       ensure
         close_key(subkey_handle) if subkey_handle
         close_key(root_key_handle) if root_key_handle

@@ -25,9 +25,11 @@ module RubySMB
         def data
           bytes = lp_data.to_a.pack('C*')
           case lp_type
+          when 0 # 0 is undefined type, let's consider an array of bytes
+            bytes
           when 1,2
             bytes.force_encoding('utf-16le').strip
-          when 0,3 # 0 is undefined type, let's consider an array of bytes
+          when 3
             bytes
           when 4
             bytes.unpack('V').first

@@ -124,12 +124,13 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
   describe '#query_value' do
     let(:handle)                      { double('Handle') }
     let(:value_name)                  { double('Value Name') }
-    let(:query_value_request_packet) { double('Query Value Request Packet #1') }
-    let(:lp_data)                    { double('LpData #2') }
+    let(:query_value_request_packet)  { double('Query Value Request Packet #1') }
+    let(:lp_data)                     { double('LpData #2') }
     let(:response1)                   { double('Response #1') }
     let(:response2)                   { double('Response #2') }
     let(:query_value_response1)       { double('Query Value Response #1') }
     let(:query_value_response2)       { double('Query Value Response #2') }
+    let(:lp_type)                     { double('Type') }
     let(:data)                        { double('Data') }
     let(:lpcb_data)                   { double('LpcbData') }
     let(:max_count)                   { 5 }
@@ -156,8 +157,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
       allow(described_class::QueryValueResponse).to receive(:read).with(response2).and_return(query_value_response2)
       allow(query_value_response1).to receive(:error_status).and_return(WindowsError::Win32::ERROR_SUCCESS)
       allow(query_value_response2).to receive_messages(
-        :error_status => WindowsError::Win32::ERROR_SUCCESS,
-        :data         => data
+        error_status: WindowsError::Win32::ERROR_SUCCESS,
+        lp_type:      lp_type,
+        data:         data
       )
       allow(query_value_response1).to receive(:lpcb_data).and_return(lpcb_data)
       allow(lpcb_data).to receive(:to_i).and_return(max_count)
@@ -226,18 +228,9 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     end
 
     it 'returns the expected response data' do
-      expect(winreg.query_value(handle, value_name)).to eq(data)
+      expect(winreg.query_value(handle, value_name)).to eq(RubySMB::Dcerpc::Winreg::RegValue.new(lp_type, data))
     end
 
-    context 'when the data type is also required' do
-      let(:lp_type) { double('Type') }
-      before :example do
-        allow(query_value_response2).to receive(:lp_type).and_return(lp_type)
-      end
-      it 'returns the expected response type and data' do
-        expect(winreg.query_value(handle, value_name, type: true)).to eq([lp_type, data])
-      end
-    end
   end
 
   describe '#close_key' do
@@ -531,13 +524,14 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     let(:value_name)      { 'registry_value_name' }
     let(:root_key_handle) { double('Root Key Handle') }
     let(:subkey_handle)   { double('Subkey Handle') }
-    let(:value)           { double('Value') }
+    let(:data)            { double('Reg value data') }
+    let(:reg_value)       { RubySMB::Dcerpc::Winreg::RegValue.new(nil, data) }
     before :example do
       allow(winreg).to receive_messages(
         :bind          => nil,
         :open_root_key => root_key_handle,
         :open_key      => subkey_handle,
-        :query_value   => value,
+        :query_value   => reg_value,
         :close_key     => nil
       )
     end
@@ -574,7 +568,7 @@ RSpec.describe RubySMB::Dcerpc::Winreg do
     end
 
     it 'returns expect registry key value' do
-      expect(winreg.read_registry_key_value(key, value_name)).to eq(value)
+      expect(winreg.read_registry_key_value(key, value_name)).to eq(data)
     end
   end
 
