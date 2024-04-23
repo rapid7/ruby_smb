@@ -111,6 +111,14 @@ module RubySMB
           efs_rpc_query_recovery_agents_request Efsrpc::EFS_RPC_QUERY_RECOVERY_AGENTS
           efs_rpc_query_users_on_file_request   Efsrpc::EFS_RPC_QUERY_USERS_ON_FILE
         end
+        choice 'Lsarpc', selection: -> { opnum } do
+          lsar_open_policy_request               Lsarpc::LSAR_OPEN_POLICY
+          lsar_open_policy2_request              Lsarpc::LSAR_OPEN_POLICY2
+          lsar_query_information_policy_request  Lsarpc::LSAR_QUERY_INFORMATION_POLICY
+          lsar_query_information_policy2_request Lsarpc::LSAR_QUERY_INFORMATION_POLICY2
+          lsar_close_handle_request              Lsarpc::LSAR_CLOSE_HANDLE
+          lsar_lookup_sids_request               Lsarpc::LSAR_LOOKUP_SIDS
+        end
         string :default
       end
 
