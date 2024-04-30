@@ -40,6 +40,18 @@ module RubySMB
         end
       end
 
+      def get_key_security_descriptor(host, key, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION)
+        connect_to_winreg(host) do |named_pipe|
+          named_pipe.get_key_security_descriptor(key, security_information)
+        end
+      end
+
+      def set_key_security_descriptor(host, key, security_descriptor, security_information = RubySMB::Field::SecurityDescriptor::OWNER_SECURITY_INFORMATION)
+        connect_to_winreg(host) do |named_pipe|
+          named_pipe.set_key_security_descriptor(key, security_descriptor, security_information)
+        end
+      end
+
     end
   end
 end

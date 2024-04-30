@@ -567,8 +567,11 @@ module RubySMB::Dcerpc::Ndr
     def get_max_count(val)
       if is_a?(BinData::Stringz)
         max_count = val.to_s.strip.length
-        # Only count the terminating NULL byte if the string is not empty
-        max_count += 1 if max_count > 0
+        # Add one to count the terminator. According to
+        # https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04_02,
+        # the NDR String must contain at least one element, the terminator. So,
+        # add one even if it is an empty string.
+        max_count += 1
         return max_count
       else
         return val.to_s.length
@@ -622,8 +625,11 @@ module RubySMB::Dcerpc::Ndr
     def update_actual_count(val)
       if is_a?(BinData::Stringz)
         @actual_count = val.to_s.strip.length
-        # Only count the terminating NULL byte if the string is not empty
-        @actual_count += 1 if @actual_count > 0
+        # Add one to count the terminator. According to
+        # https://pubs.opengroup.org/onlinepubs/9629399/chap14.htm#tagcjh_19_03_04,
+        # the NDR String must contain at least one element, the terminator. So,
+        # add one even if it is an empty string.
+        @actual_count += 1
       else
         @actual_count = val.to_s.length
       end

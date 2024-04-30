@@ -3,6 +3,23 @@ module RubySMB
     # Class representing a SECURITY_DESCRIPTOR as defined in
     # [2.4.6 SECURITY_DESCRIPTOR](https://msdn.microsoft.com/en-us/library/cc230366.aspx)
     class SecurityDescriptor < BinData::Record
+
+      # Security Information as defined in
+      # [2.4.7 SECURITY_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/23e75ca3-98fd-4396-84e5-86cd9d40d343)
+      OWNER_SECURITY_INFORMATION               = 0x00000001
+      GROUP_SECURITY_INFORMATION               = 0x00000002
+      DACL_SECURITY_INFORMATION                = 0x00000004
+      SACL_SECURITY_INFORMATION                = 0x00000008
+      LABEL_SECURITY_INFORMATION               = 0x00000010
+      UNPROTECTED_SACL_SECURITY_INFORMATION    = 0x10000000
+      UNPROTECTED_DACL_SECURITY_INFORMATION    = 0x20000000
+      PROTECTED_SACL_SECURITY_INFORMATION      = 0x40000000
+      PROTECTED_DACL_SECURITY_INFORMATION      = 0x80000000
+      ATTRIBUTE_SECURITY_INFORMATION           = 0x00000020
+      SCOPE_SECURITY_INFORMATION               = 0x00000040
+      PROCESS_TRUST_LABEL_SECURITY_INFORMATION = 0x00000080
+      BACKUP_SECURITY_INFORMATION              = 0x00010000
+
       endian  :little
       uint8   :revision,  label: 'Revision', initial_value: 0x01
       uint8   :sbz1,      label: 'Resource Manager Control Bits'

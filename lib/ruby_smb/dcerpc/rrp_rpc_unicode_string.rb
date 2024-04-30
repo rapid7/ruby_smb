@@ -20,7 +20,7 @@ module RubySMB
         when BinData::Stringz, BinData::String, String
           self.buffer = val.to_s
           val_length = val.strip.length
-          val_length += 1 unless val == ''
+          val_length += 1
           self.buffer_length = val_length * 2
           self.maximum_length = val_length * 2
         else
