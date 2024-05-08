@@ -286,6 +286,20 @@ Configure Wireshark in Debian-based systems to be able to capture traffic withou
 - `sudo python setup.py install`
 - `cd examples && python smbclient.py <USER>:<PASS>@<WINDOWS HOST IP>`
 
+### Microsoft Network Monitor
+
+In situations where WireShark reports some requests/responses as malformed (not parsed correctly), 
+[Microsoft Network Monitor](https://www.microsoft.com/en-us/download/details.aspx?id=4865) can be used instead. 
+For example, the `LookupSids` response is not parsed correctly by WireShark, whereas it is by this tool.
+
+This software can be installed on a Windows machine:
+
+- Download & install the software
+- Open it
+- Click the `Start` button (or press F5) present at the top bar
+
+The SMB requests will be present under `All Traffic -> My Traffic -> System (4)`.
+
 ## License
 
 `ruby_smb` is released under a 3-clause BSD license. See [LICENSE.txt](LICENSE.txt) for full text.
