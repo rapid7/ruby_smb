@@ -47,6 +47,9 @@ module RubySMB
       # Raised when an error is returned during a Epm operation
       class EpmError < DcerpcError; end
 
+      # Raised when an error is returned during an LSARPC operation
+      class LsarpcError < DcerpcError; end
+
       # Raised when an error is returned during a Dfsnm operation
       class DfsnmError < DcerpcError
         include RubySMB::Error::UnexpectedStatusCode::Mixin

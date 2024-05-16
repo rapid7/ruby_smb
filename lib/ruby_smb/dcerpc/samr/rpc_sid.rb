@@ -107,7 +107,7 @@ module RubySMB
           case val
           when String
             elems = val.split('-')
-            raise ArgumentError, "Wrong SID format" unless elems[0].downcase == 's'
+            raise ArgumentError, "Wrong SID format for #{val.inspect}" unless elems[0].downcase == 's'
             self.revision = elems[1].to_i
             self.sub_authority_count = elems[3..-1].size
             self.identifier_authority = [0, 0, 0, 0, 0, elems[2].to_i]
