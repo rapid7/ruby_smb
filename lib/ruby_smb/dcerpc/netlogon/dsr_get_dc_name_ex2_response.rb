@@ -5,14 +5,14 @@ module RubySMB
   module Dcerpc
     module Netlogon
 
-      # [3.5.4.3.1 DsrGetDCNameEx2 (Opnum 34)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/fb8e1146-a045-4c31-98d1-c68507ad5620)
-      class DsrGetDCNameEx2Response < BinData::Record
+      # [3.5.4.3.1 DsrGetDcNameEx2 (Opnum 34)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/fb8e1146-a045-4c31-98d1-c68507ad5620)
+      class DsrGetDcNameEx2Response < BinData::Record
         attr_reader :opnum
 
         endian :little
 
-        domain_controller_info_w_ptr :domain_controller_info
-        ndr_uint32                   :error_status
+        domain_controller_info_w_ptr  :domain_controller_info
+        ndr_uint32                    :error_status
 
         def initialize_instance
           super
