@@ -67,6 +67,7 @@ module RubySMB
       require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_request'
       require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_response'
       require 'ruby_smb/dcerpc/netlogon/dsr_get_dc_name_ex2_request'
+      require 'ruby_smb/dcerpc/netlogon/dsr_get_dc_name_ex2_response'
 
       # Calculate the netlogon session key from the provided shared secret and
       # challenges. The shared secret is an NTLM hash.
