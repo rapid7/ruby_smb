@@ -11,6 +11,7 @@ module RubySMB
       NETR_SERVER_REQ_CHALLENGE = 4
       NETR_SERVER_AUTHENTICATE3 = 26
       NETR_SERVER_PASSWORD_SET2 = 30
+      DSR_GET_DC_NAME_EX2 = 34
 
       # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/3b224201-b531-43e2-8c79-b61f6dea8640
       class LogonsrvHandle < Ndr::NdrWideStringzPtr; end
@@ -65,6 +66,8 @@ module RubySMB
       require 'ruby_smb/dcerpc/netlogon/netr_server_password_set2_response'
       require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_request'
       require 'ruby_smb/dcerpc/netlogon/netr_server_req_challenge_response'
+      require 'ruby_smb/dcerpc/netlogon/dsr_get_dc_name_ex2_request'
+      require 'ruby_smb/dcerpc/netlogon/dsr_get_dc_name_ex2_response'
 
       # Calculate the netlogon session key from the provided shared secret and
       # challenges. The shared secret is an NTLM hash.
