@@ -23,6 +23,8 @@ module RubySMB
       WKSTA_INFO_102 = 0x00000066
       #TODO: WKSTA_INFO_502 = 0x000001F6
 
+      class WkssvcIdentifyHandle < Ndr::NdrWideStringPtr; end
+
 
       require 'ruby_smb/dcerpc/wkssvc/netr_wksta_get_info_request'
       require 'ruby_smb/dcerpc/wkssvc/netr_wksta_get_info_response'
