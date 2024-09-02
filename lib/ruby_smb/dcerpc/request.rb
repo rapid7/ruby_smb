@@ -80,7 +80,8 @@ module RubySMB
           string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do
-          netr_wksta_get_info_request Wkssvc::NETR_WKSTA_GET_INFO
+          netr_wksta_get_info_request  Wkssvc::NETR_WKSTA_GET_INFO
+          netr_wksta_user_enum_request Wkssvc::NETR_WKSTA_USER_ENUM
           string                      :default
         end
         choice 'Epm', selection: -> { opnum } do
