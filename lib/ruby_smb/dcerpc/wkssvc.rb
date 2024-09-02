@@ -35,7 +35,7 @@ module RubySMB
       #
       # @param server_name [optional, String] String that identifies the server (optional
       #   since it is ignored by the server)
-      # @param server_name [optional, Integer] The information level of the data (default: WKSTA_INFO_100)
+      # @param level [optional, Integer] The information level of the data (default: WKSTA_INFO_100)
       # @return [RubySMB::Dcerpc::Wkssvc::WkstaInfo100, RubySMB::Dcerpc::Wkssvc::WkstaInfo101,
       #   RubySMB::Dcerpc::Wkssvc::WkstaInfo102] The structure containing the requested information
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
