@@ -155,9 +155,9 @@ module RubySMB
               their_blob = type3_msg.ntlm_response[digest.digest_length..-1]
 
               ntlmv2_hash = Net::NTLM.ntlmv2_hash(
-                RubySMB::Utils.safe_encode(account.username, 'UTF-16LE'),
-                RubySMB::Utils.safe_encode(account.password, 'UTF-16LE'),
-                RubySMB::Utils.safe_encode(type3_msg.domain, 'UTF-16LE'),  # don't use the account domain because of the special '.' value
+                Net::NTLM::EncodeUtil.encode_utf16le(account.username),
+                Net::NTLM::EncodeUtil.encode_utf16le(account.password),
+                type3_msg.domain.force_encoding('ASCII-8BIT'),  # don't use the account domain because of the special '.' value
                 {client_challenge: their_blob[16...24], unicode: true}
               )
 
