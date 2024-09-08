@@ -9,7 +9,7 @@ module RubySMB
         endian :little
 
         wkssvc_identify_handle       :server_name
-        lpwkssvc_user_enum_structure :user_info
+        wksta_user_enum_structure    :user_info
         ndr_uint32                   :preferred_max_length, initial_value: 0xFFFFFFFF
         ndr_uint32_ptr               :result_handle, initial_value: 0
 

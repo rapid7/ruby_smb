@@ -8,7 +8,7 @@ module RubySMB
 
         endian :little
 
-        lpwkssvc_user_enum_structure :user_info
+        wksta_user_enum_structure   :user_info
         ndr_uint32_ptr               :total_entries
         ndr_uint32_ptr               :result_handle
         ndr_uint32                   :error_status

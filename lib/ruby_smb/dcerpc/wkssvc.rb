@@ -29,21 +29,18 @@ module RubySMB
       WKSTA_USER_INFO_1 = 0x00000001
 
       # [2.2.2.1 WKSSVC_IDENTIFY_HANDLE](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-wkst/9ef94a11-0e5c-49d7-9ac7-68d6f03565de)
-      class WkssvcIdentifyHandle < Ndr::NdrWideStringPtr; end
+      class WkssvcIdentifyHandle < Ndr::NdrWideStringzPtr; end
 
       # [2.2.5.9 WKSTA_USER_INFO_0](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wkst/b7c53c6f-8b92-4e5d-9a2e-6462cb4ef1ac)
-      class UserInfo0 < Ndr::NdrStruct
+      class WkstaUserInfo0 < Ndr::NdrStruct
         default_parameter byte_align: 4
         endian :little
 
         ndr_wide_stringz_ptr :wkui0_username
       end
 
-      class WkstaUserInfo0 < Ndr::NdrConfArray
-        default_parameter type: :user_info0
-      end
-
-      class PwkstaUserInfo0 < WkstaUserInfo0
+      class WkstaUserInfo0ArrayPtr < Ndr::NdrConfArray
+        default_parameter type: :wksta_user_info0
         extend Ndr::PointerClassPlugin
       end
 
@@ -52,8 +49,8 @@ module RubySMB
         default_parameter byte_align: 4
         endian :little
 
-        ndr_uint32        :wkui0_entries_read
-        pwksta_user_info0 :wkui0_buffer
+        ndr_uint32                 :wkui0_entries_read
+        wksta_user_info0_array_ptr :wkui0_buffer
       end
 
       class PwkstaUserInfo0Container < WkstaUserInfo0Container
@@ -61,7 +58,7 @@ module RubySMB
       end
 
       # [2.2.5.10 WKSTA_USER_INFO_1](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wkst/c37b9606-866f-40ac-9490-57b8334968e2)
-      class UserInfo1 < Ndr::NdrStruct
+      class WkstaUserInfo1 < Ndr::NdrStruct
         default_parameter byte_align: 4
         endian :little
 
@@ -70,12 +67,9 @@ module RubySMB
         ndr_wide_stringz_ptr :wkui1_oth_domains
         ndr_wide_stringz_ptr :wkui1_logon_server
       end
-      
-      class WkstaUserInfo1 < Ndr::NdrConfArray
-        default_parameter type: :user_info1
-      end
 
-      class PwkstaUserInfo1 < WkstaUserInfo1
+      class WkstaUserInfo1ArrayPtr < Ndr::NdrConfArray
+        default_parameter type: :wksta_user_info1
         extend Ndr::PointerClassPlugin
       end
       
@@ -84,8 +78,8 @@ module RubySMB
         default_parameter byte_align: 4
         endian :little
 
-        ndr_uint32        :wkui1_entries_read
-        pwksta_user_info1 :wkui1_buffer
+        ndr_uint32                 :wkui1_entries_read
+        wksta_user_info1_array_ptr :wkui1_buffer
       end
 
       class PwkstaUserInfo1Container < WkstaUserInfo1Container
@@ -93,7 +87,7 @@ module RubySMB
       end
 
       # [2.2.5.14 WKSTA_USER_ENUM_STRUCT](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wkst/4041455a-52be-4389-a4fc-82fea3cb3160)
-      class LpwkssvcUserEnumStructure < Ndr::NdrStruct
+      class WkstaUserEnumStructure < Ndr::NdrStruct
         default_parameter byte_align: 4
         endian :little
 
