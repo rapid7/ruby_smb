@@ -17,8 +17,8 @@ RSpec.describe RubySMB::Dcerpc::Wkssvc::NetrWkstaUserEnumResponse do
     expect(packet).to be_a(BinData::Record)
   end
   describe '#user_info' do
-    it 'is a LpwkssvcUserEnumStructure structure' do
-      expect(packet.user_info).to be_a RubySMB::Dcerpc::Wkssvc::LpwkssvcUserEnumStructure
+    it 'is a WkstaUserEnumStructure structure' do
+      expect(packet.user_info).to be_a RubySMB::Dcerpc::Wkssvc::WkstaUserEnumStructure
     end
   end
   describe '#total_entries' do

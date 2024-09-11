@@ -72,7 +72,7 @@ module RubySMB
         default_parameter type: :wksta_user_info1
         extend Ndr::PointerClassPlugin
       end
-      
+
       # [2.2.5.13 WKSTA_USER_INFO_1_CONTAINER](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wkst/22a813e4-fc7d-4fe3-a6d6-78debfd2c0c9)
       class WkstaUserInfo1Container < Ndr::NdrStruct
         default_parameter byte_align: 4
@@ -117,7 +117,7 @@ module RubySMB
       #   NetrWkstaGetInfoResponse packet
       # @raise [RubySMB::Dcerpc::Error::WkssvcError] if the response error status
       #   is not STATUS_SUCCESS
-      def netr_wksta_get_info(server_name: "\x00", level: WKSTA_INFO_100)
+      def netr_wksta_get_info(server_name: '', level: WKSTA_INFO_100)
         wkst_netr_wksta_get_info_request = NetrWkstaGetInfoRequest.new(
           server_name: server_name,
           level: level
@@ -141,13 +141,13 @@ module RubySMB
       # @param server_name [optional, String] String that identifies the server (optional
       #   since it is ignored by the server)
       # @param level [optional, Integer] The information level of the data (default: WKSTA_USER_INFO_0)
-      # @return [RubySMB::Dcerpc::Wkssvc::WkstaUserInfo0, RubySMB::Dcerpc::Wkssvc::WkstaUserInfo1] 
+      # @return [RubySMB::Dcerpc::Wkssvc::WkstaUserInfo0, RubySMB::Dcerpc::Wkssvc::WkstaUserInfo1]
       # The structure containing the requested information
       # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
       #   NetrWkstaGetInfoResponse packet
       # @raise [RubySMB::Dcerpc::Error::WkssvcError] if the response error status
       #   is not STATUS_SUCCESS
-      def netr_wksta_user_enum(server_name: "\x00", level: WKSTA_USER_INFO_0)
+      def netr_wksta_user_enum(server_name: '', level: WKSTA_USER_INFO_0)
         wkst_netr_wksta_enum_user_request = NetrWkstaUserEnumRequest.new(
           server_name: server_name,
           user_info: {

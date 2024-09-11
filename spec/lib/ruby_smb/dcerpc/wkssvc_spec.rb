@@ -31,7 +31,7 @@ RSpec.describe RubySMB::Dcerpc::Wkssvc do
     it 'sets the request with the expected values' do
       wkssvc.netr_wksta_get_info
       expect(described_class::NetrWkstaGetInfoRequest).to have_received(:new).with(
-        server_name: "\x00",
+        server_name: '',
         level: described_class::WKSTA_INFO_100
       )
     end
@@ -92,7 +92,7 @@ RSpec.describe RubySMB::Dcerpc::Wkssvc do
     it 'sets the request with the expected values' do
       wkssvc.netr_wksta_user_enum
       expect(described_class::NetrWkstaUserEnumRequest).to have_received(:new).with(
-        server_name: "\x00",
+        server_name: '',
         user_info: {
           level: described_class::WKSTA_USER_INFO_0,
           tag: described_class::WKSTA_USER_INFO_0,
