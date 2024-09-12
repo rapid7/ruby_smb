@@ -310,8 +310,7 @@ module RubySMB
           domain = @default_domain if domain.nil? || domain == '.'.encode(domain.encoding)
           domain = domain.downcase
           @accounts.find do |account|
-            RubySMB::Utils.safe_encode(account.username, username.encoding).downcase == username &&
-              RubySMB::Utils.safe_encode(account.domain, domain.encoding).downcase == domain
+            account.username.encode(username.encoding).downcase == username && account.domain.encode(domain.encoding).downcase == domain
           end
         end
 

@@ -320,11 +320,12 @@ module RubySMB
       if smb1 == false && smb2 == false && smb3 == false
         raise ArgumentError, 'You must enable at least one Protocol'
       end
+
       @dispatcher        = dispatcher
       @pid               = rand(0xFFFF)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = RubySMB::Utils.safe_encode((password||''), 'utf-8')
+      @password          = (password || '')
       @sequence_counter  = 0
       @session_id        = 0x00
       @session_key       = ''
@@ -334,7 +335,7 @@ module RubySMB
       @smb1              = smb1
       @smb2              = smb2
       @smb3              = smb3
-      @username          = RubySMB::Utils.safe_encode((username||''), 'utf-8')
+      @username          = (username || '')
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modified during negotiation
       @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
@@ -417,8 +418,8 @@ module RubySMB
                       local_workstation: self.local_workstation, ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
       @domain            = domain
       @local_workstation = local_workstation
-      @password          = RubySMB::Utils.safe_encode((pass||''), 'utf-8')
-      @username          = RubySMB::Utils.safe_encode((user||''), 'utf-8')
+      @password          = (pass || '')
+      @username          = (user || '')
 
       @ntlm_client = RubySMB::NTLM::Client.new(
           @username,

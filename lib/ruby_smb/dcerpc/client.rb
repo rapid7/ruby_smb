@@ -120,8 +120,8 @@ module RubySMB
         @read_timeout      = read_timeout
         @domain            = domain
         @local_workstation = local_workstation
-        @username          = RubySMB::Utils.safe_encode(username, 'utf-8')
-        @password          = RubySMB::Utils.safe_encode(password, 'utf-8')
+        @username          = username
+        @password          = password
         @max_buffer_size   = MAX_BUFFER_SIZE
         @call_id           = 1
         @ctx_id            = 0
