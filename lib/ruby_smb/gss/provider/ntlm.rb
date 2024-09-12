@@ -142,10 +142,7 @@ module RubySMB
             case type3_msg.ntlm_version
             when :ntlmv1
               my_ntlm_response = Net::NTLM::ntlm_response(
-                ntlm_hash: Net::NTLM::ntlm_hash(
-                  RubySMB::Utils.safe_encode(account.password, 'UTF-16LE'),
-                  unicode: true
-                ),
+                ntlm_hash: Net::NTLM::ntlm_hash(account.password),
                 challenge: @server_challenge
               )
               matches = my_ntlm_response == type3_msg.ntlm_response

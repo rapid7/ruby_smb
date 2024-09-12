@@ -12,7 +12,6 @@ require 'ruby_smb/ntlm/custom/string_encoder'
 # [[MS-SMB] Server Message Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 # [[MS-SMB2] Server Message Block (SMB) Protocol Versions 2 and 3](https://msdn.microsoft.com/en-us/library/cc246482.aspx)
 module RubySMB
-  require 'ruby_smb/utils'
   require 'ruby_smb/error'
   require 'ruby_smb/create_actions'
   require 'ruby_smb/dispositions'

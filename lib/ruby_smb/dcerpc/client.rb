@@ -9,12 +9,10 @@ module RubySMB
       require 'ruby_smb/dcerpc'
       require 'ruby_smb/gss'
       require 'ruby_smb/peer_info'
-      require 'ruby_smb/utils'
 
       include Dcerpc
       include Epm
       include PeerInfo
-      include Utils
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
       MAX_BUFFER_SIZE = 64512

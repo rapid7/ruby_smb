@@ -4,7 +4,6 @@ module RubySMB
   class Client
     require 'ruby_smb/ntlm'
     require 'ruby_smb/signing'
-    require 'ruby_smb/utils'
     require 'ruby_smb/client/negotiation'
     require 'ruby_smb/client/authentication'
     require 'ruby_smb/client/tree_connect'
