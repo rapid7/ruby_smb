@@ -6,7 +6,6 @@ require 'openssl/ccm'
 require 'openssl/cmac'
 require 'windows_error'
 require 'windows_error/nt_status'
-require 'ruby_smb/ntlm/custom/string_encoder'
 # A packet parsing and manipulation library for the SMB1 and SMB2 protocols
 #
 # [[MS-SMB] Server Message Block (SMB) Protocol Version 1](https://msdn.microsoft.com/en-us/library/cc246482.aspx)

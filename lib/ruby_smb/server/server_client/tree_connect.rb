@@ -51,7 +51,7 @@ module RubySMB
             return response
           end
 
-          share_name = request.path.split('\\', 4).last
+          share_name = request.path.encode.split('\\', 4).last
           share_provider = @server.shares.transform_keys(&:downcase)[share_name.downcase]
 
           if share_provider.nil?
