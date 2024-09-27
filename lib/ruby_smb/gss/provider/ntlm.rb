@@ -124,8 +124,8 @@ module RubySMB
             dbg_string = "#{type3_msg.domain.encode(''.encoding)}\\#{type3_msg.user.encode(''.encoding)}"
             logger.debug("NTLM authentication request received for #{dbg_string}")
             account = @provider.get_account(
-              type3_msg.user.force_encoding('UTF-16LE').encode,
-              domain: type3_msg.domain.force_encoding('UTF-16LE').encode
+              type3_msg.user,
+              domain: type3_msg.domain
             )
             if account.nil?
               if @provider.allow_guests
@@ -154,7 +154,7 @@ module RubySMB
               ntlmv2_hash = Net::NTLM.ntlmv2_hash(
                 Net::NTLM::EncodeUtil.encode_utf16le(account.username),
                 Net::NTLM::EncodeUtil.encode_utf16le(account.password),
-                type3_msg.domain.force_encoding('ASCII-8BIT'),  # don't use the account domain because of the special '.' value
+                type3_msg.domain.dup.force_encoding('ASCII-8BIT'),  # don't use the account domain because of the special '.' value
                 {client_challenge: their_blob[16...24], unicode: true}
               )
 

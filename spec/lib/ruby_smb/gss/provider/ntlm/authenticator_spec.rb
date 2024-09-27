@@ -155,6 +155,8 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
 
       context 'when the password is correct' do
         it 'should process a NTLM type 3 message and return STATUS_SUCCESS' do
+          type3_msg.user.force_encoding('UTF-16LE')
+          type3_msg.domain.force_encoding('UTF-16LE')
           status = authenticator.process_ntlm_type3(type3_msg)
           expect(status).to be_a WindowsError::ErrorCode
           expect(status).to eq WindowsError::NTStatus::STATUS_SUCCESS
