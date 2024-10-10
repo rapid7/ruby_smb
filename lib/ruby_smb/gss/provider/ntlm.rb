@@ -142,10 +142,7 @@ module RubySMB
             case type3_msg.ntlm_version
             when :ntlmv1
               my_ntlm_response = Net::NTLM::ntlm_response(
-                ntlm_hash: Net::NTLM::ntlm_hash(
-                  RubySMB::Utils.safe_encode(account.password, 'UTF-16LE'),
-                  unicode: true
-                ),
+                ntlm_hash: Net::NTLM::ntlm_hash(account.password),
                 challenge: @server_challenge
               )
               matches = my_ntlm_response == type3_msg.ntlm_response
@@ -157,7 +154,7 @@ module RubySMB
               ntlmv2_hash = Net::NTLM.ntlmv2_hash(
                 Net::NTLM::EncodeUtil.encode_utf16le(account.username),
                 Net::NTLM::EncodeUtil.encode_utf16le(account.password),
-                type3_msg.domain.force_encoding('ASCII-8BIT'),  # don't use the account domain because of the special '.' value
+                type3_msg.domain.dup.force_encoding('ASCII-8BIT'),  # don't use the account domain because of the special '.' value
                 {client_challenge: their_blob[16...24], unicode: true}
               )
 
@@ -310,8 +307,7 @@ module RubySMB
           domain = @default_domain if domain.nil? || domain == '.'.encode(domain.encoding)
           domain = domain.downcase
           @accounts.find do |account|
-            RubySMB::Utils.safe_encode(account.username, username.encoding).downcase == username &&
-              RubySMB::Utils.safe_encode(account.domain, domain.encoding).downcase == domain
+            account.username.encode(username.encoding).downcase == username && account.domain.encode(domain.encoding).downcase == domain
           end
         end
 

@@ -1,5 +1,3 @@
-require 'ruby_smb/ntlm/custom/string_encoder'
-
 module RubySMB
   module NTLM
     # [[MS-NLMP] 2.2.2.5](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/99d90ff4-957f-4c8a-80e4-5bfe5a9a9832)
@@ -58,41 +56,6 @@ module RubySMB
         "Version #{major}.#{minor} (Build #{build}); NTLM Current Revision #{ntlm_revision}"
       end
     end
-
-    class << self
-
-      # Generate a NTLMv2 Hash
-      # @param [String] user The username
-      # @param [String] password The password
-      # @param [String] target The domain or workstation to authenticate to
-      # @option opt :unicode (false) Unicode encode the domain
-      def ntlmv2_hash(user, password, target, opt={})
-        if Net::NTLM.is_ntlm_hash? password
-          decoded_password = Net::NTLM::EncodeUtil.decode_utf16le(password)
-          ntlmhash = [decoded_password.upcase[33,65]].pack('H32')
-        else
-          ntlmhash = Net::NTLM.ntlm_hash(password, opt)
-        end
-
-        if opt[:unicode]
-          # Uppercase operation on username containing non-ASCII characters
-          # after being unicode encoded with `EncodeUtil.encode_utf16le`
-          # doesn't play well. Upcase should be done before encoding.
-          user_upcase = Net::NTLM::EncodeUtil.decode_utf16le(user).upcase
-          user_upcase = Net::NTLM::EncodeUtil.encode_utf16le(user_upcase)
-        else
-          user_upcase = user.upcase
-        end
-        userdomain = user_upcase + target
-
-        unless opt[:unicode]
-          userdomain = Net::NTLM::EncodeUtil.encode_utf16le(userdomain)
-        end
-        OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmhash, userdomain)
-      end
-
-    end
-
   end
 end
 

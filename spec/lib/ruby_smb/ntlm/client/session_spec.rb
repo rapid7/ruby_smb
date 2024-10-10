@@ -24,7 +24,7 @@ RSpec.describe RubySMB::NTLM::Client::Session do
 
     it 'returns a Type3 message' do
       expect(session.authenticate!).to be_a Net::NTLM::Message::Type3
-      expect(session.authenticate!).to be_a RubySMB::NTLM::Message
+      expect(session.authenticate!).to be_a Net::NTLM::Message
     end
 
     context 'when it is anonymous' do

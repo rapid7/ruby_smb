@@ -6,7 +6,14 @@ require 'ruby_smb/version'
 Gem::Specification.new do |spec|
   spec.name          = 'ruby_smb'
   spec.version       = RubySMB::VERSION
-  spec.authors       = ['Metasploit Hackers', 'David Maloney', 'James Lee', 'Dev Mohanty', 'Christophe De La Fuente']
+  spec.authors       = [
+    'Metasploit Hackers',
+    'David Maloney',
+    'James Lee',
+    'Dev Mohanty',
+    'Christophe De La Fuente',
+    'Spencer McIntyre'
+  ]
   spec.email         = ['msfdev@metasploit.com']
   spec.summary       = 'A pure Ruby implementation of the SMB Protocol Family'
   spec.description   = ''
@@ -33,7 +40,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake'
   spec.add_development_dependency 'yard'
 
-  spec.add_runtime_dependency 'rubyntlm'
+  spec.add_runtime_dependency 'rubyntlm', '>= 0.6.5'
   spec.add_runtime_dependency 'windows_error', '>= 0.1.4'
   spec.add_runtime_dependency 'bindata', '2.4.15'
   spec.add_runtime_dependency 'openssl-ccm'

@@ -35,7 +35,7 @@ module RubySMB
       def cert_server_request(attributes:, authority:, csr:)
         cert_server_request_request = CertServerRequestRequest.new(
           pwsz_authority: authority,
-          pctb_attribs: { pb: (RubySMB::Utils.safe_encode(attributes.map { |k,v| "#{k}:#{v}" }.join("\n"), 'UTF-16le').force_encoding('ASCII-8bit') + "\x00\x00".b) },
+          pctb_attribs: { pb: (attributes.map { |k,v| "#{k}:#{v}" }.join("\n").encode('UTF-16LE').force_encoding('ASCII-8BIT') + "\x00\x00".b) },
           pctb_request: { pb: csr.to_der }
         )
 
@@ -53,7 +53,7 @@ module RubySMB
         ret = {
           certificate: nil,
           disposition: cert_server_request_response.pdw_disposition.value,
-          disposition_message: cert_server_request_response.pctb_disposition_message.buffer.chomp("\x00\x00").force_encoding('utf-16le').encode,
+          disposition_message: cert_server_request_response.pctb_disposition_message.buffer.chomp("\x00\x00").force_encoding('UTF-16LE').encode,
           status: {
             CR_DISP_ISSUED => :issued,
             CR_DISP_UNDER_SUBMISSION => :submitted,

@@ -9,8 +9,11 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
       msg.domain = domain
     end
   end
+  let(:type2_msg) do
+    Net::NTLM::Message::Type2.new
+  end
   let(:type3_msg) do
-    Net::NTLM::Message::Type2.new.response(user: username, password: '', domain: domain)
+    type2_msg.response({user: username, password: password, domain: domain}, {ntlmv2: true})
   end
 
   before(:each) do
@@ -65,9 +68,121 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
   end
 
   describe '#process_ntlm_type3' do
-    it 'should process a NTLM type 3 message and return an error code' do
-      expect(authenticator.process_ntlm_type3(type3_msg)).to be_a WindowsError::ErrorCode
-      expect(authenticator.process_ntlm_type3(type3_msg)).to eq WindowsError::NTStatus::STATUS_LOGON_FAILURE
+    context 'when the message is anonymous' do
+      let(:type3_msg) do
+        type2_msg.response({user: '', password: ''}, {ntlmv2: true})
+      end
+
+      context 'when anonymous access is disabled' do
+        before(:each) do
+          expect(provider).to_not receive(:allow_guests)
+          expect(provider).to receive(:allow_anonymous).and_return(false)
+        end
+
+        it 'should process a NTLM type 3 message and return STATUS_LOGON_FAILURE' do
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_LOGON_FAILURE
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to be_nil
+        end
+      end
+
+      context 'when anonymous access is enabled' do
+        before(:each) do
+          expect(provider).to_not receive(:allow_guests)
+          expect(provider).to receive(:allow_anonymous).and_return(true)
+        end
+
+        it 'should process a NTLM type 3 message and return STATUS_SUCCESS' do
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to eq "\x00".b * 16
+        end
+      end
+    end
+
+    context 'when the message is a guest' do
+      let(:type3_msg) do
+        type2_msg.response({user: 'Spencer', password: password}, {ntlmv2: true})
+      end
+
+      context 'when guest access is disabled' do
+        before(:each) do
+          expect(provider).to_not receive(:allow_anonymous)
+          expect(provider).to receive(:allow_guests).and_return(false)
+        end
+
+        it 'should process a NTLM type 3 message and return STATUS_LOGON_FAILURE' do
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_LOGON_FAILURE
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to be_nil
+        end
+      end
+
+      context 'when guest access is enabled' do
+        before(:each) do
+          expect(provider).to_not receive(:allow_anonymous)
+          expect(provider).to receive(:allow_guests).and_return(true)
+        end
+
+        it 'should process a NTLM type 3 message and return STATUS_SUCCESS' do
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to eq "\x00".b * 16
+        end
+      end
+    end
+
+    context 'when the message is a known user' do
+      before(:each) do
+        authenticator.instance_variable_set(:@server_challenge, type2_msg[:challenge].serialize)
+      end
+
+      context 'when the password is correct' do
+        it 'should process a NTLM type 3 message and return STATUS_SUCCESS' do
+          type3_msg.user.force_encoding('UTF-16LE')
+          type3_msg.domain.force_encoding('UTF-16LE')
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to be_a String
+          expect(authenticator.session_key.length).to eq 16
+        end
+      end
+
+      context 'when the password is wrong' do
+        let(:type3_msg) do
+          type2_msg.response({user: username, password: 'Wrong' + password, domain: domain}, {ntlmv2: true})
+        end
+
+        it 'should process a NTLM type 3 message and return STATUS_LOGON_FAILURE' do
+          status = authenticator.process_ntlm_type3(type3_msg)
+          expect(status).to be_a WindowsError::ErrorCode
+          expect(status).to eq WindowsError::NTStatus::STATUS_LOGON_FAILURE
+        end
+
+        after(:each) do
+          expect(authenticator.session_key).to be nil
+        end
+      end
     end
   end
 
