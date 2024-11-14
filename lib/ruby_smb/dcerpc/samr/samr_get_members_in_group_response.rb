@@ -25,7 +25,7 @@ module RubySMB
 
         def initialize_instance
           super
-          @opnum = SAMR_GET_GROUPS_FOR_USER
+          @opnum = SAMR_GET_MEMBERS_IN_GROUP
         end
       end
     end
