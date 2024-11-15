@@ -70,6 +70,8 @@ module RubySMB
           samr_close_handle_request                    Samr::SAMR_CLOSE_HANDLE
           samr_get_alias_membership_request            Samr::SAMR_GET_ALIAS_MEMBERSHIP
           samr_open_user_request                       Samr::SAMR_OPEN_USER
+          samr_open_group_request                      Samr::SAMR_OPEN_GROUP
+          samr_get_members_in_group_request            Samr::SAMR_GET_MEMBERS_IN_GROUP
           samr_get_groups_for_user_request             Samr::SAMR_GET_GROUPS_FOR_USER
           samr_enumerate_domains_in_sam_server_request Samr::SAMR_ENUMERATE_DOMAINS_IN_SAM_SERVER
           samr_lookup_names_in_domain_request          Samr::SAMR_LOOKUP_NAMES_IN_DOMAIN

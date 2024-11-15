@@ -20,6 +20,8 @@ module RubySMB
       SAMR_ENUMERATE_USERS_IN_DOMAIN       = 0x000D
       SAMR_GET_ALIAS_MEMBERSHIP            = 0x0010
       SAMR_LOOKUP_NAMES_IN_DOMAIN          = 0x0011
+      SAMR_OPEN_GROUP                      = 0x0013
+      SAMR_GET_MEMBERS_IN_GROUP            = 0x0019
       SAMR_OPEN_USER                       = 0x0022
       SAMR_DELETE_USER                     = 0x0023
       SAMR_GET_GROUPS_FOR_USER             = 0x0027
@@ -509,8 +511,12 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_rid_to_sid_response'
       require 'ruby_smb/dcerpc/samr/samr_close_handle_request'
       require 'ruby_smb/dcerpc/samr/samr_close_handle_response'
+      require 'ruby_smb/dcerpc/samr/samr_get_members_in_group_request'
+      require 'ruby_smb/dcerpc/samr/samr_get_members_in_group_response'
       require 'ruby_smb/dcerpc/samr/samr_get_alias_membership_request'
       require 'ruby_smb/dcerpc/samr/samr_get_alias_membership_response'
+      require 'ruby_smb/dcerpc/samr/samr_open_group_request'
+      require 'ruby_smb/dcerpc/samr/samr_open_group_response'
       require 'ruby_smb/dcerpc/samr/samr_open_user_request'
       require 'ruby_smb/dcerpc/samr/samr_open_user_response'
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_request'
@@ -935,6 +941,40 @@ module RubySMB
         samr_get_alias_membership_reponse.membership.elements.to_ary
       end
 
+      # Returns a handle to a group, given a RID
+      #
+      # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a domain object
+      # @param access [Integer] An access control that indicates the requested
+      #   access for the returned handle. It is a bitwise OR of common
+      #   ACCESS_MASK and user ACCESS_MASK values (see
+      #   lib/ruby_smb/dcerpc/samr.rb)
+      # @param group_id [Integer] RID of a group
+      # @return [RubySMB::Dcerpc::Samr::SamprHandle] The group handle
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrOpenGroup packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_open_group(domain_handle:, access: MAXIMUM_ALLOWED, group_id:)
+        samr_open_group_request = SamrOpenGroupRequest.new(
+          domain_handle: domain_handle,
+          desired_access: access,
+          group_id: group_id
+        )
+        response = dcerpc_request(samr_open_group_request)
+        begin
+          samr_open_group_response = SamrOpenGroupResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrOpenGroupResponse'
+        end
+        unless samr_open_group_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned when getting a handle to group #{group_id}: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_open_grou_response.error_status.value).join(',')}"
+        end
+        samr_open_group_response.group_handle
+      end
+
       # Returns a handle to a user, given a RID
       #
       # @param domain_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
@@ -967,6 +1007,36 @@ module RubySMB
             "#{WindowsError::NTStatus.find_by_retval(samr_open_user_response.error_status.value).join(',')}"
         end
         samr_open_user_response.user_handle
+      end
+
+      # Returns a listing of members of the given group
+      #
+      # @param group_handle [RubySMB::Dcerpc::Samr::SamprHandle] An RPC context
+      #   representing a group object.
+      # @return [Array<Array<String,String>>] Array of RID and Attributes
+      # @raise [RubySMB::Dcerpc::Error::InvalidPacket] if the response is not a
+      #   SamrGetMembersInGroup packet
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_get_members_in_group(group_handle:)
+        samr_get_members_in_group_request = SamrGetMembersInGroupRequest.new(
+          group_handle: group_handle
+        )
+        response = dcerpc_request(samr_get_members_in_group_request)
+        begin
+          samr_get_members_in_group_response = SamrGetMembersInGroupResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrGetMembersInGroupResponse'
+        end
+        unless samr_get_members_in_group_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while getting group membership: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_get_members_in_group_response.error_status.value).join(',')}"
+        end
+        members = samr_get_members_in_group_response.members.members.to_ary
+        attributes = samr_get_members_in_group_response.members.attributes.to_ary
+
+        members.zip(attributes)
       end
 
       # Returns a listing of groups that a user is a member of
