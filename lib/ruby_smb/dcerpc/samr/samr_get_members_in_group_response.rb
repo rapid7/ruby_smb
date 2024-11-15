@@ -5,9 +5,9 @@ module RubySMB
       class SamprGetMembersBuffer < Ndr::NdrStruct
         default_parameter byte_align: 4
 
-        ndr_uint32            :member_count
+        ndr_uint32                 :member_count
         ndr_uint32_conf_array_ptr  :members,    type: :ndr_uint32
-        ndr_uint32_conf_array_ptr  :attributes, type: :ndr_uint32 
+        ndr_uint32_conf_array_ptr  :attributes, type: :ndr_uint32
       end
 
       class PsamprGetMembersBuffer < SamprGetMembersBuffer
@@ -20,8 +20,8 @@ module RubySMB
 
         endian :little
 
-        psampr_get_members_buffer :members
-        ndr_uint32               :error_status
+        psampr_get_members_buffer  :members
+        ndr_uint32                 :error_status
 
         def initialize_instance
           super
