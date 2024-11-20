@@ -79,6 +79,8 @@ module RubySMB
           samr_set_information_user2_request           Samr::SAMR_SET_INFORMATION_USER2
           samr_delete_user_request                     Samr::SAMR_DELETE_USER
           samr_query_information_domain_request        Samr::SAMR_QUERY_INFORMATION_DOMAIN
+          samr_unicode_change_password_user2_request   Samr::SAMR_UNICODE_CHANGE_PASSWORD_USER2
+          samr_change_password_user_request            Samr::SAMR_CHANGE_PASSWORD_USER
           string                                       :default
         end
         choice 'Wkssvc', selection: -> { opnum } do

@@ -14,7 +14,7 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
-      # [2.1.5.8.3 SamrGetMembersInGroup (Opnum 25)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/a4adbf20-040f-4416-a960-e5b7917fdae7)
+      # [3.1.5.8.3 SamrGetMembersInGroup (Opnum 25)](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/a4adbf20-040f-4416-a960-e5b7917fdae7)
       class SamrGetMembersInGroupResponse < BinData::Record
         attr_reader :opnum
 
