@@ -443,8 +443,8 @@ module RubySMB
         uint16 :reserved3
         string :reserved4, length: 96
         uint16 :property_signature, initial_value: 0x50
-        uint16 :property_count, initial_value: -> { user_properties.size }
-        array  :user_properties, type: :user_property, initial_length: :property_count
+        uint16 :property_count, initial_value: -> { user_properties.size }, onlyif: -> { struct_length > 111 }
+        array  :user_properties, type: :user_property, initial_length: :property_count, onlyif: :property_count?
         uint8  :reserved5
       end
 
