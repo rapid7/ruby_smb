@@ -320,7 +320,7 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
-      # [2.2.7.3 ENCRYPTED_nt_OWF_PASSWORD](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/ce061fef-6d4f-4802-bd5d-26b11f14f4a6)
+      # [2.2.7.3 ENCRYPTED_NT_OWF_PASSWORD](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/ce061fef-6d4f-4802-bd5d-26b11f14f4a6)
       class EncryptedNtOwfPassword < Ndr::NdrStruct
         default_parameter byte_align: 4
         ndr_fixed_byte_array :buffer, initial_length: 16
