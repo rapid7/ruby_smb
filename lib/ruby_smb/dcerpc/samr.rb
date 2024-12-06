@@ -24,8 +24,10 @@ module RubySMB
       SAMR_GET_MEMBERS_IN_GROUP            = 0x0019
       SAMR_OPEN_USER                       = 0x0022
       SAMR_DELETE_USER                     = 0x0023
+      SAMR_CHANGE_PASSWORD_USER            = 0x0026
       SAMR_GET_GROUPS_FOR_USER             = 0x0027
       SAMR_CREATE_USER2_IN_DOMAIN          = 0x0032
+      SAMR_UNICODE_CHANGE_PASSWORD_USER2   = 0x0037
       SAMR_SET_INFORMATION_USER2           = 0x003a
       SAMR_CONNECT5                        = 0x0040
       SAMR_RID_TO_SID                      = 0x0041
@@ -318,6 +320,58 @@ module RubySMB
         extend Ndr::PointerClassPlugin
       end
 
+      # [2.2.7.3 ENCRYPTED_NT_OWF_PASSWORD](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/ce061fef-6d4f-4802-bd5d-26b11f14f4a6)
+      class EncryptedNtOwfPassword < Ndr::NdrStruct
+        default_parameter byte_align: 4
+        ndr_fixed_byte_array :buffer, initial_length: 16
+
+        # [2.2.11.1.2 Encrypting a 64-bit block with a 7-byte key](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/ebdb15df-8d0d-4347-9d62-082e6eccac40)
+        def self.to_output_key(input_key)
+          output_key = []
+          input_key = input_key.unpack('C'*7)
+          output_key.append(input_key[0] >> 0x01)
+          output_key.append(((input_key[0]&0x01)<<6) | (input_key[1]>>2))
+          output_key.append(((input_key[1]&0x03)<<5) | (input_key[2]>>3))
+          output_key.append(((input_key[2]&0x07)<<4) | (input_key[3]>>4))
+          output_key.append(((input_key[3]&0x0F)<<3) | (input_key[4]>>5))
+          output_key.append(((input_key[4]&0x1F)<<2) | (input_key[5]>>6))
+          output_key.append(((input_key[5]&0x3F)<<1) | (input_key[6]>>7))
+          output_key.append(input_key[6] & 0x7F)
+
+          output_key = output_key.map {|x| (x << 1) & 0xFE}
+
+          output_key.pack('C'*8)
+        end
+
+        # [2.2.11.1 DES-ECB-LM](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/3f5ec79d-b449-4ab2-9423-c4dccbe0b184)
+        def self.encrypt_hash(hash:, key:)
+          block1 = hash[0..7]
+          block2 = hash[8..]
+          key1 = to_output_key(key[0..6])
+          key2 = to_output_key(key[7..13]) # The last two bytes are ignored
+
+          cipher1 = OpenSSL::Cipher.new('des-ecb').tap do |cipher|
+            cipher.encrypt
+            cipher.key = key1
+          end
+
+          cipher2 = OpenSSL::Cipher.new('des-ecb').tap do |cipher|
+            cipher.encrypt
+            cipher.key = key2
+          end
+
+          cipher1.update(block1) + cipher2.update(block2)
+        end
+      end
+
+      EncryptedLmOwfPassword = EncryptedNtOwfPassword
+
+      class PencryptedNtOwfPassword < EncryptedNtOwfPassword
+        extend Ndr::PointerClassPlugin
+      end
+
+      PencryptedLmOwfPassword = PencryptedNtOwfPassword
+
       # [2.2.7.4 SAMPR_ULONG_ARRAY](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/2feb3806-4db2-45b7-90d2-86c8336a31ba)
       class SamprUlongArray < Ndr::NdrStruct
         default_parameter byte_align: 4
@@ -332,6 +386,28 @@ module RubySMB
         ndr_uint16           :max_length, initial_value: -> { buffer.length }
         ndr_uint16_array_ptr :buffer
       end
+
+      # [2.2.6.21 SAMPR_ENCRYPTED_USER_PASSWORD](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/23f9ef4c-cf3e-4330-9287-ea4799b03201)
+      class SamprEncryptedUserPassword < Ndr::NdrStruct
+        default_parameter byte_align: 4
+        ndr_fixed_byte_array :buffer, initial_length: 516
+
+        def self.encrypt_password(password, old_password_nt)
+          # see: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/5fe3c4c4-e71b-440d-b2fd-8448bfaf6e04
+          password = password.encode('UTF-16LE').force_encoding('ASCII-8BIT')
+          buffer = password.rjust(512, "\x00") + [ password.length ].pack('V')
+          cipher = OpenSSL::Cipher.new('RC4').tap do |cipher|
+            cipher.encrypt
+            cipher.key = old_password_nt
+          end
+          cipher.update(buffer)
+        end
+      end
+
+      class PsamprEncryptedUserPassword < SamprEncryptedUserPassword
+        extend Ndr::PointerClassPlugin
+      end
+
 
       # [2.2.6.22 SAMPR_ENCRYPTED_USER_PASSWORD_NEW](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/112ecc94-1cbe-41cd-b669-377402c20786)
       class SamprEncryptedUserPasswordNew < BinData::Record
@@ -413,12 +489,22 @@ module RubySMB
         ndr_uint32 :user_account_control
       end
 
+      # [2.2.6.25 SAMPR_USER_INTERNAL1_INFORMATION](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/50d17755-c6b8-40bd-8cac-bd6cfa31adf2)
+      class SamprUserInternal1Information < BinData::Record
+        encrypted_nt_owf_password         :encrypted_nt_owf_password
+        encrypted_nt_owf_password         :encrypted_lm_owf_password
+        ndr_uint8                         :nt_password_present
+        ndr_uint8                         :lm_password_present
+        ndr_uint8                         :password_expired
+      end
+
       # [2.2.6.29 SAMPR_USER_INFO_BUFFER](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-samr/9496c26e-490b-4e76-827f-2695fc216f35)
       class SamprUserInfoBuffer < BinData::Record
         ndr_uint16 :tag
         choice     :member, selection: :tag do
           user_control_information             USER_CONTROL_INFORMATION
           sampr_user_internal4_information_new USER_INTERNAL4_INFORMATION_NEW
+          sampr_user_internal1_information     USER_INTERNAL1_INFORMATION
         end
       end
 
@@ -523,6 +609,10 @@ module RubySMB
       require 'ruby_smb/dcerpc/samr/samr_get_groups_for_user_response'
       require 'ruby_smb/dcerpc/samr/samr_set_information_user2_request'
       require 'ruby_smb/dcerpc/samr/samr_set_information_user2_response'
+      require 'ruby_smb/dcerpc/samr/samr_change_password_user_request'
+      require 'ruby_smb/dcerpc/samr/samr_change_password_user_response'
+      require 'ruby_smb/dcerpc/samr/samr_unicode_change_password_user2_request'
+      require 'ruby_smb/dcerpc/samr/samr_unicode_change_password_user2_response'
       require 'ruby_smb/dcerpc/samr/samr_delete_user_request'
       require 'ruby_smb/dcerpc/samr/samr_delete_user_response'
       require 'ruby_smb/dcerpc/samr/samr_query_information_domain_request'
@@ -877,6 +967,117 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::SamrError,
             "Error returned while setting user information: "\
             "#{WindowsError::NTStatus.find_by_retval(samr_set_information_user2_response.error_status.value).join(',')}"
+        end
+
+        nil
+      end
+
+      # Change the password on a user object.
+      #
+      # @param user_handle [SamprHandle] Handle representing the user to change the password for
+      # @param old_password [String] The previous password (either this or old_nt_hash must be specified)
+      # @param new_password [String] The password to set on the account
+      # @param new_nt_hash [String] The new password's NT hash
+      # @param new_lm_hash [String] The new password's LM hash
+      # @param old_nt_hash [String] The previous password's NT hash (either this or old_password must be specified)
+      # @param old_lm_hash [String] The previous password's LM hash (currently ignored)
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_change_password_user(user_handle:, old_password:nil, new_password:nil, new_nt_hash:nil, new_lm_hash:nil, old_nt_hash:nil, old_lm_hash:nil)
+        if new_password.nil? == new_nt_hash.nil?
+          raise ArgumentError.new('Provide either new password or new password hashes, but not both')
+        end
+
+        if old_password.nil? == old_nt_hash.nil?
+          raise ArgumentError.new('Provide either old password or old password hashes, but not both')
+        end
+
+        if old_password
+          old_lm_hash = Net::NTLM.lm_hash(old_password[0..13])
+          old_nt_hash = Net::NTLM.ntlm_hash(old_password)
+        end
+
+        if new_nt_hash.nil?
+          new_nt_hash = Net::NTLM::ntlm_hash(new_password)
+          new_lm_hash = Net::NTLM.lm_hash(new_password[0..13])
+        elsif new_lm_hash.nil?
+          new_lm_hash = Net::NTLM.lm_hash('')
+        end
+        
+        samr_change_password_user_request = SamrChangePasswordUserRequest.new(
+          user_handle: user_handle,
+          lm_present: 0,
+          old_lm_encrypted_with_new_lm: nil,
+          new_lm_encrypted_with_old_lm: nil,
+          nt_present: 1,
+          old_nt_encrypted_with_new_nt: PencryptedNtOwfPassword.new(buffer: EncryptedNtOwfPassword.encrypt_hash(hash: old_nt_hash, key: new_nt_hash)),
+          new_nt_encrypted_with_old_nt: PencryptedNtOwfPassword.new(buffer: EncryptedNtOwfPassword.encrypt_hash(hash: new_nt_hash, key: old_nt_hash)),
+          nt_cross_encryption_present: 0,
+          new_nt_encrypted_with_new_lm: nil,
+          lm_cross_encryption_present: 1,
+          new_lm_encrypted_with_new_nt: PencryptedNtOwfPassword.new(buffer: EncryptedNtOwfPassword.encrypt_hash(hash: new_lm_hash, key: new_nt_hash)),
+        )
+        response = dcerpc_request(samr_change_password_user_request)
+        begin
+          samr_unicode_change_password_user2_response = SamrChangePasswordUserResponse.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrUnicodeChangePasswordUser2Response'
+        end
+        unless samr_unicode_change_password_user2_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while changing user password: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_unicode_change_password_user2_response.error_status.value).join(',')}"
+        end
+
+        nil
+      end
+
+
+      # Change the password on a user.
+      #
+      # @param server_name [String] The server name; can be ignored by the server
+      # @param target_username [String] The user for which we're changing the password
+      # @param old_password [String] The previous password (either this or old_nt_hash must be specified)
+      # @param new_password [String] The password to set on the account
+      # @param old_nt_hash [String] The previous password's NT hash (either this or old_password must be specified)
+      # @param old_lm_hash [String] The previous password's LM hash (currently ignored)
+      # @return nothing is returned on success
+      # @raise [RubySMB::Dcerpc::Error::SamrError] if the response error status
+      #   is not STATUS_SUCCESS
+      def samr_unicode_change_password_user2(server_name: "", target_username:, old_password:nil, new_password:, old_nt_hash:nil, old_lm_hash:nil)
+        #if old_lm_hash.nil? != old_nt_hash.nil?
+        #  raise ArgumentError.new('If providing the previous NT/LM hash, must provide both')
+        #end
+        if old_password.nil? == old_nt_hash.nil?
+          raise ArgumentError.new('Provide either old password or old password hashes, but not both')
+        end
+
+        if old_password
+          old_lm_hash = Net::NTLM.lm_hash(old_password[0..13])
+          old_nt_hash = Net::NTLM.ntlm_hash(old_password)
+        end
+
+        new_nt_hash = Net::NTLM::ntlm_hash(new_password)
+
+        samr_unicode_change_password_user2_request = SamrUnicodeChangePasswordUser2Request.new(
+          server_name: server_name,
+          user_name: target_username,
+          new_password_encrypted_with_old_nt: SamprEncryptedUserPassword.new(buffer: SamprEncryptedUserPassword.encrypt_password(new_password, old_nt_hash)),
+          old_nt_owf_password_encrypted_with_new_nt: PencryptedNtOwfPassword.new(buffer: EncryptedNtOwfPassword.encrypt_hash(hash: old_nt_hash, key: new_nt_hash)),
+          lm_present: 0
+        )
+        samr_unicode_change_password_user2_request
+        response = dcerpc_request(samr_unicode_change_password_user2_request)
+        begin
+          samr_unicode_change_password_user2_response = SamrUnicodeChangePasswordUser2Response.read(response)
+        rescue IOError
+          raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading SamrUnicodeChangePasswordUser2Response'
+        end
+        unless samr_unicode_change_password_user2_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Dcerpc::Error::SamrError,
+            "Error returned while changing user password: "\
+            "#{WindowsError::NTStatus.find_by_retval(samr_unicode_change_password_user2_response.error_status.value).join(',')}"
         end
 
         nil
