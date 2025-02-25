@@ -13,6 +13,7 @@ module RubySMB
       require 'ruby_smb/dcerpc/gkdi/gkdi_get_key_request'
       require 'ruby_smb/dcerpc/gkdi/gkdi_get_key_response'
       require 'ruby_smb/dcerpc/gkdi/gkdi_ffc_dh_key'
+      require 'ruby_smb/dcerpc/gkdi/gkdi_ffc_dh_parameters'
       require 'ruby_smb/dcerpc/gkdi/gkdi_group_key_envelope'
 
       def gkdi_get_key(target_sd, root_key_id, l0_key_id, l1_key_id, l2_key_id)
