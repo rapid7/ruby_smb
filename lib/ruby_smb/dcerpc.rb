@@ -50,6 +50,7 @@ module RubySMB
     require 'ruby_smb/dcerpc/icpr'
     require 'ruby_smb/dcerpc/efsrpc'
     require 'ruby_smb/dcerpc/lsarpc'
+    require 'ruby_smb/dcerpc/gkdi'
     require 'ruby_smb/dcerpc/request'
     require 'ruby_smb/dcerpc/response'
     require 'ruby_smb/dcerpc/rpc_auth3'

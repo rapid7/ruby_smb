@@ -124,6 +124,9 @@ module RubySMB
           lsar_close_handle_request              Lsarpc::LSAR_CLOSE_HANDLE
           lsar_lookup_sids_request               Lsarpc::LSAR_LOOKUP_SIDS
         end
+        choice 'Gkdi', selection: -> { opnum } do
+          gkdi_get_key_request Gkdi::GKDI_GET_KEY
+        end
         string :default
       end
 
