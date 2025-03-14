@@ -453,12 +453,7 @@ module RubySMB
         uint8  :reserved5
 
         def display_user_properties?
-          bytes_remaining > 1 || user_properties.size > 0
-        end
-
-        def do_read(io)
-          super
-          bytes_remaining.clear
+          (bytes_remaining > 1 && reading?) || user_properties.size > 0
         end
       end
 
