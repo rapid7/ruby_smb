@@ -28,6 +28,7 @@ module RubySMB
     DCE_C_AUTHZ_DCE  = 2
 
     require 'windows_error/win32'
+    require 'ruby_smb/dcerpc/client'
     require 'ruby_smb/dcerpc/error'
     require 'ruby_smb/dcerpc/fault'
     require 'ruby_smb/dcerpc/uuid'
@@ -189,6 +190,8 @@ module RubySMB
     # @raise [ArgumentError] if `:auth_type` is unknown
     # @raise [NotImplementedError] if `:auth_type` is not implemented (yet)
     def bind(options={})
+      options = options.merge(endpoint: @endpoint) if !options[:endpoint] && defined?(:@endpoint) && @endpoint
+
       @call_id ||= 1
       bind_req = Bind.new(options)
       bind_req.pdu_header.call_id = @call_id

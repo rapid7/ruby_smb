@@ -11,7 +11,6 @@ module RubySMB
       require 'ruby_smb/peer_info'
 
       include Dcerpc
-      include Epm
       include PeerInfo
 
       # The default maximum size of a RPC message that the Client accepts (in bytes)
@@ -146,27 +145,29 @@ module RubySMB
       # @return [TcpSocket] The connected TCP socket
       def connect(port: nil)
         return if @tcp_socket
+
         unless port
-          @tcp_socket = TCPSocket.new(@host, ENDPOINT_MAPPER_PORT)
-          bind(endpoint: Epm)
-          begin
-            host_port = get_host_port_from_ept_mapper(
-              uuid: @endpoint::UUID,
-              maj_ver: @endpoint::VER_MAJOR,
-              min_ver: @endpoint::VER_MINOR
-            )
-          rescue RubySMB::Dcerpc::Error::DcerpcError => e
-            e.message.prepend(
-              "Cannot resolve the remote port number for endpoint #{@endpoint::UUID}. "\
-              "Set @tcp_socket parameter to specify the service port number and bypass "\
-              "EPM port resolution. Error: "
-            )
-            raise e
+          if @endpoint == Epm
+            port = ENDPOINT_MAPPER_PORT
+          else
+            epm_client = Client.new(@host, Epm, read_timeout: @read_timeout)
+            epm_client.connect
+            epm_client.bind
+            begin
+              towers = epm_client.ept_map_endpoint(@endpoint)
+            rescue RubySMB::Dcerpc::Error::DcerpcError => e
+              e.message.prepend(
+                "Cannot resolve the remote port number for endpoint #{@endpoint::UUID}. "\
+                "Set @tcp_socket parameter to specify the service port number and bypass "\
+                "EPM port resolution. Error: "
+              )
+              raise e
+            end
+
+            port = towers.first[:port]
           end
-          port = host_port[:port]
-          @tcp_socket.close
-          @tcp_socket = nil
         end
+
         @tcp_socket = TCPSocket.new(@host, port)
       end
 
