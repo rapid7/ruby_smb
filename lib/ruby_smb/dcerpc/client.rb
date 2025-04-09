@@ -152,8 +152,8 @@ module RubySMB
           else
             epm_client = Client.new(@host, Epm, read_timeout: @read_timeout)
             epm_client.connect
-            epm_client.bind
             begin
+              epm_client.bind
               towers = epm_client.ept_map_endpoint(@endpoint)
             rescue RubySMB::Dcerpc::Error::DcerpcError => e
               e.message.prepend(
@@ -162,6 +162,8 @@ module RubySMB
                 "EPM port resolution. Error: "
               )
               raise e
+            ensure
+              epm_client.close
             end
 
             port = towers.first[:port]

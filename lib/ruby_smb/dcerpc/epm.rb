@@ -14,21 +14,66 @@ module RubySMB
       require 'ruby_smb/dcerpc/epm/epm_ept_map_response'
 
       def ept_map(uuid:, maj_ver:, min_ver:, max_towers: 1, protocol: :ncacn_ip_tcp)
+        interface_identifier = {
+          interface: uuid,
+          major_version: maj_ver,
+          minor_version: min_ver
+        }
+        data_representation = {
+          interface: Ndr::UUID,
+          major_version: Ndr::VER_MAJOR,
+          minor_version: Ndr::VER_MINOR
+        }
+
         case protocol
         when :ncacn_ip_tcp
-          result_key = :port
           decoded_tower = EpmDecodedTowerOctetString.new(
-            interface_identifier: {
-              interface: uuid,
-              major_version: maj_ver,
-              minor_version: min_ver
+            interface_identifier: interface_identifier,
+            data_representation: data_representation,
+            pipe_or_port: {
+              identifier: 7, # 0x07: DOD TCP port
+              pipe_or_port: 0
             },
-            data_representation: {
-              interface: Ndr::UUID,
-              major_version: Ndr::VER_MAJOR,
-              minor_version: Ndr::VER_MINOR
+            host_or_addr: {
+              identifier: 9, # 0x09: DOD IP v4 address (big-endian)
+              host_or_addr: 0
             }
           )
+
+          process_tower = lambda do |tower|
+            port = tower.pipe_or_port.pipe_or_port.value
+            address = IPAddr.new(tower.host_or_addr.host_or_addr.value, Socket::AF_INET)
+            {
+              port: port,
+              address: address,
+              # https://learn.microsoft.com/en-us/windows/win32/midl/ncacn-ip-tcp
+              endpoint: "ncacn_ip_tcp:#{address}[#{port}]"
+            }
+          end
+        when :ncacn_np
+          decoded_tower = EpmDecodedTowerOctetString.new(
+            interface_identifier: interface_identifier,
+            data_representation: data_representation,
+            pipe_or_port: {
+              identifier: 0x0f, # 0x0f: NetBIOS pipe name
+              pipe_or_port: [0]
+            },
+            host_or_addr: {
+              identifier: 0x11, # 0x11: MS NetBIOS host name
+              host_or_addr: [0]
+            }
+          )
+
+          process_tower = lambda do |tower|
+            pipe = tower.pipe_or_port.pipe_or_port[...-1].pack('C*')
+            host = tower.host_or_addr.host_or_addr[...-1].pack('C*')
+            {
+              pipe: pipe,
+              host: host,
+              # https://learn.microsoft.com/en-us/windows/win32/midl/ncacn-nb-nb
+              endpoint: "ncacn_np:#{host}[#{pipe}]"
+            }
+          end
         else
           raise NotImplementedError, "Unsupported protocol: #{protocol}"
         end
@@ -61,10 +106,7 @@ module RubySMB
             raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading EpmDecodedTowerOctetString'
           end
 
-          {
-            result_key => decoded_tower.pipe_or_port.pipe_or_port.to_i,
-            :host => decoded_tower.host_or_addr.host_or_addr.to_i
-          }
+          process_tower.(decoded_tower)
         end
       end
 
