@@ -9,11 +9,27 @@ module RubySMB
       # Operation numbers
       EPT_MAP = 0x0003
 
+      # MS-RPCE specific error codes
+      STATUS_NO_ELEMENTS = 0x16C9A0D6
+
       require 'ruby_smb/dcerpc/epm/epm_twrt'
       require 'ruby_smb/dcerpc/epm/epm_ept_map_request'
       require 'ruby_smb/dcerpc/epm/epm_ept_map_response'
 
-      def ept_map(uuid:, maj_ver:, min_ver:, max_towers: 1, protocol: :ncacn_ip_tcp)
+      # Map a service to a connection end point.
+      #
+      # @param uuid [String] The object UUID of the interface.
+      # @param maj_ver [Integer] The major version number of the interface.
+      # @param min_ver [Integer] The minor version number of the interface.
+      # @param max_towers [Integer] The maximum number of results to obtain.
+      # @param protocol [Symbol] The protocol of endpoint to obtain.
+      #
+      # @return [Array<Hash<Symbol,>>] The mapped endpoints. The hash keys will
+      #   depend on the protocol that was selected but an endpoint key will
+      #   always be present.
+      # @raise [NotImplementedError] Raised if the *protocol* argument is not
+      #   supported.
+      def ept_map(uuid:, maj_ver:, min_ver: 0, max_towers: 1, protocol: :ncacn_ip_tcp)
         interface_identifier = {
           interface: uuid,
           major_version: maj_ver,
@@ -92,7 +108,11 @@ module RubySMB
           raise RubySMB::Dcerpc::Error::InvalidPacket, 'Error reading EptMapResponse'
         end
 
-        unless ept_map_response.error_status == WindowsError::NTStatus::STATUS_SUCCESS
+        if ept_map_response.error_status == STATUS_NO_ELEMENTS
+          raise RubySMB::Dcerpc::Error::EpmError,
+            "Error returned with ept_map: "\
+            "(0x16c9a0d6) STATUS_NO_ELEMENTS: There are no elements that satisfy the specified search criteria."
+        elsif ept_map_response.error_status != WindowsError::NTStatus::STATUS_SUCCESS
           raise RubySMB::Dcerpc::Error::EpmError,
             "Error returned with ept_map: "\
             "#{WindowsError::NTStatus.find_by_retval(ept_map_response.error_status.value).join(',')}"
