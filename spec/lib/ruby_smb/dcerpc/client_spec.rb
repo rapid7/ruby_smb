@@ -1,8 +1,9 @@
 require 'ruby_smb/dcerpc/client'
+require 'ipaddr'
 
 RSpec.describe RubySMB::Dcerpc::Client do
-  it 'includes the RubySMB::Dcerpc::Epm class' do
-    expect(described_class < RubySMB::Dcerpc::Epm).to be true
+  it 'includes the RubySMB::PeerInfo class' do
+    expect(described_class < RubySMB::PeerInfo).to be true
   end
 
   let(:host)     { '1.2.3.4' }
@@ -75,42 +76,38 @@ RSpec.describe RubySMB::Dcerpc::Client do
       end
 
       context 'without TCP port' do
-        let(:host_port) { {host: '0.9.8.7', port: 999} }
+        let(:host_port) { {host: '192.0.2.1', port: 999} }
+        let(:epm_client) { double('EPM DCERPC Client') }
         let(:epm_tcp_socket) { double('EPM TcpSocket') }
         before :example do
-          allow(TCPSocket).to receive(:new).with(host, 135).and_return(epm_tcp_socket)
-          allow(client).to receive(:bind)
-          allow(client).to receive(:get_host_port_from_ept_mapper).and_return(host_port)
-          allow(epm_tcp_socket).to receive(:close)
+          allow(described_class).to receive(:new).with(host, endpoint).and_call_original
+          allow(described_class).to receive(:new).with(host, RubySMB::Dcerpc::Epm, {:read_timeout => 30}).and_return(epm_client)
+          allow(epm_client).to receive(:connect)
+          allow(epm_client).to receive(:bind)
+          allow(epm_client).to receive(:ept_map_endpoint).with(endpoint).and_return(
+            [{address: IPAddr.new(host_port[:host], Socket::AF_INET), port: host_port[:port]}]
+          )
+          allow(epm_client).to receive(:close)
         end
 
-        it 'connects to port 135' do
+        it 'creates a new client bound to the Endpoint Mapper endpoint' do
           client.connect
-          expect(TCPSocket).to have_received(:new).with(host, 135)
-        end
-
-        it 'binds to the Endpoint Mapper endpoint' do
-          client.connect
-          expect(client).to have_received(:bind).with(endpoint: RubySMB::Dcerpc::Epm)
+          expect(described_class).to have_received(:new).with(host, RubySMB::Dcerpc::Epm, {:read_timeout => 30})
         end
 
         it 'gets host and port information from the Endpoint Mapper' do
           client.connect
-          expect(client).to have_received(:get_host_port_from_ept_mapper).with(
-            uuid: endpoint::UUID,
-            maj_ver: endpoint::VER_MAJOR,
-            min_ver: endpoint::VER_MINOR
-          )
+          expect(epm_client).to have_received(:ept_map_endpoint).with(endpoint)
         end
 
-        it 'closes the EPM socket' do
+        it 'closes the EPM client socket' do
           client.connect
-          expect(epm_tcp_socket).to have_received(:close)
+          expect(epm_client).to have_received(:close)
         end
 
         it 'connects to the endpoint and returns the socket' do
           expect(client.connect).to eq(tcp_socket)
-          expect(TCPSocket).to have_received(:new).with(host, 999)
+          expect(TCPSocket).to have_received(:new).with(host, host_port[:port])
         end
       end
     end
@@ -330,7 +327,7 @@ RSpec.describe RubySMB::Dcerpc::Client do
 
         it 'sends an auth3 request' do
           client.bind(**kwargs)
-          expect(client).to have_received(:auth_provider_complete_handshake).with(bindack_response, auth_type: kwargs[:auth_type], auth_level: kwargs[:auth_level])
+          expect(client).to have_received(:auth_provider_complete_handshake).with(bindack_response, auth_type: kwargs[:auth_type], auth_level: kwargs[:auth_level], endpoint: endpoint)
         end
       end
     end
