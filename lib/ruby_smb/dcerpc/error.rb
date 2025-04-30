@@ -70,6 +70,16 @@ module RubySMB
           super(msg)
         end
       end
+
+      class GkdiError < DcerpcError
+        include RubySMB::Error::UnexpectedStatusCode::Mixin
+
+        def initialize(msg, status_code: nil)
+          self.status_code = status_code unless status_code.nil?
+
+          super(msg)
+        end
+      end
     end
   end
 end
