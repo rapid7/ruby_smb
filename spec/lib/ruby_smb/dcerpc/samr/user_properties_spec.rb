@@ -1,7 +1,7 @@
 RSpec.describe RubySMB::Dcerpc::Samr::UserProperties do
   describe '#read' do
     context 'when reading a structure with no user properties' do
-      let(:binary) { [ 0, 0x63, 0, 0, 0x50, 0].pack('L<L<S<S<x96<SC') }
+      let(:binary) { [ 0, 0x63, 0, 0, 0x50, 0].pack('L<L<S<S<x96SC') }
       let(:subject) { described_class.read(binary) }
 
       it 'does not include the property_count' do
@@ -23,7 +23,7 @@ RSpec.describe RubySMB::Dcerpc::Samr::UserProperties do
       let(:user_property1) { RubySMB::Dcerpc::Samr::UserProperty.new(property_name: 'key1', property_value: 'value1') }
       let(:user_property2) { RubySMB::Dcerpc::Samr::UserProperty.new(property_name: 'key2', property_value: 'value2') }
       let(:user_properties) { user_property1.to_binary_s + user_property2.to_binary_s }
-      let(:binary) { [ 0, 0x63 + 2 + user_properties.length, 0, 0, 0x50, 2].pack('L<L<S<S<x96<S<S') + user_properties + "\x00".b }
+      let(:binary) { [ 0, 0x63 + 2 + user_properties.length, 0, 0, 0x50, 2].pack('L<L<S<S<x96S<S') + user_properties + "\x00".b }
       let(:subject) { described_class.read(binary) }
 
       it 'includes the property_count' do
