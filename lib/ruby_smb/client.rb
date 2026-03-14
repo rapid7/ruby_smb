@@ -603,13 +603,15 @@ module RubySMB
     # Connects to the supplied share
     #
     # @param share [String] the path to the share in `\\server\share_name` format
+    # @param password [String, nil] share-level password (SMB1 only, for
+    #   servers using share-level auth such as Windows 95/98/ME)
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
-    def tree_connect(share)
+    def tree_connect(share, password: nil)
       connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
-        smb1_tree_connect(share)
+        smb1_tree_connect(share, password: password)
       end
       @tree_connects << connected_tree
       connected_tree
@@ -623,6 +625,61 @@ module RubySMB
       tree = tree_connect("\\\\#{host}\\IPC$")
       named_pipe = tree.open_pipe(filename: "srvsvc", write: true, read: true)
       named_pipe.net_share_enum_all(host)
+    end
+
+    # Enumerates shares using the RAP (Remote Administration Protocol).
+    # This is the only share-enumeration method supported by Windows
+    # 95/98/ME and old Samba builds that lack DCERPC/srvsvc.
+    #
+    # @param host [String] the server hostname or IP
+    # @param password [String, nil] share-level password for IPC$
+    # @return [Array<Hash>] each entry has :name (String) and :type (Integer)
+    # @raise [RubySMB::Error::UnexpectedStatusCode] on transport errors
+    def net_share_enum_rap(host, password: nil)
+      tree = tree_connect("\\\\#{host}\\IPC$", password: password)
+      begin
+        request = RubySMB::SMB1::Packet::Trans::Request.new
+        request.smb_header.tid = tree.id
+        request.smb_header.flags2.unicode = 0
+
+        rap_params  = [0].pack('v')        # Function: NetShareEnum (0)
+        rap_params << "WrLeh\x00"          # Param descriptor
+        rap_params << "B13BWz\x00"         # Return descriptor
+        rap_params << [1].pack('v')        # Info level 1
+        rap_params << [0x1000].pack('v')   # Receive buffer size
+
+        request.data_block.name = "\\PIPE\\LANMAN\x00"
+        request.data_block.trans_parameters = rap_params
+        request.parameter_block.max_data_count = 0x1000
+        request.parameter_block.max_parameter_count = 8
+
+        raw_response = send_recv(request)
+        response = RubySMB::SMB1::Packet::Trans::Response.read(
+          raw_response
+        )
+
+        rap_resp_params = response.data_block.trans_parameters.to_s
+        if rap_resp_params.length < 8
+          raise RubySMB::Error::InvalidPacket,
+                'Invalid RAP response parameters'
+        end
+
+        _status, _converter, entry_count, _available =
+          rap_resp_params.unpack('vvvv')
+
+        rap_data = response.data_block.trans_data.to_s
+        shares = []
+        entry_count.times do |i|
+          offset = i * 20
+          break if offset + 20 > rap_data.length
+          name     = rap_data[offset, 13].delete("\x00")
+          type_val = rap_data[offset + 14, 2].unpack1('v')
+          shares << { name: name, type: type_val & 0x0FFFFFFF }
+        end
+        shares
+      ensure
+        tree.disconnect!
+      end
     end
 
     # Resets all of the session state on the client, setting it

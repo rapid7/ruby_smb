@@ -88,6 +88,72 @@ module RubySMB
         _open(**opts)
       end
 
+      # Open a file using SMB_COM_OPEN_ANDX (0x2D). This is the LANMAN 1.0
+      # file-open command supported by all SMB1 servers including Windows
+      # 95/98/ME which lack NT_CREATE_ANDX.
+      #
+      # @param filename [String] path to the file on the share
+      # @param disposition [Symbol, Integer] :open, :create, :overwrite, or raw OpenMode integer
+      # @param read [Boolean] request read access
+      # @param write [Boolean] request write access
+      # @return [RubySMB::SMB1::File] handle to the opened file
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not valid
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
+      def open_andx(filename:, disposition: :open,
+                    read: true, write: false)
+        request = RubySMB::SMB1::Packet::OpenAndxRequest.new
+        request = set_header_fields(request)
+        request.smb_header.flags2.unicode = 0
+
+        access = 0x0040 # sharing: deny-nothing
+        if read && write
+          access |= 0x02
+        elsif write
+          access |= 0x01
+        end
+
+        open_mode = case disposition
+                    when :open      then 0x0001
+                    when :create    then 0x0010
+                    when :overwrite then 0x0012
+                    else disposition
+                    end
+
+        request.parameter_block.access_mode       = access
+        request.parameter_block.search_attributes  = 0x0016
+        request.parameter_block.file_attributes    = write ? 0x0020 : 0x0000
+        request.parameter_block.open_mode          = open_mode
+
+        fname = filename.dup
+        fname.prepend('\\') unless fname.start_with?('\\')
+        request.data_block.file_name = fname
+
+        raw_response = @client.send_recv(request)
+        response = RubySMB::SMB1::Packet::OpenAndxResponse.read(
+          raw_response
+        )
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::OpenAndxResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode,
+                response.status_code
+        end
+
+        file = RubySMB::SMB1::File.allocate
+        file.tree       = self
+        file.name       = filename
+        file.fid        = response.parameter_block.fid
+        file.size       = response.parameter_block.data_size
+        file.size_on_disk = response.parameter_block.data_size
+        file.attributes = response.parameter_block.file_attributes
+        file
+      end
+
       # List `directory` on the remote share.
       #
       # @example
