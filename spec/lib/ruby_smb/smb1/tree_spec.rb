@@ -492,8 +492,10 @@ RSpec.describe RubySMB::SMB1::Tree do
       expect(modified_request.parameter_block.max_parameter_count).to eq 10
     end
 
-    it 'sets #max_data_count to 16,384' do
-      expect(modified_request.parameter_block.max_data_count).to eq 16_384
+    it 'sets #max_data_count to the minimum of 16,384 and server_max_buffer_size' do
+      expect(modified_request.parameter_block.max_data_count).to eq(
+        [16_384, client.server_max_buffer_size].min
+      )
     end
   end
 

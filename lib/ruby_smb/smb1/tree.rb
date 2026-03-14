@@ -102,9 +102,11 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def list(directory: '\\', pattern: '*', unicode: true,
                type: RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo)
+        info_standard = (type == RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindInfoStandard)
+
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
         find_first_request = set_header_fields(find_first_request)
-        find_first_request.smb_header.flags2.unicode  = 1 if unicode
+        find_first_request.smb_header.flags2.unicode  = 1 if unicode && !info_standard
 
         search_path = directory.dup
         search_path << '\\' unless search_path.end_with?('\\')
@@ -120,11 +122,16 @@ module RubySMB
         t2_params.flags.resume_keys           = 0
         t2_params.information_level           = type::CLASS_LEVEL
         t2_params.filename                    = search_path
-        t2_params.search_count                = 10
+        t2_params.search_count                = info_standard ? 255 : 10
 
         find_first_request = set_find_params(find_first_request)
 
         raw_response  = client.send_recv(find_first_request)
+
+        if info_standard
+          return parse_find_first2_info_standard(raw_response, type)
+        end
+
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -141,9 +148,9 @@ module RubySMB
 
         eos   = response.data_block.trans2_parameters.eos
         sid   = response.data_block.trans2_parameters.sid
-        last  = results.last.file_name
+        last  = results.last&.file_name
 
-        while eos.zero?
+        while eos.zero? && last
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
           find_next_request = set_header_fields(find_next_request)
           find_next_request.smb_header.flags2.unicode   = 1 if unicode
@@ -171,8 +178,10 @@ module RubySMB
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
-          results += response.results(type, unicode: unicode)
+          batch = response.results(type, unicode: unicode)
+          break if batch.empty?
 
+          results += batch
           eos   = response.data_block.trans2_parameters.eos
           last  = results.last.file_name
         end
@@ -281,8 +290,48 @@ module RubySMB
         request.parameter_block.data_offset            = 0
         request.parameter_block.total_parameter_count  = request.parameter_block.parameter_count
         request.parameter_block.max_parameter_count    = request.parameter_block.parameter_count
-        request.parameter_block.max_data_count         = 16_384
+        max_data = [16_384, client.server_max_buffer_size].min
+        request.parameter_block.max_data_count         = max_data
         request
+      end
+
+      # Parse a FIND_FIRST2 response with SMB_INFO_STANDARD directly from
+      # raw bytes, bypassing BinData padding that can misalign on Win95.
+      def parse_find_first2_info_standard(raw_response, type)
+        status = raw_response[5, 4].unpack1('V')
+        unless status == 0
+          raise RubySMB::Error::UnexpectedStatusCode, status
+        end
+
+        pb_offset = 33
+        data_offset = raw_response[pb_offset + 14, 2].unpack1('v')
+        data_count  = raw_response[pb_offset + 12, 2].unpack1('v')
+
+        blob = raw_response[data_offset, data_count]
+        parse_info_standard_blob(blob, type)
+      end
+
+      def parse_info_standard_blob(blob, type)
+        results = []
+        offset = 0
+        while offset < blob.length
+          break if offset + 23 > blob.length
+          name_len = blob[offset + 22].ord
+          if name_len == 0
+            offset += 23
+            next
+          end
+          break if offset + 23 + name_len > blob.length
+          entry = type.read(blob[offset, 23 + name_len])
+          results << entry
+          entry_end = offset + 23 + name_len
+          if entry_end < blob.length && blob[entry_end].ord == 0
+            offset = entry_end + 1
+          else
+            offset = entry_end
+          end
+        end
+        results
       end
 
       # Add null termination to `str` in case it is not already null-terminated.

@@ -38,6 +38,7 @@ module RubySMB
 
           require 'ruby_smb/smb1/packet/trans2/find_information_level/find_file_both_directory_info'
           require 'ruby_smb/smb1/packet/trans2/find_information_level/find_file_full_directory_info'
+          require 'ruby_smb/smb1/packet/trans2/find_information_level/find_info_standard'
         end
       end
     end

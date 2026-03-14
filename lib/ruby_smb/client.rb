@@ -672,7 +672,7 @@ module RubySMB
     # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
     def session_request_packet(name = '*SMBSERVER')
       called_name = "#{name.upcase.ljust(15)}\x20"
-      calling_name = "#{''.ljust(15)}\x00"
+      calling_name = "#{@local_workstation.upcase.ljust(15)}\x00"
 
       session_request = RubySMB::Nbss::SessionRequest.new
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST

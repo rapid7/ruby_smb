@@ -120,6 +120,20 @@ module RubySMB
           self.session_encrypt_data = false
           self.negotiation_security_buffer = packet.data_block.security_blob
           'SMB1'
+        when RubySMB::SMB1::Packet::NegotiateResponse
+          # Non-extended security (e.g. Windows 95/98/ME, old Samba). The server provides
+          # a raw 8-byte challenge in the negotiate response instead of a SPNEGO blob.
+          self.smb1 = true
+          self.smb2 = false
+          self.smb3 = false
+          self.signing_required = packet.parameter_block.security_mode.security_signatures_required == 1
+          self.dialect = packet.negotiated_dialect.to_s
+          self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
+          self.negotiated_smb_version = 1
+          self.session_encrypt_data = false
+          # Store the 8-byte challenge so authentication can compute LM/NTLM responses.
+          @smb1_negotiate_challenge = packet.data_block.challenge.to_s
+          'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false
           unless packet.dialect_revision.to_i == RubySMB::SMB2::SMB2_WILDCARD_REVISION
