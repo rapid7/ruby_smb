@@ -15,7 +15,7 @@ module RubySMB
 
         # The {RubySMB::SMB1::DataBlock} specific to this packet type.
         class DataBlock < RubySMB::SMB1::DataBlock
-          stringz :password, label: 'Password Field', initial_value: '', length: -> { parent.parameter_block.password_length }
+          string :password, label: 'Password Field', initial_value: "\x00", length: -> { parent.parameter_block.password_length }
           choice  :path, selection: -> { parent.smb_header.flags2.unicode } do
             stringz   0
             stringz16 1
