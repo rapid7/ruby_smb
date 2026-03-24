@@ -517,6 +517,18 @@ module RubySMB
         break
       end unless version == 'SMB1'
 
+      # Handle STATUS_NETWORK_SESSION_EXPIRED. The 'net use' client upon receiving this error will automatically attempt
+      # to re-authenticate, which makes relaying ntlm authentication to multiple targets possible. This block ensures
+      # ruby_smb behaves in the same manner as 'net use'.
+      if smb2_header && smb2_header.nt_status == WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED && !@mech_type.nil?
+        if @mech_type == :ntlm || @mech_type == :anonymous
+          session_setup(self.username, self.password, self.domain, local_workstation: self.local_workstation, ntlm_flags: NTLM::DEFAULT_CLIENT_FLAGS)
+          raw_response = send_recv(packet, encrypt: encrypt) # Retry the request after re-authentication
+        elsif  @mech_type == :kerberos
+          raise RubySMB::Error::RubySMBError, 'WindowsError::NTStatus::STATUS_NETWORK_SESSION_EXPIRED received, but kerberos authentication is being used, so automatic re-authentication cannot be attempted.'
+        end
+      end
+
       self.sequence_counter += 1 if signing_required && !session_key.empty?
       # update the SMB2 message ID according to the received Credit Charged
       self.smb2_message_id += smb2_header.credit_charge - 1 if smb2_header && self.server_supports_multi_credit

@@ -31,6 +31,7 @@ module RubySMB
       #
       # @return [WindowsError::ErrorCode] the status code the server returned
       def smb1_anonymous_auth
+        @mech_type = :anonymous
         request       = smb1_anonymous_auth_request
         raw_response  = send_recv(request)
         response      = smb1_anonymous_auth_response(raw_response)
@@ -73,6 +74,7 @@ module RubySMB
       # Handles the SMB1 NTLMSSP 4-way handshake for Authentication and store
       # information about the peer/server.
       def smb1_authenticate
+        @mech_type = :ntlm
         response = smb1_ntlmssp_negotiate
         challenge_packet = smb1_ntlmssp_challenge_packet(response)
 
@@ -205,6 +207,7 @@ module RubySMB
       # Handles the SMB2 NTLMSSP 4-way handshake for Authentication and store
       # information about the peer/server.
       def smb2_authenticate
+        @mech_type = :ntlm
         response = smb2_ntlmssp_negotiate
         challenge_packet = smb2_ntlmssp_challenge_packet(response)
         if @dialect == '0x0311'
