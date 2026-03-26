@@ -9,15 +9,24 @@ module RubySMB
         # A SMB1 Parameter Block as defined by the {SessionSetupResponse}
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           and_x_block                :andx_block
-          optional_support           :optional_support
+          optional_support           :optional_support,    onlyif: -> { word_count >= 3 }
           directory_access_mask      :access_rights,       label: 'Maximal Share Access Rights', onlyif: -> { word_count >= 5 }
           directory_access_mask      :guest_access_rights, label: 'Guest Share Access Rights',   onlyif: -> { word_count == 7 }
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.
+        # Windows 95/98/ME may return a minimal DataBlock without the native file system.
         class DataBlock < RubySMB::SMB1::DataBlock
           stringz   :service,             label: 'Service Type'
           stringz   :native_file_system,  label: 'Native File System'
+
+          # Override to handle Win95 responses that may omit native_file_system.
+          def do_read(io)
+            byte_count.do_read(io)
+            return unless byte_count > 0
+            service.do_read(io)
+            native_file_system.do_read(io) if byte_count > service.num_bytes
+          end
         end
 
         smb_header        :smb_header

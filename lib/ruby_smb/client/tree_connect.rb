@@ -11,10 +11,17 @@ module RubySMB
       # {RubySMB::SMB1::Tree}
       #
       # @param share [String] the share path to connect to
+      # @param password [String, nil] share-level password for servers using
+      #   share-level authentication (e.g. Windows 95/98/ME)
       # @return [RubySMB::SMB1::Tree] the connected Tree
-      def smb1_tree_connect(share)
+      def smb1_tree_connect(share, password: nil)
         request = RubySMB::SMB1::Packet::TreeConnectRequest.new
         request.smb_header.tid = 65_535
+        if password
+          pass_bytes = password + "\x00"
+          request.parameter_block.password_length = pass_bytes.length
+          request.data_block.password = pass_bytes
+        end
         request.data_block.path = share
         raw_response = send_recv(request)
         response = RubySMB::SMB1::Packet::TreeConnectResponse.read(raw_response)

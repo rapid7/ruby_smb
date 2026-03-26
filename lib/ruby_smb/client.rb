@@ -615,13 +615,15 @@ module RubySMB
     # Connects to the supplied share
     #
     # @param share [String] the path to the share in `\\server\share_name` format
+    # @param password [String, nil] share-level password (SMB1 only, for
+    #   servers using share-level auth such as Windows 95/98/ME)
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
-    def tree_connect(share)
+    def tree_connect(share, password: nil)
       connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
-        smb1_tree_connect(share)
+        smb1_tree_connect(share, password: password)
       end
       @tree_connects << connected_tree
       connected_tree
@@ -635,6 +637,61 @@ module RubySMB
       tree = tree_connect("\\\\#{host}\\IPC$")
       named_pipe = tree.open_pipe(filename: "srvsvc", write: true, read: true)
       named_pipe.net_share_enum_all(host)
+    end
+
+    # Enumerates shares using the RAP (Remote Administration Protocol).
+    # This is the only share-enumeration method supported by Windows
+    # 95/98/ME and old Samba builds that lack DCERPC/srvsvc.
+    #
+    # @param host [String] the server hostname or IP
+    # @param password [String, nil] share-level password for IPC$
+    # @return [Array<Hash>] each entry has :name (String) and :type (Integer)
+    # @raise [RubySMB::Error::UnexpectedStatusCode] on transport errors
+    def net_share_enum_rap(host, password: nil)
+      tree = tree_connect("\\\\#{host}\\IPC$", password: password)
+      begin
+        request = RubySMB::SMB1::Packet::Trans::Request.new
+        request.smb_header.tid = tree.id
+        request.smb_header.flags2.unicode = 0
+
+        rap_params  = [0].pack('v')        # Function: NetShareEnum (0)
+        rap_params << "WrLeh\x00"          # Param descriptor
+        rap_params << "B13BWz\x00"         # Return descriptor
+        rap_params << [1].pack('v')        # Info level 1
+        rap_params << [0x1000].pack('v')   # Receive buffer size
+
+        request.data_block.name = "\\PIPE\\LANMAN\x00"
+        request.data_block.trans_parameters = rap_params
+        request.parameter_block.max_data_count = 0x1000
+        request.parameter_block.max_parameter_count = 8
+
+        raw_response = send_recv(request)
+        response = RubySMB::SMB1::Packet::Trans::Response.read(
+          raw_response
+        )
+
+        rap_resp_params = response.data_block.trans_parameters.to_s
+        if rap_resp_params.length < 8
+          raise RubySMB::Error::InvalidPacket,
+                'Invalid RAP response parameters'
+        end
+
+        _status, _converter, entry_count, _available =
+          rap_resp_params.unpack('vvvv')
+
+        rap_data = response.data_block.trans_data.to_s
+        shares = []
+        entry_count.times do |i|
+          offset = i * 20
+          break if offset + 20 > rap_data.length
+          name     = rap_data[offset, 13].delete("\x00")
+          type_val = rap_data[offset + 14, 2].unpack1('v')
+          shares << { name: name, type: type_val & 0x0FFFFFFF }
+        end
+        shares
+      ensure
+        tree.disconnect!
+      end
     end
 
     # Resets all of the session state on the client, setting it
@@ -656,27 +713,146 @@ module RubySMB
     end
 
     # Requests a NetBIOS Session Service using the provided name.
+    # When the name is '*SMBSERVER' and the server rejects it with
+    # "Called name not present", this method automatically looks up
+    # the server's actual NetBIOS name via a Node Status query,
+    # reconnects the TCP socket, and retries.
     #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
     # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a NBSS packet
     def session_request(name = '*SMBSERVER')
+      send_session_request(name)
+    rescue RubySMB::Error::NetBiosSessionService => e
+      raise unless name == '*SMBSERVER' && e.message.include?('Called name not present')
+
+      sock = dispatcher.tcp_socket
+      if sock.respond_to?(:peerhost)
+        host = sock.peerhost
+        port = sock.peerport
+      else
+        addr = sock.remote_address
+        host = addr.ip_address
+        port = addr.ip_port
+      end
+
+      resolved = netbios_lookup_name(host)
+      raise unless resolved
+
+      dispatcher.tcp_socket.close rescue nil
+      new_sock = TCPSocket.new(host, port)
+      new_sock.setsockopt(
+        ::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true
+      )
+      dispatcher.tcp_socket = new_sock
+      send_session_request(resolved)
+    end
+
+    private
+
+    # Sends a single NetBIOS Session Request and reads the response.
+    #
+    # @param name [String] the NetBIOS name to request
+    # @return [TrueClass] if session request is granted
+    def send_session_request(name)
       session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
       begin
         session_header = RubySMB::Nbss::SessionHeader.read(raw_response)
         if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+          negative_session_response = RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
           raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
         end
       rescue IOError
         raise RubySMB::Error::InvalidPacket, 'Not a NBSS packet'
       end
 
-      return true
+      true
     end
+
+    # Resolves a host's NetBIOS name. Tries nmblookup first (if
+    # available), then falls back to a raw UDP Node Status query.
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the NetBIOS name, or nil if lookup fails
+    def netbios_lookup_name(host)
+      netbios_lookup_nmblookup(host) || netbios_lookup_udp(host)
+    end
+
+    # Resolves a NetBIOS name using the system nmblookup command.
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the file server NetBIOS name
+    def netbios_lookup_nmblookup(host)
+      output = IO.popen(['nmblookup', '-A', host], err: :close, &:read)
+      return nil unless $?.success?
+
+      output.each_line do |line|
+        if line =~ /\A\s+(\S+)\s+<20>\s/
+          return $1.strip
+        end
+      end
+      nil
+    rescue Errno::ENOENT
+      nil
+    end
+
+    # Resolves a NetBIOS name via a raw UDP Node Status request
+    # (RFC 1002, port 137).
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the file server NetBIOS name
+    def netbios_lookup_udp(host)
+      raw_name = "*" + "\x00" * 15
+      encoded = raw_name.bytes.map { |b|
+        ((b >> 4) + 0x41).chr + ((b & 0x0F) + 0x41).chr
+      }.join
+
+      request = [rand(0xFFFF)].pack('n')
+      request << [0x0000, 1, 0, 0, 0].pack('nnnnn')
+      request << [0x20].pack('C')
+      request << encoded
+      request << [0x00].pack('C')
+      request << [0x0021, 0x0001].pack('nn')
+
+      sock = UDPSocket.new
+      sock.send(request, 0, host, 137)
+
+      return nil unless IO.select([sock], nil, nil, 3)
+
+      data, = sock.recvfrom(4096)
+      return nil if data.nil? || data.length < 57
+
+      offset = 12
+      while offset < data.length
+        len = data[offset].ord
+        break if len == 0
+        offset += len + 1
+      end
+      offset += 1  # label terminator
+      offset += 10 # Type(2) + Class(2) + TTL(4) + RDLENGTH(2)
+      return nil if offset >= data.length
+
+      num_names = data[offset].ord
+      offset += 1
+
+      num_names.times do
+        break if offset + 18 > data.length
+        nb_name = data[offset, 15].rstrip
+        suffix  = data[offset + 15].ord
+        flags   = data[offset + 16, 2].unpack1('n')
+        offset += 18
+        return nb_name if suffix == 0x20 && (flags & 0x8000) == 0
+      end
+
+      nil
+    ensure
+      sock&.close
+    end
+
+    public
 
     # Crafts the NetBIOS SessionRequest packet to be sent for session request operations.
     #
@@ -684,7 +860,7 @@ module RubySMB
     # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
     def session_request_packet(name = '*SMBSERVER')
       called_name = "#{name.upcase.ljust(15)}\x20"
-      calling_name = "#{''.ljust(15)}\x00"
+      calling_name = "#{@local_workstation.upcase.ljust(15)}\x00"
 
       session_request = RubySMB::Nbss::SessionRequest.new
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST

@@ -27,8 +27,8 @@ module RubySMB
           string      :oem_password,      label: 'OEM Password'
           string      :unicode_password,  label: 'Unicode password'
           string      :padding,           label: 'Padding'
-          string      :account_name,      label: 'Account Name(username)',  length: 2
-          string      :primary_domain,    label: 'Primary Domain',          length: 2
+          stringz     :account_name,      label: 'Account Name(username)'
+          stringz     :primary_domain,    label: 'Primary Domain'
           stringz     :native_os,         label: 'Native OS',               initial_value: 'Windows 7 Ultimate N 7601 Service Pack 1'
           stringz     :native_lan_man,    label: 'Native LAN Manager',      initial_value: 'Windows 7 Ultimate N 6.1'
         end

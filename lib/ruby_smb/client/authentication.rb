@@ -15,6 +15,10 @@ module RubySMB
         if smb1
           if username.empty? && password.empty?
             smb1_anonymous_auth
+          elsif @smb1_negotiate_challenge
+            # Non-extended security negotiated (e.g. Windows 95/98). Use legacy
+            # LM/NTLM challenge-response rather than NTLMSSP.
+            smb1_legacy_authenticate
           else
             smb1_authenticate
           end
@@ -198,6 +202,55 @@ module RubySMB
         ntlmssp_offset = sec_blob.index('NTLMSSP')
         type2_blob = sec_blob.slice(ntlmssp_offset..-1)
         [type2_blob].pack('m')
+      end
+
+      # Handles SMB1 authentication against servers that negotiated non-extended
+      # (legacy) security — Windows 95/98/ME and old Samba builds. These hosts
+      # provide a raw 8-byte challenge in the Negotiate response and expect
+      # LM + NTLM hash responses in SessionSetupLegacyRequest.
+      def smb1_legacy_authenticate
+        challenge  = @smb1_negotiate_challenge
+        lm_hash    = Net::NTLM.lm_hash(@password)
+        ntlm_hash  = Net::NTLM.ntlm_hash(@password)
+        lm_resp    = Net::NTLM.lm_response(lm_hash: lm_hash, challenge: challenge)
+        ntlm_resp  = Net::NTLM.ntlm_response(ntlm_hash: ntlm_hash, challenge: challenge)
+
+        packet       = smb1_legacy_auth_request(lm_resp, ntlm_resp)
+        raw_response = send_recv(packet)
+        response     = smb1_legacy_auth_response(raw_response)
+        response_code = response.status_code
+
+        if response_code == WindowsError::NTStatus::STATUS_SUCCESS
+          self.user_id        = response.smb_header.uid
+          self.peer_native_os = response.data_block.native_os.to_s
+          self.peer_native_lm = response.data_block.native_lan_man.to_s
+          self.primary_domain = response.data_block.primary_domain.to_s
+        end
+
+        response_code
+      end
+
+      def smb1_legacy_auth_request(lm_response, ntlm_response)
+        packet = RubySMB::SMB1::Packet::SessionSetupLegacyRequest.new
+        packet.parameter_block.max_buffer_size = self.max_buffer_size
+        packet.parameter_block.max_mpx_count   = 50
+        packet.data_block.oem_password         = lm_response
+        packet.data_block.unicode_password     = ntlm_response
+        packet.data_block.account_name         = @username.encode('ASCII', invalid: :replace, undef: :replace)
+        packet.data_block.primary_domain       = @domain.encode('ASCII', invalid: :replace, undef: :replace)
+        packet
+      end
+
+      def smb1_legacy_auth_response(raw_response)
+        packet = RubySMB::SMB1::Packet::SessionSetupLegacyResponse.read(raw_response)
+        unless packet.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::SessionSetupLegacyResponse::COMMAND,
+            packet:         packet
+          )
+        end
+        packet
       end
 
       #

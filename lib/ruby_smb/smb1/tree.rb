@@ -88,6 +88,72 @@ module RubySMB
         _open(**opts)
       end
 
+      # Open a file using SMB_COM_OPEN_ANDX (0x2D). This is the LANMAN 1.0
+      # file-open command supported by all SMB1 servers including Windows
+      # 95/98/ME which lack NT_CREATE_ANDX.
+      #
+      # @param filename [String] path to the file on the share
+      # @param disposition [Symbol, Integer] :open, :create, :overwrite, or raw OpenMode integer
+      # @param read [Boolean] request read access
+      # @param write [Boolean] request write access
+      # @return [RubySMB::SMB1::File] handle to the opened file
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not valid
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
+      def open_andx(filename:, disposition: :open,
+                    read: true, write: false)
+        request = RubySMB::SMB1::Packet::OpenAndxRequest.new
+        request = set_header_fields(request)
+        request.smb_header.flags2.unicode = 0
+
+        access = 0x0040 # sharing: deny-nothing
+        if read && write
+          access |= 0x02
+        elsif write
+          access |= 0x01
+        end
+
+        open_mode = case disposition
+                    when :open      then 0x0001
+                    when :create    then 0x0010
+                    when :overwrite then 0x0012
+                    else disposition
+                    end
+
+        request.parameter_block.access_mode       = access
+        request.parameter_block.search_attributes  = 0x0016
+        request.parameter_block.file_attributes    = write ? 0x0020 : 0x0000
+        request.parameter_block.open_mode          = open_mode
+
+        fname = filename.dup
+        fname.prepend('\\') unless fname.start_with?('\\')
+        request.data_block.file_name = fname
+
+        raw_response = @client.send_recv(request)
+        response = RubySMB::SMB1::Packet::OpenAndxResponse.read(
+          raw_response
+        )
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::OpenAndxResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode,
+                response.status_code
+        end
+
+        file = RubySMB::SMB1::File.allocate
+        file.tree       = self
+        file.name       = filename
+        file.fid        = response.parameter_block.fid
+        file.size       = response.parameter_block.data_size
+        file.size_on_disk = response.parameter_block.data_size
+        file.attributes = response.parameter_block.file_attributes
+        file
+      end
+
       # List `directory` on the remote share.
       #
       # @example
@@ -102,9 +168,11 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def list(directory: '\\', pattern: '*', unicode: true,
                type: RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo)
+        info_standard = (type == RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindInfoStandard)
+
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
         find_first_request = set_header_fields(find_first_request)
-        find_first_request.smb_header.flags2.unicode  = 1 if unicode
+        find_first_request.smb_header.flags2.unicode  = 1 if unicode && !info_standard
 
         search_path = directory.dup
         search_path << '\\' unless search_path.end_with?('\\')
@@ -120,11 +188,16 @@ module RubySMB
         t2_params.flags.resume_keys           = 0
         t2_params.information_level           = type::CLASS_LEVEL
         t2_params.filename                    = search_path
-        t2_params.search_count                = 10
+        t2_params.search_count                = info_standard ? 255 : 10
 
         find_first_request = set_find_params(find_first_request)
 
         raw_response  = client.send_recv(find_first_request)
+
+        if info_standard
+          return parse_find_first2_info_standard(raw_response, type)
+        end
+
         response      = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.read(raw_response)
         unless response.valid?
           raise RubySMB::Error::InvalidPacket.new(
@@ -141,9 +214,9 @@ module RubySMB
 
         eos   = response.data_block.trans2_parameters.eos
         sid   = response.data_block.trans2_parameters.sid
-        last  = results.last.file_name
+        last  = results.last&.file_name
 
-        while eos.zero?
+        while eos.zero? && last
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
           find_next_request = set_header_fields(find_next_request)
           find_next_request.smb_header.flags2.unicode   = 1 if unicode
@@ -171,8 +244,10 @@ module RubySMB
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
-          results += response.results(type, unicode: unicode)
+          batch = response.results(type, unicode: unicode)
+          break if batch.empty?
 
+          results += batch
           eos   = response.data_block.trans2_parameters.eos
           last  = results.last.file_name
         end
@@ -281,8 +356,48 @@ module RubySMB
         request.parameter_block.data_offset            = 0
         request.parameter_block.total_parameter_count  = request.parameter_block.parameter_count
         request.parameter_block.max_parameter_count    = request.parameter_block.parameter_count
-        request.parameter_block.max_data_count         = 16_384
+        max_data = [16_384, client.server_max_buffer_size].min
+        request.parameter_block.max_data_count         = max_data
         request
+      end
+
+      # Parse a FIND_FIRST2 response with SMB_INFO_STANDARD directly from
+      # raw bytes, bypassing BinData padding that can misalign on Win95.
+      def parse_find_first2_info_standard(raw_response, type)
+        status = raw_response[5, 4].unpack1('V')
+        unless status == 0
+          raise RubySMB::Error::UnexpectedStatusCode, status
+        end
+
+        pb_offset = 33
+        data_offset = raw_response[pb_offset + 14, 2].unpack1('v')
+        data_count  = raw_response[pb_offset + 12, 2].unpack1('v')
+
+        blob = raw_response[data_offset, data_count]
+        parse_info_standard_blob(blob, type)
+      end
+
+      def parse_info_standard_blob(blob, type)
+        results = []
+        offset = 0
+        while offset < blob.length
+          break if offset + 23 > blob.length
+          name_len = blob[offset + 22].ord
+          if name_len == 0
+            offset += 23
+            next
+          end
+          break if offset + 23 + name_len > blob.length
+          entry = type.read(blob[offset, 23 + name_len])
+          results << entry
+          entry_end = offset + 23 + name_len
+          if entry_end < blob.length && blob[entry_end].ord == 0
+            offset = entry_end + 1
+          else
+            offset = entry_end
+          end
+        end
+        results
       end
 
       # Add null termination to `str` in case it is not already null-terminated.

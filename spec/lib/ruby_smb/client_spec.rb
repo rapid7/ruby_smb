@@ -754,7 +754,7 @@ RSpec.describe RubySMB::Client do
       it 'sets the expected fields of the SessionRequest packet' do
         name         = 'NBNAMESPEC'
         called_name  = 'NBNAMESPEC      '
-        calling_name = "               \x00"
+        calling_name = "WORKSTATION    \x00"
 
         session_packet = client.session_request_packet(name)
         expect(session_packet).to be_a(RubySMB::Nbss::SessionRequest)

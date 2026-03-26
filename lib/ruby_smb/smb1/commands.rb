@@ -4,6 +4,7 @@ module RubySMB
       SMB_COM_CLOSE                   = 0x04
       SMB_COM_TRANSACTION             = 0x25
       SMB_COM_ECHO                    = 0x2B
+      SMB_COM_OPEN_ANDX               = 0x2D
       SMB_COM_READ_ANDX               = 0x2E
       SMB_COM_WRITE_ANDX              = 0x2F
       SMB_COM_TRANSACTION2            = 0x32
