@@ -2,8 +2,8 @@ module RubySMB
   module SMB1
     module Packet
       # A SMB1 SMB_COM_NT_CREATE_ANDX Response Packet as defined in
-      # [2.2.4.64.2 Response](https://msdn.microsoft.com/en-us/library/ee441612.aspx) and
-      # [2.2.4.9.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246334.aspx)
+      # [MS-CIFS: 2.2.4.64.2 Response](https://msdn.microsoft.com/en-us/library/ee441612.aspx) and
+      # [MS-SMB : 2.2.4.9.2 Server Response Extensions](https://msdn.microsoft.com/en-us/library/cc246334.aspx)
       class NtCreateAndxResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB1::Commands::SMB_COM_NT_CREATE_ANDX
 
@@ -35,15 +35,28 @@ module RubySMB
           end
 
           uint8                   :directory,           label: 'Directory'
-          string                  :volume_guid,         label: 'Volume GUID', length: 16
-          uint64                  :file_id,             label: 'File ID'
+          # MS-CIFS: 2.2.4.64.2 (WC=34)
+          # MS-SMB:  2.2.4.9.2  (WC=42) - VolumeGUID only, per the spec (so we get the right WordCount, WC)
+          # MS-SMB:  2.2.4.9.2  (WC=50) - all four fields as per spec (but then the spec is then wrong for the WC)
+          #                               VolumeGUID, FileId, MaximalAccessRights & GuestMaximalAccessRights
+          # MS-SMB 2.2.4.9.2 (WC=42): VolumeGUID
+          string                  :volume_guid,         label: 'Volume GUID', length: 16,
+                                   onlyif: -> { word_count >= 42 }
 
-          choice :maximal_access_rights, selection: -> { ext_file_attributes.directory } do
+          # MS-SMB 2.2.4.9.2 (WC=50): FileId
+          uint64                  :file_id,             label: 'File ID',
+                                   onlyif: -> { word_count >= 50 }
+
+          # MS-SMB 2.2.4.9.2 (WC=50): MaximalAccessRights
+          choice :maximal_access_rights, selection: -> { ext_file_attributes.directory },
+                                   onlyif: -> { word_count >= 50 } do
             file_access_mask      0, label: 'Maximal Access Rights'
             directory_access_mask 1, label: 'Maximal Access Rights'
           end
 
-          choice :guest_maximal_access_rights, selection: -> { ext_file_attributes.directory } do
+          # MS-SMB 2.2.4.9.2 (WC=50): GuestMaximalAccessRights
+          choice :guest_maximal_access_rights, selection: -> { ext_file_attributes.directory },
+                                   onlyif: -> { word_count >= 50 } do
             file_access_mask      0, label: 'Guest Maximal Access Rights'
             directory_access_mask 1, label: 'Guest Maximal Access Rights'
           end
