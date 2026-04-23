@@ -56,7 +56,7 @@ module RubySMB
         sock = udp_socket_factory.call
         begin
           retries.times do
-            sock.send(bytes, 0, host, port)
+            send_datagram(sock, bytes, host, port)
             next unless IO.select([sock], nil, nil, timeout)
 
             data, = sock.recvfrom(4096)
@@ -95,6 +95,20 @@ module RubySMB
             n.group?,
             n.active?
           )
+        end
+      end
+
+      # Send `bytes` to `host:port` over `sock`. stdlib `UDPSocket#send`
+      # takes (mesg, flags, host, port); Rex::Socket::Udp's socket inherits
+      # `send(mesg, flags, [sockaddr])` from Socket and exposes the 4-arg
+      # form as `sendto(mesg, host, port)`. Prefer `sendto` when available.
+      #
+      # @!visibility private
+      def self.send_datagram(sock, bytes, host, port)
+        if sock.respond_to?(:sendto)
+          sock.sendto(bytes, host, port)
+        else
+          sock.send(bytes, 0, host, port)
         end
       end
     end
