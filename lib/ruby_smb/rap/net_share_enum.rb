@@ -67,7 +67,7 @@ module RubySMB
         raw_response = rap_client.send_recv(request)
         response = RubySMB::SMB1::Packet::Trans::Response.read(raw_response)
         validate_trans_response!(response)
-        parse_net_share_enum_response(response)
+        parse_net_share_enum_response(response, raw_response)
       end
 
       private
@@ -107,10 +107,20 @@ module RubySMB
         end
       end
 
-      def parse_net_share_enum_response(response)
-        params_bytes = response.data_block.trans_parameters.to_s
+      def parse_net_share_enum_response(response, raw_response)
+        # Slice the parameter and data sections using the offsets the server
+        # reported, not the ones BinData computed. Win9x packs trans_parameters
+        # right after byte_count with no 4-byte-alignment padding, which
+        # confuses Trans::Response::DataBlock#pad1_length and shifts the
+        # trans_parameters window by 1 byte.
+        params_bytes = raw_response[response.parameter_block.parameter_offset,
+                                    response.parameter_block.parameter_count].to_s
+        data_bytes   = raw_response[response.parameter_block.data_offset,
+                                    response.parameter_block.data_count].to_s
+
         if params_bytes.bytesize < Response.new.num_bytes
-          raise RubySMB::Error::InvalidPacket, 'Truncated RAP NetShareEnum response parameters'
+          raise RubySMB::Error::InvalidPacket,
+                "Truncated RAP NetShareEnum response parameters: #{params_bytes.unpack1('H*')}"
         end
         params = Response.read(params_bytes)
         unless params.status.zero?
@@ -118,7 +128,6 @@ module RubySMB
                 "RAP NetShareEnum failed with status 0x#{params.status.to_i.to_s(16)}"
         end
 
-        data_bytes = response.data_block.trans_data.to_s
         params.entry_count.times.map do |i|
           offset = i * ShareInfo1.new.num_bytes
           break [] if offset + ShareInfo1.new.num_bytes > data_bytes.bytesize
