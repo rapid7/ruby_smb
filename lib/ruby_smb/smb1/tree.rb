@@ -3,6 +3,11 @@ module RubySMB
     # An SMB1 connected remote Tree, as returned by a
     # [RubySMB::SMB1::Packet::TreeConnectRequest]
     class Tree
+      # Exposes #net_share_enum directly on the tree for callers that need
+      # RAP against \PIPE\LANMAN without opening the pipe (Win9x servers do
+      # not permit OPEN_ANDX on it).
+      include RubySMB::Rap::NetShareEnum
+
       # The client this Tree is connected through
       # @!attribute [rw] client
       #   @return [RubySMB::Client]
