@@ -814,28 +814,32 @@ RSpec.describe RubySMB::Client do
           }.to raise_error(RubySMB::Error::NetBiosSessionService)
         end
 
-        it 'also retries when the rejected name was not *SMBSERVER' do
-          call_count = 0
-          allow(client).to receive(:send_session_request) do |name|
-            call_count += 1
-            if call_count == 1
-              raise first_failure
-            else
-              expect(name).to eq('FILESERVER')
-              true
-            end
-          end
-          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
-          expect(client.session_request('GUESSEDNAME')).to be true
-          expect(call_count).to eq(2)
+        it 'does NOT retry when the caller supplied a specific name (not *SMBSERVER)' do
+          allow(client).to receive(:send_session_request).and_raise(first_failure)
+          expect(client).not_to receive(:netbios_lookup_name)
+          expect {
+            client.session_request('GUESSEDNAME')
+          }.to raise_error(RubySMB::Error::NetBiosSessionService)
         end
 
-        it 'does not retry when the lookup returns the same name that was just rejected' do
+        it 'does not retry when the lookup returns the same wildcard after a *SMBSERVER rejection' do
           allow(client).to receive(:send_session_request).and_raise(first_failure)
-          allow(client).to receive(:netbios_lookup_name).and_return('WIN95')
+          allow(client).to receive(:netbios_lookup_name).and_return('*SMBSERVER')
           expect {
-            client.session_request('win95')
+            client.session_request('*SMBSERVER')
           }.to raise_error(RubySMB::Error::NetBiosSessionService)
+        end
+
+        it 'treats an empty called name the same as the *SMBSERVER default' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do
+            call_count += 1
+            raise first_failure if call_count == 1
+            true
+          end
+          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
+          expect(client.session_request('')).to be true
+          expect(call_count).to eq(2)
         end
       end
 

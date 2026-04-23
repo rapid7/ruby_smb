@@ -699,11 +699,13 @@ module RubySMB
     end
 
     # Requests a NetBIOS Session Service using the provided name.
-    # When the server rejects the called name with NBSS error 0x82
+    # When the caller left the called name at its default (`'*SMBSERVER'` or
+    # empty) and the server rejects it with NBSS error 0x82
     # (CALLED_NAME_NOT_PRESENT), this method automatically looks up the
-    # server's actual NetBIOS name via a Node Status query, reconnects
-    # the TCP socket, and retries once. The retry is skipped when the
-    # lookup fails or returns the same name that was just rejected.
+    # server's real NetBIOS name via a Node Status query, reconnects the
+    # TCP socket, and retries once. If the caller supplied a specific name
+    # (e.g. Metasploit's `SMBName` datastore option), the name is honored
+    # as-is and the exception propagates on rejection — no auto-discovery.
     #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
@@ -712,6 +714,7 @@ module RubySMB
     def session_request(name = '*SMBSERVER')
       send_session_request(name)
     rescue RubySMB::Error::NetBiosSessionService => e
+      raise unless default_called_name?(name)
       raise unless e.error_code.to_i == RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
 
       sock = dispatcher.tcp_socket
@@ -738,6 +741,13 @@ module RubySMB
     end
 
     private
+
+    # True when the called name is empty or the wildcard `'*SMBSERVER'`.
+    # A specific caller-provided name (e.g. MSF's `SMBName`) short-circuits
+    # auto-discovery in {#session_request}.
+    def default_called_name?(name)
+      name.nil? || name.to_s.strip.empty? || name.to_s.strip.upcase == '*SMBSERVER'
+    end
 
     # Sends a single NetBIOS Session Request and reads the response.
     #
