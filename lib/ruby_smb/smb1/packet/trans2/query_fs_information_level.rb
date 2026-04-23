@@ -28,11 +28,15 @@ module RubySMB
           # [NT LANMAN] Query file system attributes.
           SMB_QUERY_FS_ATTRIBUTE_INFO       = 0x0105 # 261
 
+          # [CIFS UNIX Extensions] Query server UNIX extension capabilities.
+          SMB_QUERY_CIFS_UNIX_INFO          = 0x0200 # 512
+
           def self.name(value)
             constants.select { |c| c.upcase == c }.find { |c| const_get(c) == value }
           end
 
           require 'ruby_smb/smb1/packet/trans2/query_fs_information_level/query_fs_attribute_info'
+          require 'ruby_smb/smb1/packet/trans2/query_fs_information_level/query_fs_cifs_unix_info'
         end
       end
     end

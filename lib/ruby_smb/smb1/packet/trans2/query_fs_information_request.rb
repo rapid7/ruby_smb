@@ -16,11 +16,14 @@ module RubySMB
         end
 
         # The {RubySMB::SMB1::DataBlock} specific to this packet type.
+        # The request carries no Trans2 data payload, but the generic
+        # DataBlock padding helpers require a :trans2_data accessor, so
+        # we expose a zero-length string.
         class QueryFsInformationRequestDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
           uint8                                           :name,               label: 'Name', initial_value: 0x00
           string                                          :pad1,               length: -> { pad1_length }
           query_fs_information_request_trans2_parameters  :trans2_parameters,  label: 'Trans2 Parameters'
-          # trans2_data: No data is sent by this message.
+          string                                          :trans2_data,        length: 0, label: 'Trans2 Data'
         end
 
         # A Trans2 QUERY_FS_INFORMATION Request Packet as defined in

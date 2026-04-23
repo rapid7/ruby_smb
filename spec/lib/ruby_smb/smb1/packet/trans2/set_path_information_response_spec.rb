@@ -1,6 +1,4 @@
-include RubySMB::Fscc::FileInformation
-
-RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest do
+RSpec.describe RubySMB::SMB1::Packet::Trans2::SetPathInformationResponse do
   subject(:packet) { described_class.new }
 
   describe '#smb_header' do
@@ -14,20 +12,16 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest do
       expect(header.command).to eq RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
     end
 
-    it 'should not have the response flag set' do
-      expect(header.flags.reply).to eq 0
+    it 'should have the response flag set' do
+      expect(header.flags.reply).to eq 1
     end
   end
 
   describe '#parameter_block' do
     subject(:parameter_block) { packet.parameter_block }
 
-    it 'is a standard ParameterBlock' do
-      expect(parameter_block).to be_a RubySMB::SMB1::Packet::Trans2::Request::ParameterBlock
-    end
-
-    it 'should have the setup set to the QUERY_FS_INFORMATION subcommand' do
-      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::QUERY_FS_INFORMATION
+    it 'should have the setup set to the SET_PATH_INFORMATION subcommand' do
+      expect(parameter_block.setup).to include RubySMB::SMB1::Packet::Trans2::Subcommands::SET_PATH_INFORMATION
     end
   end
 
@@ -38,14 +32,8 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest do
       expect(data_block).to be_a RubySMB::SMB1::DataBlock
     end
 
-    it { is_expected.to respond_to :name }
     it { is_expected.to respond_to :trans2_parameters }
-    it { is_expected.to respond_to :trans2_data }
-
-    it '#trans2_data is a zero-length placeholder (this request carries no data payload)' do
-      expect(data_block.trans2_data).to be_a BinData::String
-      expect(data_block.trans2_data.num_bytes).to eq 0
-    end
+    it { is_expected.to_not respond_to :trans2_data }
 
     it 'should keep #trans2_parameters 4-byte aligned' do
       expect(data_block.trans2_parameters.abs_offset % 4).to eq 0
@@ -54,14 +42,13 @@ RSpec.describe RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest do
     describe '#trans2_parameters' do
       subject(:parameters) { data_block.trans2_parameters }
 
-      it { is_expected.to respond_to :information_level }
+      it { is_expected.to respond_to :ea_error_offset }
 
-      describe '#information_level' do
+      describe '#ea_error_offset' do
         it 'is a 16-bit field' do
-          expect(parameters.information_level).to be_a BinData::Uint16le
+          expect(parameters.ea_error_offset).to be_a BinData::Uint16le
         end
       end
     end
   end
 end
-
