@@ -782,31 +782,16 @@ module RubySMB
       netbios_lookup_udp(host)
     end
 
-    # Resolves a NetBIOS name via a UDP Node Status request (RFC 1002 4.2.17,
-    # port 137). Uses the {RubySMB::Nbss::NodeStatusRequest} and
-    # {RubySMB::Nbss::NodeStatusResponse} BinData structures.
+    # Resolves a host's file-server NetBIOS name via a UDP Node Status
+    # request. Thin wrapper around {RubySMB::Nbss::NodeStatus.file_server_name}
+    # that threads the client's injected UDP socket factory through.
     #
     # @param host [String] the IP address to query
-    # @return [String, nil] the file server NetBIOS name, or nil on timeout or
-    #   when the host has no unique file-server name in its name table
+    # @return [String, nil] the file server NetBIOS name, or nil on timeout
     def netbios_lookup_udp(host)
-      request = RubySMB::Nbss::NodeStatusRequest.new(transaction_id: rand(0xFFFF))
-      request.question_name.set("*".ljust(16, "\x00"))
-
-      sock = udp_socket_factory.call
-      sock.send(request.to_binary_s, 0, host, 137)
-
-      return nil unless IO.select([sock], nil, nil, 3)
-
-      data, = sock.recvfrom(4096)
-      return nil if data.nil? || data.empty?
-
-      response = RubySMB::Nbss::NodeStatusResponse.read(data)
-      response.file_server_name
-    rescue IOError, EOFError
-      nil
-    ensure
-      sock&.close
+      RubySMB::Nbss::NodeStatus.file_server_name(
+        host, udp_socket_factory: udp_socket_factory
+      )
     end
 
     public

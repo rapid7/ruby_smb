@@ -15,5 +15,6 @@ module RubySMB
     require 'ruby_smb/nbss/negative_session_response'
     require 'ruby_smb/nbss/node_status_request'
     require 'ruby_smb/nbss/node_status_response'
+    require 'ruby_smb/nbss/node_status'
   end
 end
