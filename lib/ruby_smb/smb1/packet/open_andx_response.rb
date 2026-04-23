@@ -2,7 +2,7 @@ module RubySMB
   module SMB1
     module Packet
       # A SMB1 SMB_COM_OPEN_ANDX Response Packet as defined in
-      # [2.2.4.41.2 Response](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb/0ab8c5c5-a8d1-4460-bab1-cdae4e18dab7)
+      # [MS-CIFS 2.2.4.41.2 Response](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/dbce00e7-68a1-41c6-982d-9483c902ad9b)
       class OpenAndxResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB1::Commands::SMB_COM_OPEN_ANDX
 

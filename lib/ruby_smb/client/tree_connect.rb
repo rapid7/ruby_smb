@@ -18,7 +18,7 @@ module RubySMB
         request = RubySMB::SMB1::Packet::TreeConnectRequest.new
         request.smb_header.tid = 65_535
         if password
-          pass_bytes = password + "\x00"
+          pass_bytes = password + "\x00".b
           request.parameter_block.password_length = pass_bytes.length
           request.data_block.password = pass_bytes
         end

@@ -2,7 +2,7 @@ module RubySMB
   module SMB1
     module Packet
       # A SMB1 SMB_COM_OPEN_ANDX Request Packet as defined in
-      # [2.2.4.41.1 Request](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-smb/0ab8c5c5-a8d1-4460-bab1-cdae4e18dab7)
+      # [MS-CIFS 2.2.4.41.1 Request](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/3a760987-f60d-4012-930b-fe90328775cc)
       #
       # This is the LANMAN 1.0 file-open command, supported by all SMB1 servers
       # including Windows 95/98/ME which lack NT_CREATE_ANDX (0xA2).
