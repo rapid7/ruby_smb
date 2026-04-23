@@ -64,7 +64,7 @@ module RubySMB
       # @raise [RubySMB::Error::RubySMBError] on a non-zero RAP status.
       def net_share_enum
         request = build_net_share_enum_request
-        raw_response = tree.client.send_recv(request)
+        raw_response = rap_client.send_recv(request)
         response = RubySMB::SMB1::Packet::Trans::Response.read(raw_response)
         validate_trans_response!(response)
         parse_net_share_enum_response(response)
@@ -72,9 +72,20 @@ module RubySMB
 
       private
 
+      # The SMB1 tree used to carry RAP traffic. `self` when this module is
+      # mixed into {RubySMB::SMB1::Tree}; the pipe's `tree` when mixed into
+      # {RubySMB::SMB1::Pipe}.
+      def rap_tree
+        is_a?(RubySMB::SMB1::Tree) ? self : tree
+      end
+
+      def rap_client
+        rap_tree.client
+      end
+
       def build_net_share_enum_request
         request = RubySMB::SMB1::Packet::Trans::Request.new
-        request.smb_header.tid           = tree.id
+        request.smb_header.tid           = rap_tree.id
         request.smb_header.flags2.unicode = 0
         request.data_block.name          = "\\PIPE\\LANMAN\x00".b
         request.data_block.trans_parameters = Request.new.to_binary_s
