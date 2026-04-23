@@ -317,6 +317,25 @@ module RubySMB
     #   @return [Boolean]
     attr_accessor :supports_nt_smbs
 
+    # Factory used to open a new TCP socket when the NetBIOS session-request
+    # retry path needs to reconnect to the server under a resolved NetBIOS
+    # name. Must be a callable that accepts (host, port) and returns an
+    # IO-like socket. Defaults to stdlib `TCPSocket.new`. Callers that need
+    # to control socket creation (e.g. Metasploit's Rex::Socket for pivoted
+    # connections) should inject their own factory.
+    # @!attribute [rw] tcp_socket_factory
+    #   @return [#call]
+    attr_accessor :tcp_socket_factory
+
+    # Factory used to open a UDP socket for the NetBIOS name-service lookup
+    # (port 137). Must be a callable with no arguments that returns a socket
+    # responding to `#send` / `#recvfrom` / `#close`. Defaults to stdlib
+    # `UDPSocket.new`. Inject your own (e.g. Rex::Socket::Udp) to avoid
+    # creating raw stdlib sockets.
+    # @!attribute [rw] udp_socket_factory
+    #   @return [#call]
+    attr_accessor :udp_socket_factory
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
@@ -351,6 +370,8 @@ module RubySMB
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_supports_multi_credit = false
       @supports_nt_smbs             = true
+      @tcp_socket_factory           = ->(host, port) { TCPSocket.new(host, port) }
+      @udp_socket_factory           = -> { UDPSocket.new }
 
       # SMB 3.x options
       # this merely initializes the default value for session encryption, it may be changed as necessary when a
@@ -684,10 +705,10 @@ module RubySMB
       raise unless resolved
 
       dispatcher.tcp_socket.close rescue nil
-      new_sock = TCPSocket.new(host, port)
-      new_sock.setsockopt(
-        ::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true
-      )
+      new_sock = tcp_socket_factory.call(host, port)
+      if new_sock.respond_to?(:setsockopt)
+        new_sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
+      end
       dispatcher.tcp_socket = new_sock
       send_session_request(resolved)
     end
@@ -756,7 +777,7 @@ module RubySMB
       request = RubySMB::Nbss::NodeStatusRequest.new(transaction_id: rand(0xFFFF))
       request.question_name.set("*".ljust(16, "\x00"))
 
-      sock = UDPSocket.new
+      sock = udp_socket_factory.call
       sock.send(request.to_binary_s, 0, host, 137)
 
       return nil unless IO.select([sock], nil, nil, 3)
