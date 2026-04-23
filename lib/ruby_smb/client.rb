@@ -655,124 +655,27 @@ module RubySMB
     end
 
     # Requests a NetBIOS Session Service using the provided name.
-    # When the name is '*SMBSERVER' and the server rejects it with
-    # NBSS error 0x82 (CALLED_NAME_NOT_PRESENT), this method automatically
-    # looks up the server's actual NetBIOS name via a Node Status query,
-    # reconnects the TCP socket, and retries.
     #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
     # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a NBSS packet
     def session_request(name = '*SMBSERVER')
-      send_session_request(name)
-    rescue RubySMB::Error::NetBiosSessionService => e
-      raise unless name == '*SMBSERVER' &&
-                   e.error_code == RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
-
-      sock = dispatcher.tcp_socket
-      if sock.respond_to?(:peerhost)
-        host = sock.peerhost
-        port = sock.peerport
-      else
-        addr = sock.remote_address
-        host = addr.ip_address
-        port = addr.ip_port
-      end
-
-      resolved = netbios_lookup_name(host)
-      raise unless resolved
-
-      dispatcher.tcp_socket.close rescue nil
-      new_sock = TCPSocket.new(host, port)
-      new_sock.setsockopt(
-        ::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true
-      )
-      dispatcher.tcp_socket = new_sock
-      send_session_request(resolved)
-    end
-
-    private
-
-    # Sends a single NetBIOS Session Request and reads the response.
-    #
-    # @param name [String] the NetBIOS name to request
-    # @return [TrueClass] if session request is granted
-    def send_session_request(name)
       session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
       begin
         session_header = RubySMB::Nbss::SessionHeader.read(raw_response)
         if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative_session_response = RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
-          raise RubySMB::Error::NetBiosSessionService.new(
-            "Session Request failed: #{negative_session_response.error_msg}",
-            error_code: negative_session_response.error_code
-          )
+          negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+          raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
         end
       rescue IOError
         raise RubySMB::Error::InvalidPacket, 'Not a NBSS packet'
       end
 
-      true
+      return true
     end
-
-    # Resolves a host's NetBIOS name. Tries nmblookup first (if
-    # available), then falls back to a raw UDP Node Status query.
-    #
-    # @param host [String] the IP address to query
-    # @return [String, nil] the NetBIOS name, or nil if lookup fails
-    def netbios_lookup_name(host)
-      netbios_lookup_nmblookup(host) || netbios_lookup_udp(host)
-    end
-
-    # Resolves a NetBIOS name using the system nmblookup command.
-    #
-    # @param host [String] the IP address to query
-    # @return [String, nil] the file server NetBIOS name
-    def netbios_lookup_nmblookup(host)
-      output = IO.popen(['nmblookup', '-A', host], err: :close, &:read)
-      return nil unless $?.success?
-
-      output.each_line do |line|
-        if line =~ /\A\s+(\S+)\s+<20>\s/
-          return $1.strip
-        end
-      end
-      nil
-    rescue Errno::ENOENT
-      nil
-    end
-
-    # Resolves a NetBIOS name via a UDP Node Status request (RFC 1002 4.2.17,
-    # port 137). Uses the {RubySMB::Nbss::NodeStatusRequest} and
-    # {RubySMB::Nbss::NodeStatusResponse} BinData structures.
-    #
-    # @param host [String] the IP address to query
-    # @return [String, nil] the file server NetBIOS name, or nil on timeout or
-    #   when the host has no unique file-server name in its name table
-    def netbios_lookup_udp(host)
-      request = RubySMB::Nbss::NodeStatusRequest.new(transaction_id: rand(0xFFFF))
-      request.question_name.set("*".ljust(16, "\x00"))
-
-      sock = UDPSocket.new
-      sock.send(request.to_binary_s, 0, host, 137)
-
-      return nil unless IO.select([sock], nil, nil, 3)
-
-      data, = sock.recvfrom(4096)
-      return nil if data.nil? || data.empty?
-
-      response = RubySMB::Nbss::NodeStatusResponse.read(data)
-      response.file_server_name
-    rescue IOError, EOFError
-      nil
-    ensure
-      sock&.close
-    end
-
-    public
 
     # Crafts the NetBIOS SessionRequest packet to be sent for session request operations.
     #
