@@ -57,9 +57,7 @@ module RubySMB
         begin
           retries.times do
             send_datagram(sock, bytes, host, port)
-            next unless IO.select([sock], nil, nil, timeout)
-
-            data, = sock.recvfrom(4096)
+            data = recv_datagram(sock, 4096, timeout)
             next if data.nil? || data.empty?
 
             response = NodeStatusResponse.read(data)
@@ -109,6 +107,24 @@ module RubySMB
           sock.sendto(bytes, host, port)
         else
           sock.send(bytes, 0, host, port)
+        end
+      end
+
+      # Read a datagram from `sock` with a timeout, picking the pattern
+      # appropriate for the socket. Rex::Socket::Udp#recvfrom takes a
+      # built-in timeout as the 2nd argument and selects on its internal
+      # fd (IO.select([sock]) can miss wakeups on wrapped sockets). stdlib
+      # UDPSocket#recvfrom has no timeout, so wrap it in IO.select.
+      #
+      # @!visibility private
+      def self.recv_datagram(sock, length, timeout)
+        if sock.respond_to?(:sendto)
+          data, = sock.recvfrom(length, timeout)
+          data
+        else
+          return nil unless IO.select([sock], nil, nil, timeout)
+          data, = sock.recvfrom(length)
+          data
         end
       end
     end
