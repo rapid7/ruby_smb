@@ -676,10 +676,11 @@ module RubySMB
     end
 
     # Requests a NetBIOS Session Service using the provided name.
-    # When the name is '*SMBSERVER' and the server rejects it with
-    # NBSS error 0x82 (CALLED_NAME_NOT_PRESENT), this method automatically
-    # looks up the server's actual NetBIOS name via a Node Status query,
-    # reconnects the TCP socket, and retries.
+    # When the server rejects the called name with NBSS error 0x82
+    # (CALLED_NAME_NOT_PRESENT), this method automatically looks up the
+    # server's actual NetBIOS name via a Node Status query, reconnects
+    # the TCP socket, and retries once. The retry is skipped when the
+    # lookup fails or returns the same name that was just rejected.
     #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
@@ -688,8 +689,7 @@ module RubySMB
     def session_request(name = '*SMBSERVER')
       send_session_request(name)
     rescue RubySMB::Error::NetBiosSessionService => e
-      raise unless name == '*SMBSERVER' &&
-                   e.error_code == RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
+      raise unless e.error_code.to_i == RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
 
       sock = dispatcher.tcp_socket
       if sock.respond_to?(:peerhost)
@@ -703,6 +703,7 @@ module RubySMB
 
       resolved = netbios_lookup_name(host)
       raise unless resolved
+      raise if resolved.to_s.upcase.strip == name.to_s.upcase.strip
 
       dispatcher.tcp_socket.close rescue nil
       new_sock = tcp_socket_factory.call(host, port)
