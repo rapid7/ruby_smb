@@ -814,11 +814,27 @@ RSpec.describe RubySMB::Client do
           }.to raise_error(RubySMB::Error::NetBiosSessionService)
         end
 
-        it 'does not retry when a non-*SMBSERVER name was requested' do
+        it 'also retries when the rejected name was not *SMBSERVER' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do |name|
+            call_count += 1
+            if call_count == 1
+              raise first_failure
+            else
+              expect(name).to eq('FILESERVER')
+              true
+            end
+          end
+          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
+          expect(client.session_request('GUESSEDNAME')).to be true
+          expect(call_count).to eq(2)
+        end
+
+        it 'does not retry when the lookup returns the same name that was just rejected' do
           allow(client).to receive(:send_session_request).and_raise(first_failure)
-          expect(client).not_to receive(:netbios_lookup_name)
+          allow(client).to receive(:netbios_lookup_name).and_return('WIN95')
           expect {
-            client.session_request('OTHERNAME')
+            client.session_request('win95')
           }.to raise_error(RubySMB::Error::NetBiosSessionService)
         end
       end
@@ -842,12 +858,12 @@ RSpec.describe RubySMB::Client do
         it 'attaches the numeric NBSS error code to the raised exception' do
           negative = RubySMB::Nbss::NegativeSessionResponse.new
           negative.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative.error_code = RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
+          negative.error_code = RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME
           allow(dispatcher).to receive(:recv_packet).and_return(negative.to_binary_s)
           begin
             client.session_request('OTHERNAME')
           rescue RubySMB::Error::NetBiosSessionService => e
-            expect(e.error_code).to eq(RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT)
+            expect(e.error_code.to_i).to eq(RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME)
           end
         end
       end
