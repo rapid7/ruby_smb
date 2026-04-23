@@ -112,11 +112,17 @@ module RubySMB
       # swallows EACCES (unprivileged) and EADDRINUSE (another listener)
       # so the caller keeps the ephemeral bind.
       #
+      # Only attempts this on stdlib-style sockets whose `bind` accepts
+      # `(host, port)`. Rex::Socket::Udp binds its local endpoint at
+      # create time via `'LocalHost'` / `'LocalPort'`; for those, the
+      # caller's factory is responsible for requesting port 137.
+      #
       # @!visibility private
       def self.bind_local(sock, port)
+        return if sock.respond_to?(:sendto)  # Rex::Socket::Udp — see note above
         return unless sock.respond_to?(:bind)
         sock.bind('0.0.0.0', port)
-      rescue Errno::EACCES, Errno::EADDRINUSE, SystemCallError
+      rescue ArgumentError, Errno::EACCES, Errno::EADDRINUSE, SystemCallError
         # keep whatever source port the factory already assigned
       end
 
