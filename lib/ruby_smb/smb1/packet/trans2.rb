@@ -7,6 +7,8 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/find_information_level'
         require 'ruby_smb/smb1/packet/trans2/query_information_level'
         require 'ruby_smb/smb1/packet/trans2/query_fs_information_level'
+        require 'ruby_smb/smb1/packet/trans2/set_information_level'
+        require 'ruby_smb/smb1/packet/trans2/set_fs_information_level'
         require 'ruby_smb/smb1/packet/trans2/data_block'
         require 'ruby_smb/smb1/packet/trans2/subcommands'
         require 'ruby_smb/smb1/packet/trans2/request'
@@ -22,6 +24,12 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/set_file_information_response'
         require 'ruby_smb/smb1/packet/trans2/query_path_information_request'
         require 'ruby_smb/smb1/packet/trans2/query_path_information_response'
+        require 'ruby_smb/smb1/packet/trans2/set_path_information_request'
+        require 'ruby_smb/smb1/packet/trans2/set_path_information_response'
+        require 'ruby_smb/smb1/packet/trans2/query_fs_information_request'
+        require 'ruby_smb/smb1/packet/trans2/query_fs_information_response'
+        require 'ruby_smb/smb1/packet/trans2/set_fs_information_request'
+        require 'ruby_smb/smb1/packet/trans2/set_fs_information_response'
       end
     end
   end

@@ -459,6 +459,130 @@ RSpec.describe RubySMB::SMB1::Tree do
     end
   end
 
+  describe '#set_unix_link' do
+    let(:set_path_response) { RubySMB::SMB1::Packet::Trans2::SetPathInformationResponse.new }
+
+    before :each do
+      # Stub out the CIFS UNIX Extensions handshake — covered separately below.
+      allow(tree).to receive(:enable_cifs_unix_extensions)
+      allow(client).to receive(:send_recv)
+      allow(RubySMB::SMB1::Packet::Trans2::SetPathInformationResponse).to receive(:read).and_return(set_path_response)
+    end
+
+    it 'performs the CIFS UNIX Extensions handshake before issuing the symlink request' do
+      call_order = []
+      allow(tree).to receive(:enable_cifs_unix_extensions) { call_order << :handshake }
+      allow(client).to receive(:send_recv) { call_order << :set_path; '' }
+      tree.set_unix_link(symlink: 'escape', target: '../../etc')
+      expect(call_order).to eq([:handshake, :set_path])
+    end
+
+    it 'sends a Trans2 SetPathInformationRequest with the UNIX_LINK info level' do
+      allow(client).to receive(:send_recv) do |request|
+        expect(request).to be_a(RubySMB::SMB1::Packet::Trans2::SetPathInformationRequest)
+        expect(request.data_block.trans2_parameters.information_level).to(
+          eq(RubySMB::SMB1::Packet::Trans2::SetInformationLevel::SMB_SET_FILE_UNIX_LINK)
+        )
+      end
+      tree.set_unix_link(symlink: 'escape', target: '../../etc')
+    end
+
+    it 'sets the Tree ID on the request' do
+      allow(client).to receive(:send_recv) do |request|
+        expect(request.smb_header.tid).to eq(tree.id)
+      end
+      tree.set_unix_link(symlink: 'escape', target: '../../etc')
+    end
+
+    it 'encodes the symlink path and target as raw byte strings (non-unicode)' do
+      allow(client).to receive(:send_recv) do |request|
+        raw = request.to_binary_s
+        expect(request.smb_header.flags2.unicode).to eq(0)
+        expect(raw).to include('escape'.b)
+        expect(raw).to include('../../etc'.b)
+        expect(raw).not_to include('escape'.encode('UTF-16LE').b)
+      end
+      tree.set_unix_link(symlink: 'escape', target: '../../etc')
+    end
+
+    it 'returns STATUS_SUCCESS on a successful response' do
+      expect(tree.set_unix_link(symlink: 'escape', target: '../../etc'))
+        .to eq(WindowsError::NTStatus::STATUS_SUCCESS)
+    end
+
+    context 'when the server returns a non-Trans2 response packet' do
+      it 'raises InvalidPacket' do
+        allow(set_path_response).to receive(:valid?).and_return(false)
+        expect {
+          tree.set_unix_link(symlink: 'escape', target: '../../etc')
+        }.to raise_error(RubySMB::Error::InvalidPacket)
+      end
+    end
+
+    context 'when the response has a non-success status code' do
+      it 'raises UnexpectedStatusCode' do
+        set_path_response.smb_header.nt_status =
+          WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
+        expect {
+          tree.set_unix_link(symlink: 'escape', target: '../../etc')
+        }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+    end
+  end
+
+  describe '#enable_cifs_unix_extensions' do
+    let(:query_response) { RubySMB::SMB1::Packet::Trans2::QueryFsInformationResponse.new }
+    let(:set_response)   { RubySMB::SMB1::Packet::Trans2::SetFsInformationResponse.new }
+
+    before :each do
+      # Server advertises major=1, minor=0, caps=0x0000_0000_0000_017B
+      info = RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsCifsUnixInfo.new
+      info.major_version = 1
+      info.minor_version = 0
+      info.capabilities  = 0x17B
+      query_response.data_block.trans2_data.buffer = info.to_binary_s
+      allow(RubySMB::SMB1::Packet::Trans2::QueryFsInformationResponse).to receive(:read).and_return(query_response)
+      allow(RubySMB::SMB1::Packet::Trans2::SetFsInformationResponse).to receive(:read).and_return(set_response)
+    end
+
+    it 'queries the server for CIFS UNIX info and then echoes the capability bits back via SET_CIFS_UNIX_INFO' do
+      sent = []
+      allow(client).to receive(:send_recv) do |req|
+        sent << req
+        ''
+      end
+      tree.enable_cifs_unix_extensions
+
+      expect(sent[0]).to be_a(RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest)
+      expect(sent[0].data_block.trans2_parameters.information_level).to(
+        eq(RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::SMB_QUERY_CIFS_UNIX_INFO)
+      )
+
+      expect(sent[1]).to be_a(RubySMB::SMB1::Packet::Trans2::SetFsInformationRequest)
+      expect(sent[1].data_block.trans2_parameters.information_level).to(
+        eq(RubySMB::SMB1::Packet::Trans2::SetFsInformationLevel::SMB_SET_CIFS_UNIX_INFO)
+      )
+      echoed = RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsCifsUnixInfo.read(
+        sent[1].data_block.trans2_data.buffer
+      )
+      expect(echoed.major_version).to eq(1)
+      expect(echoed.minor_version).to eq(0)
+      expect(echoed.capabilities).to eq(0x17B)
+    end
+
+    it 'raises UnexpectedStatusCode when the QUERY leg fails' do
+      query_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_ACCESS_DENIED.value
+      allow(client).to receive(:send_recv).and_return('')
+      expect { tree.enable_cifs_unix_extensions }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+
+    it 'raises UnexpectedStatusCode when the SET leg fails' do
+      set_response.smb_header.nt_status = WindowsError::NTStatus::STATUS_INVALID_PARAMETER.value
+      allow(client).to receive(:send_recv).and_return('')
+      expect { tree.enable_cifs_unix_extensions }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+    end
+  end
+
   describe '#set_header_fields' do
     let(:modified_request) { tree.set_header_fields(disco_req) }
     it 'adds the TreeID to the header' do
