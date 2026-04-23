@@ -763,31 +763,13 @@ module RubySMB
       true
     end
 
-    # Resolves a host's NetBIOS name. Tries nmblookup first (if
-    # available), then falls back to a raw UDP Node Status query.
+    # Resolves a host's NetBIOS name via a UDP Node Status query
+    # (RFC 1002 4.2.17, port 137). Pure Ruby — no external binaries.
     #
     # @param host [String] the IP address to query
     # @return [String, nil] the NetBIOS name, or nil if lookup fails
     def netbios_lookup_name(host)
-      netbios_lookup_nmblookup(host) || netbios_lookup_udp(host)
-    end
-
-    # Resolves a NetBIOS name using the system nmblookup command.
-    #
-    # @param host [String] the IP address to query
-    # @return [String, nil] the file server NetBIOS name
-    def netbios_lookup_nmblookup(host)
-      output = IO.popen(['nmblookup', '-A', host], err: :close, &:read)
-      return nil unless $?.success?
-
-      output.each_line do |line|
-        if line =~ /\A\s+(\S+)\s+<20>\s/
-          return $1.strip
-        end
-      end
-      nil
-    rescue Errno::ENOENT
-      nil
+      netbios_lookup_udp(host)
     end
 
     # Resolves a NetBIOS name via a UDP Node Status request (RFC 1002 4.2.17,
