@@ -55,6 +55,18 @@ module RubySMB
 
         sock = udp_socket_factory.call
         begin
+          # Windows 9x ignores the client's source port and always sends
+          # the Node Status response to destination port 137. On an
+          # ephemeral-port socket the kernel drops the reply. Try to bind
+          # locally to the NBNS port (same trick Samba's nmblookup uses)
+          # — succeeds without root if the binary/interpreter has
+          # CAP_NET_BIND_SERVICE or the system has
+          # net.ipv4.ip_unprivileged_port_start set below 137. Falls
+          # through to whatever the factory gave us on failure, which
+          # still works against well-behaved NBNS servers that honor the
+          # request's source port.
+          bind_local(sock, port)
+
           retries.times do
             send_datagram(sock, bytes, host, port)
             data = recv_datagram(sock, 4096, timeout)
@@ -94,6 +106,22 @@ module RubySMB
             n.active?
           )
         end
+      end
+
+      # Best-effort bind of the local UDP endpoint to `port` (default 137).
+      # Required for Win9x NBNS replies — they're sent to destination port
+      # 137 regardless of client source port. Skipped for Rex::Socket::Udp
+      # (its `bind` signature differs; the Rex factory sets `LocalPort`
+      # at create time instead). On EACCES/EADDRINUSE keeps the ephemeral
+      # bind the factory already assigned.
+      #
+      # @!visibility private
+      def self.bind_local(sock, port)
+        return if sock.respond_to?(:sendto)  # Rex::Socket::Udp
+        return unless sock.respond_to?(:bind)
+        sock.bind('0.0.0.0', port)
+      rescue ArgumentError, Errno::EACCES, Errno::EADDRINUSE, SystemCallError
+        # keep whatever source port the factory already assigned
       end
 
       # Send `bytes` to `host:port` over `sock`. stdlib `UDPSocket#send`
