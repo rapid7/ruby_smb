@@ -95,6 +95,51 @@ RSpec.describe RubySMB::Rap::NetShareEnum do
     end
   end
 
+  describe 'Win9x-style response layout (no 4-byte pad before trans_parameters)' do
+    it 'slices trans_parameters using the server-reported parameter_offset' do
+      # Win9x packs parameters at offset 55 (immediately after byte_count)
+      # rather than padding to a 4-byte boundary. Build a response matching
+      # that layout by hand.
+      entry = RubySMB::Rap::NetShareEnum::ShareInfo1.new(
+        netname: 'ABCDEFGHIJKL', pad1: 0, share_type: 0, remark_offset: 0
+      ).to_binary_s
+      params = RubySMB::Rap::NetShareEnum::Response.new(
+        status: 0, converter: 0, entry_count: 1, available: 1
+      ).to_binary_s
+
+      # 32-byte SMB1 header (command=0x25 SMB_COM_TRANSACTION, status=0).
+      header = "\xffSMB\x25".b + ("\x00".b * 27)
+      parameter_offset = 32 + 1 + 20 + 2                # right after byte_count
+      data_offset      = parameter_offset + params.bytesize
+
+      parameter_block = [
+        params.bytesize,          # total_parameter_count
+        entry.bytesize,           # total_data_count
+        0,                        # reserved
+        params.bytesize,          # parameter_count
+        parameter_offset,         # parameter_offset (55 - no pad)
+        0,                        # parameter_displacement
+        entry.bytesize,           # data_count
+        data_offset,              # data_offset
+        0                         # data_displacement
+      ].pack('v9') + "\x00\x00".b # setup_count + reserved2
+
+      byte_count = [params.bytesize + entry.bytesize].pack('v')
+      raw = header + "\x0a".b + parameter_block + byte_count + params + entry
+      # BinData's default Trans::Response#pad1_length forces a 4-byte align
+      # and reads trans_parameters starting 1 byte past what the server sent.
+      # Pad the tail so BinData's (mis-aligned) read doesn't hit EOF before
+      # our parser takes over with the server-reported offsets.
+      raw << "\x00".b * 8
+
+      allow(client).to receive(:send_recv).and_return(raw)
+      shares = pipe.net_share_enum
+      expect(shares.length).to eq(1)
+      expect(shares[0][:name]).to eq('ABCDEFGHIJKL')
+      expect(shares[0][:type]).to eq(0)
+    end
+  end
+
   describe 'SMB1::Pipe integration' do
     it 'extends the pipe with NetShareEnum when opened as \\PIPE\\LANMAN' do
       # Use a minimal response to drive Pipe#initialize through File#initialize.
