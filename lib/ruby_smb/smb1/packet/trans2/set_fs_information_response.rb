@@ -10,7 +10,7 @@ module RubySMB
         # [MS-CIFS 2.2.6.5 TRANS2_SET_FS_INFORMATION (0x0004)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/ac4b00db-6015-416a-89a1-bf5da2503bc3)
         # ("reserved but not implemented"). Response shape observed in the
         # CIFS UNIX Extensions implementation in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationResponseTrans2Parameters < BinData::Record
           def length
             do_num_bytes
@@ -22,7 +22,7 @@ module RubySMB
         # [MS-CIFS 2.2.6.5 TRANS2_SET_FS_INFORMATION (0x0004)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/ac4b00db-6015-416a-89a1-bf5da2503bc3)
         # ("reserved but not implemented"); actual shape used by the CIFS
         # UNIX Extensions implementation in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationResponseDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
           uint8                                          :name,              label: 'Name', initial_value: 0x00
           string                                         :pad1,              length: -> { pad1_length }
@@ -33,7 +33,7 @@ module RubySMB
         # [MS-CIFS 2.2.6.5 TRANS2_SET_FS_INFORMATION (0x0004)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/ac4b00db-6015-416a-89a1-bf5da2503bc3)
         # ("reserved but not implemented"). Response shape is defined by the
         # CIFS UNIX Extensions implementation in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationResponse < RubySMB::GenericPacket
           COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
 

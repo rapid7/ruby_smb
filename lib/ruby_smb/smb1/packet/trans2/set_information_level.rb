@@ -12,8 +12,9 @@ module RubySMB
         # the CIFS UNIX Extensions info levels used by Samba servers that
         # advertise UNIX extensions support in their negotiate response. These
         # levels fall outside MS-CIFS; their wire format is defined by the
-        # CIFS UNIX Extensions draft and implemented by Samba — see
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # CIFS UNIX Extensions draft and implemented by Samba's
+        # `smb_set_file_unix_link` handler at
+        # [source3/smbd/smb1_trans2.c:3643-3712](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L3643-L3712).
         module SetInformationLevel
           # Set the symbolic link target for a file. The Trans2 parameters
           # block carries the path being created (the symlink itself); the

@@ -11,7 +11,7 @@ module RubySMB
         # is marked "reserved but not implemented"; the on-the-wire format
         # used here is defined by the CIFS UNIX Extensions draft and
         # implemented in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationRequestTrans2Parameters < BinData::Record
           endian :little
 
@@ -36,7 +36,7 @@ module RubySMB
         # [MS-CIFS 2.2.6.5 TRANS2_SET_FS_INFORMATION (0x0004)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/ac4b00db-6015-416a-89a1-bf5da2503bc3);
         # per-level layouts are defined by the CIFS UNIX Extensions draft
         # and implemented in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationRequestTrans2Data < BinData::Record
           string :buffer, read_length: -> { parent.buffer_read_length }
 
@@ -52,7 +52,7 @@ module RubySMB
         # [MS-CIFS 2.2.6.5 TRANS2_SET_FS_INFORMATION (0x0004)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/ac4b00db-6015-416a-89a1-bf5da2503bc3)
         # is documented as "reserved but not implemented"; this data block
         # is structured for the CIFS UNIX Extensions use in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationRequestDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
           uint8                                         :name,               label: 'Name', initial_value: 0x00
           string                                        :pad1,               length: -> { pad1_length }
@@ -68,7 +68,7 @@ module RubySMB
         # CIFS UNIX Extensions info levels; their wire format is defined by
         # the CIFS UNIX Extensions draft and matched by Samba's
         # `call_trans2setfsinfo` in
-        # [source3/smbd/smb1_trans2.c](https://github.com/samba-team/samba/blob/master/source3/smbd/smb1_trans2.c).
+        # [source3/smbd/smb1_trans2.c:1706-1915 (`call_trans2setfsinfo`)](https://github.com/samba-team/samba/blob/33f516c06756e12a9d11f50e2bf309171cdf5c88/source3/smbd/smb1_trans2.c#L1706-L1915).
         class SetFsInformationRequest < RubySMB::GenericPacket
           COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
 
