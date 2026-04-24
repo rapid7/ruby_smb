@@ -352,16 +352,16 @@ module RubySMB
       end
 
       def build_open_andx_handle(filename, response)
-        unless response.parameter_block.file_type == RubySMB::SMB1::ResourceType::DISK
+        unless response.parameter_block.resource_type == RubySMB::SMB1::ResourceType::DISK
           raise RubySMB::Error::RubySMBError,
-                "SMB_COM_OPEN_ANDX resource type 0x#{response.parameter_block.file_type.to_s(16)} not supported"
+                "SMB_COM_OPEN_ANDX resource type 0x#{response.parameter_block.resource_type.to_s(16)} not supported"
         end
         file = RubySMB::SMB1::File.allocate
         file.tree         = self
         file.name         = filename
         file.fid          = response.parameter_block.fid
-        file.size         = response.parameter_block.data_size
-        file.size_on_disk = response.parameter_block.data_size
+        file.size         = response.parameter_block.file_data_size
+        file.size_on_disk = response.parameter_block.file_data_size
         file.attributes   = response.parameter_block.file_attributes
         file
       end

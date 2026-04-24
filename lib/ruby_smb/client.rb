@@ -657,29 +657,6 @@ module RubySMB
       named_pipe.net_share_enum_all(host)
     end
 
-    # Enumerates shares using the RAP NetShareEnum call over `\PIPE\LANMAN`.
-    # This is the only share-enumeration method supported by Windows
-    # 95/98/ME and other LAN Manager-era servers that predate DCERPC/srvsvc.
-    # RAP is an SMB1 feature; callers negotiating SMB2/3 should use
-    # {#net_share_enum_all} instead.
-    #
-    # @param host [String] the server hostname or IP
-    # @param password [String, nil] share-level password for IPC$
-    # @return [Array<Hash>] each entry has :name (String) and :type (Integer)
-    # @raise [RubySMB::Error::RubySMBError] if SMB1 was not negotiated
-    def net_share_enum_rap(host, password: nil)
-      unless smb1
-        raise RubySMB::Error::RubySMBError,
-              'RAP NetShareEnum requires SMB1 (server negotiated SMB2/3)'
-      end
-      tree = tree_connect("\\\\#{host}\\IPC$", password: password)
-      begin
-        tree.net_share_enum
-      ensure
-        tree&.disconnect!
-      end
-    end
-
     # Resets all of the session state on the client, setting it
     # back to scratch. Should only be called when a session is no longer
     # valid.

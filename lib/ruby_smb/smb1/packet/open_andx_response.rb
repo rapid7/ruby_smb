@@ -6,21 +6,21 @@ module RubySMB
       class OpenAndxResponse < RubySMB::GenericPacket
         COMMAND = RubySMB::SMB1::Commands::SMB_COM_OPEN_ANDX
 
-        # A SMB1 Parameter Block as defined by the {OpenAndxResponse}
+        # A SMB1 Parameter Block as defined by the {OpenAndxResponse}.
+        # Field names and layout follow MS-CIFS 2.2.4.41.2.
         class ParameterBlock < RubySMB::SMB1::ParameterBlock
           endian :little
 
-          and_x_block :andx_block
-          uint16      :fid,              label: 'FID'
-          smb_file_attributes  :file_attributes,  label: 'File Attributes'
-          uint32      :last_write_time,  label: 'Last Write Time'
-          uint32      :data_size,        label: 'File Data Size'
-          uint16      :granted_access,   label: 'Granted Access'
-          uint16      :file_type,        label: 'File Type'
-          uint16      :device_state,     label: 'Device State'
-          uint16      :action,           label: 'Action Taken'
-          uint32      :server_fid,       label: 'Server FID'
-          uint16      :reserved,         label: 'Reserved'
+          and_x_block         :andx_block
+          uint16              :fid,             label: 'FID'
+          smb_file_attributes :file_attributes, label: 'File Attributes'
+          utime               :last_write_time, label: 'Last Write Time'
+          uint32              :file_data_size,  label: 'File Data Size'
+          uint16              :access_rights,   label: 'Access Rights'
+          uint16              :resource_type,   label: 'Resource Type'
+          smb_nmpipe_status   :nmpipe_status,   label: 'Named Pipe Status'
+          uint16              :open_results,    label: 'Open Results'
+          array               :reserved,        type: :uint16, initial_length: 3
         end
 
         class DataBlock < RubySMB::SMB1::DataBlock
