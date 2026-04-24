@@ -542,6 +542,43 @@ RSpec.describe RubySMB::SMB1::Tree do
         allow(client).to receive(:send_recv).and_return(build_find_first2_raw(''))
         expect(tree.list(type: info_standard)).to eq([])
       end
+
+      context 'against a Win9x-era server that omits the trans2 4-byte alignment pad' do
+        # Wire layout: word_count=10 (no setup section), parameter_offset=55
+        # points right after byte_count (no pad1), data_offset=66 points after
+        # trans2_parameters + 1-byte pad2. BinData's Trans2::DataBlock inserts
+        # its usual pad1 on read, so trans2_data.buffer arrives (data_count -
+        # pad1_length) bytes short and #results would otherwise see 0 entries.
+        # The Tree#list workaround detects the mismatch and re-slices the
+        # buffer from the server-reported data_offset.
+        def build_win9x_find_first2_raw
+          data_count       = 87
+          parameter_offset = 55
+          data_offset      = 66
+          smb_header  = "\xffSMB\x32".b + "\x00".b * 4 + "\x98".b + "\x03\x60".b + ("\x00".b * 20)
+          param_block = [10, data_count, 0, 10, parameter_offset, 0,
+                         data_count, data_offset, 0, 0].pack('v*')
+          trans2_params = [0x0300, 3, 1, 0, 74].pack('v*')
+          entry1 = "\x98\x5c\x38\x70\x98\x5c\x00\x00\x98\x5c\x39\x70" \
+                   "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x01".b + '.'
+          entry2 = "\x98\x5c\x38\x70\x98\x5c\x00\x00\x98\x5c\x39\x70" \
+                   "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x02".b + '..'
+          entry3 = "\x98\x5c\x40\x70\x98\x5c\x00\x00\x98\x5c\x4c\x70" \
+                   "\x16\x00\x00\x00\x16\x00\x00\x00\x20\x00\x0c".b + 'FLAG.TXT.txt'
+          trans2_data = entry1 + "\x00".b + entry2 + "\x00".b + entry3 + "\x00".b
+          raise "data_count mismatch" unless trans2_data.bytesize == data_count
+          byte_count_value = 10 + 1 + data_count # 0 pad1 + params + 1 pad2 + data
+          smb_header + [10].pack('C') + param_block +
+            [byte_count_value].pack('v') + trans2_params + "\x00".b + trans2_data
+        end
+
+        it 'parses the entries that BinData would otherwise drop due to missing pad1' do
+          allow(client).to receive(:send_recv).and_return(build_win9x_find_first2_raw)
+          results = tree.list(type: info_standard)
+          expect(results.map { |r| r.file_name.to_s }).to eq(['.', '..', 'FLAG.TXT.txt'])
+          expect(results.last.data_size).to eq 22
+        end
+      end
     end
   end
 

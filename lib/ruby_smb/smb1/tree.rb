@@ -144,10 +144,16 @@ module RubySMB
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
-        results = response.results(type, unicode: unicode)
+        t2p_override, t2d_override = win9x_trans2_overrides(response, raw_response)
+        results = if t2d_override
+                    response.results(type, unicode: unicode, buffer: t2d_override)
+                  else
+                    response.results(type, unicode: unicode)
+                  end
 
-        eos   = response.data_block.trans2_parameters.eos
-        sid   = response.data_block.trans2_parameters.sid
+        effective_params = t2p_override || response.data_block.trans2_parameters
+        eos   = effective_params.eos
+        sid   = effective_params.sid
         last  = results.last&.file_name
 
         while eos.zero? && last
@@ -367,6 +373,36 @@ module RubySMB
         file.size_on_disk = response.parameter_block.file_data_size
         file.attributes   = response.parameter_block.file_attributes
         file
+      end
+
+      # Win9x-era servers pack trans2_parameters right after byte_count with
+      # no 4-byte-alignment pad, but BinData's Trans2::DataBlock#pad1_length
+      # always inserts one for an NT-style response. When the server did not
+      # emit that pad, BinData reads both trans2_parameters and trans2_data
+      # shifted by the pad width, so `eos`, `sid`, and every entry in the
+      # buffer come back garbled.
+      #
+      # Detect the mismatch by comparing the declared data_count to what
+      # BinData actually read for the buffer, and when they differ re-slice
+      # both sections from the server-reported offsets in the raw response.
+      # Returns [trans2_parameters_record, trans2_data_bytes] — both values
+      # are nil when BinData's layout matched the wire (NT servers).
+      # Same shape as the fix applied to Rap::NetShareEnum in e243f02.
+      def win9x_trans2_overrides(response, raw_response)
+        declared = response.parameter_block.data_count.to_i
+        parsed   = response.data_block.trans2_data.buffer.to_binary_s.bytesize
+        return [nil, nil] if declared == 0 || parsed == declared
+
+        param_offset = response.parameter_block.parameter_offset.to_i
+        param_count  = response.parameter_block.parameter_count.to_i
+        data_offset  = response.parameter_block.data_offset.to_i
+        return [nil, nil] if raw_response.bytesize < data_offset + declared
+        return [nil, nil] if raw_response.bytesize < param_offset + param_count
+
+        params_bytes = raw_response.byteslice(param_offset, param_count)
+        params = RubySMB::SMB1::Packet::Trans2::FindFirst2ResponseTrans2Parameters.read(params_bytes)
+        data_bytes = raw_response.byteslice(data_offset, declared)
+        [params, data_bytes]
       end
 
       # Sets ParameterBlock options for FIND_FIRST2 and

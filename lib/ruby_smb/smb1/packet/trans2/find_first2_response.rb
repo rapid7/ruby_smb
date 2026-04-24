@@ -68,10 +68,15 @@ module RubySMB
           # pad byte between entries (see MS-CIFS Appendix A, note <153>).
           #
           # @param klass [Class] the FileInformationClass class to read the data as
+          # @param buffer [String, nil] raw trans2_data bytes to parse instead of
+          #   the BinData-parsed buffer. Used by callers that detect a padding
+          #   mismatch between BinData's expected layout and what a Win9x-era
+          #   server actually sent (no 4-byte alignment pad before the data),
+          #   and want to re-feed the bytes from the server-reported data_offset.
           # @return [array<BinData::Record>] An array of structs holding the requested information
           # @raise [RubySMB::Error::InvalidPacket] if the string buffer is not a valid File Information packet
-          def results(klass, unicode:)
-            blob = data_block.trans2_data.buffer.to_binary_s.dup
+          def results(klass, unicode:, buffer: nil)
+            blob = (buffer || data_block.trans2_data.buffer.to_binary_s).dup
             if klass.new.respond_to?(:next_offset)
               read_next_offset_entries(klass, blob, unicode: unicode)
             else
