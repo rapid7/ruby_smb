@@ -16,8 +16,8 @@ module RubySMB
           and_x_block :andx_block
           uint16      :flags,             label: 'Flags'
           uint16      :access_mode,       label: 'Access Mode'
-          uint16      :search_attributes, label: 'Search Attributes'
-          uint16      :file_attributes,   label: 'File Attributes'
+          smb_file_attributes  :search_attributes, label: 'Search Attributes'
+          smb_file_attributes  :file_attributes,   label: 'File Attributes'
           uint32      :creation_time,     label: 'Creation Time'
           uint16      :open_mode,         label: 'Open Mode'
           uint32      :allocation_size,   label: 'Allocation Size'
