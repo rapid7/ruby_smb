@@ -19,6 +19,18 @@ module RubySMB
       # Default server receive-buffer size.
       DEFAULT_RECEIVE_BUFFER_SIZE = 0x1000
 
+      # Share type codes carried in the low bits of `share_info_1.shi1_type`
+      # per MS-RAP 2.5.14. The RAP field is 16 bits wide, unlike the 32-bit
+      # SRVSVC variant in {RubySMB::Dcerpc::Srvsvc::SHARE_TYPES}.
+      SHARE_TYPES = {
+        0x0000 => 'DISK',
+        0x0001 => 'PRINTER',
+        0x0002 => 'DEVICE',
+        0x0003 => 'IPC'
+      }.freeze
+      STYPE_SPECIAL   = 0x8000
+      STYPE_TEMPORARY = 0x4000
+
       # Single share entry (`share_info_1`) as it appears on the wire.
       # MS-RAP 2.5.21. Fixed 20-byte layout.
       class ShareInfo1 < BinData::Record
@@ -134,9 +146,20 @@ module RubySMB
           entry = ShareInfo1.read(data_bytes[offset, ShareInfo1.new.num_bytes])
           {
             name: entry.netname.to_s.delete("\x00"),
-            type: entry.share_type
+            type: format_share_type(entry.share_type.to_i)
           }
         end.compact
+      end
+
+      # Format a RAP `share_info_1.shi1_type` value as a pipe-joined string in
+      # the same style as {RubySMB::Dcerpc::Srvsvc#net_share_enum_all}, so
+      # callers can consume both APIs uniformly.
+      def format_share_type(share_type)
+        base_bits = share_type & ~(STYPE_SPECIAL | STYPE_TEMPORARY)
+        parts     = [SHARE_TYPES[base_bits] || format('UNKNOWN(0x%04x)', base_bits)]
+        parts << 'SPECIAL'   unless (share_type & STYPE_SPECIAL).zero?
+        parts << 'TEMPORARY' unless (share_type & STYPE_TEMPORARY).zero?
+        parts.join('|')
       end
     end
   end

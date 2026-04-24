@@ -47,9 +47,41 @@ RSpec.describe RubySMB::Rap::NetShareEnum do
       ]
       allow(client).to receive(:send_recv).and_return(build_rap_response(status: 0, entries: entries))
       expect(pipe.net_share_enum).to eq([
-        { name: 'IPC$', type: 0x0003 },
-        { name: 'DATA', type: 0x0000 }
+        { name: 'IPC$', type: 'IPC' },
+        { name: 'DATA', type: 'DISK' }
       ])
+    end
+
+    it 'stringifies all MS-RAP 2.5.14 base share types' do
+      entries = [
+        { name: 'DSK',  type: 0x0000 },
+        { name: 'PRN',  type: 0x0001 },
+        { name: 'DEV',  type: 0x0002 },
+        { name: 'IPC$', type: 0x0003 }
+      ]
+      allow(client).to receive(:send_recv).and_return(build_rap_response(status: 0, entries: entries))
+      expect(pipe.net_share_enum.map { |s| s[:type] }).to eq(%w[DISK PRINTER DEVICE IPC])
+    end
+
+    it 'appends SPECIAL / TEMPORARY modifiers to the base type string' do
+      entries = [
+        { name: 'HIDDEN$', type: 0x0000 | RubySMB::Rap::NetShareEnum::STYPE_SPECIAL },
+        { name: 'TMP',     type: 0x0000 | RubySMB::Rap::NetShareEnum::STYPE_TEMPORARY },
+        { name: 'IPCH$',   type: 0x0003 | RubySMB::Rap::NetShareEnum::STYPE_SPECIAL |
+                                          RubySMB::Rap::NetShareEnum::STYPE_TEMPORARY }
+      ]
+      allow(client).to receive(:send_recv).and_return(build_rap_response(status: 0, entries: entries))
+      expect(pipe.net_share_enum.map { |s| s[:type] }).to eq([
+        'DISK|SPECIAL',
+        'DISK|TEMPORARY',
+        'IPC|SPECIAL|TEMPORARY'
+      ])
+    end
+
+    it 'formats an unknown base type code as UNKNOWN(0xXXXX)' do
+      entries = [{ name: 'Q', type: 0x0007 }]
+      allow(client).to receive(:send_recv).and_return(build_rap_response(status: 0, entries: entries))
+      expect(pipe.net_share_enum.first[:type]).to eq('UNKNOWN(0x0007)')
     end
 
     it 'sends a Trans request targeting \\PIPE\\LANMAN with the tree id' do
@@ -136,7 +168,7 @@ RSpec.describe RubySMB::Rap::NetShareEnum do
       shares = pipe.net_share_enum
       expect(shares.length).to eq(1)
       expect(shares[0][:name]).to eq('ABCDEFGHIJKL')
-      expect(shares[0][:type]).to eq(0)
+      expect(shares[0][:type]).to eq('DISK')
     end
   end
 
