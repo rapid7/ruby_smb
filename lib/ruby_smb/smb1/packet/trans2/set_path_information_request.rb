@@ -2,7 +2,9 @@ module RubySMB
   module SMB1
     module Packet
       module Trans2
-        # The Trans2 Parameter Block for this particular Subcommand
+        # The Trans2 Parameter Block for a SET_PATH_INFORMATION request as
+        # defined in
+        # [MS-CIFS 2.2.6.7.1 Request](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/2ca0642a-1cd4-4e72-a16f-9e804a218262).
         class SetPathInformationRequestTrans2Parameters < BinData::Record
           endian :little
 
@@ -20,7 +22,9 @@ module RubySMB
           end
         end
 
-        # The Trans2 Data Block for this particular Subcommand.
+        # The Trans2 Data Block for a SET_PATH_INFORMATION request as defined
+        # in
+        # [MS-CIFS 2.2.6.7.1 Request](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/2ca0642a-1cd4-4e72-a16f-9e804a218262).
         #
         # The data layout depends on the Information Level being set, so the
         # block carries an opaque byte buffer that the caller fills in for the
@@ -36,7 +40,8 @@ module RubySMB
           end
         end
 
-        # The {RubySMB::SMB1::DataBlock} specific to this packet type.
+        # The {RubySMB::SMB1::DataBlock} specific to this packet type. See
+        # [MS-CIFS 2.2.6.7.1 Request](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/2ca0642a-1cd4-4e72-a16f-9e804a218262).
         class SetPathInformationRequestDataBlock < RubySMB::SMB1::Packet::Trans2::DataBlock
           uint8                                           :name,               label: 'Name', initial_value: 0x00
           string                                          :pad1,               length: -> { pad1_length }
@@ -46,7 +51,9 @@ module RubySMB
         end
 
         # A Trans2 SET_PATH_INFORMATION Request Packet as defined in
-        # [2.2.6.8.1 Request](https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/45c77fd4-dfbf-43b3-b59d-6c58fdf59b0c)
+        # [MS-CIFS 2.2.6.7.1 Request](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/2ca0642a-1cd4-4e72-a16f-9e804a218262).
+        # See also the subcommand overview at
+        # [MS-CIFS 2.2.6.7 TRANS2_SET_PATH_INFORMATION (0x0006)](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cifs/a23483d9-6543-4aaa-a996-e7c9506f8b94).
         class SetPathInformationRequest < RubySMB::GenericPacket
           COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
 
