@@ -585,6 +585,67 @@ RSpec.describe RubySMB::SMB1::Tree do
     end
   end
 
+  describe '#open_file (SMB_COM_OPEN_ANDX fallback)' do
+    # Win9x and other LAN-Manager-era servers don't advertise the NT SMBs
+    # capability, so #_open dispatches to #_open_andx instead of NT_CREATE_ANDX.
+    let(:open_andx_response) do
+      packet = RubySMB::SMB1::Packet::OpenAndxResponse.new
+      packet.smb_header.nt_status = 0
+      packet.parameter_block.fid             = 0x4242
+      packet.parameter_block.file_data_size  = 1234
+      packet.parameter_block.resource_type   = RubySMB::SMB1::ResourceType::DISK
+      packet
+    end
+
+    before :example do
+      client.supports_nt_smbs = false
+    end
+
+    it 'builds the OPEN_ANDX request without raising NoMethodError on bit-field assignment' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      expect { tree.open_file(filename: 'HELLO.TXT') }.not_to raise_error
+    end
+
+    it 'serializes search_attributes / file_attributes as SMB_FILE_ATTRIBUTES bit-fields' do
+      sent = nil
+      allow(client).to receive(:send_recv) do |req|
+        sent = req
+        open_andx_response.to_binary_s
+      end
+      tree.open_file(filename: 'HELLO.TXT')
+
+      # 0x0016 = directory | system | hidden in the SMB_FILE_ATTRIBUTES search half.
+      expect(sent.parameter_block.search_attributes.directory).to eq 1
+      expect(sent.parameter_block.search_attributes.system).to    eq 1
+      expect(sent.parameter_block.search_attributes.hidden).to    eq 1
+      expect(sent.parameter_block.search_attributes.to_binary_s).to eq([0x0016].pack('v'))
+
+      # Read-only open: file_attributes mask is zeroed.
+      expect(sent.parameter_block.file_attributes.to_binary_s).to eq([0x0000].pack('v'))
+    end
+
+    it 'sets the SMB_FILE_ATTRIBUTE_ARCHIVE bit when opened for write' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      sent = nil
+      allow(client).to receive(:send_recv) do |req|
+        sent = req
+        open_andx_response.to_binary_s
+      end
+      tree.open_file(filename: 'HELLO.TXT', write: true)
+
+      expect(sent.parameter_block.file_attributes.to_binary_s).to eq([0x0020].pack('v'))
+      expect(sent.parameter_block.file_attributes.archive).to eq 1
+    end
+
+    it 'returns a File handle whose FID and size come from the OPEN_ANDX response' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      file = tree.open_file(filename: 'HELLO.TXT')
+      expect(file).to be_a(RubySMB::SMB1::File)
+      expect(file.fid).to eq 0x4242
+      expect(file.size).to eq 1234
+    end
+  end
+
   describe '#open_pipe' do
     let(:opts) { { filename: 'test', write: true } }
     before :example do

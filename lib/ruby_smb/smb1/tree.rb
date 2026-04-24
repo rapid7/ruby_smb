@@ -310,8 +310,11 @@ module RubySMB
         end
 
         request.parameter_block.access_mode       = access
-        request.parameter_block.search_attributes = 0x0016
-        request.parameter_block.file_attributes   = write ? 0x0020 : 0x0000
+        # search_attributes / file_attributes are SMB_FILE_ATTRIBUTES BitField
+        # records, not plain uint16s — assign through #read to avoid BinData's
+        # each_pair-on-Integer NoMethodError when given a literal mask.
+        request.parameter_block.search_attributes.read([0x0016].pack('v'))
+        request.parameter_block.file_attributes.read([(write ? 0x0020 : 0x0000)].pack('v'))
         request.parameter_block.open_mode         = nt_disposition_to_open_mode(disposition)
 
         fname = filename.dup
