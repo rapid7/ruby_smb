@@ -41,6 +41,8 @@ module RubySMB
         # This class represents an SMB1 Trans2 FIND_FIRST2 Response Packet as defined in
         # [2.2.6.2.2 Response](https://msdn.microsoft.com/en-us/library/ee441704.aspx)
         class FindFirst2Response < RubySMB::GenericPacket
+          include RubySMB::SMB1::Packet::Trans2::Win9xFraming
+
           COMMAND = RubySMB::SMB1::Commands::SMB_COM_TRANSACTION2
 
           class ParameterBlock < RubySMB::SMB1::Packet::Trans2::Response::ParameterBlock

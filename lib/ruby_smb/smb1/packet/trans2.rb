@@ -8,6 +8,7 @@ module RubySMB
         require 'ruby_smb/smb1/packet/trans2/query_information_level'
         require 'ruby_smb/smb1/packet/trans2/query_fs_information_level'
         require 'ruby_smb/smb1/packet/trans2/data_block'
+        require 'ruby_smb/smb1/packet/trans2/win9x_framing'
         require 'ruby_smb/smb1/packet/trans2/subcommands'
         require 'ruby_smb/smb1/packet/trans2/request'
         require 'ruby_smb/smb1/packet/trans2/request_secondary'
