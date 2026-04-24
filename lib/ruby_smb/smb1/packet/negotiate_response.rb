@@ -22,10 +22,21 @@ module RubySMB
         end
 
         # An SMB_Data Block as defined by the {NegotiateResponse}
+        # Windows 95/98/ME may only return the challenge with no domain/server names.
         class DataBlock < RubySMB::SMB1::DataBlock
           string        :challenge,     label: 'Auth Challenge', length: 8
           stringz16     :domain_name,   label: 'Primary Domain'
           stringz16     :server_name,   label: 'Server Name'
+
+          # Override to handle Win95 responses that only contain the challenge
+          # (byte_count=8) without domain_name or server_name fields.
+          def do_read(io)
+            byte_count.do_read(io)
+            challenge.do_read(io)
+            return unless byte_count > 8
+            domain_name.do_read(io)
+            server_name.do_read(io)
+          end
         end
 
         smb_header        :smb_header

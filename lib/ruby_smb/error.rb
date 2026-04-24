@@ -11,7 +11,17 @@ module RubySMB
 
     # Raised when there is a problem with communication over NetBios Session Service
     # @see https://wiki.wireshark.org/NetBIOS/NBSS
-    class NetBiosSessionService < RubySMBError; end
+    class NetBiosSessionService < RubySMBError
+      # The numeric NBSS error code from a NEGATIVE_SESSION_RESPONSE, or nil
+      # if the error was raised outside that context.
+      # @return [Integer, nil]
+      attr_reader :error_code
+
+      def initialize(msg = nil, error_code: nil)
+        @error_code = error_code
+        super(msg)
+      end
+    end
 
     # Raised when trying to parse raw binary into a Packet and the data
     # is invalid.

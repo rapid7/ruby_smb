@@ -3,6 +3,11 @@ module RubySMB
     # An SMB1 connected remote Tree, as returned by a
     # [RubySMB::SMB1::Packet::TreeConnectRequest]
     class Tree
+      # Exposes #net_share_enum directly on the tree for callers that need
+      # RAP against \PIPE\LANMAN without opening the pipe (Win9x servers do
+      # not permit OPEN_ANDX on it).
+      include RubySMB::Rap::NetShareEnum
+
       # The client this Tree is connected through
       # @!attribute [rw] client
       #   @return [RubySMB::Client]
@@ -102,9 +107,11 @@ module RubySMB
       # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
       def list(directory: '\\', pattern: '*', unicode: true,
                type: RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindFileFullDirectoryInfo)
+        info_standard = (type == RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindInfoStandard)
+
         find_first_request = RubySMB::SMB1::Packet::Trans2::FindFirst2Request.new
         find_first_request = set_header_fields(find_first_request)
-        find_first_request.smb_header.flags2.unicode  = 1 if unicode
+        find_first_request.smb_header.flags2.unicode  = 1 if unicode && !info_standard
 
         search_path = directory.dup
         search_path << '\\' unless search_path.end_with?('\\')
@@ -120,7 +127,7 @@ module RubySMB
         t2_params.flags.resume_keys           = 0
         t2_params.information_level           = type::CLASS_LEVEL
         t2_params.filename                    = search_path
-        t2_params.search_count                = 10
+        t2_params.search_count                = info_standard ? 255 : 10
 
         find_first_request = set_find_params(find_first_request)
 
@@ -141,9 +148,9 @@ module RubySMB
 
         eos   = response.data_block.trans2_parameters.eos
         sid   = response.data_block.trans2_parameters.sid
-        last  = results.last.file_name
+        last  = results.last&.file_name
 
-        while eos.zero?
+        while eos.zero? && last
           find_next_request = RubySMB::SMB1::Packet::Trans2::FindNext2Request.new
           find_next_request = set_header_fields(find_next_request)
           find_next_request.smb_header.flags2.unicode   = 1 if unicode
@@ -171,8 +178,10 @@ module RubySMB
             raise RubySMB::Error::UnexpectedStatusCode, response.status_code
           end
 
-          results += response.results(type, unicode: unicode)
+          batch = response.results(type, unicode: unicode)
+          break if batch.empty?
 
+          results += batch
           eos   = response.data_block.trans2_parameters.eos
           last  = results.last.file_name
         end
@@ -195,6 +204,9 @@ module RubySMB
 
       def _open(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                 impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
+        unless client.supports_nt_smbs
+          return _open_andx(filename: filename, disposition: disposition, read: read, write: write)
+        end
         nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new
         nt_create_andx_request = set_header_fields(nt_create_andx_request)
 
@@ -272,6 +284,88 @@ module RubySMB
         end
       end
 
+      # Open a file or pipe using SMB_COM_OPEN_ANDX (0x2D), the LAN Manager 1.0
+      # open command used by Windows 95/98/ME and other servers that don't
+      # advertise the NT SMBs capability. Accepts the same NT-style disposition
+      # constants as {#_open} and maps them to the OpenMode encoding defined in
+      # MS-CIFS 2.2.4.41.1.
+      #
+      # @param filename [String] path to the file on the share
+      # @param disposition [Integer] a RubySMB::Dispositions constant
+      # @param read [Boolean] request read access
+      # @param write [Boolean] request write access
+      # @return [RubySMB::SMB1::File, RubySMB::SMB1::Pipe] the opened resource
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not valid
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus is not STATUS_SUCCESS
+      def _open_andx(filename:, disposition:, read: true, write: false)
+        request = RubySMB::SMB1::Packet::OpenAndxRequest.new
+        request = set_header_fields(request)
+        request.smb_header.flags2.unicode = 0
+
+        access = 0x0040 # sharing: deny-nothing
+        if read && write
+          access |= 0x02
+        elsif write
+          access |= 0x01
+        end
+
+        request.parameter_block.access_mode       = access
+        request.parameter_block.search_attributes = 0x0016
+        request.parameter_block.file_attributes   = write ? 0x0020 : 0x0000
+        request.parameter_block.open_mode         = nt_disposition_to_open_mode(disposition)
+
+        fname = filename.dup
+        fname.prepend('\\') unless fname.start_with?('\\')
+        request.data_block.file_name = fname
+
+        raw_response = client.send_recv(request)
+        response = RubySMB::SMB1::Packet::OpenAndxResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::OpenAndxResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+
+        build_open_andx_handle(filename, response)
+      end
+
+      # Map an NT-style disposition (RubySMB::Dispositions) to an
+      # SMB_COM_OPEN_ANDX OpenMode word. FileExistsOpts is bits 0-1
+      # (0=fail, 1=open, 2=truncate); CreateFile is bit 4.
+      def nt_disposition_to_open_mode(disposition)
+        case disposition
+        when RubySMB::Dispositions::FILE_OPEN         then 0x0001
+        when RubySMB::Dispositions::FILE_CREATE       then 0x0010
+        when RubySMB::Dispositions::FILE_OPEN_IF      then 0x0011
+        when RubySMB::Dispositions::FILE_OVERWRITE    then 0x0002
+        when RubySMB::Dispositions::FILE_OVERWRITE_IF,
+             RubySMB::Dispositions::FILE_SUPERSEDE    then 0x0012
+        else
+          raise RubySMB::Error::RubySMBError,
+                "Unsupported disposition for SMB_COM_OPEN_ANDX: #{disposition}"
+        end
+      end
+
+      def build_open_andx_handle(filename, response)
+        unless response.parameter_block.resource_type == RubySMB::SMB1::ResourceType::DISK
+          raise RubySMB::Error::RubySMBError,
+                "SMB_COM_OPEN_ANDX resource type 0x#{response.parameter_block.resource_type.to_s(16)} not supported"
+        end
+        file = RubySMB::SMB1::File.allocate
+        file.tree         = self
+        file.name         = filename
+        file.fid          = response.parameter_block.fid
+        file.size         = response.parameter_block.file_data_size
+        file.size_on_disk = response.parameter_block.file_data_size
+        file.attributes   = response.parameter_block.file_attributes
+        file
+      end
+
       # Sets ParameterBlock options for FIND_FIRST2 and
       # FIND_NEXT2 requests. In particular we need to do this
       # to tell the server to ignore the Trans2DataBlock as we are
@@ -281,7 +375,8 @@ module RubySMB
         request.parameter_block.data_offset            = 0
         request.parameter_block.total_parameter_count  = request.parameter_block.parameter_count
         request.parameter_block.max_parameter_count    = request.parameter_block.parameter_count
-        request.parameter_block.max_data_count         = 16_384
+        max_data = [16_384, client.server_max_buffer_size].min
+        request.parameter_block.max_data_count         = max_data
         request
       end
 

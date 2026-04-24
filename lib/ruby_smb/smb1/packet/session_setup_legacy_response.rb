@@ -13,11 +13,22 @@ module RubySMB
         end
 
         # Represents the specific layout of the DataBlock for a {SessionSetupResponse} Packet.
+        # Windows 95/98/ME may return byte_count=0 with no string fields.
         class DataBlock < RubySMB::SMB1::DataBlock
           string      :pad,            label: 'Padding', length: 0
           stringz     :native_os,      label: 'Native OS'
           stringz     :native_lan_man, label: 'Native LAN Manager'
           stringz     :primary_domain, label: 'Primary Domain'
+
+          # Override to handle Win95 responses with byte_count=0.
+          def do_read(io)
+            byte_count.do_read(io)
+            return unless byte_count > 0
+            pad.do_read(io)
+            native_os.do_read(io)
+            native_lan_man.do_read(io)
+            primary_domain.do_read(io)
+          end
         end
 
         smb_header        :smb_header

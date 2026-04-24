@@ -309,6 +309,33 @@ module RubySMB
     #   @return [String] The raw security buffer bytes
     attr_accessor :negotiation_security_buffer
 
+    # Whether the negotiated SMB1 server supports the "NT SMBs" capability
+    # (i.e. SMB_COM_NT_CREATE_ANDX). Set false for Windows 95/98/ME and other
+    # LAN Manager-era servers, which must use SMB_COM_OPEN_ANDX instead.
+    # Always true for SMB2/3.
+    # @!attribute [rw] supports_nt_smbs
+    #   @return [Boolean]
+    attr_accessor :supports_nt_smbs
+
+    # Factory used to open a new TCP socket when the NetBIOS session-request
+    # retry path needs to reconnect to the server under a resolved NetBIOS
+    # name. Must be a callable that accepts (host, port) and returns an
+    # IO-like socket. Defaults to stdlib `TCPSocket.new`. Callers that need
+    # to control socket creation (e.g. Metasploit's Rex::Socket for pivoted
+    # connections) should inject their own factory.
+    # @!attribute [rw] tcp_socket_factory
+    #   @return [#call]
+    attr_accessor :tcp_socket_factory
+
+    # Factory used to open a UDP socket for the NetBIOS name-service lookup
+    # (port 137). Must be a callable with no arguments that returns a socket
+    # responding to `#send` / `#recvfrom` / `#close`. Defaults to stdlib
+    # `UDPSocket.new`. Inject your own (e.g. Rex::Socket::Udp) to avoid
+    # creating raw stdlib sockets.
+    # @!attribute [rw] udp_socket_factory
+    #   @return [#call]
+    attr_accessor :udp_socket_factory
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
@@ -342,6 +369,9 @@ module RubySMB
       @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_supports_multi_credit = false
+      @supports_nt_smbs             = true
+      @tcp_socket_factory           = ->(host, port) { TCPSocket.new(host, port) }
+      @udp_socket_factory           = -> { UDPSocket.new }
 
       # SMB 3.x options
       # this merely initializes the default value for session encryption, it may be changed as necessary when a
@@ -615,13 +645,15 @@ module RubySMB
     # Connects to the supplied share
     #
     # @param share [String] the path to the share in `\\server\share_name` format
+    # @param password [String, nil] share-level password (SMB1 only, for
+    #   servers using share-level auth such as Windows 95/98/ME)
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
-    def tree_connect(share)
+    def tree_connect(share, password: nil)
       connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
-        smb1_tree_connect(share)
+        smb1_tree_connect(share, password: password)
       end
       @tree_connects << connected_tree
       connected_tree
@@ -656,27 +688,102 @@ module RubySMB
     end
 
     # Requests a NetBIOS Session Service using the provided name.
+    # When the caller left the called name at its default (`'*SMBSERVER'` or
+    # empty) and the server rejects it with NBSS error 0x82
+    # (CALLED_NAME_NOT_PRESENT), this method automatically looks up the
+    # server's real NetBIOS name via a Node Status query, reconnects the
+    # TCP socket, and retries once. If the caller supplied a specific name
+    # (e.g. Metasploit's `SMBName` datastore option), the name is honored
+    # as-is and the exception propagates on rejection — no auto-discovery.
     #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
     # @raise [RubySMB::Error::InvalidPacket] if the response packet is not a NBSS packet
     def session_request(name = '*SMBSERVER')
+      send_session_request(name)
+    rescue RubySMB::Error::NetBiosSessionService => e
+      raise unless default_called_name?(name)
+      raise unless e.error_code.to_i == RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
+
+      sock = dispatcher.tcp_socket
+      if sock.respond_to?(:peerhost)
+        host = sock.peerhost
+        port = sock.peerport
+      else
+        addr = sock.remote_address
+        host = addr.ip_address
+        port = addr.ip_port
+      end
+
+      resolved = netbios_lookup_name(host)
+      raise unless resolved
+      raise if resolved.to_s.upcase.strip == name.to_s.upcase.strip
+
+      dispatcher.tcp_socket.close rescue nil
+      new_sock = tcp_socket_factory.call(host, port)
+      if new_sock.respond_to?(:setsockopt)
+        new_sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
+      end
+      dispatcher.tcp_socket = new_sock
+      send_session_request(resolved)
+    end
+
+    private
+
+    # True when the called name is empty or the wildcard `'*SMBSERVER'`.
+    # A specific caller-provided name (e.g. MSF's `SMBName`) short-circuits
+    # auto-discovery in {#session_request}.
+    def default_called_name?(name)
+      name.nil? || name.to_s.strip.empty? || name.to_s.strip.upcase == '*SMBSERVER'
+    end
+
+    # Sends a single NetBIOS Session Request and reads the response.
+    #
+    # @param name [String] the NetBIOS name to request
+    # @return [TrueClass] if session request is granted
+    def send_session_request(name)
       session_request = session_request_packet(name)
       dispatcher.send_packet(session_request, nbss_header: false)
       raw_response = dispatcher.recv_packet(full_response: true)
       begin
         session_header = RubySMB::Nbss::SessionHeader.read(raw_response)
         if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
-          raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
+          negative_session_response = RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+          raise RubySMB::Error::NetBiosSessionService.new(
+            "Session Request failed: #{negative_session_response.error_msg}",
+            error_code: negative_session_response.error_code
+          )
         end
       rescue IOError
         raise RubySMB::Error::InvalidPacket, 'Not a NBSS packet'
       end
 
-      return true
+      true
     end
+
+    # Resolves a host's NetBIOS name via a UDP Node Status query
+    # (RFC 1002 4.2.17, port 137). Pure Ruby — no external binaries.
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the NetBIOS name, or nil if lookup fails
+    def netbios_lookup_name(host)
+      netbios_lookup_udp(host)
+    end
+
+    # Resolves a host's file-server NetBIOS name via a UDP Node Status
+    # request. Thin wrapper around {RubySMB::Nbss::NodeStatus.file_server_name}
+    # that threads the client's injected UDP socket factory through.
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the file server NetBIOS name, or nil on timeout
+    def netbios_lookup_udp(host)
+      RubySMB::Nbss::NodeStatus.file_server_name(
+        host, udp_socket_factory: udp_socket_factory
+      )
+    end
+
+    public
 
     # Crafts the NetBIOS SessionRequest packet to be sent for session request operations.
     #
@@ -684,7 +791,7 @@ module RubySMB
     # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
     def session_request_packet(name = '*SMBSERVER')
       called_name = "#{name.upcase.ljust(15)}\x20"
-      calling_name = "#{''.ljust(15)}\x00"
+      calling_name = "#{@local_workstation.upcase.ljust(15)}\x00"
 
       session_request = RubySMB::Nbss::SessionRequest.new
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST

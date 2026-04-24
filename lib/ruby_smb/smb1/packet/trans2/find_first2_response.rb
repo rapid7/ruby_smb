@@ -60,30 +60,63 @@ module RubySMB
           # structs for the given FileInformationClass. Pulled out of
           # the string buffer.
           #
+          # Info levels that carry a leading NextEntryOffset (e.g.
+          # FindFileFullDirectoryInfo) are framed by that field. Info levels
+          # without one (e.g. SMB_INFO_STANDARD, used by Win95/98/ME) are
+          # packed sequentially; each entry's length is derived from the
+          # record itself, and servers may insert an optional single NULL
+          # pad byte between entries (see MS-CIFS Appendix A, note <153>).
+          #
           # @param klass [Class] the FileInformationClass class to read the data as
           # @return [array<BinData::Record>] An array of structs holding the requested information
           # @raise [RubySMB::Error::InvalidPacket] if the string buffer is not a valid File Information packet
           def results(klass, unicode:)
-            information_classes = []
             blob = data_block.trans2_data.buffer.to_binary_s.dup
+            if klass.new.respond_to?(:next_offset)
+              read_next_offset_entries(klass, blob, unicode: unicode)
+            else
+              read_sequential_entries(klass, blob, unicode: unicode)
+            end
+          end
+
+          private
+
+          def read_next_offset_entries(klass, blob, unicode:)
+            entries = []
             until blob.empty?
-              length = blob[0, 4].unpack('V').first
-
-              data = if length.zero?
-                       blob.slice!(0, blob.length)
-                     else
-                       blob.slice!(0, length)
-                     end
-
+              length = blob[0, 4].unpack1('V')
+              data = length.zero? ? blob.slice!(0, blob.length) : blob.slice!(0, length)
               file_info = klass.new
-              file_info.unicode = unicode
+              file_info.unicode = unicode if file_info.respond_to?(:unicode=)
               begin
-                information_classes << file_info.read(data)
+                entries << file_info.read(data)
               rescue IOError
                 raise RubySMB::Error::InvalidPacket, "Invalid #{klass} File Information packet in the string buffer"
               end
             end
-            information_classes
+            entries
+          end
+
+          def read_sequential_entries(klass, blob, unicode:)
+            entries = []
+            until blob.empty?
+              file_info = klass.new
+              file_info.unicode = unicode if file_info.respond_to?(:unicode=)
+              begin
+                file_info.read(blob)
+              rescue IOError
+                raise RubySMB::Error::InvalidPacket, "Invalid #{klass} File Information packet in the string buffer"
+              end
+              consumed = file_info.num_bytes
+              break if consumed.zero?
+              blob.slice!(0, consumed)
+              # An entry with an empty file_name is a buffer-padding artifact, not a real entry; stop here.
+              break if file_info.respond_to?(:file_name_length) && file_info.file_name_length.zero?
+              entries << file_info
+              # Skip optional single NULL pad byte inserted by some servers between entries.
+              blob.slice!(0, 1) if blob.bytesize > 0 && blob.getbyte(0) == 0
+            end
+            entries
           end
         end
       end

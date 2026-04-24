@@ -742,6 +742,135 @@ RSpec.describe RubySMB::Client do
         allow(RubySMB::Nbss::SessionHeader).to receive(:read).and_raise(IOError)
         expect { client.session_request }.to raise_error(RubySMB::Error::InvalidPacket)
       end
+
+      context 'when the server rejects *SMBSERVER with CALLED_NAME_NOT_PRESENT' do
+        let(:first_failure) do
+          RubySMB::Error::NetBiosSessionService.new(
+            'Session Request failed: Called name not present',
+            error_code: RubySMB::Nbss::NegativeSessionResponse::CALLED_NAME_NOT_PRESENT
+          )
+        end
+        let(:new_sock) { double('NewSocket', setsockopt: nil) }
+
+        before :example do
+          allow(sock).to receive(:peerhost).and_return('10.0.0.2')
+          allow(sock).to receive(:peerport).and_return(139)
+          allow(sock).to receive(:close)
+          client.tcp_socket_factory = ->(_host, _port) { new_sock }
+        end
+
+        it 'looks up the real NetBIOS name and retries with it' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do |name|
+            call_count += 1
+            if call_count == 1
+              raise first_failure
+            else
+              expect(name).to eq('FILESERVER')
+              true
+            end
+          end
+          allow(client).to receive(:netbios_lookup_name).with('10.0.0.2').and_return('FILESERVER')
+          expect(client.session_request).to be true
+          expect(call_count).to eq(2)
+        end
+
+        it 'reconnects the TCP socket before retrying via the injected tcp_socket_factory' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do
+            call_count += 1
+            raise first_failure if call_count == 1
+            true
+          end
+          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
+          factory = double('Factory')
+          client.tcp_socket_factory = factory
+          expect(factory).to receive(:call).with('10.0.0.2', 139).and_return(new_sock)
+          expect(new_sock).to receive(:setsockopt).with(::Socket::SOL_SOCKET, ::Socket::SO_KEEPALIVE, true)
+          client.session_request
+          expect(dispatcher.tcp_socket).to eq(new_sock)
+        end
+
+        it 'skips setsockopt when the factory returns a socket that does not support it' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do
+            call_count += 1
+            raise first_failure if call_count == 1
+            true
+          end
+          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
+          # Use a real plain object so respond_to?(:setsockopt) returns false.
+          rex_like_sock = Object.new
+          client.tcp_socket_factory = ->(_host, _port) { rex_like_sock }
+          expect { client.session_request }.not_to raise_error
+          expect(dispatcher.tcp_socket).to eq(rex_like_sock)
+        end
+
+        it 'raises the original error when netbios_lookup_name returns nil' do
+          allow(client).to receive(:send_session_request).and_raise(first_failure)
+          allow(client).to receive(:netbios_lookup_name).and_return(nil)
+          expect {
+            client.session_request
+          }.to raise_error(RubySMB::Error::NetBiosSessionService)
+        end
+
+        it 'does NOT retry when the caller supplied a specific name (not *SMBSERVER)' do
+          allow(client).to receive(:send_session_request).and_raise(first_failure)
+          expect(client).not_to receive(:netbios_lookup_name)
+          expect {
+            client.session_request('GUESSEDNAME')
+          }.to raise_error(RubySMB::Error::NetBiosSessionService)
+        end
+
+        it 'does not retry when the lookup returns the same wildcard after a *SMBSERVER rejection' do
+          allow(client).to receive(:send_session_request).and_raise(first_failure)
+          allow(client).to receive(:netbios_lookup_name).and_return('*SMBSERVER')
+          expect {
+            client.session_request('*SMBSERVER')
+          }.to raise_error(RubySMB::Error::NetBiosSessionService)
+        end
+
+        it 'treats an empty called name the same as the *SMBSERVER default' do
+          call_count = 0
+          allow(client).to receive(:send_session_request) do
+            call_count += 1
+            raise first_failure if call_count == 1
+            true
+          end
+          allow(client).to receive(:netbios_lookup_name).and_return('FILESERVER')
+          expect(client.session_request('')).to be true
+          expect(call_count).to eq(2)
+        end
+      end
+
+      context 'when the server rejects with a non-CALLED_NAME_NOT_PRESENT code' do
+        it 'does not retry and re-raises' do
+          allow(client).to receive(:send_session_request).and_raise(
+            RubySMB::Error::NetBiosSessionService.new(
+              'Session Request failed: Not listening on called name',
+              error_code: RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME
+            )
+          )
+          expect(client).not_to receive(:netbios_lookup_name)
+          expect {
+            client.session_request
+          }.to raise_error(RubySMB::Error::NetBiosSessionService, /Not listening on called name/)
+        end
+      end
+
+      describe 'NetBiosSessionService error propagates the error_code' do
+        it 'attaches the numeric NBSS error code to the raised exception' do
+          negative = RubySMB::Nbss::NegativeSessionResponse.new
+          negative.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
+          negative.error_code = RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME
+          allow(dispatcher).to receive(:recv_packet).and_return(negative.to_binary_s)
+          begin
+            client.session_request('OTHERNAME')
+          rescue RubySMB::Error::NetBiosSessionService => e
+            expect(e.error_code.to_i).to eq(RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME)
+          end
+        end
+      end
     end
 
     describe '#session_request_packet' do
@@ -754,7 +883,7 @@ RSpec.describe RubySMB::Client do
       it 'sets the expected fields of the SessionRequest packet' do
         name         = 'NBNAMESPEC'
         called_name  = 'NBNAMESPEC      '
-        calling_name = "               \x00"
+        calling_name = "WORKSTATION    \x00"
 
         session_packet = client.session_request_packet(name)
         expect(session_packet).to be_a(RubySMB::Nbss::SessionRequest)
@@ -774,6 +903,57 @@ RSpec.describe RubySMB::Client do
 
       it 'returns a session packet with *SMBSERVER by default' do
         expect(client.session_request_packet.called_name).to eq('*SMBSERVER      ')
+      end
+    end
+
+    describe '#netbios_lookup_udp' do
+      let(:udp_sock) { double('UDPSocket') }
+
+      before :example do
+        allow(udp_sock).to receive(:send)
+        allow(udp_sock).to receive(:close)
+        allow(IO).to receive(:select).and_return([udp_sock])
+        allow(udp_sock).to receive(:recvfrom).and_return(['', nil])
+      end
+
+      it 'obtains its socket from udp_socket_factory rather than UDPSocket.new directly' do
+        factory = double('UdpFactory')
+        client.udp_socket_factory = factory
+        expect(factory).to receive(:call).and_return(udp_sock)
+        # The response parse will fail on empty bytes; that is fine, we only
+        # care that the injected factory was consulted.
+        client.send(:netbios_lookup_udp, '10.0.0.2')
+      end
+
+      it 'sends the encoded NodeStatusRequest to port 137' do
+        client.udp_socket_factory = ->() { udp_sock }
+        expect(udp_sock).to receive(:send) do |bytes, flags, host, port|
+          expect(flags).to eq(0)
+          expect(host).to eq('10.0.0.2')
+          expect(port).to eq(137)
+          expect(bytes.bytesize).to eq(50)
+        end
+        client.send(:netbios_lookup_udp, '10.0.0.2')
+      end
+
+      it 'returns the file-server name from the NBNS response' do
+        response_bytes = ''.b
+        response_bytes << [0x1234].pack('n')              # transaction_id
+        response_bytes << [0x8400].pack('n')              # flags
+        response_bytes << [0].pack('n')                   # qdcount
+        response_bytes << [1].pack('n')                   # ancount
+        response_bytes << [0].pack('n') << [0].pack('n')  # nscount, arcount
+        response_bytes << [0x20].pack('C') << ('A' * 32) << "\x00".b
+        response_bytes << [0x0021].pack('n') << [0x0001].pack('n')
+        response_bytes << [0].pack('N') << [1 + 18 + 46].pack('n')
+        response_bytes << [1].pack('C')
+        response_bytes << 'FILESERVER'.ljust(15, ' ') << [0x20].pack('C') << [0x0400].pack('n')
+        response_bytes << ("\x00".b * 46)
+
+        allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
+        client.udp_socket_factory = ->() { udp_sock }
+
+        expect(client.send(:netbios_lookup_udp, '10.0.0.2')).to eq('FILESERVER')
       end
     end
   end
@@ -2438,6 +2618,7 @@ RSpec.describe RubySMB::Client do
           end
         end
       end
+
     end
   end
 

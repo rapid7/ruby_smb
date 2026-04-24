@@ -457,6 +457,92 @@ RSpec.describe RubySMB::SMB1::Tree do
         end
       end
     end
+
+    context 'with SMB_INFO_STANDARD (LANMAN 2.0 / Win9x)' do
+      let(:info_standard) { RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindInfoStandard }
+
+      def build_info_standard_entry(name:, size: 0, attrs: 0x20, pad_after: false)
+        entry = info_standard.new
+        entry.data_size = size
+        entry.allocation_size = size
+        entry.file_attributes = attrs
+        entry.file_name = name
+        entry.file_name_length = name.bytesize
+        pad_after ? entry.to_binary_s + "\x00" : entry.to_binary_s
+      end
+
+      def build_find_first2_raw(blob, status: 0)
+        packet = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.new
+        packet.smb_header.nt_status = status
+        packet.data_block.trans2_parameters.eos = 1
+        packet.data_block.trans2_data.buffer = blob
+        packet.to_binary_s
+      end
+
+      before :each do
+        # Undo the default FindFirst2Response stubs from the outer #list block
+        allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Request).to receive(:new).and_call_original
+        allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Response).to receive(:read).and_call_original
+      end
+
+      it 'parses sequential SMB_INFO_STANDARD entries separated by a null pad' do
+        # Win9x servers insert a trailing null byte between entries.
+        blob = build_info_standard_entry(name: 'foo.txt', size: 100, pad_after: true) +
+               build_info_standard_entry(name: 'barbaz', size: 200)
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.length).to eq 2
+        expect(results[0].file_name).to eq 'foo.txt'
+        expect(results[0].data_size).to eq 100
+        expect(results[1].file_name).to eq 'barbaz'
+        expect(results[1].data_size).to eq 200
+      end
+
+      it 'parses a single SMB_INFO_STANDARD entry without trailing padding' do
+        blob = build_info_standard_entry(name: 'only.txt', size: 42)
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.length).to eq 1
+        expect(results[0].file_name).to eq 'only.txt'
+        expect(results[0].data_size).to eq 42
+      end
+
+      it 'stops when an entry has a zero file_name_length' do
+        entry = build_info_standard_entry(name: 'first.txt', pad_after: true)
+        zero  = "\x00" * 23
+        blob  = entry + zero
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.map(&:file_name)).to eq(['first.txt'])
+      end
+
+      it 'raises UnexpectedStatusCode when the SMB status is not success' do
+        allow(client).to receive(:send_recv).and_return(
+          build_find_first2_raw('', status: WindowsError::NTStatus::STATUS_ACCESS_DENIED.value)
+        )
+        expect { tree.list(type: info_standard) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+
+      it 'turns unicode off and raises search_count to 255 for SMB_INFO_STANDARD' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.smb_header.flags2.unicode).to eq 0
+          expect(packet.data_block.trans2_parameters.search_count).to eq 255
+          build_find_first2_raw('')
+        end
+        tree.list(type: info_standard)
+      end
+
+      it 'returns an empty array when the data blob is empty' do
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(''))
+        expect(tree.list(type: info_standard)).to eq([])
+      end
+    end
   end
 
   describe '#set_header_fields' do
@@ -492,8 +578,10 @@ RSpec.describe RubySMB::SMB1::Tree do
       expect(modified_request.parameter_block.max_parameter_count).to eq 10
     end
 
-    it 'sets #max_data_count to 16,384' do
-      expect(modified_request.parameter_block.max_data_count).to eq 16_384
+    it 'sets #max_data_count to the minimum of 16,384 and server_max_buffer_size' do
+      expect(modified_request.parameter_block.max_data_count).to eq(
+        [16_384, client.server_max_buffer_size].min
+      )
     end
   end
 
