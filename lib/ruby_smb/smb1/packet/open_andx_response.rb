@@ -12,7 +12,7 @@ module RubySMB
 
           and_x_block :andx_block
           uint16      :fid,              label: 'FID'
-          uint16      :file_attributes,  label: 'File Attributes'
+          smb_file_attributes  :file_attributes,  label: 'File Attributes'
           uint32      :last_write_time,  label: 'Last Write Time'
           uint32      :data_size,        label: 'File Data Size'
           uint16      :granted_access,   label: 'Granted Access'
