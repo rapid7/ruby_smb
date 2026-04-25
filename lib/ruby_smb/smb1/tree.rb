@@ -144,10 +144,16 @@ module RubySMB
           raise RubySMB::Error::UnexpectedStatusCode, response.status_code
         end
 
-        results = response.results(type, unicode: unicode)
+        t2p_override, t2d_override = response.win9x_trans2_overrides(raw_response)
+        results = if t2d_override
+                    response.results(type, unicode: unicode, buffer: t2d_override)
+                  else
+                    response.results(type, unicode: unicode)
+                  end
 
-        eos   = response.data_block.trans2_parameters.eos
-        sid   = response.data_block.trans2_parameters.sid
+        effective_params = t2p_override || response.data_block.trans2_parameters
+        eos   = effective_params.eos
+        sid   = effective_params.sid
         last  = results.last&.file_name
 
         while eos.zero? && last
@@ -310,8 +316,11 @@ module RubySMB
         end
 
         request.parameter_block.access_mode       = access
-        request.parameter_block.search_attributes = 0x0016
-        request.parameter_block.file_attributes   = write ? 0x0020 : 0x0000
+        # search_attributes / file_attributes are SMB_FILE_ATTRIBUTES BitField
+        # records, not plain uint16s — assign through #read to avoid BinData's
+        # each_pair-on-Integer NoMethodError when given a literal mask.
+        request.parameter_block.search_attributes.read([0x0016].pack('v'))
+        request.parameter_block.file_attributes.read([(write ? 0x0020 : 0x0000)].pack('v'))
         request.parameter_block.open_mode         = nt_disposition_to_open_mode(disposition)
 
         fname = filename.dup
