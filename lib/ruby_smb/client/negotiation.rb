@@ -106,7 +106,8 @@ module RubySMB
       # @return [String] The SMB version as a string ('SMB1', 'SMB2')
       def parse_negotiate_response(packet)
         case packet
-        when RubySMB::SMB1::Packet::NegotiateResponseExtended
+        when RubySMB::SMB1::Packet::NegotiateResponse,
+             RubySMB::SMB1::Packet::NegotiateResponseExtended
           self.smb1 = true
           self.smb2 = false
           self.smb3 = false
@@ -118,7 +119,14 @@ module RubySMB
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
           self.negotiated_smb_version = 1
           self.session_encrypt_data = false
-          self.negotiation_security_buffer = packet.data_block.security_blob
+          self.server_supports_nt_smbs = packet.parameter_block.capabilities.nt_smbs != 0
+          if packet.is_a?(RubySMB::SMB1::Packet::NegotiateResponseExtended)
+            self.negotiation_security_buffer = packet.data_block.security_blob
+          else
+            # Non-extended security (e.g. Windows 95/98/ME, old Samba). Server provides a raw
+            # 8-byte challenge instead of a SPNEGO blob; store it so auth can compute LM/NTLM responses.
+            @smb1_negotiate_challenge = packet.data_block.challenge.to_s
+          end
           'SMB1'
         when RubySMB::SMB2::Packet::NegotiateResponse
           self.smb1 = false

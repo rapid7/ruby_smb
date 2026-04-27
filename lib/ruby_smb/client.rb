@@ -309,6 +309,14 @@ module RubySMB
     #   @return [String] The raw security buffer bytes
     attr_accessor :negotiation_security_buffer
 
+    # Whether the negotiated SMB1 server supports the "NT SMBs" capability
+    # (i.e. SMB_COM_NT_CREATE_ANDX). Set false for Windows 95/98/ME and other
+    # LAN Manager-era servers, which must use SMB_COM_OPEN_ANDX instead.
+    # Always true for SMB2/3.
+    # @!attribute [rw] supports_nt_smbs
+    #   @return [Boolean]
+    attr_accessor :server_supports_nt_smbs
+
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
     # @param smb2 [Boolean] whether or not to enable SMB2 support
@@ -338,10 +346,11 @@ module RubySMB
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modified during negotiation
       @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
-      @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
-      @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_read_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_write_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_supports_multi_credit = false
+      @server_supports_nt_smbs = true
 
       # SMB 3.x options
       # this merely initializes the default value for session encryption, it may be changed as necessary when a
@@ -615,13 +624,15 @@ module RubySMB
     # Connects to the supplied share
     #
     # @param share [String] the path to the share in `\\server\share_name` format
+    # @param password [String, nil] share-level password (SMB1 only, for
+    #   servers using share-level auth such as Windows 95/98/ME)
     # @return [RubySMB::SMB1::Tree] if talking over SMB1
     # @return [RubySMB::SMB2::Tree] if talking over SMB2
-    def tree_connect(share)
+    def tree_connect(share, password: nil)
       connected_tree = if smb2 || smb3
         smb2_tree_connect(share)
       else
-        smb1_tree_connect(share)
+        smb1_tree_connect(share, password: password)
       end
       @tree_connects << connected_tree
       connected_tree
@@ -684,7 +695,7 @@ module RubySMB
     # @return [RubySMB::Nbss::SessionRequest] the SessionRequest packet
     def session_request_packet(name = '*SMBSERVER')
       called_name = "#{name.upcase.ljust(15)}\x20"
-      calling_name = "#{''.ljust(15)}\x00"
+      calling_name = "#{@local_workstation.upcase.ljust(15)}\x00"
 
       session_request = RubySMB::Nbss::SessionRequest.new
       session_request.session_header.session_packet_type = RubySMB::Nbss::SESSION_REQUEST

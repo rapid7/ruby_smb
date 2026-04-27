@@ -457,6 +457,129 @@ RSpec.describe RubySMB::SMB1::Tree do
         end
       end
     end
+
+    context 'with SMB_INFO_STANDARD (LANMAN 2.0 / Win9x)' do
+      let(:info_standard) { RubySMB::SMB1::Packet::Trans2::FindInformationLevel::FindInfoStandard }
+
+      def build_info_standard_entry(name:, size: 0, attrs: 0x20, pad_after: false)
+        entry = info_standard.new
+        entry.data_size = size
+        entry.allocation_size = size
+        entry.file_attributes = attrs
+        entry.file_name = name
+        entry.file_name_length = name.bytesize
+        pad_after ? entry.to_binary_s + "\x00" : entry.to_binary_s
+      end
+
+      def build_find_first2_raw(blob, status: 0)
+        packet = RubySMB::SMB1::Packet::Trans2::FindFirst2Response.new
+        packet.smb_header.nt_status = status
+        packet.data_block.trans2_parameters.eos = 1
+        packet.data_block.trans2_data.buffer = blob
+        packet.to_binary_s
+      end
+
+      before :each do
+        # Undo the default FindFirst2Response stubs from the outer #list block
+        allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Request).to receive(:new).and_call_original
+        allow(RubySMB::SMB1::Packet::Trans2::FindFirst2Response).to receive(:read).and_call_original
+      end
+
+      it 'parses sequential SMB_INFO_STANDARD entries separated by a null pad' do
+        # Win9x servers insert a trailing null byte between entries.
+        blob = build_info_standard_entry(name: 'foo.txt', size: 100, pad_after: true) +
+               build_info_standard_entry(name: 'barbaz', size: 200)
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.length).to eq 2
+        expect(results[0].file_name).to eq 'foo.txt'
+        expect(results[0].data_size).to eq 100
+        expect(results[1].file_name).to eq 'barbaz'
+        expect(results[1].data_size).to eq 200
+      end
+
+      it 'parses a single SMB_INFO_STANDARD entry without trailing padding' do
+        blob = build_info_standard_entry(name: 'only.txt', size: 42)
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.length).to eq 1
+        expect(results[0].file_name).to eq 'only.txt'
+        expect(results[0].data_size).to eq 42
+      end
+
+      it 'stops when an entry has a zero file_name_length' do
+        entry = build_info_standard_entry(name: 'first.txt', pad_after: true)
+        zero  = "\x00" * 23
+        blob  = entry + zero
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(blob))
+
+        results = tree.list(type: info_standard)
+
+        expect(results.map(&:file_name)).to eq(['first.txt'])
+      end
+
+      it 'raises UnexpectedStatusCode when the SMB status is not success' do
+        allow(client).to receive(:send_recv).and_return(
+          build_find_first2_raw('', status: WindowsError::NTStatus::STATUS_ACCESS_DENIED.value)
+        )
+        expect { tree.list(type: info_standard) }.to raise_error(RubySMB::Error::UnexpectedStatusCode)
+      end
+
+      it 'turns unicode off and raises search_count to 255 for SMB_INFO_STANDARD' do
+        allow(client).to receive(:send_recv) do |packet|
+          expect(packet.smb_header.flags2.unicode).to eq 0
+          expect(packet.data_block.trans2_parameters.search_count).to eq 255
+          build_find_first2_raw('')
+        end
+        tree.list(type: info_standard)
+      end
+
+      it 'returns an empty array when the data blob is empty' do
+        allow(client).to receive(:send_recv).and_return(build_find_first2_raw(''))
+        expect(tree.list(type: info_standard)).to eq([])
+      end
+
+      context 'against a Win9x-era server that omits the trans2 4-byte alignment pad' do
+        # Wire layout: word_count=10 (no setup section), parameter_offset=55
+        # points right after byte_count (no pad1), data_offset=66 points after
+        # trans2_parameters + 1-byte pad2. BinData's Trans2::DataBlock inserts
+        # its usual pad1 on read, so trans2_data.buffer arrives (data_count -
+        # pad1_length) bytes short and #results would otherwise see 0 entries.
+        # The Tree#list workaround detects the mismatch and re-slices the
+        # buffer from the server-reported data_offset.
+        def build_win9x_find_first2_raw
+          data_count       = 87
+          parameter_offset = 55
+          data_offset      = 66
+          smb_header  = "\xffSMB\x32".b + "\x00".b * 4 + "\x98".b + "\x03\x60".b + ("\x00".b * 20)
+          param_block = [10, data_count, 0, 10, parameter_offset, 0,
+                         data_count, data_offset, 0, 0].pack('v*')
+          trans2_params = [0x0300, 3, 1, 0, 74].pack('v*')
+          entry1 = "\x98\x5c\x38\x70\x98\x5c\x00\x00\x98\x5c\x39\x70" \
+                   "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x01".b + '.'
+          entry2 = "\x98\x5c\x38\x70\x98\x5c\x00\x00\x98\x5c\x39\x70" \
+                   "\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x02".b + '..'
+          entry3 = "\x98\x5c\x40\x70\x98\x5c\x00\x00\x98\x5c\x4c\x70" \
+                   "\x16\x00\x00\x00\x16\x00\x00\x00\x20\x00\x0c".b + 'FLAG.TXT.txt'
+          trans2_data = entry1 + "\x00".b + entry2 + "\x00".b + entry3 + "\x00".b
+          raise "data_count mismatch" unless trans2_data.bytesize == data_count
+          byte_count_value = 10 + 1 + data_count # 0 pad1 + params + 1 pad2 + data
+          smb_header + [10].pack('C') + param_block +
+            [byte_count_value].pack('v') + trans2_params + "\x00".b + trans2_data
+        end
+
+        it 'parses the entries that BinData would otherwise drop due to missing pad1' do
+          allow(client).to receive(:send_recv).and_return(build_win9x_find_first2_raw)
+          results = tree.list(type: info_standard)
+          expect(results.map { |r| r.file_name.to_s }).to eq(['.', '..', 'FLAG.TXT.txt'])
+          expect(results.last.data_size).to eq 22
+        end
+      end
+    end
   end
 
   describe '#set_header_fields' do
@@ -492,8 +615,71 @@ RSpec.describe RubySMB::SMB1::Tree do
       expect(modified_request.parameter_block.max_parameter_count).to eq 10
     end
 
-    it 'sets #max_data_count to 16,384' do
-      expect(modified_request.parameter_block.max_data_count).to eq 16_384
+    it 'sets #max_data_count to the minimum of 16,384 and server_max_buffer_size' do
+      expect(modified_request.parameter_block.max_data_count).to eq(
+        [16_384, client.server_max_buffer_size].min
+      )
+    end
+  end
+
+  describe '#open_file (SMB_COM_OPEN_ANDX fallback)' do
+    # Win9x and other LAN-Manager-era servers don't advertise the NT SMBs
+    # capability, so #_open dispatches to #_open_andx instead of NT_CREATE_ANDX.
+    let(:open_andx_response) do
+      packet = RubySMB::SMB1::Packet::OpenAndxResponse.new
+      packet.smb_header.nt_status = 0
+      packet.parameter_block.fid             = 0x4242
+      packet.parameter_block.file_data_size  = 1234
+      packet.parameter_block.resource_type   = RubySMB::SMB1::ResourceType::DISK
+      packet
+    end
+
+    before :example do
+      client.server_supports_nt_smbs = false
+    end
+
+    it 'builds the OPEN_ANDX request without raising NoMethodError on bit-field assignment' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      expect { tree.open_file(filename: 'HELLO.TXT') }.not_to raise_error
+    end
+
+    it 'serializes search_attributes / file_attributes as SMB_FILE_ATTRIBUTES bit-fields' do
+      sent = nil
+      allow(client).to receive(:send_recv) do |req|
+        sent = req
+        open_andx_response.to_binary_s
+      end
+      tree.open_file(filename: 'HELLO.TXT')
+
+      # 0x0016 = directory | system | hidden in the SMB_FILE_ATTRIBUTES search half.
+      expect(sent.parameter_block.search_attributes.directory).to eq 1
+      expect(sent.parameter_block.search_attributes.system).to    eq 1
+      expect(sent.parameter_block.search_attributes.hidden).to    eq 1
+      expect(sent.parameter_block.search_attributes.to_binary_s).to eq([0x0016].pack('v'))
+
+      # Read-only open: file_attributes mask is zeroed.
+      expect(sent.parameter_block.file_attributes.to_binary_s).to eq([0x0000].pack('v'))
+    end
+
+    it 'sets the SMB_FILE_ATTRIBUTE_ARCHIVE bit when opened for write' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      sent = nil
+      allow(client).to receive(:send_recv) do |req|
+        sent = req
+        open_andx_response.to_binary_s
+      end
+      tree.open_file(filename: 'HELLO.TXT', write: true)
+
+      expect(sent.parameter_block.file_attributes.to_binary_s).to eq([0x0020].pack('v'))
+      expect(sent.parameter_block.file_attributes.archive).to eq 1
+    end
+
+    it 'returns a File handle whose FID and size come from the OPEN_ANDX response' do
+      allow(client).to receive(:send_recv).and_return(open_andx_response.to_binary_s)
+      file = tree.open_file(filename: 'HELLO.TXT')
+      expect(file).to be_a(RubySMB::SMB1::File)
+      expect(file.fid).to eq 0x4242
+      expect(file.size).to eq 1234
     end
   end
 

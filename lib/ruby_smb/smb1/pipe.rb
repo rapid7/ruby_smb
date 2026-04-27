@@ -36,6 +36,8 @@ module RubySMB
           extend RubySMB::Dcerpc::Icpr
         when 'efsrpc', '\\efsrpc'
           extend RubySMB::Dcerpc::Efsrpc
+        when 'lanman', 'LANMAN', '\\PIPE\\LANMAN', '\\lanman'
+          extend RubySMB::Rap::NetShareEnum
         end
         super(tree: tree, response: response, name: name)
       end

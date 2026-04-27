@@ -23,6 +23,7 @@ module RubySMB
   require 'ruby_smb/dispatcher'
   require 'ruby_smb/version'
   require 'ruby_smb/smb2'
+  require 'ruby_smb/rap'
   require 'ruby_smb/smb1'
   require 'ruby_smb/client'
   require 'ruby_smb/crypto'
