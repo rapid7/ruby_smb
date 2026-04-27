@@ -315,7 +315,7 @@ module RubySMB
     # Always true for SMB2/3.
     # @!attribute [rw] supports_nt_smbs
     #   @return [Boolean]
-    attr_accessor :supports_nt_smbs
+    attr_accessor :server_supports_nt_smbs
 
     # @param dispatcher [RubySMB::Dispatcher::Socket] the packet dispatcher to use
     # @param smb1 [Boolean] whether or not to enable SMB1 support
@@ -346,11 +346,11 @@ module RubySMB
       @max_buffer_size   = MAX_BUFFER_SIZE
       # These sizes will be modified during negotiation
       @server_max_buffer_size = SERVER_MAX_BUFFER_SIZE
-      @server_max_read_size   = RubySMB::SMB2::File::MAX_PACKET_SIZE
-      @server_max_write_size  = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_read_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
+      @server_max_write_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_supports_multi_credit = false
-      @supports_nt_smbs             = true
+      @server_supports_nt_smbs = true
 
       # SMB 3.x options
       # this merely initializes the default value for session encryption, it may be changed as necessary when a

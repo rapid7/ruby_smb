@@ -210,7 +210,7 @@ module RubySMB
 
       def _open(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                 impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
-        unless client.supports_nt_smbs
+        unless client.server_supports_nt_smbs
           return _open_andx(filename: filename, disposition: disposition, read: read, write: write)
         end
         nt_create_andx_request = RubySMB::SMB1::Packet::NtCreateAndxRequest.new

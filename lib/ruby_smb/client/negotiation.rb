@@ -119,7 +119,7 @@ module RubySMB
           self.server_max_buffer_size = packet.parameter_block.max_buffer_size - 260
           self.negotiated_smb_version = 1
           self.session_encrypt_data = false
-          self.supports_nt_smbs = packet.parameter_block.capabilities.nt_smbs == 1
+          self.server_supports_nt_smbs = packet.parameter_block.capabilities.nt_smbs != 0
           if packet.is_a?(RubySMB::SMB1::Packet::NegotiateResponseExtended)
             self.negotiation_security_buffer = packet.data_block.security_blob
           else

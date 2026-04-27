@@ -635,7 +635,7 @@ RSpec.describe RubySMB::SMB1::Tree do
     end
 
     before :example do
-      client.supports_nt_smbs = false
+      client.server_supports_nt_smbs = false
     end
 
     it 'builds the OPEN_ANDX request without raising NoMethodError on bit-field assignment' do
