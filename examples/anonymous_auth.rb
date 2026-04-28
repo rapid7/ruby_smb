@@ -45,6 +45,11 @@ optparser = OptionParser.new do |opts|
 end
 optparser.parse!(args)
 
+if options[:target] == '-h' || options[:target] == '--help'
+  puts optparser.help
+  exit
+end
+
 if options[:target].nil?
   abort(optparser.help)
 end
