@@ -764,11 +764,14 @@ module RubySMB
 
     # Resolves a host's NetBIOS name via a UDP Node Status query
     # (RFC 1002 4.2.17, port 137). Pure Ruby — no external binaries.
+    # Falls back to a raw IPPROTO_UDP socket when the normal UDP path
+    # fails (e.g. because nmbd already owns UDP/137 on this host and
+    # intercepts Win9x NBNS replies before they reach our socket).
     #
     # @param host [String] the IP address to query
     # @return [String, nil] the NetBIOS name, or nil if lookup fails
     def netbios_lookup_name(host)
-      netbios_lookup_udp(host)
+      netbios_lookup_udp(host) || netbios_lookup_raw_socket(host)
     end
 
     # Resolves a host's file-server NetBIOS name via a UDP Node Status
@@ -781,6 +784,19 @@ module RubySMB
       RubySMB::Nbss::NodeStatus.file_server_name(
         host, udp_socket_factory: udp_socket_factory
       )
+    end
+
+    # Resolves a host's file-server NetBIOS name via a raw IPPROTO_UDP
+    # socket. Requires root or CAP_NET_RAW; silently returns nil otherwise.
+    #
+    # @param host [String] the IP address to query
+    # @return [String, nil] the file server NetBIOS name, or nil on failure
+    def netbios_lookup_raw_socket(host)
+      entries = RubySMB::Nbss::NodeStatus.query_via_raw_socket(host)
+      return nil unless entries
+
+      entry = entries.find { |e| e.suffix == 0x20 && e.unique? }
+      entry&.name
     end
 
     public
