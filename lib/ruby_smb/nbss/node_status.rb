@@ -108,6 +108,73 @@ module RubySMB
         end
       end
 
+      # Query a host for its NetBIOS name table using a raw IPPROTO_UDP socket.
+      #
+      # Unlike {.query}, this path does not require exclusive ownership of local
+      # UDP/137 — the kernel delivers a copy of every incoming IP datagram to a
+      # raw socket, so another process already bound to port 137 (e.g. nmbd)
+      # does not block reception.  Requires root or CAP_NET_RAW.
+      #
+      # @param host [String] target IP address
+      # @param port [Integer] destination UDP port (default 137)
+      # @param timeout [Numeric] per-attempt receive timeout in seconds
+      # @param retries [Integer] total number of attempts
+      # @return [Array<Entry>, nil] the name table, or nil on failure / no access
+      def self.query_via_raw_socket(host, port: NBNS_PORT, timeout: DEFAULT_TIMEOUT, retries: DEFAULT_RETRIES)
+        raw_sock = Socket.new(Socket::AF_INET, Socket::SOCK_RAW, Socket::IPPROTO_UDP)
+        udp_sock = UDPSocket.new
+        request  = NodeStatusRequest.new(transaction_id: rand(0xFFFF))
+        request.question_name.set('*'.ljust(16, "\x00"))
+        bytes = request.to_binary_s
+
+        begin
+          retries.times do
+            udp_sock.send(bytes, 0, host, port)
+            data = recv_raw_udp(raw_sock, 65_535, timeout, from_host: host, from_port: port)
+            next if data.nil? || data.empty?
+
+            response = NodeStatusResponse.read(data)
+            return entries_from(response)
+          end
+          nil
+        rescue IOError, EOFError
+          nil
+        ensure
+          raw_sock.close rescue nil # rubocop:disable Style/RescueModifier
+          udp_sock.close rescue nil # rubocop:disable Style/RescueModifier
+        end
+      rescue Errno::EPERM, Errno::EACCES, Errno::EPROTONOSUPPORT, SocketError
+        nil
+      end
+
+      # Read one UDP payload from a raw IPPROTO_UDP socket, filtering by source
+      # host and port.  Returns nil on timeout or if no matching packet arrives.
+      # @!visibility private
+      def self.recv_raw_udp(sock, max_len, timeout, from_host:, from_port:)
+        target_ip_n = from_host.split('.').map(&:to_i).pack('C4').unpack1('N')
+        deadline    = Time.now + timeout
+
+        loop do
+          remaining = deadline - Time.now
+          return nil if remaining <= 0
+          return nil unless IO.select([sock], nil, nil, remaining)
+
+          data = sock.recv(max_len)
+          next if data.bytesize < 28 # IP header (≥20 B) + UDP header (8 B)
+
+          src_ip_n = data.byteslice(12, 4).unpack1('N')
+          next unless src_ip_n == target_ip_n
+
+          ihl = (data.getbyte(0) & 0x0F) * 4
+          next if data.bytesize < ihl + 8
+
+          src_port = data.byteslice(ihl, 2).unpack1('n')
+          next unless src_port == from_port
+
+          return data.byteslice(ihl + 8, data.bytesize)
+        end
+      end
+
       # Best-effort bind of the local UDP endpoint to `port` (default 137).
       # Required for Win9x NBNS replies — they're sent to destination port
       # 137 regardless of client source port. Skipped for Rex::Socket::Udp
