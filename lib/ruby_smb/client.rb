@@ -781,9 +781,12 @@ module RubySMB
     # @param host [String] the IP address to query
     # @return [String, nil] the file server NetBIOS name, or nil on timeout
     def netbios_lookup_udp(host)
-      RubySMB::Nbss::NodeStatus.file_server_name(
-        host, udp_socket_factory: udp_socket_factory
-      )
+      sock = udp_socket_factory.call
+      begin
+        RubySMB::Nbss::NodeStatus.file_server_name(host, udp_socket: sock)
+      ensure
+        sock.close if sock.respond_to?(:close)
+      end
     end
 
     # Resolves a host's file-server NetBIOS name via a raw IPPROTO_UDP

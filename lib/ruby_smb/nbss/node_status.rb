@@ -42,45 +42,26 @@ module RubySMB
       # @param port [Integer] destination UDP port (default 137)
       # @param timeout [Numeric] per-attempt receive timeout in seconds
       # @param retries [Integer] total number of attempts
-      # @param udp_socket_factory [#call] callable returning a UDP-like socket.
-      #   Default uses stdlib `UDPSocket.new`. Metasploit callers can inject
-      #   `Rex::Socket::Udp.create`-based factories to pivot over a session.
+      # @param udp_socket [UDPSocket, Rex::Socket::Udp] caller-owned UDP socket.
+      #   The caller is responsible for binding and closing it.
       # @return [Array<Entry>, nil] the name table, or nil on timeout/parse failure
       def self.query(host, port: NBNS_PORT, timeout: DEFAULT_TIMEOUT,
-                     retries: DEFAULT_RETRIES,
-                     udp_socket_factory: -> { UDPSocket.new })
+                     retries: DEFAULT_RETRIES, udp_socket:)
         request = NodeStatusRequest.new(transaction_id: rand(0xFFFF))
         request.question_name.set('*'.ljust(16, "\x00"))
         bytes = request.to_binary_s
 
-        sock = udp_socket_factory.call
-        begin
-          # Windows 9x ignores the client's source port and always sends
-          # the Node Status response to destination port 137. On an
-          # ephemeral-port socket the kernel drops the reply. Try to bind
-          # locally to the NBNS port (same trick Samba's nmblookup uses)
-          # — succeeds without root if the binary/interpreter has
-          # CAP_NET_BIND_SERVICE or the system has
-          # net.ipv4.ip_unprivileged_port_start set below 137. Falls
-          # through to whatever the factory gave us on failure, which
-          # still works against well-behaved NBNS servers that honor the
-          # request's source port.
-          bind_local(sock, port)
+        retries.times do
+          send_datagram(udp_socket, bytes, host, port)
+          data = recv_datagram(udp_socket, 4096, timeout)
+          next if data.nil? || data.empty?
 
-          retries.times do
-            send_datagram(sock, bytes, host, port)
-            data = recv_datagram(sock, 4096, timeout)
-            next if data.nil? || data.empty?
-
-            response = NodeStatusResponse.read(data)
-            return entries_from(response)
-          end
-          nil
-        rescue IOError, EOFError
-          nil
-        ensure
-          sock.close if sock.respond_to?(:close)
+          response = NodeStatusResponse.read(data)
+          return entries_from(response)
         end
+        nil
+      rescue IOError, EOFError
+        nil
       end
 
       # Return the unique file-server name (suffix 0x20) from a host, or nil
@@ -175,22 +156,6 @@ module RubySMB
         end
       end
 
-      # Best-effort bind of the local UDP endpoint to `port` (default 137).
-      # Required for Win9x NBNS replies — they're sent to destination port
-      # 137 regardless of client source port. Skipped for Rex::Socket::Udp
-      # (its `bind` signature differs; the Rex factory sets `LocalPort`
-      # at create time instead). On EACCES/EADDRINUSE keeps the ephemeral
-      # bind the factory already assigned.
-      #
-      # @!visibility private
-      def self.bind_local(sock, port)
-        return if sock.respond_to?(:sendto)  # Rex::Socket::Udp
-        return unless sock.respond_to?(:bind)
-        sock.bind('0.0.0.0', port)
-      rescue ArgumentError, Errno::EACCES, Errno::EADDRINUSE, SystemCallError
-        # keep whatever source port the factory already assigned
-      end
-
       # Send `bytes` to `host:port` over `sock`. stdlib `UDPSocket#send`
       # takes (mesg, flags, host, port); Rex::Socket::Udp's socket inherits
       # `send(mesg, flags, [sockaddr])` from Socket and exposes the 4-arg
@@ -206,15 +171,15 @@ module RubySMB
       end
 
       # Read a datagram from `sock` with a timeout, picking the pattern
-      # appropriate for the socket. Rex::Socket::Udp#recvfrom takes a
-      # built-in timeout as the 2nd argument and selects on its internal
-      # fd (IO.select([sock]) can miss wakeups on wrapped sockets). stdlib
-      # UDPSocket#recvfrom has no timeout, so wrap it in IO.select.
+      # appropriate for the socket. Rex::Socket::Udp#recvfrom(maxlen, flags=0)
+      # does not accept a timeout argument — it uses an internal fixed timeout
+      # (def_read_timeout, 10 s). stdlib UDPSocket#recvfrom has no timeout, so
+      # wrap it in IO.select.
       #
       # @!visibility private
       def self.recv_datagram(sock, length, timeout)
         if sock.respond_to?(:sendto)
-          data, = sock.recvfrom(length, timeout)
+          data, = sock.recvfrom(length)
           data
         else
           return nil unless IO.select([sock], nil, nil, timeout)
