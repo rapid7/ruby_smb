@@ -2,26 +2,61 @@
 
 # This example script is used for testing DCERPC client and DRSR structures.
 # It will attempt to connect to a host and enumerate user secrets.
-# Example usage: ruby dump_secrets_from_sid.rb 192.168.172.138 msfadmin msfadmin MYDOMAIN S-1-5-21-419547006-9448028-4223375872-500
+# Example usage: ruby dump_secrets_from_sid.rb --username msfadmin --password msfadmin 192.168.172.138 MYDOMAIN S-1-5-21-419547006-9448028-4223375872-500
 # This will try to connect to \\192.168.172.138 with the msfadmin:msfadmin
 # credentials and enumerate secrets of domain user with SID
 # S-1-5-21-419547006-9448028-4223375872-500
 
 require 'bundler/setup'
+require 'optparse'
+require 'ruby_smb'
 require 'ruby_smb/dcerpc/client'
 
+args = ARGV.dup
+options = {
+  domain: '.',
+  username: '',
+  password: '',
+  target: nil,
+  lookup_domain: nil,
+  sid: nil
+}
+options[:sid] = args.pop
+options[:lookup_domain] = args.pop
+options[:target] = args.pop
+optparser = OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename(__FILE__)} [options] target domain sid"
+  opts.on("--username USERNAME", "The account's username (default: #{options[:username]})") do |username|
+    if username.include?('\\')
+      options[:domain], options[:username] = username.split('\\', 2)
+    else
+      options[:username] = username
+    end
+  end
+  opts.on("--password PASSWORD", "The account's password (default: #{options[:password]})") do |password|
+    options[:password] = password
+  end
+end
+optparser.parse!(args)
 
-address      = ARGV[0]
-username     = ARGV[1]
-password     = ARGV[2]
-domain       = ARGV[3]
-sid          = ARGV[4]
+if [options[:target], options[:lookup_domain], options[:sid]].any? { |a| a == '-h' || a == '--help' }
+  puts optparser.help
+  exit
+end
+
+if options[:target].nil? || options[:lookup_domain].nil? || options[:sid].nil?
+  abort(optparser.help)
+end
+
+address = options[:target]
+domain = options[:lookup_domain]
+sid = options[:sid]
 
 client = RubySMB::Dcerpc::Client.new(
   address,
   RubySMB::Dcerpc::Drsr,
-  username: username,
-  password: password,
+  username: options[:username],
+  password: options[:password],
 )
 client.connect
 puts('Binding to DRSR...')
