@@ -1,7 +1,6 @@
 #!/usr/bin/ruby
 
 # This script is for testing the NetBIOS Session Service Request on port 139/tcp.
-# Example usage: ruby negotiate_with_netbios_service.rb 192.168.172.138 NBNAME
 # This will connect to 192.168.172.138 (139/TCP) and request a NetBIOS session with NBNAME as the called name.
 # If successful, a SMB negotiation is performed using this NetBIOS session.
 # The default *SMBSERVER name is used if the NetBIOS name is not provided.
