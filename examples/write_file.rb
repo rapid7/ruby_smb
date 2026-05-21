@@ -75,7 +75,7 @@ begin
   tree = client.tree_connect(path)
   puts "Connected to #{path} successfully!"
 rescue StandardError => e
-  puts "Failed to connect to #{path}: #{e.message}"
+  abort("Failed to connect to #{path}: #{e.message}")
 end
 
 file = tree.open_file(filename: options[:file], write: true, disposition: RubySMB::Dispositions::FILE_OVERWRITE_IF)
