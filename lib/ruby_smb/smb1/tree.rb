@@ -195,6 +195,66 @@ module RubySMB
         results
       end
 
+      # Create a UNIX symbolic link on the remote share using the CIFS UNIX
+      # Extensions SMB_SET_FILE_UNIX_LINK information level (0x0201) via a
+      # Trans2 SET_PATH_INFORMATION request.
+      #
+      # @example
+      #   tree = client.tree_connect("\\\\samba\\writable")
+      #   tree.set_unix_link(symlink: 'escape', target: '../../../../etc')
+      #
+      # @param symlink [String] the path, relative to the share, where the
+      #   symbolic link file will be created
+      # @param target [String] the destination the symbolic link points to
+      # @return [WindowsError::ErrorCode] the NTStatus returned by the server
+      # @raise [RubySMB::Error::InvalidPacket] if the response is not a Trans2
+      #   SET_PATH_INFORMATION response
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if the response NTStatus
+      #   is not STATUS_SUCCESS
+      def set_unix_link(symlink:, target:)
+        # Samba gates SMB_SET_FILE_UNIX_LINK behind a per-session CIFS UNIX
+        # Extensions handshake: query server capabilities, then echo them
+        # back via SMB_SET_CIFS_UNIX_INFO. Without this, Samba responds to
+        # the symlink request with STATUS_INVALID_LEVEL even when
+        # `unix extensions = yes` is set server-side.
+        enable_cifs_unix_extensions
+
+        request = RubySMB::SMB1::Packet::Trans2::SetPathInformationRequest.new
+        request = set_header_fields(request)
+        # CIFS UNIX Extensions paths are raw byte strings, not UTF-16. Clear
+        # flags2.unicode so the filename parameter and target data block are
+        # emitted as bytes — Samba rejects the UTF-16 variant with
+        # STATUS_INVALID_LEVEL.
+        request.smb_header.flags2.unicode = 0
+
+        t2_params = request.data_block.trans2_parameters
+        t2_params.information_level = RubySMB::SMB1::Packet::Trans2::SetInformationLevel::SMB_SET_FILE_UNIX_LINK
+        t2_params.filename = symlink
+
+        encoded_target = target.dup.force_encoding(Encoding::ASCII_8BIT)
+        encoded_target << "\x00".b unless encoded_target.end_with?("\x00".b)
+        request.data_block.trans2_data.buffer = encoded_target
+
+        request.parameter_block.total_parameter_count = request.parameter_block.parameter_count
+        request.parameter_block.total_data_count      = request.parameter_block.data_count
+        request.parameter_block.max_parameter_count   = request.parameter_block.parameter_count
+        request.parameter_block.max_data_count        = 0
+
+        raw_response = client.send_recv(request)
+        response = RubySMB::SMB1::Packet::Trans2::SetPathInformationResponse.read(raw_response)
+        unless response.valid?
+          raise RubySMB::Error::InvalidPacket.new(
+            expected_proto: RubySMB::SMB1::SMB_PROTOCOL_ID,
+            expected_cmd:   RubySMB::SMB1::Packet::Trans2::SetPathInformationResponse::COMMAND,
+            packet:         response
+          )
+        end
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+        response.status_code
+      end
+
       # Sets a few preset header fields that will always be set the same
       # way for Tree operations. This is, the TreeID and Extended Attributes.
       #
@@ -206,7 +266,71 @@ module RubySMB
         request
       end
 
+      # Perform the CIFS UNIX Extensions handshake on this tree: query the
+      # server's supported extensions (SMB_QUERY_CIFS_UNIX_INFO) and then
+      # echo the version and capability bits back via SMB_SET_CIFS_UNIX_INFO.
+      # Samba requires this round-trip to have completed on the current
+      # session before it will honor UNIX-extension info levels such as
+      # SMB_SET_FILE_UNIX_LINK.
+      #
+      # @return [WindowsError::ErrorCode] NTStatus of the SET reply
+      # @raise [RubySMB::Error::UnexpectedStatusCode] if either leg fails
+      def enable_cifs_unix_extensions
+        major, minor, capabilities = query_cifs_unix_info
+        set_cifs_unix_info(major: major, minor: minor, capabilities: capabilities)
+      end
+
       private
+
+      def query_cifs_unix_info
+        request = RubySMB::SMB1::Packet::Trans2::QueryFsInformationRequest.new
+        request = set_header_fields(request)
+        request.smb_header.flags2.unicode = 0
+        request.data_block.trans2_parameters.information_level =
+          RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::SMB_QUERY_CIFS_UNIX_INFO
+        request.parameter_block.total_parameter_count = request.parameter_block.parameter_count
+        request.parameter_block.total_data_count      = 0
+        request.parameter_block.max_parameter_count   = 0
+        request.parameter_block.max_data_count        = 560
+
+        raw_response = client.send_recv(request)
+        response = RubySMB::SMB1::Packet::Trans2::QueryFsInformationResponse.read(raw_response)
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+        info = RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsCifsUnixInfo.read(
+          response.data_block.trans2_data.buffer
+        )
+        [info.major_version.to_i, info.minor_version.to_i, info.capabilities.to_i]
+      end
+
+      def set_cifs_unix_info(major:, minor:, capabilities:)
+        request = RubySMB::SMB1::Packet::Trans2::SetFsInformationRequest.new
+        request = set_header_fields(request)
+        request.smb_header.flags2.unicode = 0
+        request.data_block.trans2_parameters.fid               = 0
+        request.data_block.trans2_parameters.information_level =
+          RubySMB::SMB1::Packet::Trans2::SetFsInformationLevel::SMB_SET_CIFS_UNIX_INFO
+
+        info = RubySMB::SMB1::Packet::Trans2::QueryFsInformationLevel::QueryFsCifsUnixInfo.new
+        info.major_version = major
+        info.minor_version = minor
+        info.capabilities  = capabilities
+        request.data_block.trans2_data.buffer = info.to_binary_s
+
+        request.parameter_block.total_parameter_count = request.parameter_block.parameter_count
+        request.parameter_block.total_data_count      = request.parameter_block.data_count
+        request.parameter_block.max_parameter_count   = request.parameter_block.parameter_count
+        request.parameter_block.max_data_count        = 0
+
+        raw_response = client.send_recv(request)
+        response = RubySMB::SMB1::Packet::Trans2::SetFsInformationResponse.read(raw_response)
+        unless response.status_code == WindowsError::NTStatus::STATUS_SUCCESS
+          raise RubySMB::Error::UnexpectedStatusCode, response.status_code
+        end
+        response.status_code
+      end
+
 
       def _open(filename:, flags: nil, options: nil, disposition: RubySMB::Dispositions::FILE_OPEN,
                 impersonation: RubySMB::ImpersonationLevels::SEC_IMPERSONATE, read: true, write: false, delete: false)
