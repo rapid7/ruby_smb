@@ -52,8 +52,10 @@ module RubySMB
         bytes = request.to_binary_s
 
         retries.times do
-          send_datagram(udp_socket, bytes, host, port)
-          data = recv_datagram(udp_socket, 4096, timeout)
+          udp_socket.send(bytes, 0, host, port)
+          next unless IO.select([udp_socket], nil, nil, timeout)
+
+          data, = udp_socket.recvfrom(4096)
           next if data.nil? || data.empty?
 
           response = NodeStatusResponse.read(data)
@@ -153,38 +155,6 @@ module RubySMB
           next unless src_port == from_port
 
           return data.byteslice(ihl + 8, data.bytesize)
-        end
-      end
-
-      # Send `bytes` to `host:port` over `sock`. stdlib `UDPSocket#send`
-      # takes (mesg, flags, host, port); Rex::Socket::Udp's socket inherits
-      # `send(mesg, flags, [sockaddr])` from Socket and exposes the 4-arg
-      # form as `sendto(mesg, host, port)`. Prefer `sendto` when available.
-      #
-      # @!visibility private
-      def self.send_datagram(sock, bytes, host, port)
-        if sock.respond_to?(:sendto)
-          sock.sendto(bytes, host, port)
-        else
-          sock.send(bytes, 0, host, port)
-        end
-      end
-
-      # Read a datagram from `sock` with a timeout, picking the pattern
-      # appropriate for the socket. Rex::Socket::Udp#recvfrom(maxlen, flags=0)
-      # does not accept a timeout argument — it uses an internal fixed timeout
-      # (def_read_timeout, 10 s). stdlib UDPSocket#recvfrom has no timeout, so
-      # wrap it in IO.select.
-      #
-      # @!visibility private
-      def self.recv_datagram(sock, length, timeout)
-        if sock.respond_to?(:sendto)
-          data, = sock.recvfrom(length)
-          data
-        else
-          return nil unless IO.select([sock], nil, nil, timeout)
-          data, = sock.recvfrom(length)
-          data
         end
       end
     end
