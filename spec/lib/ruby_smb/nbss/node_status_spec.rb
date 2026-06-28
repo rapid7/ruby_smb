@@ -2,7 +2,6 @@ require 'spec_helper'
 
 RSpec.describe RubySMB::Nbss::NodeStatus do
   let(:udp_sock) { double('UDPSocket') }
-  let(:factory)  { -> { udp_sock } }
 
   def build_response(names)
     data = ''.b
@@ -23,15 +22,13 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
   end
 
   describe '.query' do
-    it 'uses stdlib UDPSocket#send(mesg, flags, host, port) when sendto is not available' do
+    it 'sends the request with #send(mesg, flags, host, port) and reads via recvfrom(maxlen)' do
       response_bytes = build_response([
         ['WIN95', 0x00, 0x0400],
         ['WIN95', 0x20, 0x0400],
         ['WORKGROUP', 0x00, 0x8400]
       ])
 
-      # Pure test double doesn't respond to :sendto unless we stub it, so
-      # NodeStatus.query falls through to the stdlib 4-arg #send path.
       expect(udp_sock).to receive(:send) do |bytes, flags, host, port|
         expect(flags).to eq(0)
         expect(host).to eq('10.0.0.2')
@@ -39,10 +36,9 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
         expect(bytes.bytesize).to eq(50)
       end
       expect(IO).to receive(:select).and_return([udp_sock])
-      expect(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
-      expect(udp_sock).to receive(:close)
+      expect(udp_sock).to receive(:recvfrom).with(4096).and_return([response_bytes, nil])
 
-      entries = described_class.query('10.0.0.2', udp_socket_factory: factory)
+      entries = described_class.query('10.0.0.2', udp_socket: udp_sock)
       expect(entries.size).to eq(3)
       expect(entries[1].name).to eq('WIN95')
       expect(entries[1].suffix).to eq(0x20)
@@ -50,28 +46,12 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       expect(entries[2].group).to be true
     end
 
-    it 'uses sendto(mesg, host, port) when the socket provides it (Rex::Socket::Udp style)' do
-      response_bytes = build_response([['WIN95', 0x20, 0x0400]])
-      expect(udp_sock).to receive(:sendto) do |bytes, host, port|
-        expect(host).to eq('10.0.0.2')
-        expect(port).to eq(137)
-        expect(bytes.bytesize).to eq(50)
-      end
-      allow(IO).to receive(:select).and_return([udp_sock])
-      allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
-      allow(udp_sock).to receive(:close)
-
-      entries = described_class.query('10.0.0.2', udp_socket_factory: factory)
-      expect(entries.first.name).to eq('WIN95')
-    end
-
     it 'retries up to the configured limit before giving up' do
       call_count = 0
       allow(udp_sock).to receive(:send) { call_count += 1 }
       allow(IO).to receive(:select).and_return(nil) # always time out
-      allow(udp_sock).to receive(:close)
 
-      expect(described_class.query('10.0.0.2', retries: 4, timeout: 0.01, udp_socket_factory: factory)).to be_nil
+      expect(described_class.query('10.0.0.2', retries: 4, timeout: 0.01, udp_socket: udp_sock)).to be_nil
       expect(call_count).to eq(4)
     end
 
@@ -79,14 +59,13 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       expect(udp_sock).to receive(:send)
       expect(IO).to receive(:select).and_return([udp_sock])
       expect(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, nil])
-      expect(udp_sock).to receive(:close)
-      expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket_factory: factory)).to be_nil
+      expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
     end
 
-    it 'closes the socket even on exception' do
+    it 'returns nil on IOError and does not close the socket' do
       allow(udp_sock).to receive(:send).and_raise(IOError, 'boom')
-      expect(udp_sock).to receive(:close)
-      expect(described_class.query('10.0.0.2', retries: 1, udp_socket_factory: factory)).to be_nil
+      expect(udp_sock).not_to receive(:close)
+      expect(described_class.query('10.0.0.2', retries: 1, udp_socket: udp_sock)).to be_nil
     end
   end
 
@@ -99,9 +78,8 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       allow(udp_sock).to receive(:send)
       allow(IO).to receive(:select).and_return([udp_sock])
       allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
-      allow(udp_sock).to receive(:close)
 
-      expect(described_class.file_server_name('10.0.0.2', udp_socket_factory: factory)).to eq('FILESERVER')
+      expect(described_class.file_server_name('10.0.0.2', udp_socket: udp_sock)).to eq('FILESERVER')
     end
 
     it 'returns nil when no unique 0x20 entry is present' do
@@ -109,9 +87,8 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       allow(udp_sock).to receive(:send)
       allow(IO).to receive(:select).and_return([udp_sock])
       allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
-      allow(udp_sock).to receive(:close)
 
-      expect(described_class.file_server_name('10.0.0.2', udp_socket_factory: factory)).to be_nil
+      expect(described_class.file_server_name('10.0.0.2', udp_socket: udp_sock)).to be_nil
     end
   end
 
