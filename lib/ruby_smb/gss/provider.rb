@@ -62,3 +62,4 @@ end
 
 require 'ruby_smb/gss/provider/authenticator'
 require 'ruby_smb/gss/provider/ntlm'
+require 'ruby_smb/gss/provider/multi'
