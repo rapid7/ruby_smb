@@ -13,19 +13,50 @@ module RubySMB
       # Accepting Kerberos properly, by decrypting the ticket with a service key and validating the PAC, is a separate
       # concern and is not implemented here.
       #
+      # The token handed to the handler is the mechanism token exactly as the client sent it. For Kerberos that is a
+      # GSS-API InitialContextToken (RFC 2743 section 3.1), which wraps the mechanism OID and the token identifier
+      # around the Kerberos message:
+      #
+      #   60 82 0c 0e                 InitialContextToken
+      #     06 09 2a 86 48 ..         the mechanism OID
+      #     01 00                     the token id, here KRB_AP_REQ
+      #     6e 82 0b fd ..            the AP-REQ itself
+      #
+      # Note that the token id follows the OID rather than starting the token, and that the framing around it is not
+      # valid ASN.1, so OpenSSL::ASN1.decode will not parse it. {.token_id} reads it without decoding the payload.
+      #
       # @example Capture the token a client sends
       #   provider = RubySMB::Gss::Provider::Kerberos.new
       #   provider.on_mech_token do |token, authenticator|
-      #     # token is the opaque GSS mechanism token, starting with its two byte token id
+      #     RubySMB::Gss::Provider::Kerberos.token_id(token) == RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REQ
       #     RubySMB::Gss::Provider::Result.new(nil, WindowsError::NTStatus::STATUS_LOGON_FAILURE)
       #   end
       #
       class Kerberos < Base
-        # The GSS token identifiers that may prefix a Kerberos mechanism token, per RFC 4121 section 4.1. They are
+        # The GSS token identifiers that may appear in a Kerberos mechanism token, per RFC 4121 section 4.1. They are
         # provided so a handler can tell the messages apart without decoding the payload.
         TOK_ID_KRB_AP_REQ = "\x01\x00".b.freeze
         TOK_ID_KRB_AP_REP = "\x02\x00".b.freeze
         TOK_ID_KRB_ERROR  = "\x03\x00".b.freeze
+
+        #
+        # Read the token identifier out of a GSS-API InitialContextToken, so a handler can tell an AP-REQ from an
+        # AP-REP or a KRB-ERROR. The identifier follows the mechanism OID rather than starting the token, and the
+        # framing is not valid ASN.1, so it is located by walking the lengths rather than by decoding.
+        #
+        # @param [String] token the mechanism token as received
+        # @return [String, nil] the two byte identifier, or nil if the token is not shaped as expected
+        def self.token_id(token)
+          return nil if token.nil? || token.bytesize < 4 || token.getbyte(0) != 0x60
+
+          length_byte = token.getbyte(1)
+          # a long form length says how many bytes carry the length, a short form is the length itself
+          offset = length_byte > 0x80 ? 2 + (length_byte & 0x7f) : 2
+          return nil if token.getbyte(offset) != 0x06 # the mechanism OID must follow
+
+          offset += 2 + token.getbyte(offset + 1)
+          token.byteslice(offset, 2)
+        end
 
         # @param [Proc, nil] block an optional handler for received mechanism tokens, see {#on_mech_token}.
         def initialize(&block)

@@ -23,6 +23,41 @@ RSpec.describe RubySMB::Gss::Provider::Kerberos do
     end
   end
 
+  describe '.token_id' do
+    # a GSS-API InitialContextToken, shaped as a Windows client actually sends one: the token id follows the
+    # mechanism OID rather than starting the token, and the framing around it is not valid ASN.1
+    let(:initial_context_token) do
+      "\x60\x82\x0c\x0e".b +
+        OpenSSL::ASN1::ObjectId.new('1.2.840.113554.1.2.2').to_der +
+        RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REQ +
+        "\x6e\x82\x0b\xfd".b
+    end
+
+    it 'reads the identifier from past the mechanism OID' do
+      expect(RubySMB::Gss::Provider::Kerberos.token_id(initial_context_token))
+        .to eq(RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REQ)
+    end
+
+    it 'handles a short form length' do
+      short = "\x60\x14".b + OpenSSL::ASN1::ObjectId.new('1.2.840.113554.1.2.2').to_der +
+              RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REP + "\x6f\x00".b
+      expect(RubySMB::Gss::Provider::Kerberos.token_id(short))
+        .to eq(RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REP)
+    end
+
+    it 'is nil for anything not shaped like an InitialContextToken' do
+      expect(RubySMB::Gss::Provider::Kerberos.token_id(nil)).to be_nil
+      expect(RubySMB::Gss::Provider::Kerberos.token_id('')).to be_nil
+      expect(RubySMB::Gss::Provider::Kerberos.token_id('short')).to be_nil
+      # a SEQUENCE rather than an InitialContextToken
+      expect(RubySMB::Gss::Provider::Kerberos.token_id("\x30\x82\x00\x05".b)).to be_nil
+    end
+
+    it 'is nil when no mechanism OID follows' do
+      expect(RubySMB::Gss::Provider::Kerberos.token_id("\x60\x04\x02\x01\x05\x00".b)).to be_nil
+    end
+  end
+
   describe '#on_mech_token' do
     it 'can be set with a block' do
       provider.on_mech_token { |_token, _authenticator| :handled }
