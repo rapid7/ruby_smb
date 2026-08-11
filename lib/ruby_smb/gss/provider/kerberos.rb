@@ -108,14 +108,7 @@ module RubySMB
               return Result.new(Gss.gss_neg_token_init(@provider.mech_types), WindowsError::NTStatus::STATUS_SUCCESS)
             end
 
-            begin
-              gss_api = OpenSSL::ASN1.decode(request_buffer)
-            rescue OpenSSL::ASN1::ASN1Error => e
-              logger.error("Failed to parse the ASN1-encoded authentication request (#{e.message})")
-              return
-            end
-
-            token = extract_mech_token(gss_api)
+            token = extract_mech_token(request_buffer)
             if token.nil?
               logger.warn('Received a Kerberos request carrying no mechanism token')
               return
@@ -134,16 +127,20 @@ module RubySMB
           # Pull the mechanism token out of a SPNEGO NegTokenInit or NegTokenResp. The token is returned exactly as the
           # client sent it, so a caller that forwards it elsewhere does not alter the ticket it contains.
           #
-          # @param gss_api the decoded request
+          # @param [String] request_buffer the SPNEGO token as received
           # @return [String, nil]
-          def extract_mech_token(gss_api)
-            if gss_api&.tag == 0 && gss_api&.tag_class == :APPLICATION
-              # NegTokenInit: mechTypes then the mechToken
-              Gss.asn1dig(gss_api, 1, 0, 1, 0)&.value
-            elsif gss_api&.tag == 1 && gss_api&.tag_class == :CONTEXT_SPECIFIC
-              # NegTokenResp: the responseToken, tagged 2, carries the continuation
-              Hash[Gss.asn1dig(gss_api, 0)&.value.to_a.map { |obj| [obj.tag, obj.value[0].value] }][2]
+          def extract_mech_token(request_buffer)
+            # the identifier octet tells the two SPNEGO tokens apart: an InitialContextToken carrying a NegTokenInit is
+            # tagged [APPLICATION 0], a NegTokenResp continuing an exchange is tagged [CONTEXT 1]
+            case request_buffer.b.getbyte(0)
+            when 0x60
+              SpnegoNegTokenInit.parse(request_buffer).mech_token
+            when 0xa1
+              SpnegoNegTokenTarg.parse(request_buffer).response_token
             end
+          rescue RASN1::ASN1Error => e
+            logger.error("Failed to parse the SPNEGO token (#{e.message})")
+            nil
           end
         end
       end

@@ -2,6 +2,8 @@ module RubySMB
   # module containing methods required for using the [GSS-API](http://www.rfc-editor.org/rfc/rfc2743.txt)
   # for Secure Protected Negotiation(SPNEGO) in SMB Authentication.
   module Gss
+    require 'ruby_smb/gss/spnego_neg_token_init'
+    require 'ruby_smb/gss/spnego_neg_token_targ'
     require 'ruby_smb/gss/provider'
 
     OID_SPNEGO = OpenSSL::ASN1::ObjectId.new('1.3.6.1.5.5.2')
@@ -64,23 +66,7 @@ module RubySMB
     def self.gss_neg_token_init(mech_types)
       raise ArgumentError, 'at least one mechanism must be advertised' if mech_types.nil? || mech_types.empty?
 
-      OpenSSL::ASN1::ASN1Data.new([
-        OID_SPNEGO,
-        OpenSSL::ASN1::ASN1Data.new([
-          OpenSSL::ASN1::Sequence.new([
-            OpenSSL::ASN1::ASN1Data.new([
-              OpenSSL::ASN1::Sequence.new(mech_types)
-            ], 0, :CONTEXT_SPECIFIC),
-            OpenSSL::ASN1::ASN1Data.new([
-              OpenSSL::ASN1::ASN1Data.new([
-                OpenSSL::ASN1::ASN1Data.new([
-                  OpenSSL::ASN1::GeneralString.new('not_defined_in_RFC4178@please_ignore')
-                ], 0, :CONTEXT_SPECIFIC)
-              ], 16, :UNIVERSAL)
-            ], 3, :CONTEXT_SPECIFIC)
-          ])
-        ], 0, :CONTEXT_SPECIFIC)
-      ], 0, :APPLICATION).to_der
+      SpnegoNegTokenInit.build(mech_types)
     end
 
     # Create a GSS Security Blob of an NTLM Type 1 Message.
