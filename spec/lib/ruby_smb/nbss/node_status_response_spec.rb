@@ -33,6 +33,44 @@ RSpec.describe RubySMB::Nbss::NodeStatusResponse do
       expect(response.node_names[0].suffix).to eq(0x00)
       expect(response.node_names[1].suffix).to eq(0x20)
       expect(response.node_names[2].group?).to be true
+      expect(response.flags.response.to_i).to eq(1)
+      expect(response.flags.authoritative_answer.to_i).to eq(1)
+    end
+  end
+
+  describe 'flags' do
+    it 'defines the NBNS header flags in RFC bit order' do
+      flags = RubySMB::Nbss::NameServiceHeaderFlags.new
+      flags.response = 1
+      flags.authoritative_answer = 1
+
+      expect(flags.to_binary_s.unpack1('n')).to eq(0x8400)
+    end
+
+    it 'defines NODE_NAME flags in RFC bit order' do
+      flags = RubySMB::Nbss::NodeStatusNameFlags.new
+      flags.group = 1
+      flags.active = 1
+
+      expect(flags.to_binary_s.unpack1('n')).to eq(0x8400)
+      expect(flags.group.to_i).to eq(1)
+      expect(flags.active.to_i).to eq(1)
+    end
+
+    it 'exposes parsed NODE_NAME flags as named fields' do
+      response = described_class.read(build_response([
+        ['WORKGROUP', 0x00, 0x8400],
+        ['FILESERVER', 0x20, 0x0400]
+      ]))
+
+      group_entry = response.node_names[0]
+      unique_entry = response.node_names[1]
+
+      expect(group_entry.name_flags.group.to_i).to eq(1)
+      expect(group_entry.name_flags.active.to_i).to eq(1)
+      expect(group_entry.group?).to be true
+      expect(unique_entry.name_flags.group.to_i).to eq(0)
+      expect(unique_entry.unique?).to be true
     end
   end
 

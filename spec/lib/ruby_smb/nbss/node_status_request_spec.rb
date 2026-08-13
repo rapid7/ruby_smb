@@ -34,4 +34,24 @@ RSpec.describe RubySMB::Nbss::NodeStatusRequest do
       expect(bytes.bytesize).to eq(50)
     end
   end
+
+  describe 'flags' do
+    it 'defines the NBNS header flags in RFC bit order' do
+      flags = RubySMB::Nbss::NameServiceHeaderFlags.new
+      flags.response = 1
+      flags.authoritative_answer = 1
+      flags.broadcast = 1
+      flags.rcode = 0x5
+
+      expect(flags.to_binary_s.unpack1('n')).to eq(0x8415)
+    end
+
+    it 'defaults every request flag bit to zero' do
+      expect(request.flags.to_binary_s.unpack1('n')).to eq(0x0000)
+      expect(request.flags.response.to_i).to eq(0)
+      expect(request.flags.opcode.to_i).to eq(0)
+      expect(request.flags.broadcast.to_i).to eq(0)
+      expect(request.flags.rcode.to_i).to eq(0)
+    end
+  end
 end
