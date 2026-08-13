@@ -28,7 +28,10 @@ module RubySMB
       # @example Capture the token a client sends
       #   provider = RubySMB::Gss::Provider::Kerberos.new
       #   provider.on_mech_token do |token, authenticator|
-      #     RubySMB::Gss::Provider::Kerberos.token_id(token) == RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REQ
+      #     if RubySMB::Gss::Provider::Kerberos.token_id(token) == RubySMB::Gss::Provider::Kerberos::TOK_ID_KRB_AP_REQ
+      #       # forward or record the AP-REQ, then decide how to reply
+      #     end
+      #     # a handler must return a Result; there is no service key here to validate the ticket, so refuse it
       #     RubySMB::Gss::Provider::Result.new(nil, WindowsError::NTStatus::STATUS_LOGON_FAILURE)
       #   end
       #
@@ -116,9 +119,12 @@ module RubySMB
 
             @mech_token = token
             result = @provider.on_mech_token(token, self)
-            # with no handler there is nothing that can validate the ticket, so the attempt is refused rather than
-            # silently succeeding
-            result || Result.new(nil, WindowsError::NTStatus::STATUS_LOGON_FAILURE)
+            # a handler must return a Result: the session setup path calls nt_status on whatever comes back, so
+            # anything else (a missing handler, or a handler that returns e.g. a boolean) is refused here rather
+            # than handed on to crash the caller
+            return result if result.is_a?(Result)
+
+            Result.new(nil, WindowsError::NTStatus::STATUS_LOGON_FAILURE)
           end
 
           private

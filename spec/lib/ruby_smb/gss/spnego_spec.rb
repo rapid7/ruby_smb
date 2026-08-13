@@ -21,6 +21,17 @@ RSpec.describe 'SPNEGO negotiation tokens' do
         expect(token).to eq(legacy_der)
       end
 
+      # the exact NTLM-only advertisement a default server built before this change, when the NTLM provider
+      # hardcoded a single OID_NTLMSSP. existing servers still emit this, so lock it against a wire regression.
+      it 'is byte-identical to the NTLM-only advertisement a default server built before this change' do
+        legacy_ntlm_der = [
+          '604806062b0601050502a03e303ca00e300c060a2b06010401823702020aa32a3028' \
+          'a0261b246e6f745f646566696e65645f696e5f5246433431373840706c656173655f' \
+          '69676e6f7265'
+        ].pack('H*')
+        expect(described_class.build([RubySMB::Gss::OID_NTLMSSP])).to eq(legacy_ntlm_der)
+      end
+
       it 'advertises the mechanisms in order' do
         decoded = OpenSSL::ASN1.decode(token)
         mech_list = decoded.value[1].value[0].value[0].value[0].value

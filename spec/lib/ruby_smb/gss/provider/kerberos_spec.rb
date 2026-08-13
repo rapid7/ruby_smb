@@ -122,6 +122,15 @@ RSpec.describe RubySMB::Gss::Provider::Kerberos do
           expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_LOGON_FAILURE)
         end
 
+        it 'refuses the attempt when the handler returns something that is not a Result' do
+          # the session setup path calls nt_status on the result, so a non-Result (e.g. a boolean from a naive
+          # handler) must be refused here rather than handed on to crash the caller
+          provider.on_mech_token { |_token, _authenticator| true }
+          result = authenticator.process(neg_token_init(mech_token))
+          expect(result).to be_a(RubySMB::Gss::Provider::Result)
+          expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_LOGON_FAILURE)
+        end
+
         it 'accepts a token carried in a continuation' do
           received = nil
           provider.on_mech_token { |token, _authenticator| received = token; nil }
