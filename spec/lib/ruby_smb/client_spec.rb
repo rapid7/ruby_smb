@@ -749,9 +749,7 @@ RSpec.describe RubySMB::Client do
           negative.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
           negative.error_code = RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME
           allow(dispatcher).to receive(:recv_packet).and_return(negative.to_binary_s)
-          begin
-            client.session_request('OTHERNAME')
-          rescue RubySMB::Error::NetBiosSessionService => e
+          expect { client.session_request('OTHERNAME') }.to raise_error(RubySMB::Error::NetBiosSessionService) do |e|
             expect(e.error_code.to_i).to eq(RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME)
           end
         end

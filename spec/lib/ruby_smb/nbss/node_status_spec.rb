@@ -3,6 +3,10 @@ require 'spec_helper'
 RSpec.describe RubySMB::Nbss::NodeStatus do
   let(:udp_sock) { double('UDPSocket') }
 
+  # Node Status requests carry a random transaction ID; the response is only
+  # accepted when it echoes that ID back. Pin it so the fixtures match.
+  before { allow(described_class).to receive(:rand).and_return(0x1234) }
+
   def build_response(names)
     data = ''.b
     data << [0x1234].pack('n')               # transaction_id
@@ -59,6 +63,24 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       expect(udp_sock).to receive(:send)
       expect(IO).to receive(:select).and_return([udp_sock])
       expect(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, nil])
+      expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
+    end
+
+    it 'rejects a reply whose transaction ID does not match the request' do
+      allow(described_class).to receive(:rand).and_return(0x1234)
+      mismatched = build_response([['WIN95', 0x20, 0x0400]])
+      mismatched[0, 2] = [0x9999].pack('n') # overwrite transaction_id
+      expect(udp_sock).to receive(:send)
+      expect(IO).to receive(:select).and_return([udp_sock])
+      expect(udp_sock).to receive(:recvfrom).and_return([mismatched, nil])
+      expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
+    end
+
+    it 'rejects a reply from an unexpected source address' do
+      spoofed = build_response([['WIN95', 0x20, 0x0400]])
+      expect(udp_sock).to receive(:send)
+      expect(IO).to receive(:select).and_return([udp_sock])
+      expect(udp_sock).to receive(:recvfrom).and_return([spoofed, ['AF_INET', 137, '10.0.0.9', '10.0.0.9']])
       expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
     end
 

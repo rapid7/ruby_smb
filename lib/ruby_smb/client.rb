@@ -690,7 +690,7 @@ module RubySMB
           negative_session_response = RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
           raise RubySMB::Error::NetBiosSessionService.new(
             "Session Request failed: #{negative_session_response.error_msg}",
-            error_code: negative_session_response.error_code
+            error_code: negative_session_response.error_code.to_i
           )
         end
       rescue IOError

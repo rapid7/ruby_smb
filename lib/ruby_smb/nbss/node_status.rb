@@ -55,14 +55,20 @@ module RubySMB
           udp_socket.send(bytes, 0, host, port)
           next unless IO.select([udp_socket], nil, nil, timeout)
 
-          data, = udp_socket.recvfrom(4096)
+          data, addr = udp_socket.recvfrom(4096)
           next if data.nil? || data.empty?
+          # Reject replies from an unexpected source — this is a unicast
+          # query, so anything not from `host` is spoofed or stray.
+          next unless addr.nil? || addr[3].nil? || addr[3] == host
 
           response = NodeStatusResponse.read(data)
+          # Reject replies whose transaction ID doesn't match our request.
+          next unless response.transaction_id.to_i == request.transaction_id.to_i
+
           return entries_from(response)
         end
         nil
-      rescue IOError, EOFError
+      rescue IOError, EOFError, SystemCallError
         nil
       end
 

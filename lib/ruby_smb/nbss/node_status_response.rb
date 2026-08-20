@@ -30,7 +30,7 @@ module RubySMB
       node_status_name_flags :name_flags, label: 'Name Flags'
 
       def group?
-        name_flags[:group].to_i == 1
+        (raw_name_flags & GROUP_BIT) != 0
       end
 
       def unique?
@@ -38,7 +38,15 @@ module RubySMB
       end
 
       def active?
-        name_flags[:active].to_i == 1
+        (raw_name_flags & ACTIVE_BIT) != 0
+      end
+
+      private
+
+      # The 16-bit NAME_FLAGS field as a raw integer, for masking against
+      # the GROUP_BIT / ACTIVE_BIT constants.
+      def raw_name_flags
+        name_flags.to_binary_s.unpack1('n')
       end
     end
 
