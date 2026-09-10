@@ -1,4 +1,6 @@
+require 'ruby_smb/nbss/name_service_opcode'
 require 'ruby_smb/nbss/name_service_header_flags'
+require 'ruby_smb/nbss/name_service_result_code'
 
 module RubySMB
   module Nbss
@@ -60,7 +62,9 @@ module RubySMB
 
       # 12-byte NBNS header.
       uint16                    :transaction_id, label: 'Transaction ID'
-      name_service_header_flags :flags,          label: 'Flags'
+      name_service_opcode       :opcode,         label: 'Opcode'
+      name_service_header_flags :nm_flags,       label: 'Flags'
+      name_service_result_code  :rcode,          label: 'Result Code'
       uint16                    :qdcount,        label: 'QDCount'
       uint16                    :ancount,        label: 'ANCount'
       uint16                    :nscount,        label: 'NSCount'
@@ -77,13 +81,6 @@ module RubySMB
       # RDATA begins here. NODE_NAME_ARRAY is preceded by an 8-bit count.
       uint8  :num_names,        label: 'Number of Names'
       array  :node_names, type: :node_status_name, initial_length: :num_names
-
-      # Returns the unique (non-group) file-server name (suffix 0x20) if one
-      # is present in the name table, else nil.
-      def file_server_name
-        entry = node_names.find { |n| n.suffix == 0x20 && n.unique? }
-        entry&.netbios_name&.to_s&.rstrip
-      end
     end
   end
 end

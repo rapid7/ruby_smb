@@ -33,18 +33,17 @@ RSpec.describe RubySMB::Nbss::NodeStatusResponse do
       expect(response.node_names[0].suffix).to eq(0x00)
       expect(response.node_names[1].suffix).to eq(0x20)
       expect(response.node_names[2].group?).to be true
-      expect(response.flags.response.to_i).to eq(1)
-      expect(response.flags.authoritative_answer.to_i).to eq(1)
+      expect(response.opcode.response.to_i).to eq(1)
+      expect(response.nm_flags.authoritative_answer.to_i).to eq(1)
     end
   end
 
   describe 'flags' do
-    it 'defines the NBNS header flags in RFC bit order' do
-      flags = RubySMB::Nbss::NameServiceHeaderFlags.new
-      flags.response = 1
-      flags.authoritative_answer = 1
+    it 'decodes the header OPCODE and NM_FLAGS fields from the second word' do
+      response = described_class.read(build_response([['WIN95', 0x20, 0x0400]]))
 
-      expect(flags.to_binary_s.unpack1('n')).to eq(0x8400)
+      expect(response.opcode.response.to_i).to eq(1)          # high bit of 0x8400
+      expect(response.nm_flags.authoritative_answer.to_i).to eq(1)
     end
 
     it 'defines NODE_NAME flags in RFC bit order' do
@@ -71,30 +70,6 @@ RSpec.describe RubySMB::Nbss::NodeStatusResponse do
       expect(group_entry.group?).to be true
       expect(unique_entry.name_flags.group.to_i).to eq(0)
       expect(unique_entry.unique?).to be true
-    end
-  end
-
-  describe '#file_server_name' do
-    it 'returns the name with suffix 0x20 and the unique bit clear' do
-      response = described_class.read(build_response([
-        ['FILESERVER', 0x20, 0x0400],
-        ['WORKGROUP', 0x00, 0x8400]
-      ]))
-      expect(response.file_server_name).to eq('FILESERVER')
-    end
-
-    it 'ignores group names even when the suffix matches' do
-      response = described_class.read(build_response([
-        ['OTHER', 0x20, 0x8400] # group bit set — should be skipped
-      ]))
-      expect(response.file_server_name).to be_nil
-    end
-
-    it 'returns nil when no file-server name is present' do
-      response = described_class.read(build_response([
-        ['HOST', 0x00, 0x0400]
-      ]))
-      expect(response.file_server_name).to be_nil
     end
   end
 end

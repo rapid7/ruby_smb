@@ -5,7 +5,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
 
   # Node Status requests carry a random transaction ID; the response is only
   # accepted when it echoes that ID back. Pin it so the fixtures match.
-  before { allow(described_class).to receive(:rand).and_return(0x1234) }
+  before { allow(SecureRandom).to receive(:random_number).and_return(0x1234) }
 
   def build_response(names)
     data = ''.b
@@ -66,8 +66,25 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
     end
 
+    it 'retries after a malformed datagram and succeeds on a later attempt' do
+      good = build_response([['WIN95', 0x20, 0x0400]])
+      allow(udp_sock).to receive(:send)
+      allow(IO).to receive(:select).and_return([udp_sock])
+      # First datagram is truncated (NodeStatusResponse.read raises); the second
+      # is well-formed. The rescue must stay inside the retry loop for this.
+      allow(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, nil], [good, nil])
+
+      entries = described_class.query('10.0.0.2', retries: 3, timeout: 0.01, udp_socket: udp_sock)
+      expect(entries).not_to be_nil
+      expect(entries.first.suffix).to eq(0x20)
+    end
+
+    it 'raises ArgumentError when host is not a numeric IPv4 address' do
+      expect { described_class.query('example.com', udp_socket: udp_sock) }.to raise_error(ArgumentError)
+    end
+
     it 'rejects a reply whose transaction ID does not match the request' do
-      allow(described_class).to receive(:rand).and_return(0x1234)
+      allow(SecureRandom).to receive(:random_number).and_return(0x1234)
       mismatched = build_response([['WIN95', 0x20, 0x0400]])
       mismatched[0, 2] = [0x9999].pack('n') # overwrite transaction_id
       expect(udp_sock).to receive(:send)

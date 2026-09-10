@@ -9,11 +9,20 @@ module RubySMB
     RETARGET_SESSION_RESPONSE = 0x84
     SESSION_KEEP_ALIVE        = 0x85
 
+    # NBSS negative session response error codes (RFC 1002 section 4.3.6)
+    NOT_LISTENING_ON_CALLED_NAME       = 0x80
+    NOT_LISTENING_FOR_CALLING_NAME     = 0x81
+    CALLED_NAME_NOT_PRESENT            = 0x82
+    CALLED_NAME_INSUFFICIENT_RESOURCES = 0x83
+    UNSPECIFIED_ERROR                  = 0x8F
+
     require 'ruby_smb/nbss/netbios_name'
     require 'ruby_smb/nbss/session_header'
     require 'ruby_smb/nbss/session_request'
     require 'ruby_smb/nbss/negative_session_response'
+    require 'ruby_smb/nbss/name_service_opcode'
     require 'ruby_smb/nbss/name_service_header_flags'
+    require 'ruby_smb/nbss/name_service_result_code'
     require 'ruby_smb/nbss/node_status_request'
     require 'ruby_smb/nbss/node_status_response'
     require 'ruby_smb/nbss/node_status'

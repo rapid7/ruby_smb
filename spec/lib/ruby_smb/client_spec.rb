@@ -747,10 +747,20 @@ RSpec.describe RubySMB::Client do
         it 'attaches the numeric NBSS error code to the raised exception' do
           negative = RubySMB::Nbss::NegativeSessionResponse.new
           negative.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative.error_code = RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME
+          negative.error_code = RubySMB::Nbss::NOT_LISTENING_ON_CALLED_NAME
           allow(dispatcher).to receive(:recv_packet).and_return(negative.to_binary_s)
           expect { client.session_request('OTHERNAME') }.to raise_error(RubySMB::Error::NetBiosSessionService) do |e|
-            expect(e.error_code.to_i).to eq(RubySMB::Nbss::NegativeSessionResponse::NOT_LISTENING_ON_CALLED_NAME)
+            expect(e.error_code.to_i).to eq(RubySMB::Nbss::NOT_LISTENING_ON_CALLED_NAME)
+          end
+        end
+
+        it 'reports CALLED_NAME_NOT_PRESENT so the caller can resolve and retry' do
+          negative = RubySMB::Nbss::NegativeSessionResponse.new
+          negative.session_header.session_packet_type = RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
+          negative.error_code = RubySMB::Nbss::CALLED_NAME_NOT_PRESENT
+          allow(dispatcher).to receive(:recv_packet).and_return(negative.to_binary_s)
+          expect { client.session_request }.to raise_error(RubySMB::Error::NetBiosSessionService) do |e|
+            expect(e.error_code.to_i).to eq(RubySMB::Nbss::CALLED_NAME_NOT_PRESENT)
           end
         end
       end

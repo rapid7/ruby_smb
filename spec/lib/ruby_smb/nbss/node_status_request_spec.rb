@@ -3,10 +3,6 @@ require 'spec_helper'
 RSpec.describe RubySMB::Nbss::NodeStatusRequest do
   subject(:request) { described_class.new(transaction_id: 0x1234) }
 
-  before :example do
-    request.question_name.set("*".ljust(16, "\x00"))
-  end
-
   describe 'encoded bytes' do
     let(:bytes) { request.to_binary_s }
 
@@ -36,22 +32,21 @@ RSpec.describe RubySMB::Nbss::NodeStatusRequest do
   end
 
   describe 'flags' do
-    it 'defines the NBNS header flags in RFC bit order' do
-      flags = RubySMB::Nbss::NameServiceHeaderFlags.new
-      flags.response = 1
-      flags.authoritative_answer = 1
-      flags.broadcast = 1
-      flags.rcode = 0x5
+    it 'packs the OPCODE, NM_FLAGS and RCODE fields in RFC bit order' do
+      request.opcode.response = 1
+      request.nm_flags.authoritative_answer = 1
+      request.nm_flags.broadcast = 1
+      request.rcode.rcode = 0x5
 
-      expect(flags.to_binary_s.unpack1('n')).to eq(0x8415)
+      expect(request.to_binary_s[2, 2].unpack1('n')).to eq(0x8415)
     end
 
     it 'defaults every request flag bit to zero' do
-      expect(request.flags.to_binary_s.unpack1('n')).to eq(0x0000)
-      expect(request.flags.response.to_i).to eq(0)
-      expect(request.flags.opcode.to_i).to eq(0)
-      expect(request.flags.broadcast.to_i).to eq(0)
-      expect(request.flags.rcode.to_i).to eq(0)
+      expect(request.to_binary_s[2, 2].unpack1('n')).to eq(0x0000)
+      expect(request.opcode.response.to_i).to eq(0)
+      expect(request.opcode.opcode.to_i).to eq(0)
+      expect(request.nm_flags.broadcast.to_i).to eq(0)
+      expect(request.rcode.rcode.to_i).to eq(0)
     end
   end
 end
