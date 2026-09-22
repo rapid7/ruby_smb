@@ -1,8 +1,9 @@
 module RubySMB
   module Nbss
     # The NM_FLAGS field of the NetBIOS Name Service header, as defined in
-    # RFC 1002 section 4.2.1.1. The surrounding OPCODE and RCODE fields are
-    # modelled separately by {NameServiceOpcode} and {NameServiceResultCode}.
+    # RFC 1002 section 4.2.1.1. The surrounding R/OPCODE and RCODE bits are
+    # declared inline in the header records that embed this field
+    # ({NodeStatusRequest} and {NodeStatusResponse}).
     class NameServiceHeaderFlags < BinData::Record
       endian :big
 

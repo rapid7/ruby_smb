@@ -2,6 +2,9 @@ require 'spec_helper'
 
 RSpec.describe RubySMB::Nbss::NodeStatus do
   let(:udp_sock) { double('UDPSocket') }
+  # #recvfrom returns the sender as [address_family, port, host, numeric_host];
+  # the numeric address at index 3 is matched against the queried target.
+  let(:peer) { ['AF_INET', 137, '10.0.0.2', '10.0.0.2'] }
 
   # Node Status requests carry a random transaction ID; the response is only
   # accepted when it echoes that ID back. Pin it so the fixtures match.
@@ -40,7 +43,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
         expect(bytes.bytesize).to eq(50)
       end
       expect(IO).to receive(:select).and_return([udp_sock])
-      expect(udp_sock).to receive(:recvfrom).with(4096).and_return([response_bytes, nil])
+      expect(udp_sock).to receive(:recvfrom).with(4096).and_return([response_bytes, peer])
 
       entries = described_class.query('10.0.0.2', udp_socket: udp_sock)
       expect(entries.size).to eq(3)
@@ -62,7 +65,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
     it 'returns nil when the response can not be parsed' do
       expect(udp_sock).to receive(:send)
       expect(IO).to receive(:select).and_return([udp_sock])
-      expect(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, nil])
+      expect(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, peer])
       expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
     end
 
@@ -72,7 +75,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       allow(IO).to receive(:select).and_return([udp_sock])
       # First datagram is truncated (NodeStatusResponse.read raises); the second
       # is well-formed. The rescue must stay inside the retry loop for this.
-      allow(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, nil], [good, nil])
+      allow(udp_sock).to receive(:recvfrom).and_return(["\xff\xff".b, peer], [good, peer])
 
       entries = described_class.query('10.0.0.2', retries: 3, timeout: 0.01, udp_socket: udp_sock)
       expect(entries).not_to be_nil
@@ -89,7 +92,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       mismatched[0, 2] = [0x9999].pack('n') # overwrite transaction_id
       expect(udp_sock).to receive(:send)
       expect(IO).to receive(:select).and_return([udp_sock])
-      expect(udp_sock).to receive(:recvfrom).and_return([mismatched, nil])
+      expect(udp_sock).to receive(:recvfrom).and_return([mismatched, peer])
       expect(described_class.query('10.0.0.2', retries: 1, timeout: 0.01, udp_socket: udp_sock)).to be_nil
     end
 
@@ -116,7 +119,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       ])
       allow(udp_sock).to receive(:send)
       allow(IO).to receive(:select).and_return([udp_sock])
-      allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
+      allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, peer])
 
       expect(described_class.file_server_name('10.0.0.2', udp_socket: udp_sock)).to eq('FILESERVER')
     end
@@ -125,7 +128,7 @@ RSpec.describe RubySMB::Nbss::NodeStatus do
       response_bytes = build_response([['HOST', 0x00, 0x0400]])
       allow(udp_sock).to receive(:send)
       allow(IO).to receive(:select).and_return([udp_sock])
-      allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, nil])
+      allow(udp_sock).to receive(:recvfrom).and_return([response_bytes, peer])
 
       expect(described_class.file_server_name('10.0.0.2', udp_socket: udp_sock)).to be_nil
     end

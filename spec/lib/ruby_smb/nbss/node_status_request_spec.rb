@@ -33,20 +33,20 @@ RSpec.describe RubySMB::Nbss::NodeStatusRequest do
 
   describe 'flags' do
     it 'packs the OPCODE, NM_FLAGS and RCODE fields in RFC bit order' do
-      request.opcode.response = 1
+      request.response = 1
       request.nm_flags.authoritative_answer = 1
       request.nm_flags.broadcast = 1
-      request.rcode.rcode = 0x5
+      request.rcode = 0x5
 
       expect(request.to_binary_s[2, 2].unpack1('n')).to eq(0x8415)
     end
 
     it 'defaults every request flag bit to zero' do
       expect(request.to_binary_s[2, 2].unpack1('n')).to eq(0x0000)
-      expect(request.opcode.response.to_i).to eq(0)
-      expect(request.opcode.opcode.to_i).to eq(0)
+      expect(request.response.to_i).to eq(0)
+      expect(request.opcode.to_i).to eq(0)
       expect(request.nm_flags.broadcast.to_i).to eq(0)
-      expect(request.rcode.rcode.to_i).to eq(0)
+      expect(request.rcode.to_i).to eq(0)
     end
   end
 end

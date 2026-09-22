@@ -669,7 +669,7 @@ module RubySMB
     # Requests a NetBIOS Session Service using the provided name.
     #
     # On refusal the raised {RubySMB::Error::NetBiosSessionService} carries the
-    # numeric NBSS `error_code`. A `0x82` (CALLED_NAME_NOT_PRESENT) rejection of
+    # numeric NBSS `error_code`. A {RubySMB::Nbss::CALLED_NAME_NOT_PRESENT} rejection of
     # the default `'*SMBSERVER'` name means the server (e.g. Windows 9x) wants
     # its real name: resolve it with {RubySMB::Nbss::NodeStatus.file_server_name},
     # reconnect (the server drops the connection after a negative response), and

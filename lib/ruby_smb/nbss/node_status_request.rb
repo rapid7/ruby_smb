@@ -1,6 +1,4 @@
-require 'ruby_smb/nbss/name_service_opcode'
 require 'ruby_smb/nbss/name_service_header_flags'
-require 'ruby_smb/nbss/name_service_result_code'
 
 module RubySMB
   module Nbss
@@ -18,11 +16,13 @@ module RubySMB
 
       endian :big
 
-      # 12-byte NBNS header (RFC 1002 4.2.1.1 and 4.2.1.2).
+      # 12-byte NBNS header (RFC 1002 4.2.1.1 and 4.2.1.2). The second word is
+      # R | OPCODE | NM_FLAGS | RCODE.
       uint16                    :transaction_id, label: 'Transaction ID'
-      name_service_opcode       :opcode,         label: 'Opcode'
+      bit1                      :response,       label: 'Response',    initial_value: 0
+      bit4                      :opcode,         label: 'Opcode',      initial_value: 0
       name_service_header_flags :nm_flags,       label: 'Flags'
-      name_service_result_code  :rcode,          label: 'Result Code'
+      bit4                      :rcode,          label: 'Result Code', initial_value: 0
       uint16                    :qdcount,        label: 'QDCount', initial_value: 1
       uint16                    :ancount,        label: 'ANCount', initial_value: 0
       uint16                    :nscount,        label: 'NSCount', initial_value: 0

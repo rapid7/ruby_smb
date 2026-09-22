@@ -69,24 +69,22 @@ module RubySMB
         bytes = request.to_binary_s
 
         retries.times do
-          begin
-            udp_socket.send(bytes, 0, host, port)
-            next unless IO.select([udp_socket], nil, nil, timeout)
+          udp_socket.send(bytes, 0, host, port)
+          next unless IO.select([udp_socket], nil, nil, timeout)
 
-            data, addr = udp_socket.recvfrom(4096)
-            next if data.nil? || data.empty?
-            next unless source_matches?(addr, expected_address)
+          data, addr = udp_socket.recvfrom(4096)
+          next if data.nil? || data.empty?
+          next unless source_matches?(addr, expected_address)
 
-            response = NodeStatusResponse.read(data)
-            # Reject anything that isn't the response to our own query.
-            next unless response.transaction_id.to_i == request.transaction_id.to_i
-            next unless response.opcode.response.to_i == 1
-            next unless response.rr_type.to_i == NodeStatusRequest::QUESTION_TYPE_NBSTAT
+          response = NodeStatusResponse.read(data)
+          # Reject anything that isn't the response to our own query.
+          next unless response.transaction_id.to_i == request.transaction_id.to_i
+          next unless response.response.to_i == 1
+          next unless response.rr_type.to_i == NodeStatusRequest::QUESTION_TYPE_NBSTAT
 
-            return entries_from(response)
-          rescue IOError, EOFError, SystemCallError
-            next
-          end
+          return entries_from(response)
+        rescue IOError, EOFError, SystemCallError
+          next
         end
         nil
       end
@@ -116,12 +114,15 @@ module RubySMB
       end
       private_class_method :entries_from
 
-      # Accept a reply only when it comes from the queried address. `recvfrom`
-      # returns the numeric peer address, which is compared against the
-      # normalized target. A nil/unknown source (e.g. a mock socket) is allowed.
+      # Accept a reply only when it comes from the queried address. A UDP
+      # socket's `#recvfrom` always returns the sender as
+      # `[address_family, port, host, numeric_host]`, so the numeric address
+      # lives at `addr[3]`, which is compared against the normalized target.
+      # Any datagram whose source cannot be determined (not an Array, or a nil
+      # numeric address) is rejected — an unverifiable source is untrusted.
       def self.source_matches?(addr, expected_address)
         source = addr.is_a?(Array) ? addr[3] : nil
-        return true if source.nil?
+        return false if source.nil?
 
         source_address = begin
           IPAddr.new(source).native

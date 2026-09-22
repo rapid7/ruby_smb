@@ -33,7 +33,7 @@ RSpec.describe RubySMB::Nbss::NodeStatusResponse do
       expect(response.node_names[0].suffix).to eq(0x00)
       expect(response.node_names[1].suffix).to eq(0x20)
       expect(response.node_names[2].group?).to be true
-      expect(response.opcode.response.to_i).to eq(1)
+      expect(response.response.to_i).to eq(1)
       expect(response.nm_flags.authoritative_answer.to_i).to eq(1)
     end
   end
@@ -42,7 +42,7 @@ RSpec.describe RubySMB::Nbss::NodeStatusResponse do
     it 'decodes the header OPCODE and NM_FLAGS fields from the second word' do
       response = described_class.read(build_response([['WIN95', 0x20, 0x0400]]))
 
-      expect(response.opcode.response.to_i).to eq(1)          # high bit of 0x8400
+      expect(response.response.to_i).to eq(1)                 # high bit of 0x8400
       expect(response.nm_flags.authoritative_answer.to_i).to eq(1)
     end
 
