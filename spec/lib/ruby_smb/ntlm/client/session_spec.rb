@@ -8,17 +8,14 @@ RSpec.describe RubySMB::NTLM::Client::Session do
     AGwAbwBjAGEAbAADADgAVwBJAE4ALQAzAE0AUwBQADgASwAyAEwAQwBHAEMA
     LgBtAHMAZgBsAGEAYgAuAGwAbwBjAGEAbAAHAAgAS6UAWjxl2AEAAAAA
   }) }
-  subject(:client) { RubySMB::NTLM::Client.new('rubysmb', 'rubysmb', flags: RubySMB::NTLM::DEFAULT_CLIENT_FLAGS) }
+  let(:username) { 'rubysmb' }
+  let(:password) { 'rubysmb' }
+  let(:client) { RubySMB::NTLM::Client.new(username, password, flags: RubySMB::NTLM::DEFAULT_CLIENT_FLAGS) }
   subject(:session) { described_class.new(client, message) }
 
   describe '#authenticate!' do
     it 'calculates the user session key' do
       expect(session).to receive(:calculate_user_session_key!).and_call_original
-      session.authenticate!
-    end
-
-    it 'checks if it is anonymous' do
-      expect(session).to receive(:is_anonymous?).at_least(1).times.and_call_original
       session.authenticate!
     end
 
@@ -28,61 +25,43 @@ RSpec.describe RubySMB::NTLM::Client::Session do
     end
 
     context 'when it is anonymous' do
-      before(:each) { allow(session).to receive(:is_anonymous?).and_return(true) }
-      after(:each) { session.authenticate! }
+      let(:username) { '' }
+      let(:password) { '' }
 
       it 'uses the correct lm response' do
-        expect(session).to_not receive(:lmv2_resp)
-        expect(Net::NTLM::Message::Type3).to receive(:create).and_wrap_original do |method, params|
-          expect(params).to include :lm_response
-          expect(params[:lm_response]).to eq "\x00".b
-          method.call(params)
-        end
+        expect(session.authenticate!.lm_response).to eq "\x00".b
       end
 
       it 'uses the correct ntlm response' do
-        expect(session).to_not receive(:ntlmv2_resp)
-        expect(Net::NTLM::Message::Type3).to receive(:create).and_wrap_original do |method, params|
-          expect(params).to include :ntlm_response
-          expect(params[:ntlm_response]).to eq ''
-          method.call(params)
-        end
+        expect(session.authenticate!.ntlm_response).to eq ''
       end
     end
 
     context 'when it is not anonymous' do
-      before(:each) { allow(session).to receive(:is_anonymous?).and_return(false) }
-      after(:each) { session.authenticate! }
-
       it 'uses the correct lm response' do
-        expect(session).to receive(:lmv2_resp).and_call_original
-        expect(Net::NTLM::Message::Type3).to receive(:create).and_wrap_original do |method, params|
-          expect(params).to include :lm_response
-          expect(params[:lm_response].length).to be > 16
-          method.call(params)
-        end
+        expect(session.authenticate!.lm_response.length).to be > 16
       end
 
       it 'uses the correct ntlm response' do
-        expect(session).to receive(:ntlmv2_resp).and_call_original
-        expect(Net::NTLM::Message::Type3).to receive(:create).and_wrap_original do |method, params|
-          expect(params).to include :ntlm_response
-          expect(params[:ntlm_response].length).to be > 16
-          method.call(params)
-        end
+        expect(session.authenticate!.ntlm_response.length).to be > 16
       end
     end
   end
 
   describe '#calculate_user_session_key!' do
-    it 'returns an all zero key when it is anonymous' do
-      expect(session).to receive(:is_anonymous?).and_return(true)
-      expect(session.send(:calculate_user_session_key!)).to eq "\x00".b * 16
+    context 'when it is anonymous' do
+      let(:username) { '' }
+      let(:password) { '' }
+
+      it 'returns an all zero key' do
+        expect(session.send(:calculate_user_session_key!)).to eq "\x00".b * 16
+      end
     end
 
     it 'returns a session key' do
-      expect(session).to receive(:is_anonymous?).and_return(false)
-      expect(session.send(:calculate_user_session_key!)).to_not eq "\x00".b * 16
+      session_key = session.send(:calculate_user_session_key!)
+      expect(session_key.bytesize).to eq 16
+      expect(session_key).to_not eq "\x00".b * 16
     end
   end
 

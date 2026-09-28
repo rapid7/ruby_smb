@@ -85,7 +85,7 @@ module RubySMB
 
               @server_challenge = @provider.generate_server_challenge
               msg.challenge = @server_challenge.unpack1('Q<') # 64-bit unsigned, little endian (uint64_t)
-              target_info = Net::NTLM::TargetInfo.new('')
+              target_info = Net::NTLM::TargetInfo.new(nil)
               target_info.av_pairs.merge!({
                 Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => @provider.netbios_domain.encode('UTF-16LE').b,
                 Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME => @provider.netbios_hostname.encode('UTF-16LE').b,

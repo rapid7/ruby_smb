@@ -1614,6 +1614,15 @@ RSpec.describe RubySMB::Client do
           expect(smb1_client.session_key).to eq ntlm_client.session_key
         end
 
+        it 'continues authentication when the server advertises empty target info' do
+          challenge = Net::NTLM::Message.decode64(type2_string)
+          challenge.set_flag(:TARGET_INFO)
+          challenge.target_info = ''.b
+          allow(smb1_client).to receive(:smb1_type2_message).and_return(challenge.encode64)
+
+          expect(smb1_client.smb1_authenticate).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
         it 'stores the OS version number from the challenge message' do
           smb1_client.smb1_authenticate
           expect(smb1_client.os_version).to eq '6.1.7601'
@@ -1860,6 +1869,15 @@ RSpec.describe RubySMB::Client do
           expect(smb2_client.session_key).to eq ntlm_client.session_key
         end
 
+        it 'continues authentication when the server advertises empty target info' do
+          challenge = Net::NTLM::Message.decode64(type2_string)
+          challenge.set_flag(:TARGET_INFO)
+          challenge.target_info = ''.b
+          allow(smb2_client).to receive(:smb2_type2_message).and_return(challenge.encode64)
+
+          expect(smb2_client.smb2_authenticate).to eq WindowsError::NTStatus::STATUS_SUCCESS
+        end
+
         it 'stores the OS version number from the challenge message' do
           smb2_client.smb2_authenticate
           expect(smb2_client.os_version).to eq '6.1.7601'
@@ -2066,6 +2084,25 @@ RSpec.describe RubySMB::Client do
       it 'creates a Net::NTLM::TargetInfo object from the target_info string' do
         expect(Net::NTLM::TargetInfo).to receive(:new).with(target_info_str).and_call_original
         client.store_target_info(target_info_str)
+      end
+
+      it 'preserves existing peer information when given empty target info' do
+        client.store_target_info(target_info_str)
+        expect { client.store_target_info(''.b) }.to_not change {
+          [client.default_name, client.default_domain, client.dns_host_name, client.dns_domain_name, client.dns_tree_name]
+        }
+      end
+
+      it 'accepts nil target info' do
+        expect { client.store_target_info(nil) }.to_not raise_error
+      end
+
+      it 'accepts empty target info encoded with an end-of-list marker' do
+        expect { client.store_target_info("\x00\x00\x00\x00".b) }.to_not raise_error
+      end
+
+      it 'rejects nonempty invalid target info' do
+        expect { client.store_target_info("\xff\xff\x00\x00".b) }.to raise_error(Net::NTLM::InvalidTargetDataError)
       end
 
       it 'sets the expected Client\'s attribute' do
