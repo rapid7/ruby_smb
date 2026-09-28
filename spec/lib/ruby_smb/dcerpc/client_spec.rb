@@ -173,6 +173,14 @@ RSpec.describe RubySMB::Dcerpc::Client do
         expect(auth_client.process_ntlm_type2(type2_message)).to start_with("NTLMSSP\x00\x03\x00\x00\x00")
       end
 
+      it 'returns a type3 message when the server advertises empty target info' do
+        challenge = Net::NTLM::Message.parse(type2_message)
+        challenge.set_flag(:TARGET_INFO)
+        challenge.target_info = ''.b
+
+        expect(auth_client.process_ntlm_type2(challenge.serialize)).to start_with("NTLMSSP\x00\x03\x00\x00\x00")
+      end
+
       it 'stores the session key' do
         auth_client.process_ntlm_type2(type2_message)
         expect(auth_client.instance_variable_get(:@session_key).size).to eq(16)

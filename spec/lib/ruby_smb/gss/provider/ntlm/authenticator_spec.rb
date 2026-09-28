@@ -65,6 +65,19 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
     it 'should process a NTLM type 1 message and return a type2 message' do
       expect(authenticator.process_ntlm_type1(type1_msg)).to be_a Net::NTLM::Message::Type2
     end
+
+    it 'includes the server names in the serialized target info' do
+      type2_msg = Net::NTLM::Message.parse(authenticator.process_ntlm_type1(type1_msg).serialize)
+      target_info = Net::NTLM::TargetInfo.new(type2_msg.target_info)
+
+      expect(target_info.av_pairs).to include(
+        Net::NTLM::TargetInfo::MSV_AV_NB_DOMAIN_NAME => provider.netbios_domain.encode('UTF-16LE').b,
+        Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME => provider.netbios_hostname.encode('UTF-16LE').b,
+        Net::NTLM::TargetInfo::MSV_AV_DNS_DOMAIN_NAME => provider.dns_domain.encode('UTF-16LE').b,
+        Net::NTLM::TargetInfo::MSV_AV_DNS_COMPUTER_NAME => provider.dns_hostname.encode('UTF-16LE').b
+      )
+      expect(target_info.av_pairs[Net::NTLM::TargetInfo::MSV_AV_TIMESTAMP].bytesize).to eq 8
+    end
   end
 
   describe '#process_ntlm_type3' do

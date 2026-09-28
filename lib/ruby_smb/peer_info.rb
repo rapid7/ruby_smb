@@ -3,8 +3,10 @@ module RubySMB
     # Extract and store useful information about the peer/server from the
     # NTLM Type 2 (challenge) TargetInfo fields.
     #
-    # @param target_info_str [String] the Target Info string
+    # @param target_info_str [String, nil] the Target Info string
     def store_target_info(target_info_str)
+      return if target_info_str.nil? || target_info_str.empty?
+
       target_info = Net::NTLM::TargetInfo.new(target_info_str)
       {
         Net::NTLM::TargetInfo::MSV_AV_NB_COMPUTER_NAME  => :@default_name,
