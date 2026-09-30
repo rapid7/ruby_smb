@@ -2,11 +2,18 @@ module RubySMB
   # module containing methods required for using the [GSS-API](http://www.rfc-editor.org/rfc/rfc2743.txt)
   # for Secure Protected Negotiation(SPNEGO) in SMB Authentication.
   module Gss
+    require 'ruby_smb/gss/spnego_neg_token_init'
+    require 'ruby_smb/gss/spnego_neg_token_targ'
     require 'ruby_smb/gss/provider'
 
     OID_SPNEGO = OpenSSL::ASN1::ObjectId.new('1.3.6.1.5.5.2')
     OID_NEGOEX = OpenSSL::ASN1::ObjectId.new('1.3.6.1.4.1.311.2.2.30')
     OID_NTLMSSP = OpenSSL::ASN1::ObjectId.new('1.3.6.1.4.1.311.2.2.10')
+    # The Kerberos v5 GSS-API mechanism (RFC 4121). Microsoft's SPNEGO
+    # implementation also uses a legacy OID that differs by a single arc, and
+    # clients may offer or select either, so both are defined here.
+    OID_KERBEROS_5 = OpenSSL::ASN1::ObjectId.new('1.2.840.113554.1.2.2')
+    OID_MICROSOFT_KERBEROS_5 = OpenSSL::ASN1::ObjectId.new('1.2.840.48018.1.2.2')
 
     # Allow safe navigation of a decoded ASN.1 data structure. Similar to Ruby's
     # builtin Hash#dig method but using the #value attribute of each ASN object.
@@ -44,6 +51,22 @@ module RubySMB
         raise RubySMB::Error::ASN1Encoding, "Source string is too long. Size is #{str.length}"
       end
       encoded_string
+    end
+
+    # Build the SPNEGO NegTokenInit that a server sends to advertise the
+    # authentication mechanisms it supports, per RFC 4178 section 4.2.1.
+    #
+    # The mechTypes list is supplied by the caller so that it reflects every
+    # mechanism the server actually offers, rather than being fixed to a single
+    # mechanism by whichever provider happens to build the token.
+    #
+    # @param [Array<OpenSSL::ASN1::ObjectId>] mech_types the mechanisms to
+    #   advertise, in preference order (most preferred first).
+    # @return [String] the DER encoded NegTokenInit.
+    def self.gss_neg_token_init(mech_types)
+      raise ArgumentError, 'at least one mechanism must be advertised' if mech_types.nil? || mech_types.empty?
+
+      SpnegoNegTokenInit.build(mech_types)
     end
 
     # Create a GSS Security Blob of an NTLM Type 1 Message.

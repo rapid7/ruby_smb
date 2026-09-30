@@ -26,26 +26,7 @@ module RubySMB
 
           def process(request_buffer=nil)
             if request_buffer.nil?
-              # this is only NTLMSSP (as opposed to SPNEGO + NTLMSSP)
-              buffer = OpenSSL::ASN1::ASN1Data.new([
-                Gss::OID_SPNEGO,
-                OpenSSL::ASN1::ASN1Data.new([
-                  OpenSSL::ASN1::Sequence.new([
-                    OpenSSL::ASN1::ASN1Data.new([
-                      OpenSSL::ASN1::Sequence.new([
-                        Gss::OID_NTLMSSP
-                      ])
-                    ], 0, :CONTEXT_SPECIFIC),
-                    OpenSSL::ASN1::ASN1Data.new([
-                      OpenSSL::ASN1::ASN1Data.new([
-                        OpenSSL::ASN1::ASN1Data.new([
-                          OpenSSL::ASN1::GeneralString.new('not_defined_in_RFC4178@please_ignore')
-                        ], 0, :CONTEXT_SPECIFIC)
-                      ], 16, :UNIVERSAL)
-                    ], 3, :CONTEXT_SPECIFIC)
-                  ])
-                ], 0, :CONTEXT_SPECIFIC)
-              ], 0, :APPLICATION).to_der
+              buffer = Gss.gss_neg_token_init(@provider.mech_types)
               return Result.new(buffer, WindowsError::NTStatus::STATUS_SUCCESS)
             end
 
@@ -291,6 +272,10 @@ module RubySMB
           # build and return an instance that can process and track stateful information for a particular connection but
           # that's backed by this particular provider
           Authenticator.new(self, server_client)
+        end
+
+        def mech_types
+          [Gss::OID_NTLMSSP]
         end
 
         #

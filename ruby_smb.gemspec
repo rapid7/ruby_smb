@@ -43,6 +43,9 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'rubyntlm', '>= 0.6.5'
   spec.add_runtime_dependency 'windows_error', '>= 0.1.4'
   spec.add_runtime_dependency 'bindata', '2.4.15'
+  # 0.12 introduced the model `wrapper` DSL the SPNEGO types rely on; the upper Ruby versions resolve to a
+  # newer rasn1, while Ruby 2.7 caps at 0.13.1 (0.14+ needs Ruby 3.0), and both are known good.
+  spec.add_runtime_dependency 'rasn1', '>= 0.12'
   spec.add_runtime_dependency 'openssl-ccm'
   spec.add_runtime_dependency 'openssl-cmac'
 end

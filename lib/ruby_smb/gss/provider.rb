@@ -27,6 +27,26 @@ module RubySMB
         end
 
         #
+        # The GSS mechanisms this provider can handle, in preference order. These are advertised to the client in the
+        # SPNEGO NegTokenInit, and are used to route an incoming token to the provider that understands it.
+        #
+        # @return [Array<OpenSSL::ASN1::ObjectId>]
+        def mech_types
+          raise NotImplementedError
+        end
+
+        #
+        # Whether this provider can handle a token for the specified mechanism.
+        #
+        # @param [OpenSSL::ASN1::ObjectId] mech_type the mechanism selected by the client
+        # @return [Boolean]
+        def supports_mech_type?(mech_type)
+          return false if mech_type.nil?
+
+          mech_types.any? { |oid| oid.oid == mech_type.oid }
+        end
+
+        #
         # Whether or not anonymous authentication attempts should be permitted.
         #
         attr_accessor :allow_anonymous
@@ -42,3 +62,5 @@ end
 
 require 'ruby_smb/gss/provider/authenticator'
 require 'ruby_smb/gss/provider/ntlm'
+require 'ruby_smb/gss/provider/kerberos'
+require 'ruby_smb/gss/provider/multi'
