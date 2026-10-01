@@ -12,15 +12,15 @@ module RubySMB
 
       def error_msg
         case error_code
-        when 0x80
+        when NOT_LISTENING_ON_CALLED_NAME
           'Not listening on called name'
-        when 0x81
+        when NOT_LISTENING_FOR_CALLING_NAME
           'Not listening for calling name'
-        when 0x82
+        when CALLED_NAME_NOT_PRESENT
           'Called name not present'
-        when 0x83
+        when CALLED_NAME_INSUFFICIENT_RESOURCES
           'Called name present, but insufficient resources'
-        when 0x8F
+        when UNSPECIFIED_ERROR
           'Unspecified error'
         end
       end

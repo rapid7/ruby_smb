@@ -350,7 +350,7 @@ module RubySMB
       @server_max_write_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_max_transact_size = RubySMB::SMB2::File::MAX_PACKET_SIZE
       @server_supports_multi_credit = false
-      @server_supports_nt_smbs = true
+      @server_supports_nt_smbs      = true
 
       # SMB 3.x options
       # this merely initializes the default value for session encryption, it may be changed as necessary when a
@@ -668,6 +668,14 @@ module RubySMB
 
     # Requests a NetBIOS Session Service using the provided name.
     #
+    # On refusal the raised {RubySMB::Error::NetBiosSessionService} carries the
+    # numeric NBSS `error_code`. A {RubySMB::Nbss::CALLED_NAME_NOT_PRESENT} rejection of
+    # the default `'*SMBSERVER'` name means the server (e.g. Windows 9x) wants
+    # its real name: resolve it with {RubySMB::Nbss::NodeStatus.file_server_name},
+    # reconnect (the server drops the connection after a negative response), and
+    # retry. Reconnecting is left to the caller so the new socket is routed the
+    # same way as the original (e.g. through a Metasploit pivot).
+    #
     # @param name [String] the NetBIOS name to request
     # @return [TrueClass] if session request is granted
     # @raise [RubySMB::Error::NetBiosSessionService] if session request is refused
@@ -679,8 +687,11 @@ module RubySMB
       begin
         session_header = RubySMB::Nbss::SessionHeader.read(raw_response)
         if session_header.session_packet_type == RubySMB::Nbss::NEGATIVE_SESSION_RESPONSE
-          negative_session_response =  RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
-          raise RubySMB::Error::NetBiosSessionService, "Session Request failed: #{negative_session_response.error_msg}"
+          negative_session_response = RubySMB::Nbss::NegativeSessionResponse.read(raw_response)
+          raise RubySMB::Error::NetBiosSessionService.new(
+            "Session Request failed: #{negative_session_response.error_msg}",
+            error_code: negative_session_response.error_code.to_i
+          )
         end
       rescue IOError
         raise RubySMB::Error::InvalidPacket, 'Not a NBSS packet'
