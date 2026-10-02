@@ -42,6 +42,45 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
     expect(descriptor.offset_dacl).to eq descriptor.dacl.rel_offset
   end
 
+  # Regression for rapid7/ruby_smb#289: a self-relative security descriptor
+  # returned by the server (Control word 0x9404, little-endian bytes
+  # "\x04\x94") was parsed with dacl_present and self_relative cleared because
+  # the Control bit1 fields did not follow the MS-DTYP 2.4.6 bit numbering.
+  describe 'parsing a self-relative descriptor (issue #289)' do
+    let(:byte_stream) do
+      [
+        0x01,                   # Revision
+        0x00,                   # Sbz1
+        0x04, 0x94,             # Control = 0x9404 (LE): SR + PD + DI + DP
+        0x8c, 0x00, 0x00, 0x00, # OffsetOwner
+        0x9c, 0x00, 0x00, 0x00, # OffsetGroup
+        0x00, 0x00, 0x00, 0x00, # OffsetSacl
+        0x14, 0x00, 0x00, 0x00  # OffsetDacl
+      ].pack('C*')
+    end
+
+    subject(:control) { described_class.read(byte_stream).control }
+
+    it 'reports the DACL as present' do
+      expect(control.dacl_present).to eq 1
+    end
+
+    it 'reports the descriptor as self-relative' do
+      expect(control.self_relative).to eq 1
+    end
+
+    it 'sets exactly the SR, PD, DI and DP flags' do
+      set_flags = control.field_names.select { |name| control.send(name) == 1 }
+      expect(set_flags).to contain_exactly(
+        :self_relative, :dacl_protected, :dacl_auto_inherited, :dacl_present
+      )
+    end
+
+    it 'reads the DACL offset' do
+      expect(described_class.read(byte_stream).offset_dacl).to eq 20
+    end
+  end
+
   describe '#control' do
     subject(:control) { descriptor.control }
 
@@ -67,7 +106,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.self_relative).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :self_relative, 'v', 0x0001
+      it_behaves_like 'bit field with one flag set', :self_relative, 'v', 0x8000
     end
 
     describe '#rm_control_valid' do
@@ -75,7 +114,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.rm_control_valid).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :rm_control_valid, 'v', 0x0002
+      it_behaves_like 'bit field with one flag set', :rm_control_valid, 'v', 0x4000
     end
 
     describe '#sacl_protected' do
@@ -83,7 +122,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.sacl_protected).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :sacl_protected, 'v', 0x0004
+      it_behaves_like 'bit field with one flag set', :sacl_protected, 'v', 0x2000
     end
 
     describe '#dacl_protected' do
@@ -91,7 +130,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_protected).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_protected, 'v', 0x0008
+      it_behaves_like 'bit field with one flag set', :dacl_protected, 'v', 0x1000
     end
 
     describe '#sacl_auto_inherited' do
@@ -99,7 +138,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.sacl_auto_inherited).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :sacl_auto_inherited, 'v', 0x0010
+      it_behaves_like 'bit field with one flag set', :sacl_auto_inherited, 'v', 0x0800
     end
 
     describe '#dacl_auto_inherited' do
@@ -107,7 +146,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_auto_inherited).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_auto_inherited, 'v', 0x0020
+      it_behaves_like 'bit field with one flag set', :dacl_auto_inherited, 'v', 0x0400
     end
 
     describe '#sacl_computed_inheritance' do
@@ -115,7 +154,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.sacl_computed_inheritance).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :sacl_computed_inheritance, 'v', 0x0040
+      it_behaves_like 'bit field with one flag set', :sacl_computed_inheritance, 'v', 0x0200
     end
 
     describe '#dacl_computed_inheritance' do
@@ -123,7 +162,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_computed_inheritance).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_computed_inheritance, 'v', 0x0080
+      it_behaves_like 'bit field with one flag set', :dacl_computed_inheritance, 'v', 0x0100
     end
 
     describe '#dacl_trusted' do
@@ -131,7 +170,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_trusted).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_trusted, 'v', 0x0100
+      it_behaves_like 'bit field with one flag set', :dacl_trusted, 'v', 0x0040
     end
 
     describe '#server_security' do
@@ -139,7 +178,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.server_security).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :server_security, 'v', 0x0200
+      it_behaves_like 'bit field with one flag set', :server_security, 'v', 0x0080
     end
 
     describe '#sacl_defaulted' do
@@ -147,7 +186,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.sacl_defaulted).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :sacl_defaulted, 'v', 0x0400
+      it_behaves_like 'bit field with one flag set', :sacl_defaulted, 'v', 0x0020
     end
 
     describe '#sacl_present' do
@@ -155,7 +194,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.sacl_present).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :sacl_present, 'v', 0x0800
+      it_behaves_like 'bit field with one flag set', :sacl_present, 'v', 0x0010
     end
 
     describe '#dacl_defaulted' do
@@ -163,7 +202,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_defaulted).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_defaulted, 'v', 0x1000
+      it_behaves_like 'bit field with one flag set', :dacl_defaulted, 'v', 0x0008
     end
 
     describe '#dacl_present' do
@@ -171,7 +210,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.dacl_present).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :dacl_present, 'v', 0x2000
+      it_behaves_like 'bit field with one flag set', :dacl_present, 'v', 0x0004
     end
 
     describe '#group_defaulted' do
@@ -179,7 +218,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.group_defaulted).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :group_defaulted, 'v', 0x4000
+      it_behaves_like 'bit field with one flag set', :group_defaulted, 'v', 0x0002
     end
 
     describe '#owner_defaulted' do
@@ -187,7 +226,7 @@ RSpec.describe RubySMB::Field::SecurityDescriptor do
         expect(control.owner_defaulted).to be_a BinData::Bit1
       end
 
-      it_behaves_like 'bit field with one flag set', :owner_defaulted, 'v', 0x8000
+      it_behaves_like 'bit field with one flag set', :owner_defaulted, 'v', 0x0001
     end
   end
 end
