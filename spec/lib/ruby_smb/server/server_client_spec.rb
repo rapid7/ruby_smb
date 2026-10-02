@@ -151,4 +151,35 @@ RSpec.describe RubySMB::Server::ServerClient do
       )
     end
   end
+
+  describe '#handle_smb2 with a malformed request body' do
+    before(:each) do
+      server_client.instance_variable_set(:@dialect, '0x0210')
+      server_client.instance_variable_set(:@smb2_related_operations_state, {})
+    end
+
+    let(:header) do
+      RubySMB::SMB2::SMB2Header.new(
+        command: RubySMB::SMB2::Commands::SESSION_SETUP,
+        message_id: 1,
+        session_id: 0
+      )
+    end
+
+    # a two-byte body is too short to parse as a SessionSetupRequest, so GenericPacket.read
+    # falls back to SMB1::Packet::EmptyPacket; the handler must reply with an SMB2 error
+    # rather than dispatch the wrong-protocol object to do_session_setup_smb2
+    let(:raw_request) { header.to_binary_s + "\x00\x00".b }
+
+    it 'returns an SMB2 ErrorPacket with STATUS_DATA_ERROR' do
+      response = server_client.send(:handle_smb2, raw_request, header)
+      expect(response).to be_a RubySMB::SMB2::Packet::ErrorPacket
+      expect(response.smb2_header.nt_status).to eq WindowsError::NTStatus::STATUS_DATA_ERROR
+    end
+
+    it 'does not dispatch the request to do_session_setup_smb2' do
+      expect(server_client).not_to receive(:do_session_setup_smb2)
+      server_client.send(:handle_smb2, raw_request, header)
+    end
+  end
 end
