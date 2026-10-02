@@ -194,10 +194,23 @@ module RubySMB
           # take the GSS blob, extract the NTLM type 3 message and pass it to the process method to build the response
           # which is then put back into a new GSS reply-blob
           def process_gss_type3(gss_api)
-            neg_token_init = Hash[RubySMB::Gss.asn1dig(gss_api, 0).value.map { |obj| [obj.tag, obj.value[0].value] }]
+            # a NegTokenResp carries every field as OPTIONAL (RFC 4178 section 4.2.2), and a tagged
+            # element may be empty, so a response_token is only present when a tag-[2] field exists
+            # and wraps a value
+            neg_token_init = {}
+            RubySMB::Gss.asn1dig(gss_api, 0).value.each do |obj|
+              inner = obj.value.is_a?(Array) ? obj.value[0] : nil
+              neg_token_init[obj.tag] = inner.value if inner.respond_to?(:value)
+            end
             raw_type3_msg = neg_token_init[2]
+            return if raw_type3_msg.nil?
 
-            type3_msg = Net::NTLM::Message.parse(raw_type3_msg)
+            begin
+              type3_msg = Net::NTLM::Message.parse(raw_type3_msg)
+            rescue StandardError => e
+              logger.error("Failed to parse the NTLM type 3 message (#{e.class}: #{e.message})")
+              return
+            end
             if type3_msg.flag & NTLM::NEGOTIATE_FLAGS[:UNICODE] == NTLM::NEGOTIATE_FLAGS[:UNICODE]
               type3_msg.domain.force_encoding('UTF-16LE')
               type3_msg.user.force_encoding('UTF-16LE')
