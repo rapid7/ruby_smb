@@ -393,11 +393,17 @@ module RubySMB
         rescue IOError, RubySMB::Error::InvalidPacket => e
           logger.error("Caught a #{e.class} while reading the SMB2 #{request_class} (#{e.message})")
           response = RubySMB::SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          return response
         end
 
-        if request.is_a?(SMB2::Packet::ErrorPacket)
+        # GenericPacket.read falls back to SMB1::Packet::EmptyPacket when neither the request
+        # class nor SMB2::Packet::ErrorPacket can read the raw bytes, so both shapes must be
+        # treated as a failed parse here rather than dispatched as a real request
+        if request.is_a?(SMB2::Packet::ErrorPacket) || request.is_a?(SMB1::Packet::EmptyPacket)
           logger.error("Received an error packet for SMB2 command: #{SMB2::Commands.name(header.command)}")
-          response.smb_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
+          response = RubySMB::SMB2::Packet::ErrorPacket.new
+          response.smb2_header.nt_status = WindowsError::NTStatus::STATUS_DATA_ERROR
           return response
         end
 
