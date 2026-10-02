@@ -81,15 +81,33 @@ module RubySMB
             end
 
             if negotiation_init?(gss_api)
-              # a NegTokenInit names the mechanism the client chose, so this is where routing is decided
-              mech_type = Gss.asn1dig(gss_api, 1, 0, 0, 0, 0)
-              authenticator = authenticator_for(mech_type)
-              if authenticator.nil?
-                logger.warn("Client selected an unsupported GSS mechanism (#{mech_type&.oid || 'unknown'})")
+              # a NegTokenInit carries the client's full mechTypeList. Server preference wins the
+              # routing: the server picks its most-preferred advertised mechanism that the client
+              # also offers, independent of the client's own ordering. This prevents a client (or
+              # an on-path attacker rewriting the mechTypeList before signing is in effect) from
+              # forcing the server to a weaker sub-provider by listing it first.
+              client_oids = client_mech_oids(gss_api)
+              if client_oids.empty?
+                logger.warn('NegTokenInit carried no mechTypeList')
                 return
               end
 
-              @selected = authenticator
+              chosen_mech = @provider.mech_types.find { |m| client_oids.include?(m.value) }
+              if chosen_mech.nil?
+                logger.warn("Client offered no mechanism the server supports (client_oids=#{client_oids})")
+                return
+              end
+
+              @selected = authenticator_for(chosen_mech)
+
+              # if the client listed a different mechanism first, its optimistic mechToken is for
+              # the wrong mechanism. RFC 4178 section 4.2.2 says to reply with a NegTokenResp
+              # carrying accept-incomplete and supportedMech so the client resends a token for the
+              # mechanism the server selected
+              if client_oids.first != chosen_mech.value
+                logger.info("SPNEGO: client listed #{client_oids.first} first; server prefers #{chosen_mech.value}, requesting a token for it")
+                return Result.new(build_accept_incomplete(chosen_mech), WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+              end
             elsif @selected.nil?
               # a NegTokenResp carries no mechanism OID, so it can only be interpreted as a continuation of a
               # negotiation that has already selected one
@@ -121,6 +139,29 @@ module RubySMB
             return nil if provider.nil?
 
             @authenticators[provider] ||= provider.new_authenticator(@server_client)
+          end
+
+          # The OIDs the client listed in the NegTokenInit mechTypeList, in the client's own order.
+          #
+          # The ASN.1 path mirrors the one NTLM uses to reach a single mechTypeList entry
+          # (gss_api, 1, 0, 0, 0, 0): one level less reaches the Sequence that holds every entry.
+          def client_mech_oids(gss_api)
+            seq = Gss.asn1dig(gss_api, 1, 0, 0, 0)
+            return [] unless seq.respond_to?(:value) && seq.value.is_a?(Array)
+
+            seq.value.map { |item| item.respond_to?(:value) ? item.value : nil }.compact
+          end
+
+          # A NegTokenResp carrying negResult = accept-incomplete and supportedMech, per RFC 4178
+          # section 4.2.2, used to request a mechToken for the mechanism the server selected when
+          # the client's optimistic mechToken was for a different mechanism.
+          def build_accept_incomplete(supported_mech)
+            OpenSSL::ASN1::ASN1Data.new([
+              OpenSSL::ASN1::Sequence.new([
+                OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Enumerated.new(OpenSSL::BN.new(1))], 0, :CONTEXT_SPECIFIC),
+                OpenSSL::ASN1::ASN1Data.new([supported_mech], 1, :CONTEXT_SPECIFIC)
+              ])
+            ], 1, :CONTEXT_SPECIFIC).to_der
           end
         end
       end
