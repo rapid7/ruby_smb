@@ -59,6 +59,61 @@ RSpec.describe RubySMB::Gss::Provider::NTLM::Authenticator do
       expect(result.identity).to be_nil
       expect(authenticator.session_key).to be_nil
     end
+
+    context 'when the NegTokenResp is malformed' do
+      def wrap_neg_token_resp(fields)
+        OpenSSL::ASN1::ASN1Data.new(
+          [OpenSSL::ASN1::Sequence.new(fields)],
+          1,
+          :CONTEXT_SPECIFIC
+        ).to_der
+      end
+
+      it 'returns nil for an empty inner sequence' do
+        expect { authenticator.process(wrap_neg_token_resp([])) }.not_to raise_error
+        expect(authenticator.process(wrap_neg_token_resp([]))).to be_nil
+      end
+
+      it 'returns nil when the response_token is absent' do
+        buf = wrap_neg_token_resp([
+          OpenSSL::ASN1::ASN1Data.new(
+            [OpenSSL::ASN1::Enumerated.new(OpenSSL::BN.new(1))],
+            0,
+            :CONTEXT_SPECIFIC
+          )
+        ])
+        expect(authenticator.process(buf)).to be_nil
+      end
+
+      it 'returns nil when only mech_list_mic is present' do
+        buf = wrap_neg_token_resp([
+          OpenSSL::ASN1::ASN1Data.new(
+            [OpenSSL::ASN1::OctetString.new('AAAA')],
+            3,
+            :CONTEXT_SPECIFIC
+          )
+        ])
+        expect(authenticator.process(buf)).to be_nil
+      end
+
+      it 'returns nil when the response_token is empty' do
+        buf = wrap_neg_token_resp([
+          OpenSSL::ASN1::ASN1Data.new([], 2, :CONTEXT_SPECIFIC)
+        ])
+        expect(authenticator.process(buf)).to be_nil
+      end
+
+      it 'returns nil when the response_token is not an NTLM message' do
+        buf = wrap_neg_token_resp([
+          OpenSSL::ASN1::ASN1Data.new(
+            [OpenSSL::ASN1::OctetString.new('not-ntlm-bytes')],
+            2,
+            :CONTEXT_SPECIFIC
+          )
+        ])
+        expect(authenticator.process(buf)).to be_nil
+      end
+    end
   end
 
   describe '#process_ntlm_type1' do
