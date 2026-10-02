@@ -1,4 +1,5 @@
 require 'bindata'
+require 'ruby_smb/compatibility'
 require 'net/ntlm'
 require 'net/ntlm/client'
 require 'openssl'
