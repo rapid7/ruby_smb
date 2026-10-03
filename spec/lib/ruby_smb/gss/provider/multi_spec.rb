@@ -109,6 +109,55 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
       it 'returns nil for a malformed request' do
         expect(authenticator.process('not asn1 at all')).to be_nil
       end
+
+      # Server preference is [Kerberos, NTLM] (other_provider ordered first in the subject).
+      # Each row names a client-supplied mechTypeList and the outcome the server should produce.
+      context 'when a client offers more than one mechanism' do
+        it '[Kerberos, NTLM] routes to Kerberos directly (first-mech matches server preference)' do
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(gss_init_list([RubySMB::Gss::OID_KERBEROS_5, RubySMB::Gss::OID_NTLMSSP]))
+        end
+
+        it '[NTLM, Kerberos] rejects the client ordering and replies accept-incomplete for Kerberos' do
+          expect(other_authenticator).not_to receive(:process)
+          result = authenticator.process(gss_init_list([RubySMB::Gss::OID_NTLMSSP, RubySMB::Gss::OID_KERBEROS_5]))
+          expect(result).to be_a(RubySMB::Gss::Provider::Result)
+          expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+          supported_mech = RubySMB::Gss.asn1dig(OpenSSL::ASN1.decode(result.buffer), 0, 1, 0)
+          expect(supported_mech.value).to eq(RubySMB::Gss::OID_KERBEROS_5.value)
+        end
+
+        it '[NTLM] only still routes to NTLM when it is the only overlap' do
+          type1 = Net::NTLM::Message::Type1.new.tap { |msg| msg.domain = domain }
+          result = authenticator.process(RubySMB::Gss.gss_type1(type1.serialize))
+          expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+        end
+
+        it '[Kerberos] only routes to Kerberos' do
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(gss_init_list([RubySMB::Gss::OID_KERBEROS_5]))
+        end
+
+        it 'rejects a client with no overlapping mechanism' do
+          expect(authenticator.process(gss_init_list([RubySMB::Gss::OID_NEGOEX]))).to be_nil
+        end
+
+        it 'rejects a NegTokenInit with an empty mechTypeList' do
+          expect(authenticator.process(gss_init_list([]))).to be_nil
+        end
+      end
+
+      context 'after replying accept-incomplete to a reordered client' do
+        it 'routes the client\'s next NegTokenResp (carrying the server-chosen mechanism token) to that provider' do
+          # leg 1: client lists [NTLM, Kerberos] - server picks Kerberos and asks for its token.
+          first = authenticator.process(gss_init_list([RubySMB::Gss::OID_NTLMSSP, RubySMB::Gss::OID_KERBEROS_5]))
+          expect(first.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+
+          # leg 2: client resends with a Kerberos token wrapped as a NegTokenResp.
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(RubySMB::Gss.gss_type3('kerberos-ap-req-bytes'))
+        end
+      end
     end
 
     describe 'a complete NTLM exchange' do
@@ -143,6 +192,12 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
 
   # Build a NegTokenInit that selects the specified mechanism, with an empty mechToken.
   def gss_init(mech_type)
+    gss_init_list([mech_type])
+  end
+
+  # Build a NegTokenInit whose mechTypeList is the given list of OIDs, with an empty mechToken.
+  # Used by the matrix tests to exercise multi-mechanism client offers.
+  def gss_init_list(mech_types)
     OpenSSL::ASN1::ASN1Data.new(
       [
         RubySMB::Gss::OID_SPNEGO,
@@ -150,7 +205,7 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
           [
             OpenSSL::ASN1::Sequence.new(
               [
-                OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new([mech_type])], 0, :CONTEXT_SPECIFIC),
+                OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new(mech_types)], 0, :CONTEXT_SPECIFIC),
                 OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::OctetString.new('')], 2, :CONTEXT_SPECIFIC)
               ]
             )
