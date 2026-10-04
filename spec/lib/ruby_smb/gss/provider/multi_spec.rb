@@ -109,6 +109,55 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
       it 'returns nil for a malformed request' do
         expect(authenticator.process('not asn1 at all')).to be_nil
       end
+
+      # Server preference is [Kerberos, NTLM] (other_provider ordered first in the subject).
+      # Each row names a client-supplied mechTypeList and the outcome the server should produce.
+      context 'when a client offers more than one mechanism' do
+        it '[Kerberos, NTLM] routes to Kerberos directly (first-mech matches server preference)' do
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(gss_init_list([RubySMB::Gss::OID_KERBEROS_5, RubySMB::Gss::OID_NTLMSSP]))
+        end
+
+        it '[NTLM, Kerberos] rejects the client ordering and replies accept-incomplete for Kerberos' do
+          expect(other_authenticator).not_to receive(:process)
+          result = authenticator.process(gss_init_list([RubySMB::Gss::OID_NTLMSSP, RubySMB::Gss::OID_KERBEROS_5]))
+          expect(result).to be_a(RubySMB::Gss::Provider::Result)
+          expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+          supported_mech = RubySMB::Gss.asn1dig(OpenSSL::ASN1.decode(result.buffer), 0, 1, 0)
+          expect(supported_mech.value).to eq(RubySMB::Gss::OID_KERBEROS_5.value)
+        end
+
+        it '[NTLM] only still routes to NTLM when it is the only overlap' do
+          type1 = Net::NTLM::Message::Type1.new.tap { |msg| msg.domain = domain }
+          result = authenticator.process(RubySMB::Gss.gss_type1(type1.serialize))
+          expect(result.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+        end
+
+        it '[Kerberos] only routes to Kerberos' do
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(gss_init_list([RubySMB::Gss::OID_KERBEROS_5]))
+        end
+
+        it 'rejects a client with no overlapping mechanism' do
+          expect(authenticator.process(gss_init_list([RubySMB::Gss::OID_NEGOEX]))).to be_nil
+        end
+
+        it 'rejects a NegTokenInit with an empty mechTypeList' do
+          expect(authenticator.process(gss_init_list([]))).to be_nil
+        end
+      end
+
+      context 'after replying accept-incomplete to a reordered client' do
+        it 'routes the client\'s next NegTokenResp (carrying the server-chosen mechanism token) to that provider' do
+          # leg 1: client lists [NTLM, Kerberos] - server picks Kerberos and asks for its token.
+          first = authenticator.process(gss_init_list([RubySMB::Gss::OID_NTLMSSP, RubySMB::Gss::OID_KERBEROS_5]))
+          expect(first.nt_status).to eq(WindowsError::NTStatus::STATUS_MORE_PROCESSING_REQUIRED)
+
+          # leg 2: client resends with a Kerberos token wrapped as a NegTokenResp.
+          expect(other_authenticator).to receive(:process)
+          authenticator.process(RubySMB::Gss.gss_type3('kerberos-ap-req-bytes'))
+        end
+      end
     end
 
     describe 'a complete NTLM exchange' do
@@ -130,6 +179,50 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
       end
     end
 
+    describe 'the client\'s mechListMIC on the final leg' do
+      it 'accepts a valid MIC on the single-mechanism (no-mismatch) path' do
+        status, identity = mic_ntlm_exchange(
+          authenticator,
+          client_offer: [RubySMB::Gss::OID_NTLMSSP],
+          server_sees:  [RubySMB::Gss::OID_NTLMSSP],
+          mic_mode:     :real
+        )
+        expect(status).to eq(WindowsError::NTStatus::STATUS_SUCCESS)
+        expect(identity).to eq("#{domain}\\#{username}")
+      end
+
+      it 'rejects a MIC that was computed over a different mechTypeList' do
+        status, _ = mic_ntlm_exchange(
+          authenticator,
+          client_offer: [RubySMB::Gss::OID_KERBEROS_5, RubySMB::Gss::OID_NTLMSSP],
+          server_sees:  [RubySMB::Gss::OID_NTLMSSP],
+          mic_mode:     :real
+        )
+        expect(status).to eq(WindowsError::NTStatus::STATUS_LOGON_FAILURE)
+      end
+
+      it 'rejects a MIC with one bit flipped' do
+        status, _ = mic_ntlm_exchange(
+          authenticator,
+          client_offer: [RubySMB::Gss::OID_NTLMSSP],
+          server_sees:  [RubySMB::Gss::OID_NTLMSSP],
+          mic_mode:     :tampered
+        )
+        expect(status).to eq(WindowsError::NTStatus::STATUS_LOGON_FAILURE)
+      end
+
+      it 'leaves the single-mechanism path alone when no MIC is sent (RFC 4178 marks it OPTIONAL)' do
+        status, identity = mic_ntlm_exchange(
+          authenticator,
+          client_offer: [RubySMB::Gss::OID_NTLMSSP],
+          server_sees:  [RubySMB::Gss::OID_NTLMSSP],
+          mic_mode:     :none
+        )
+        expect(status).to eq(WindowsError::NTStatus::STATUS_SUCCESS)
+        expect(identity).to eq("#{domain}\\#{username}")
+      end
+    end
+
     describe '#reset!' do
       it 'forgets the selected mechanism' do
         complete_ntlm_exchange(authenticator)
@@ -143,6 +236,12 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
 
   # Build a NegTokenInit that selects the specified mechanism, with an empty mechToken.
   def gss_init(mech_type)
+    gss_init_list([mech_type])
+  end
+
+  # Build a NegTokenInit whose mechTypeList is the given list of OIDs, with an empty mechToken.
+  # Used by the matrix tests to exercise multi-mechanism client offers.
+  def gss_init_list(mech_types)
     OpenSSL::ASN1::ASN1Data.new(
       [
         RubySMB::Gss::OID_SPNEGO,
@@ -150,7 +249,7 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
           [
             OpenSSL::ASN1::Sequence.new(
               [
-                OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new([mech_type])], 0, :CONTEXT_SPECIFIC),
+                OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new(mech_types)], 0, :CONTEXT_SPECIFIC),
                 OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::OctetString.new('')], 2, :CONTEXT_SPECIFIC)
               ]
             )
@@ -170,5 +269,77 @@ RSpec.describe RubySMB::Gss::Provider::Multi do
     type3 = type2.response({ user: username, password: password, domain: domain }, { ntlmv2: true })
     result = authenticator.process(RubySMB::Gss.gss_type3(type3.serialize))
     [result.nt_status, result.identity]
+  end
+
+  # Drive the full NTLM exchange and attach a client-generated mechListMIC to the final leg,
+  # modelling what MS-SPNG 3.2.5.5 asks a conformant client to do.
+  #
+  # `client_offer` is the mechTypeList the client's own code signs over (its own view). `server_sees`
+  # is what the authenticator receives in the NegTokenInit (same bytes used by both sides on the
+  # happy path, different bytes when an on-path attacker rewrote them). `mic_mode` is one of
+  # :real (compute from the matching NTLM session key), :tampered (compute then flip a bit), or
+  # :none (omit it entirely).
+  def mic_ntlm_exchange(authenticator, client_offer:, server_sees:, mic_mode:)
+    authenticator.process(nil)
+    type1 = Net::NTLM::Message::Type1.new.tap { |msg| msg.domain = domain }
+    init_blob = build_mic_init(server_sees, type1.serialize)
+    first = authenticator.process(init_blob)
+    raw_type2 = RubySMB::Gss.asn1dig(OpenSSL::ASN1.decode(first.buffer), 0, 2, 0).value
+    type2 = Net::NTLM::Message.parse(raw_type2)
+    type3 = type2.response({ user: username, password: password, domain: domain }, { ntlmv2: true })
+
+    mic = nil
+    if mic_mode != :none
+      session_key = ntlm_user_session_key_for(type3)
+      mech_list_der = OpenSSL::ASN1::Sequence.new(client_offer).to_der
+      mic = build_ntlm_mic(session_key, mech_list_der)
+      mic = tamper_mic(mic) if mic_mode == :tampered
+    end
+
+    final_blob = build_mic_resp(type3.serialize, mic)
+    result = authenticator.process(final_blob)
+    [result.nt_status, result.identity]
+  end
+
+  def build_mic_init(mech_oids, mech_token)
+    OpenSSL::ASN1::ASN1Data.new([
+      RubySMB::Gss::OID_SPNEGO,
+      OpenSSL::ASN1::ASN1Data.new(
+        [OpenSSL::ASN1::Sequence.new([
+          OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new(mech_oids)], 0, :CONTEXT_SPECIFIC),
+          OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::OctetString.new(mech_token)], 2, :CONTEXT_SPECIFIC)
+        ])], 0, :CONTEXT_SPECIFIC
+      )
+    ], 0, :APPLICATION).to_der
+  end
+
+  def build_mic_resp(response_token, mic)
+    fields = [OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::OctetString.new(response_token)], 2, :CONTEXT_SPECIFIC)]
+    fields << OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::OctetString.new(mic)], 3, :CONTEXT_SPECIFIC) if mic
+    OpenSSL::ASN1::ASN1Data.new([OpenSSL::ASN1::Sequence.new(fields)], 1, :CONTEXT_SPECIFIC).to_der
+  end
+
+  def ntlm_user_session_key_for(type3)
+    blob = type3.ntlm_response[16..-1]
+    ntlmv2_hash = Net::NTLM.ntlmv2_hash(
+      Net::NTLM::EncodeUtil.encode_utf16le(username),
+      Net::NTLM::EncodeUtil.encode_utf16le(password),
+      (type3.domain.is_a?(String) ? type3.domain : type3.domain.to_s).dup.force_encoding('ASCII-8BIT'),
+      { client_challenge: blob[16, 8], unicode: true }
+    )
+    OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, ntlmv2_hash, type3.ntlm_response[0, 16])
+  end
+
+  def build_ntlm_mic(session_key, mech_list_der)
+    sign_key = OpenSSL::Digest::MD5.digest(session_key + "session key to client-to-server signing key magic constant\0".b)
+    seq      = "\x00\x00\x00\x00".b
+    hmac     = OpenSSL::HMAC.digest(OpenSSL::Digest::MD5.new, sign_key, seq + mech_list_der).byteslice(0, 8)
+    "\x01\x00\x00\x00".b + hmac + seq
+  end
+
+  def tamper_mic(mic)
+    out = mic.dup
+    out.setbyte(5, out.getbyte(5) ^ 0xFF)
+    out
   end
 end
